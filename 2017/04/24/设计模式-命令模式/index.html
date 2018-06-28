@@ -1,0 +1,509 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>设计模式:命令模式 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="转载自：作者： chenssy 
+
+命令模式在开发设计中，我们可能会需要向某些对象发送一些请求，但是并不知请求的具体接收者是谁，也不知道被请求的操作是哪个个，我们只需在程序运行时指定具体的请求接收者即可。打个比方，电视遥控器，我们只需要知道按那个按钮能够打开电视、关闭电视和换台即可，并不需要知道是怎">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="设计模式:命令模式 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/04/24/设计模式-命令模式/" title="设计模式:命令模式" itemprop="url">设计模式:命令模式</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-04-24T14:12:23.000Z" itemprop="datePublished">2017-04-24</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#命令模式"><span class="toc-number">1.</span> <span class="toc-text">命令模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#基本定义"><span class="toc-number">1.1.</span> <span class="toc-text">基本定义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式结构"><span class="toc-number">1.2.</span> <span class="toc-text">模式结构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式实现"><span class="toc-number">1.3.</span> <span class="toc-text">模式实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式优缺点"><span class="toc-number">1.4.</span> <span class="toc-text">模式优缺点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式使用场景"><span class="toc-number">1.5.</span> <span class="toc-text">模式使用场景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式扩展"><span class="toc-number">1.6.</span> <span class="toc-text">模式扩展</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-number">1.7.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+		</div>
+		
+		<p>转载自：<br>作者： <a href="http://www.cnblogs.com/chenssy/p/3202107.html" target="_blank" rel="noopener">chenssy</a> </p>
+<hr>
+<h2 id="命令模式"><a href="#命令模式" class="headerlink" title="命令模式"></a>命令模式</h2><p>在开发设计中，我们可能会需要向某些对象发送一些请求，但是并不知请求的具体接收者是谁，也不知道被请求的操作是哪个个，我们只需在程序运行时指定具体的请求接收者即可。打个比方，电视遥控器，我们只需要知道按那个按钮能够打开电视、关闭电视和换台即可，并不需要知道是怎么开电视、关电视和换台的。对于这种情况，我们可以采用命令模式来进行设计。</p>
+<h3 id="基本定义"><a href="#基本定义" class="headerlink" title="基本定义"></a>基本定义</h3><p>命令模式将请求封装成对象，从而使您可以用不同的请求对客户进行参数化。<br>命令模式可以对发送者和接受者完全解耦，发送者和接收者之间并没有直接的联系，发送者只需要知道如何发送请求，不需要关心请求是如何完成了。这就是命令模式，命令模式将方法调用给封装起来了。</p>
+<h3 id="模式结构"><a href="#模式结构" class="headerlink" title="模式结构"></a>模式结构</h3><p><img src="http://images.cnitblog.com/blog/381060/201307/20104844-aa34697c84464e6290a8fb3d05720f77.jpg" alt=""><br>从上图可以看出命令模式包含如下几个角色：</p>
+<ul>
+<li>Command: 抽象命令类</li>
+<li>ConcreteCommand: 具体命令类</li>
+<li>Invoker: 调用者</li>
+<li>Receiver: 接收者</li>
+<li>Client:客户类</li>
+</ul>
+<p>命令模式的本质就在于将命令进行封装，将发出命令的责任和执行命令的责任分开，发送者只需要知道如何发送命令即可，不需要命令是如何实现的，甚至命令执行是否成功都不需要理会。同时命令模式使得请求也变成了一个对象，它像其他对象一样可以被存储和传递。</p>
+<h3 id="模式实现"><a href="#模式实现" class="headerlink" title="模式实现"></a>模式实现</h3><p> 这里以电视机为例。电视机是请求的接受者，遥控器是请求的发送者，遥控器上有一些按钮，不同的按钮对应着不同的操作。在这里遥控器需要执行三个命令：打开电视机、关闭电视机、换台。<br> UML图：<br> <img src="http://images.cnitblog.com/blog/381060/201307/20104900-8b2beb57fc7644b3a282aea7eeee4823.jpg" alt=""><br> 代码的实现<br>抽象命令类：Command.java<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span> <span class="comment">/**</span></span><br><span class="line"><span class="comment">2  * Command命令接口，为所有的命令声明一个接口。所有的命令都应该实现它</span></span><br><span class="line"><span class="comment">3  */</span></span><br><span class="line"><span class="number">4</span> <span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Command</span> </span>&#123;</span><br><span class="line"><span class="number">5</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span></span>;</span><br><span class="line"><span class="number">6</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>电视机类：Television.java<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Television</span> </span>&#123;</span><br><span class="line"> <span class="number">2</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">open</span><span class="params">()</span></span>&#123;</span><br><span class="line"> <span class="number">3</span>         System.out.println(<span class="string">"打开电视机......"</span>);</span><br><span class="line"> <span class="number">4</span>     &#125;</span><br><span class="line"> <span class="number">5</span>     </span><br><span class="line"> <span class="number">6</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span></span>&#123;</span><br><span class="line"> <span class="number">7</span>         System.out.println(<span class="string">"关闭电视机......"</span>);        </span><br><span class="line"> <span class="number">8</span>     &#125;</span><br><span class="line"> <span class="number">9</span>     </span><br><span class="line"><span class="number">10</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">changeChannel</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="number">11</span>         </span><br><span class="line"><span class="number">12</span>         System.out.println(<span class="string">"切换电视频道......"</span>);</span><br><span class="line"><span class="number">13</span>     &#125;</span><br><span class="line"><span class="number">14</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>遥控器类：Controller.java<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Controller</span> </span>&#123;</span><br><span class="line"> <span class="number">2</span>     <span class="keyword">private</span> Command openTVCommand;</span><br><span class="line"> <span class="number">3</span>     <span class="keyword">private</span> Command closeTVCommand;</span><br><span class="line"> <span class="number">4</span>     <span class="keyword">private</span> Command changeChannelCommand;</span><br><span class="line"> <span class="number">5</span>     </span><br><span class="line"> <span class="number">6</span>     <span class="function"><span class="keyword">public</span> <span class="title">Controller</span><span class="params">(Command openTvCommand,Command closeTvCommand,Command changeChannelCommand)</span></span>&#123;</span><br><span class="line"> <span class="number">7</span>         <span class="keyword">this</span>.openTVCommand = openTvCommand;</span><br><span class="line"> <span class="number">8</span>         <span class="keyword">this</span>.closeTVCommand = closeTvCommand;</span><br><span class="line"> <span class="number">9</span>         <span class="keyword">this</span>.changeChannelCommand = changeChannelCommand;</span><br><span class="line"><span class="number">10</span>     &#125;</span><br><span class="line"><span class="number">11</span>     </span><br><span class="line"><span class="number">12</span>     <span class="comment">/**</span></span><br><span class="line"><span class="comment">13      * 打开电视剧</span></span><br><span class="line"><span class="comment">14      */</span></span><br><span class="line"><span class="number">15</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">open</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="number">16</span>         openTVCommand.execute();</span><br><span class="line"><span class="number">17</span>     &#125;</span><br><span class="line"><span class="number">18</span>     </span><br><span class="line"><span class="number">19</span>     <span class="comment">/**</span></span><br><span class="line"><span class="comment">20      * 关闭电视机</span></span><br><span class="line"><span class="comment">21      */</span></span><br><span class="line"><span class="number">22</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="number">23</span>         closeTVCommand.execute();</span><br><span class="line"><span class="number">24</span>     &#125;</span><br><span class="line"><span class="number">25</span>     </span><br><span class="line"><span class="number">26</span>     <span class="comment">/**</span></span><br><span class="line"><span class="comment">27      * 换频道</span></span><br><span class="line"><span class="comment">28      */</span></span><br><span class="line"><span class="number">29</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">change</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="number">30</span>         </span><br><span class="line"><span class="number">31</span>         changeChannelCommand.execute();</span><br><span class="line"><span class="number">32</span>     &#125;</span><br><span class="line"><span class="number">33</span>     </span><br><span class="line"><span class="number">34</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p> 遥控器的三个按钮<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OpenTvCommand</span> <span class="keyword">implements</span> <span class="title">Command</span></span>&#123;</span><br><span class="line"> <span class="number">2</span>     <span class="keyword">private</span> Television tv;</span><br><span class="line"> <span class="number">3</span>     </span><br><span class="line"> <span class="number">4</span>     <span class="function"><span class="keyword">public</span> <span class="title">OpenTvCommand</span><span class="params">()</span></span>&#123;</span><br><span class="line"> <span class="number">5</span>         tv = <span class="keyword">new</span> Television();</span><br><span class="line"> <span class="number">6</span>     &#125;</span><br><span class="line"> <span class="number">7</span>     </span><br><span class="line"> <span class="number">8</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span> </span>&#123;</span><br><span class="line"> <span class="number">9</span>         tv.open();</span><br><span class="line"><span class="number">10</span>     &#125;</span><br><span class="line"><span class="number">11</span> </span><br><span class="line"><span class="number">12</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ChangeChannelCommand</span> <span class="keyword">implements</span> <span class="title">Command</span></span>&#123;</span><br><span class="line"> <span class="number">2</span>     <span class="keyword">private</span> Television tv;</span><br><span class="line"> <span class="number">3</span>     </span><br><span class="line"> <span class="number">4</span>     <span class="function"><span class="keyword">public</span> <span class="title">ChangeChannelCommand</span><span class="params">()</span></span>&#123;</span><br><span class="line"> <span class="number">5</span>         tv = <span class="keyword">new</span> Television();</span><br><span class="line"> <span class="number">6</span>     &#125;</span><br><span class="line"> <span class="number">7</span>     </span><br><span class="line"> <span class="number">8</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span> </span>&#123;</span><br><span class="line"> <span class="number">9</span>         tv.changeChannel();</span><br><span class="line"><span class="number">10</span>     &#125;</span><br><span class="line"><span class="number">11</span> </span><br><span class="line"><span class="number">12</span> &#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CloseTvCommand</span> <span class="keyword">implements</span> <span class="title">Command</span></span>&#123;</span><br><span class="line"> <span class="number">2</span>     <span class="keyword">private</span> Television tv;</span><br><span class="line"> <span class="number">3</span>     </span><br><span class="line"> <span class="number">4</span>     <span class="function"><span class="keyword">public</span> <span class="title">CloseTvCommand</span><span class="params">()</span></span>&#123;</span><br><span class="line"> <span class="number">5</span>         tv = <span class="keyword">new</span> Television();</span><br><span class="line"> <span class="number">6</span>     &#125;</span><br><span class="line"> <span class="number">7</span>     </span><br><span class="line"> <span class="number">8</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span> </span>&#123;</span><br><span class="line"> <span class="number">9</span>         tv.close();</span><br><span class="line"><span class="number">10</span>     &#125;</span><br><span class="line"><span class="number">11</span>     </span><br><span class="line"><span class="number">12</span> &#125;</span><br></pre></td></tr></table></figure>
+<p>客户端：Client.java<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;</span><br><span class="line"> <span class="number">2</span>         <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String a[])</span></span></span><br><span class="line"><span class="function"> 3         </span>&#123;</span><br><span class="line"> <span class="number">4</span>             Command openCommand,closeCommand,changeCommand;</span><br><span class="line"> <span class="number">5</span>             </span><br><span class="line"> <span class="number">6</span>             openCommand = <span class="keyword">new</span> OpenTvCommand();</span><br><span class="line"> <span class="number">7</span>             closeCommand = <span class="keyword">new</span> CloseTvCommand();</span><br><span class="line"> <span class="number">8</span>             changeCommand = <span class="keyword">new</span> ChangeChannelCommand();</span><br><span class="line"> <span class="number">9</span>             </span><br><span class="line"><span class="number">10</span>             Controller control = <span class="keyword">new</span> Controller(openCommand,closeCommand,changeCommand);</span><br><span class="line"><span class="number">11</span>             </span><br><span class="line"><span class="number">12</span>             control.open();           <span class="comment">//打开电视机</span></span><br><span class="line"><span class="number">13</span>             control.change();         <span class="comment">//换频道</span></span><br><span class="line"><span class="number">14</span>             control.close();          <span class="comment">//关闭电视机</span></span><br><span class="line"><span class="number">15</span>         &#125;</span><br><span class="line"><span class="number">16</span> </span><br><span class="line"><span class="number">17</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>运行结果<br> <img src="http://images.cnitblog.com/blog/381060/201307/20105205-7944356f910943e4b8fe78aab76924b8.jpg" alt=""> </p>
+<h3 id="模式优缺点"><a href="#模式优缺点" class="headerlink" title="模式优缺点"></a>模式优缺点</h3><p><strong> 优点</strong></p>
+<ul>
+<li>降低了系统耦合度</li>
+<li>新的命令可以很容易添加到系统中去</li>
+</ul>
+<p><strong>缺点</strong></p>
+<ul>
+<li>使用命令模式可能会导致某些系统有过多的具体命令类。</li>
+</ul>
+<h3 id="模式使用场景"><a href="#模式使用场景" class="headerlink" title="模式使用场景"></a>模式使用场景</h3><ol>
+<li>系统需要将请求调用者和请求接收者解耦，使得调用者和接收者不直接交互。</li>
+<li>系统需要在不同的时间指定请求、将请求排队和执行请求。</li>
+<li>系统需要支持命令的撤销(Undo)操作和恢复(Redo)操作。</li>
+<li>系统需要将一组操作组合在一起，即支持宏命令。</li>
+</ol>
+<h3 id="模式扩展"><a href="#模式扩展" class="headerlink" title="模式扩展"></a>模式扩展</h3><p><strong>撤销命令</strong><br>在电视遥控器中，我们还有这样一个按钮，那就是返回。用于切换到上面一个频道中去。在命令模式中也支持撤销操作，在这里我们只需要记录上一个频道，然后将上一个频道传入即可。<br>在这里将Command进行一个简单的修改：将execute()改为execute(int I );i表示频道，用于进行频道切换。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="comment">/**</span></span><br><span class="line"><span class="comment"> 2  * Command命令接口，为所有的命令声明一个接口。所有的命令都应该实现它</span></span><br><span class="line"><span class="comment"> 3  */</span></span><br><span class="line"> <span class="number">4</span> <span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Command</span> </span>&#123;</span><br><span class="line"> <span class="number">5</span>     <span class="comment">/**</span></span><br><span class="line"><span class="comment"> 6      * 为了方便切换频道，这里使用参数i将频道传递</span></span><br><span class="line"><span class="comment"> 7      * <span class="doctag">@param</span> i</span></span><br><span class="line"><span class="comment"> 8      */</span></span><br><span class="line"> <span class="number">9</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">(<span class="keyword">int</span> i)</span></span>;</span><br><span class="line"><span class="number">10</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后在Controller中添加channelUndo()方法，用于进行频道返回。并且需要进行一些简单的修改。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Controller</span> </span>&#123;</span><br><span class="line"> <span class="number">2</span>     <span class="keyword">private</span> Command openTVCommand;</span><br><span class="line"> <span class="number">3</span>     <span class="keyword">private</span> Command closeTVCommand;</span><br><span class="line"> <span class="number">4</span>     <span class="keyword">private</span> Command changeChannelCommand;</span><br><span class="line"> <span class="number">5</span>     </span><br><span class="line"> <span class="number">6</span>     <span class="keyword">public</span> <span class="keyword">int</span> nowChannel = <span class="number">0</span>;       <span class="comment">//当前频道</span></span><br><span class="line"> <span class="number">7</span>     <span class="keyword">public</span> <span class="keyword">int</span> priorChannel;     <span class="comment">//前一个频道，用于执行返回操作</span></span><br><span class="line"> <span class="number">8</span>     </span><br><span class="line"> <span class="number">9</span>     <span class="function"><span class="keyword">public</span> <span class="title">Controller</span><span class="params">(Command openTvCommand,Command closeTvCommand,Command changeChannelCommand)</span></span>&#123;</span><br><span class="line"><span class="number">10</span>         <span class="keyword">this</span>.openTVCommand = openTvCommand;</span><br><span class="line"><span class="number">11</span>         <span class="keyword">this</span>.closeTVCommand = closeTvCommand;</span><br><span class="line"><span class="number">12</span>         <span class="keyword">this</span>.changeChannelCommand = changeChannelCommand;</span><br><span class="line"><span class="number">13</span>     &#125;</span><br><span class="line"><span class="number">14</span>     </span><br><span class="line"><span class="number">15</span>     <span class="comment">/**</span></span><br><span class="line"><span class="comment">16      * 打开电视剧</span></span><br><span class="line"><span class="comment">17      */</span></span><br><span class="line"><span class="number">18</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">open</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="number">19</span>         openTVCommand.execute(<span class="number">0</span>);</span><br><span class="line"><span class="number">20</span>     &#125;</span><br><span class="line"><span class="number">21</span>     </span><br><span class="line"><span class="number">22</span>     <span class="comment">/**</span></span><br><span class="line"><span class="comment">23      * 关闭电视机</span></span><br><span class="line"><span class="comment">24      */</span></span><br><span class="line"><span class="number">25</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="number">26</span>         closeTVCommand.execute(<span class="number">0</span>);</span><br><span class="line"><span class="number">27</span>     &#125;</span><br><span class="line"><span class="number">28</span>     </span><br><span class="line"><span class="number">29</span>     <span class="comment">/**</span></span><br><span class="line"><span class="comment">30      * 换频道：只在当前频道递增</span></span><br><span class="line"><span class="comment">31      */</span></span><br><span class="line"><span class="number">32</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">change</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="number">33</span>         priorChannel = nowChannel;            <span class="comment">//换频道前记录当前频道</span></span><br><span class="line"><span class="number">34</span>         nowChannel++;       <span class="comment">//频道+1</span></span><br><span class="line"><span class="number">35</span>         changeChannelCommand.execute(nowChannel);</span><br><span class="line"><span class="number">36</span>     &#125;</span><br><span class="line"><span class="number">37</span>     </span><br><span class="line"><span class="number">38</span>     <span class="comment">/**</span></span><br><span class="line"><span class="comment">39      * 频道返回</span></span><br><span class="line"><span class="comment">40      */</span></span><br><span class="line"><span class="number">41</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">ChannelUndo</span><span class="params">()</span></span>&#123;</span><br><span class="line"><span class="number">42</span>         changeChannelCommand.execute(priorChannel);          <span class="comment">//将以前的频道传入</span></span><br><span class="line"><span class="number">43</span>         <span class="comment">//当前频道与前一个频道进行互换</span></span><br><span class="line"><span class="number">44</span>         <span class="keyword">int</span> tempChannel;</span><br><span class="line"><span class="number">45</span>         tempChannel = priorChannel;</span><br><span class="line"><span class="number">46</span>         priorChannel = nowChannel;</span><br><span class="line"><span class="number">47</span>         nowChannel = tempChannel;</span><br><span class="line"><span class="number">48</span>     &#125;</span><br><span class="line"><span class="number">49</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>客户端<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;</span><br><span class="line"> <span class="number">2</span>         <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String a[])</span></span></span><br><span class="line"><span class="function"> 3         </span>&#123;</span><br><span class="line"> <span class="number">4</span>             Command openCommand,closeCommand,changeCommand;</span><br><span class="line"> <span class="number">5</span>             </span><br><span class="line"> <span class="number">6</span>             openCommand = <span class="keyword">new</span> OpenTvCommand();</span><br><span class="line"> <span class="number">7</span>             closeCommand = <span class="keyword">new</span> CloseTvCommand();</span><br><span class="line"> <span class="number">8</span>             changeCommand = <span class="keyword">new</span> ChangeChannelCommand();</span><br><span class="line"> <span class="number">9</span>             </span><br><span class="line"><span class="number">10</span>             Controller control = <span class="keyword">new</span> Controller(openCommand,closeCommand,changeCommand);</span><br><span class="line"><span class="number">11</span>             </span><br><span class="line"><span class="number">12</span>             control.open();           <span class="comment">//打开电视机</span></span><br><span class="line"><span class="number">13</span>             control.change();         <span class="comment">//换频道</span></span><br><span class="line"><span class="number">14</span>             control.change();</span><br><span class="line"><span class="number">15</span>             control.ChannelUndo();</span><br><span class="line"><span class="number">16</span>             control.ChannelUndo();</span><br><span class="line"><span class="number">17</span>             control.ChannelUndo();</span><br><span class="line"><span class="number">18</span>             control.close();          <span class="comment">//关闭电视机</span></span><br><span class="line"><span class="number">19</span>         &#125;</span><br><span class="line"><span class="number">20</span> </span><br><span class="line"><span class="number">21</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>运行结果<br><img src="http://images.cnitblog.com/blog/381060/201307/20105401-a6873181360444629f73eeb5376ce75f.jpg" alt=""> </p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><ol>
+<li>命令模式的本质就是将命令对象进行封装打包，将发出命令的责任和执行命令的责任进行割开。</li>
+<li>命令模式中发送者只需要知道如何发送请求命令，无须关心命令执行具体过程。</li>
+<li>在发送者和接收者两者间是通过命令对象进行沟通的。请求命令本身就当做一个对象在两者间进行传递，它封装了接收者和一组动作。</li>
+<li>命令模式支持撤销。</li>
+<li>命令模式队列请求和日志请求。</li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/软件工程/">软件工程</a><a href="/tags/设计模式/">设计模式</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/软件工程/">软件工程</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/04/24/设计模式-命令模式/" data-title="设计模式:命令模式 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/04/25/设计模式-解释器模式/" title="设计模式:解释器模式">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  设计模式:解释器模式</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/04/23/设计模式-职责链模式/"  title="设计模式:职责链模式">
+ <strong>NEXT:</strong><br/> 
+ <span>设计模式:职责链模式
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#命令模式"><span class="toc-number">1.</span> <span class="toc-text">命令模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#基本定义"><span class="toc-number">1.1.</span> <span class="toc-text">基本定义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式结构"><span class="toc-number">1.2.</span> <span class="toc-text">模式结构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式实现"><span class="toc-number">1.3.</span> <span class="toc-text">模式实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式优缺点"><span class="toc-number">1.4.</span> <span class="toc-text">模式优缺点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式使用场景"><span class="toc-number">1.5.</span> <span class="toc-text">模式使用场景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#模式扩展"><span class="toc-number">1.6.</span> <span class="toc-text">模式扩展</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-number">1.7.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/04/24/设计模式-命令模式/';
+        this.page.identifier = '/2017/04/24/设计模式-命令模式/';
+        this.page.title = '设计模式:命令模式';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

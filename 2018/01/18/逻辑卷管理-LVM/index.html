@@ -1,0 +1,506 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>逻辑卷管理(LVM) | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="LVM是 Logical Volume Manager（逻辑卷管理）的简写，它是Linux环境下对磁盘分区进行管理的一种机制。通过使用 LVM，所有物理磁盘和分区，无论它们的大小和分布方式如何，都被抽象为单一存储（single storage）源。例如，在图 1 所示的物理到逻辑映射布局中，最大的磁">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="逻辑卷管理(LVM) | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/01/18/逻辑卷管理-LVM/" title="逻辑卷管理(LVM)" itemprop="url">逻辑卷管理(LVM)</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-01-18T03:57:34.000Z" itemprop="datePublished">2018-01-18</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#LVM-的结构"><span class="toc-number">1.</span> <span class="toc-text">LVM 的结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#卷"><span class="toc-number">1.1.</span> <span class="toc-text">卷</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#区段"><span class="toc-number">1.2.</span> <span class="toc-text">区段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#设备映射器"><span class="toc-number">1.3.</span> <span class="toc-text">设备映射器</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#用快照执行备份"><span class="toc-number">2.</span> <span class="toc-text">用快照执行备份</span></a></li></ol>
+		</div>
+		
+		<p>LVM是 Logical Volume Manager（逻辑卷管理）的简写，它是Linux环境下对磁盘分区进行管理的一种机制。通过使用 LVM，所有物理磁盘和分区，无论它们的大小和分布方式如何，都被抽象为单一存储（single storage）源。例如，在图 1 所示的物理到逻辑映射布局中，最大的磁盘是 80GB 的，那么用户如何创建更大（比如 150GB）的文件系统呢？<br><img src="/images/2018/1/4.gif" alt=""></p>
+<center>图 1. 物理到逻辑的映射</center>
+
+<p>LVM 可以将分区和磁盘聚合成一个虚拟磁盘（virtual disk），从而用小的存储空间组成一个统一的大空间。这个虚拟磁盘在 LVM 术语中称为卷组（volume group）。</p>
+<p>建立比最大的磁盘还大的文件系统并不是这种高级存储管理方法的惟一用途。还可以使用 LVM 完成以下任务：</p>
+<ul>
+<li>在磁盘池中添加磁盘和分区，对现有的文件系统进行在线扩展</li>
+<li>用一个 160GB 磁盘替换两个 80GB 磁盘，而不需要让系统离线，也不需要在磁盘之间手工转移数据</li>
+<li>当存储空间超过所需的空间容量时，从池中去除磁盘，从而缩小文件系统</li>
+<li>使用快照（snapshot）执行一致的备份</li>
+</ul>
+<h2 id="LVM-的结构"><a href="#LVM-的结构" class="headerlink" title="LVM 的结构"></a>LVM 的结构</h2><p>LVM 被组织为三种元素：</p>
+<ul>
+<li>卷（Volume）：物理卷和逻辑卷和卷组</li>
+<li>区段（Extent）：物理区段和逻辑区段</li>
+<li>设备映射器（Device mapper）：Linux 内核模块</li>
+</ul>
+<h3 id="卷"><a href="#卷" class="headerlink" title="卷"></a>卷</h3><p>Linux LVM 组织为物理卷（PV）、卷组（VG）和逻辑卷（LV）。物理卷 是物理磁盘或物理磁盘分区（比如 /dev/hda 或 /dev/hdb1）。卷组是物理卷的集合。卷组可以在逻辑上划分成多个逻辑卷。<br>图 2 显示一个三个磁盘构成的布局。<br><img src="/images/2018/1/5.gif" alt=""></p>
+<center>图 2. 物理到逻辑卷的映射</center>
+
+<p>物理磁盘 0 上的所有四个分区（/dev/hda[1-4]）以及完整的物理磁盘 1（/dev/hdb）和物理磁盘 2（/dev/hdd）作为物理卷添加到卷组 VG0 中。<br>卷组是实现 n-to-m 映射的关键（也就是，将 n 个 PV 看作 m 个 LV）。在将 PV 分配给卷组之后， 就可以创建任意大小的逻辑卷（只要不超过 VG 的大小）。在图 2 的示例中，创建了一个称为 LV0 的逻辑卷，并给其他 LV 留下了一些空间（这些空间也可以用来应付 LV0 以后的增长）。</p>
+<p>LVM 中的逻辑卷就相当于物理磁盘分区；在实际使用中，它们就是物理磁盘分区。</p>
+<p>在创建 LV 之后，可以使用任何文件系统对它进行格式化并将它挂载在某个挂载点上，然后就可以开始使用它了。图 3 显示一个经过格式化的逻辑卷 LV0 被挂载在 /var。</p>
+<p><img src="/images/2018/1/6.gif" alt=""></p>
+<center>图 3. 物理卷到文件系统的映射</center>
+
+<h3 id="区段"><a href="#区段" class="headerlink" title="区段"></a>区段</h3><p>为了实现 n-to-m 物理到逻辑卷映射，PV 和 VG 的基本块必须具有相同的大小；这些基本块称为物理区段（PE）和逻辑区段（LE）。尽管 n 个物理卷映射到 m 个逻辑卷，但是 PE 和 LE 总是一对一映射的。<br><img src="/images/2018/1/7.gif" alt=""></p>
+<center>图 4. 物理到逻辑区段的映射</center>
+
+<p>如果决定创建第二个 LV（LV1），那么最终的 PE 布局可能像图 5 这样。<br><img src="/images/2018/1/8.gif" alt=""></p>
+<p><center>图 5. 物理到逻辑区段的映射</center></p>
+<h3 id="设备映射器"><a href="#设备映射器" class="headerlink" title="设备映射器"></a>设备映射器</h3><p>设备映射器（也称为 dm_mod）是一个 Linux 内核模块，最早出现在 2.6.9 内核中。它的作用是对设备进行映射。</p>
+<h2 id="用快照执行备份"><a href="#用快照执行备份" class="headerlink" title="用快照执行备份"></a>用快照执行备份</h2><p>如果在备份过程期间数据没有发生变化，那么就能够获得一致的备份。如果不在备份期间停止系统，就很难保证数据没有变化。</p>
+<p>Linux LVM 实现了一种称为快照（Snapshot）的特性，它的作用就像是 “拍摄” 逻辑卷在某一时刻的照片。通过使用快照， 可以获得同一 LV 的两个拷贝 —— 一个可以用于备份，另一个继续用于日常操作。</p>
+<p>快照有两大优点：</p>
+<ol>
+<li>快照的创建非常快，不需要停止生产环境</li>
+<li>建立两个拷贝，但是它们的大小并不一样。快照使用的空间仅仅是存储两个 LV 之间的差异所需的空间</li>
+</ol>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.ibm.com/developerworks/cn/linux/l-lvm2/#artrelatedtopics" target="_blank" rel="noopener">逻辑卷管理</a></li>
+<li><a href="https://segmentfault.com/a/1190000009249534" target="_blank" rel="noopener">LVM、物理卷、逻辑卷、卷组、快照</a></li>
+<li><a href="http://blog.csdn.net/jinbusi_blog/article/details/73718740" target="_blank" rel="noopener">lvm介绍，及基本管理命令</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/文件系统/">文件系统</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/文件系统/">文件系统</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2018/01/18/逻辑卷管理-LVM/" data-title="逻辑卷管理(LVM) | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/01/19/Docker基础技术：DeviceMapper/" title="Docker基础技术：DeviceMapper">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Docker基础技术：DeviceMapper</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/01/17/回环设备loopback-device/"  title="回环设备loopback device">
+ <strong>NEXT:</strong><br/> 
+ <span>回环设备loopback device
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#LVM-的结构"><span class="toc-number">1.</span> <span class="toc-text">LVM 的结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#卷"><span class="toc-number">1.1.</span> <span class="toc-text">卷</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#区段"><span class="toc-number">1.2.</span> <span class="toc-text">区段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#设备映射器"><span class="toc-number">1.3.</span> <span class="toc-text">设备映射器</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#用快照执行备份"><span class="toc-number">2.</span> <span class="toc-text">用快照执行备份</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/01/18/逻辑卷管理-LVM/';
+        this.page.identifier = '/2018/01/18/逻辑卷管理-LVM/';
+        this.page.title = '逻辑卷管理(LVM)';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

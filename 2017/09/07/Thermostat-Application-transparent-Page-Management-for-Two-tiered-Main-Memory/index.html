@@ -1,0 +1,520 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Thermostat: Application-transparent Page Management for Two-tiered Main Memory | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="Thermostat此论文是ASPLOS’17上的一篇文章，今天特意总结一下，希望对读者会有所帮助。
+
+在本文中混合内存是指内存中既有DRAM，又有新型内存(NVM),但是目前NVM尚未投入商用，系统中使用的NVM都是在DRAM的基础上使用软件模拟的。
+
+Thermostat运行在KVM的虚拟机中，">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Thermostat: Application-transparent Page Management for Two-tiered Main Memory | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/09/07/Thermostat-Application-transparent-Page-Management-for-Two-tiered-Main-Memory/" title="Thermostat: Application-transparent Page Management for Two-tiered Main Memory" itemprop="url">Thermostat: Application-transparent Page Management for Two-tiered Main Memory</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-09-07T13:19:43.000Z" itemprop="datePublished">2017-09-07</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Thermostat"><span class="toc-number">1.</span> <span class="toc-text">Thermostat</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-number">1.1.</span> <span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#介绍"><span class="toc-number">1.2.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#贡献点"><span class="toc-number">1.3.</span> <span class="toc-text">贡献点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实现"><span class="toc-number">1.4.</span> <span class="toc-text">实现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#页面取样"><span class="toc-number">1.4.1.</span> <span class="toc-text">页面取样</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面访问速率计算"><span class="toc-number">1.4.2.</span> <span class="toc-text">页面访问速率计算</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面分类"><span class="toc-number">1.4.3.</span> <span class="toc-text">页面分类</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#错误分类页面的更正"><span class="toc-number">1.4.4.</span> <span class="toc-text">错误分类页面的更正</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面迁移"><span class="toc-number">1.4.5.</span> <span class="toc-text">页面迁移</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Thermostat例子"><span class="toc-number">1.4.6.</span> <span class="toc-text">Thermostat例子</span></a></li></ol></li></ol></li></ol>
+		</div>
+		
+		<h2 id="Thermostat"><a href="#Thermostat" class="headerlink" title="Thermostat"></a>Thermostat</h2><p>此论文是ASPLOS’17上的一篇文章，今天特意总结一下，希望对读者会有所帮助。</p>
+<ul>
+<li><p>在本文中混合内存是指内存中既有DRAM，又有新型内存(NVM),但是目前NVM尚未投入商用，系统中使用的NVM都是在DRAM的基础上使用软件模拟的。</p>
+</li>
+<li><p>Thermostat运行在KVM的虚拟机中，而非运行在主机OS中，这相当于我们修改的是虚拟机的操作系统。</p>
+</li>
+</ul>
+<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
+<li><a href="https://github.com/nehaag/thermostat_asplos_2017" target="_blank" rel="noopener">源码</a></li>
+<li>作者</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">姓名</th>
+<th style="text-align:center">主页</th>
+<th style="text-align:right">谷歌学术</th>
+<th style="text-align:right">dblp</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Neha Agarwaln</td>
+<td style="text-align:center"><a href="https://web.eecs.umich.edu/~nehaag/" target="_blank" rel="noopener">Neha Agarwal</a></td>
+<td style="text-align:right"><a href="https://scholar.google.com/citations?user=CmoC12kAAAAJ&amp;hl=zh-CN&amp;oi=sra" target="_blank" rel="noopener">Neha Agarwal</a></td>
+<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/a/Agarwal:Neha" target="_blank" rel="noopener">Neha Agarwal</a></td>
+</tr>
+<tr>
+<td style="text-align:left">Thomas F. Wenisch</td>
+<td style="text-align:center"><a href="http://www.eecs.umich.edu/~twenisch/" target="_blank" rel="noopener">Thomas F. Wenisch</a></td>
+<td style="text-align:right"><a href="https://scholar.google.com/citations?user=MJ5G4xgAAAAJ&amp;hl=zh-CN&amp;oi=sra" target="_blank" rel="noopener">Thomas F. Wenisch</a></td>
+<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/w/Wenisch:Thomas_F=" target="_blank" rel="noopener">Thomas F. Wenisch</a></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><a href="https://scholar.google.com/scholar?cites=1275265614885108365&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></li>
+</ul>
+<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>新型内存(NVM)比DRAM更加密集、更加便宜，但是NVM与DRAM相比有更高的访问延迟。DRAM中不经常访问的应用数据可以存储在NVM中，以显著地节省内存成本。以往对混合内存的研究都假定页面大小为4KB， 然而，在云计算应用中，2MB大页的使用能大大提高系统的性能。Thermostat是一个应用程序透明的大页感知机制，将页面放置在混合内存系统中，同时实现了混合内存的成本优势和大页的性能优势。</p>
+<h3 id="贡献点"><a href="#贡献点" class="headerlink" title="贡献点"></a>贡献点</h3><ul>
+<li><p>我们提出一种低开销机制，用于估计由于将特定页面置于NVM中而导致的性能下降。</p>
+</li>
+<li><p>我们在一个页面(大页与小页)冷热分类系统中使用上述机制，只需要一个输入，该输入代表我们所设定的系统性能下降的最大值。</p>
+</li>
+<li><p>我们提出一种方法来检测错误分类并纠正它们，从而最小化错误分类对应用吞吐量的影响。</p>
+</li>
+<li><p>通过在软件中模拟NVM，我们展示了Thermostat利用3%性能下降的代价可以将最高达50％的云应用程序占用内存迁移到NVM中，从而最高可以降低内存成本30%。</p>
+</li>
+</ul>
+<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><p>Thermostat定期对应用程序占用的一小部分内存进行采样，使用页面poison技术来估计每个页面的访问速率，将页面访问速率较低的页面放置在NVM中。 然后继续监控这些冷页，以便检测并快速更正任何错误分类或行为变化。</p>
+<h4 id="页面取样"><a href="#页面取样" class="headerlink" title="页面取样"></a>页面取样</h4><p>对于大页，将其拆分为512个小页，假设<em>Accessed</em>位为1的小页有50个，我们在这50个小页中再选择一部分进行取样监视。</p>
+<h4 id="页面访问速率计算"><a href="#页面访问速率计算" class="headerlink" title="页面访问速率计算"></a>页面访问速率计算</h4><p>利用BadgerTrap计算页面的访问速率。</p>
+<h4 id="页面分类"><a href="#页面分类" class="headerlink" title="页面分类"></a>页面分类</h4><p>根据用户所设定的系统性能下降的最大值，计算出一个页面访问速率阈值，然后利用页面的访问速率与该阈值进行比较，我们将页面分为冷页或者热页。</p>
+<h4 id="错误分类页面的更正"><a href="#错误分类页面的更正" class="headerlink" title="错误分类页面的更正"></a>错误分类页面的更正</h4><p>对于已经被迁移到NVM中的冷页，我们对它继续监视，如果之前对该页判断错误，或者随着时间的变化它的访问速率变高，我们就更正错误，将该页迁回到DRAM中。</p>
+<h4 id="页面迁移"><a href="#页面迁移" class="headerlink" title="页面迁移"></a>页面迁移</h4><p>一旦客户机识别出冷页，就必须将它们迁移到NVM中。 我们在KVM客户机中使用NUMA支持来实现迁移。 NVM内存空间作为单独的NUMA区域暴露给客户机操作系统，客户机操作系统可以向其迁移内存。</p>
+<h4 id="Thermostat例子"><a href="#Thermostat例子" class="headerlink" title="Thermostat例子"></a>Thermostat例子</h4><p><img src="/images/2017/9/7.png" alt=""></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a><a href="/tags/Kernel/">Kernel</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/09/07/Thermostat-Application-transparent-Page-Management-for-Two-tiered-Main-Memory/" data-title="Thermostat: Application-transparent Page Management for Two-tiered Main Memory | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/09/11/Large-Pages-May-Be-Harmful-on-NUMA-Systems/" title="Large Pages May Be Harmful on NUMA Systems">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Large Pages May Be Harmful on NUMA Systems</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/09/05/An-Empirical-Study-of-Memory-Sharing-in-Virtual-Machines/"  title="An Empirical Study of Memory Sharing in Virtual Machines">
+ <strong>NEXT:</strong><br/> 
+ <span>An Empirical Study of Memory Sharing in Virtual Machines
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Thermostat"><span class="toc-number">1.</span> <span class="toc-text">Thermostat</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-number">1.1.</span> <span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#介绍"><span class="toc-number">1.2.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#贡献点"><span class="toc-number">1.3.</span> <span class="toc-text">贡献点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实现"><span class="toc-number">1.4.</span> <span class="toc-text">实现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#页面取样"><span class="toc-number">1.4.1.</span> <span class="toc-text">页面取样</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面访问速率计算"><span class="toc-number">1.4.2.</span> <span class="toc-text">页面访问速率计算</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面分类"><span class="toc-number">1.4.3.</span> <span class="toc-text">页面分类</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#错误分类页面的更正"><span class="toc-number">1.4.4.</span> <span class="toc-text">错误分类页面的更正</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面迁移"><span class="toc-number">1.4.5.</span> <span class="toc-text">页面迁移</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Thermostat例子"><span class="toc-number">1.4.6.</span> <span class="toc-text">Thermostat例子</span></a></li></ol></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/09/07/Thermostat-Application-transparent-Page-Management-for-Two-tiered-Main-Memory/';
+        this.page.identifier = '/2017/09/07/Thermostat-Application-transparent-Page-Management-for-Two-tiered-Main-Memory/';
+        this.page.title = 'Thermostat: Application-transparent Page Management for Two-tiered Main Memory';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

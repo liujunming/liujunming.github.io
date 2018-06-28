@@ -1,0 +1,521 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>CGroup技术的详解 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="cgroup的简介与功能Control Groups (cgroups), which provide a mechanism for easily managing and monitoring system resources, by partitioning things like cpu t">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="CGroup技术的详解 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2016/08/30/CGroup技术的详解/" title="CGroup技术的详解" itemprop="url">CGroup技术的详解</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2016-08-30T11:49:07.000Z" itemprop="datePublished">2016-08-30</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#cgroup的简介与功能"><span class="toc-number">1.</span> <span class="toc-text">cgroup的简介与功能</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#cgroup相关概念"><span class="toc-number">2.</span> <span class="toc-text">cgroup相关概念</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#相关概念"><span class="toc-number">2.1.</span> <span class="toc-text">相关概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#相互关系"><span class="toc-number">2.2.</span> <span class="toc-text">相互关系</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#cgroups子系统介绍"><span class="toc-number">3.</span> <span class="toc-text">cgroups子系统介绍</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#cgroups的使用"><span class="toc-number">4.</span> <span class="toc-text">cgroups的使用</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#安装cgroup"><span class="toc-number">4.1.</span> <span class="toc-text">安装cgroup</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#编写测试程序"><span class="toc-number">4.2.</span> <span class="toc-text">编写测试程序</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#建立cgroup"><span class="toc-number">4.3.</span> <span class="toc-text">建立cgroup</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#运行测试程序"><span class="toc-number">4.4.</span> <span class="toc-text">运行测试程序</span></a></li></ol></li></ol>
+		</div>
+		
+		<h1 id="cgroup的简介与功能"><a href="#cgroup的简介与功能" class="headerlink" title="cgroup的简介与功能"></a>cgroup的简介与功能</h1><p>Control Groups (cgroups), which provide a mechanism for easily managing and monitoring system resources, by partitioning things like cpu time, system memory, disk and network bandwidth, into groups, then assigning tasks to those groups.</p>
+<p>Let me try and explain what control groups are, and what they allow you to do. Lets say for example that you have a resources intensive application on a server. Linux is great at sharing resources between all of the processes on a system, but in some cases, you want to allocate, or guarantee, a greater amount to a specific application, or a set of applications, this is where control groups are useful.</p>
+<p>For example, lets say we wanted to assign or isolate an applications resources, lets create two groups, group #1 will be for our operating system, and group #2 will be for our application, then we can assign resource profiles to each group.</p>
+<p><img src="/images/2017/5/14-cgroups-overview.gif" alt="这里写图片描述"></p>
+<p>Lets focus on Group #2 for a moment. Typically when you create a group, you already have a problem in mind, so for the sake of this example, lets say we wanted to manage, cpu, memory, disk and network bandwidth, for our application. So, I would create a group, and assign resources limits to this group, something like this. Keep in mind, the application knows nothing about these limits, this is happening outside of our application. So, any application that is assigned to this group, cannot use more than 80% of the cpu, 10 GB of memory, 80% of disk reads and writes, and finally, 80% of our network bandwidth. Once the group is created, you simple need to add your applications process ids, or pids, into a file, and your applications are automatically throttled. This can happen on the fly, without system reboots, you can also adjust these limits on the fly. I just wanted to mention, that our application will be allowed to spike outside these percentage limits, but if there is resource contention, our application will be throttled back to 80%.</p>
+<p><img src="/images/2017/5/14-cgroups-your-app.gif" alt="这里写图片描述"></p>
+<p>Monitoring is also baked in from the start, so we can monitor resource consumption for any application that is assigned to this group, things like, cpu cycles used, the memory profile, IOPS and bytes written and read from our disks, along with network bandwidth used.</p>
+<p>Lets jump back for a moment, and use a different example, lets say we have an environment, where we are hosting virtual machines, instead of just having two groups, one for our operating system, and one for our application, we can have many groups, one assigned to each virtual machine. For example, lets say we are worried about a virtual machine saturating the network link or disk IOPS, we can limit the impact by using control groups, which can be really handy.</p>
+<p><img src="/images/2017/5/14-cgroups-your-app-big-picture.png" alt="这里写图片描述"></p>
+<h1 id="cgroup相关概念"><a href="#cgroup相关概念" class="headerlink" title="cgroup相关概念"></a>cgroup相关概念</h1><h2 id="相关概念"><a href="#相关概念" class="headerlink" title="相关概念"></a>相关概念</h2><ol>
+<li>任务（task）。在 cgroups 中，任务就是系统的一个进程；</li>
+<li>控制族群（control group）。控制族群就是一组按照某种标准划分的进程。cgroups 中的资源控制都是以控制族群为单位实现。一个进程可以加入到某个控制族群，也从一个进程组迁移到另一个控制族群。一个进程组的进程可以使用 cgroups 以控制族群为单位分配的资源，同时受到 cgroups 以控制族群为单位设定的限制；</li>
+<li>层级（hierarchy）。控制族群可以组织成 hierarchical 的形式，即一颗控制族群树。控制族群树上的子节点控制族群是父节点控制族群的孩子，继承父控制族群的特定的属性；</li>
+<li>子系统（subsystem）。一个子系统就是一个资源控制器，比如 cpu 子系统就是控制 cpu 时间分配的一个控制器。子系统必须附加（attach）到一个层级上才能起作用，一个子系统附加到某个层级以后，这个层级上的所有控制族群都受到这个子系统的控制。</li>
+</ol>
+<h2 id="相互关系"><a href="#相互关系" class="headerlink" title="相互关系"></a>相互关系</h2><ol>
+<li>每次在系统中创建新层级时，该系统中的所有任务都是那个层级的默认 cgroup（我们称之为 root cgroup ，此cgroup在创建层级时自动创建，后面在该层级中创建的cgroup都是此cgroup的后代）的初始成员。</li>
+<li>一个子系统最多只能附加到一个层级。</li>
+<li>一个层级可以附加多个子系统</li>
+<li>一个任务可以是多个cgroup的成员，但是这些cgroup必须在不同的层级。</li>
+<li>系统中的进程（任务）创建子进程（任务）时，该子任务自动成为其父进程所在 cgroup 的成员。然后可根据需要将该子任务移动到不同的 cgroup 中，但开始时它总是继承其父任务的cgroup。</li>
+</ol>
+<p><img src="/images/2016/8/30/3.png" alt=""></p>
+<p>上图所示的 cgroup 层级关系显示，CPU 和 Memory 两个子系统有自己独立的层级系统，而又通过 Task Group 取得关联关系。</p>
+<h1 id="cgroups子系统介绍"><a href="#cgroups子系统介绍" class="headerlink" title="cgroups子系统介绍"></a>cgroups子系统介绍</h1><ul>
+<li>blkio –这个子系统为块设备设定输入/输出限制，比如物理设备（磁盘，固态硬盘，USB 等等）。</li>
+<li>cpu –这个子系统使用调度程序提供对CPU 的cgroup 任务访问。</li>
+<li>cpuacct –这个子系统自动生成cgroup 中任务所使用的CPU 报告。</li>
+<li>cpuset –这个子系统为cgroup 中的任务分配独立CPU（在多核系统）和内存节点。</li>
+<li>devices –这个子系统可允许或者拒绝cgroup 中的任务访问设备。</li>
+<li>freezer –这个子系统挂起或者恢复cgroup 中的任务。</li>
+<li>memory –这个子系统设定cgroup 中任务使用的内存限制，并自动生成由那些任务使用的内存资源报告。</li>
+<li>net_cls –这个子系统使用等级识别符（classid）标记网络数据包，可允许Linux 流量控制程序（tc）识别从具体cgroup 中生成的数据包。</li>
+<li>ns –名称空间子系统。</li>
+</ul>
+<h1 id="cgroups的使用"><a href="#cgroups的使用" class="headerlink" title="cgroups的使用"></a>cgroups的使用</h1><p>这个教程是在ubuntu下使用cgroups，限制进程的内存大小，从而验证cgroup的功能。</p>
+<h2 id="安装cgroup"><a href="#安装cgroup" class="headerlink" title="安装cgroup"></a>安装cgroup</h2><p><code>sudo apt-get install cgroup-bin</code></p>
+<h2 id="编写测试程序"><a href="#编写测试程序" class="headerlink" title="编写测试程序"></a>编写测试程序</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** mem-limit.c **/</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> i;</span><br><span class="line">    <span class="keyword">char</span> *p;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// intro message</span></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Starting ...\n"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// loop 50 times, try and consume 50 MB of memory</span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">50</span>; ++i) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// failure to allocate memory?</span></span><br><span class="line">        <span class="keyword">if</span> ((p = <span class="built_in">malloc</span>(<span class="number">1</span>&lt;&lt;<span class="number">20</span>)) == <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">"Malloc failed at %d MB\n"</span>, i);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// take memory and tell user where we are at</span></span><br><span class="line">        <span class="built_in">memset</span>(p, <span class="number">0</span>, (<span class="number">1</span>&lt;&lt;<span class="number">20</span>));</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Allocated %d to %d MB\n"</span>, i, i+<span class="number">1</span>);</span><br><span class="line">        getchar();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// exit message and return</span></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Done!\n"</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试程序的核心是循环部分，每次循环都向内存申请1MB的空间，总共循环50次。</p>
+<p><code>gcc mem-limit.c -o mem-limit</code></p>
+<h2 id="建立cgroup"><a href="#建立cgroup" class="headerlink" title="建立cgroup"></a>建立cgroup</h2><p><code>mkdir /sys/fs/cgroup/memory/test</code></p>
+<p>限制进程的内存大小为5MB。</p>
+<p><code>echo 5242880 &gt; /sys/fs/cgroup/memory/test/memory.limit_in_bytes</code></p>
+<h2 id="运行测试程序"><a href="#运行测试程序" class="headerlink" title="运行测试程序"></a>运行测试程序</h2><p>将进程加入到cgroup中。<br>下面的命令需要root用户运行，否则会报错！</p>
+<p><code>cgexec -g memory:test ./mem-limit</code></p>
+<p><img src="/images/2016/8/30/1.png" alt=""></p>
+<p><img src="/images/2016/8/30/2.png" alt=""></p>
+<p>从这两张图中可以看到，当进程向内存申请8MB空间时，swap空间大小为3MB，当进程向内存申请9MB空间时，swap空间大小为4MB。正是由于cgroup对于进程内存的限制，所以才会用到swap空间，这也验证了cgroup的作用达到了。<br>由于篇幅的限制，只介绍了cgroup中内存子系统的应用实例，若想尝试其他子系统，可查询<a href="https://www.kernel.org/doc/Documentation/cgroup-v1/" target="_blank" rel="noopener">官方文档</a>。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="http://blog.csdn.net/jesseyoung/article/details/39077829#t0" target="_blank" rel="noopener">csdn jesseyoung</a></li>
+<li><a href="http://www.ibm.com/developerworks/cn/linux/1506_cgroup/index.html" target="_blank" rel="noopener">IBM 周明耀</a></li>
+<li><a href="http://files.cnblogs.com/files/lisperl/cgroups%E4%BB%8B%E7%BB%8D.pdf" target="_blank" rel="noopener">王喆锋 Linux cgroups 详解</a></li>
+<li><a href="https://sysadmincasts.com/episodes/14-introduction-to-linux-control-groups-cgroups" target="_blank" rel="noopener">sysadmincasts</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/cgroup-v1/cgroups.txt" target="_blank" rel="noopener">kernel Documentation</a></li>
+<li><a href="https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Resource_Management_Guide/index.html" target="_blank" rel="noopener">redhat</a></li>
+<li><a href="http://www.linux-kongress.org/2010/slides/seyfried-cgroups-linux-kongress-2010-presentation.pdf" target="_blank" rel="noopener">linux-kongress</a></li>
+<li><a href="https://help.ubuntu.com/lts/serverguide/cgroups.html" target="_blank" rel="noopener">Control Groups - Official Ubuntu Documentation</a></li>
+<li><a href="http://www.cnblogs.com/yjf512/p/3298582.html" target="_blank" rel="noopener">cnblogs 轩脉刃de刀光剑影</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/linux/">linux</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/linux/">linux</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2016/08/30/CGroup技术的详解/" data-title="CGroup技术的详解 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2016/09/03/算法学习资料/" title="算法学习资料">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  算法学习资料</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2016/08/18/知识检索与研究技能/"  title="知识检索与研究技能">
+ <strong>NEXT:</strong><br/> 
+ <span>知识检索与研究技能
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#cgroup的简介与功能"><span class="toc-number">1.</span> <span class="toc-text">cgroup的简介与功能</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#cgroup相关概念"><span class="toc-number">2.</span> <span class="toc-text">cgroup相关概念</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#相关概念"><span class="toc-number">2.1.</span> <span class="toc-text">相关概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#相互关系"><span class="toc-number">2.2.</span> <span class="toc-text">相互关系</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#cgroups子系统介绍"><span class="toc-number">3.</span> <span class="toc-text">cgroups子系统介绍</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#cgroups的使用"><span class="toc-number">4.</span> <span class="toc-text">cgroups的使用</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#安装cgroup"><span class="toc-number">4.1.</span> <span class="toc-text">安装cgroup</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#编写测试程序"><span class="toc-number">4.2.</span> <span class="toc-text">编写测试程序</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#建立cgroup"><span class="toc-number">4.3.</span> <span class="toc-text">建立cgroup</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#运行测试程序"><span class="toc-number">4.4.</span> <span class="toc-text">运行测试程序</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2016/08/30/CGroup技术的详解/';
+        this.page.identifier = '/2016/08/30/CGroup技术的详解/';
+        this.page.title = 'CGroup技术的详解';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

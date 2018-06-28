@@ -1,0 +1,484 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Linux用户虚拟地址和内核虚拟地址的关系 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="Linux用户虚拟地址和内核虚拟地址的关系知乎larmbr宇的回答
+现在 Linux 内核是4级页表结构，3级页表的时代是10年前了。 X86_64 架构下，无论 Intel 还是 AMD 的 CPU, 都是四级的硬件页表，所以软件层面的页表至少要4级(否则，进程访问的空间将受限， 因为有一级页表被">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Linux用户虚拟地址和内核虚拟地址的关系 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/07/02/Linux用户虚拟地址和内核虚拟地址的关系/" title="Linux用户虚拟地址和内核虚拟地址的关系" itemprop="url">Linux用户虚拟地址和内核虚拟地址的关系</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-07-02T14:07:18.000Z" itemprop="datePublished">2017-07-02</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux用户虚拟地址和内核虚拟地址的关系"><span class="toc-number">1.</span> <span class="toc-text">Linux用户虚拟地址和内核虚拟地址的关系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#知乎larmbr宇的回答"><span class="toc-number">1.1.</span> <span class="toc-text">知乎larmbr宇的回答</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#The-kernel-virtual-memory-area-in-x64-Linux"><span class="toc-number">1.2.</span> <span class="toc-text">The kernel virtual memory area in x64 Linux</span></a></li></ol></li></ol>
+		</div>
+		
+		<h2 id="Linux用户虚拟地址和内核虚拟地址的关系"><a href="#Linux用户虚拟地址和内核虚拟地址的关系" class="headerlink" title="Linux用户虚拟地址和内核虚拟地址的关系"></a>Linux用户虚拟地址和内核虚拟地址的关系</h2><h3 id="知乎larmbr宇的回答"><a href="#知乎larmbr宇的回答" class="headerlink" title="知乎larmbr宇的回答"></a>知乎larmbr宇的回答</h3><ol>
+<li><p>现在 Linux 内核是4级页表结构，3级页表的时代是10年前了。 X86_64 架构下，无论 Intel 还是 AMD 的 CPU, 都是四级的硬件页表，所以软件层面的页表至少要4级(否则，进程访问的空间将受限， 因为有一级页表被固定住了，所以3级页表时代，X86_64 只能访问 512GB 空间, 而 X86_64 的设计可访问空间达到 131 072( = 2^47) GB。打个比方就是，省，市，区，县 四级行政规划，硬要嵌套进三级规划，只能表达市，区，县三级，省一级给固定住了, 访问范围缩小了)。</p>
+</li>
+<li><p>不过你会问：i386 只有三级硬件页表：PUD -&gt; PMD -&gt; PTE， 怎么嵌入四级软件页表结构？ 答案就是虚设一层。打个比方：北京是省级行政单位，如果要按省，市，区，县结构来表达某县，就是: 北京(省)北京(市)XX区XX县， 有一层完全就是占个位而已。有兴趣了解 Linux 页表的变迁历史，可以参考这篇文章：<a href="http://larmbr.com/2014/01/19/the-evolution-of-4-level-page-talbe-in-linux/" target="_blank" rel="noopener">Linux内核4级页表的演进</a></p>
+</li>
+<li><p>内核空间，用户空间的地址都是虚拟地址，都要经过 MMU 的翻译，变成物理地址。用户空间的虚拟地址，就是按前面所述的走四级页表来翻译。 内核空间虚拟地址是所有进程共享的，重要的是，从效率角度看， 如果同样走四级页表翻译的流程，速度太慢；于是，内核在初始化时，就创建内核空间的映射（因为所有进程共享，有一份就够了），并且，采用的就是线性映射，而不是走页表翻译这种类似哈希表的方式。这样，内核地址的翻译，简化为一条偏移加减指令就行，相比走页表，效率大大提高(不过，内核空间并非完全不用页表，此处讲原理所以简化，详细的看尾注).</p>
+</li>
+<li><p>至于为什么用户空间不能也像内核空间这么做，原因是用户地址空间是随进程创建才产生的，它的页面可能散布在不同的物理内存中，无法这么做。另外，走页表的过程，不止是翻译的过程，还是一个权限检查的过程，对于不可控的用户态地址，这安全性检查必不可省。而内核空间，只有一份，所有可以提前固定下来一片连续的物理地址空间，按线性方法来映射。这是很正常的优化方法。</p>
+</li>
+<li><p>那么问题来了，在 Linux 刚引入的时候， i386 4G 的进程空间典型的是 3G user + 1G kernel 的划分，这教科书上都有说。 那按前面的线性方法， 1G 内核空间，只能映射 1G 物理地址空间，这对内核来说，太掣肘了。所以，折衷方案是， Linux 内核只对 1G 内核空间的前 896 MB 按前面所说的方法线性映射, 剩下的 128 MB 的内核空间， 采用动态映射[1]的方式，即按需映射的方式 ，这样，内核态的访问空间更多了。到了 64 位时代， 内核空间大大增大， 这种限制就没了，内核空间可以完全进行线性映射，不过，基于[1]的缘故， 仍保留有动态映射这部分。</p>
+</li>
+</ol>
+<p>[1] 动态映射不全是为了内核空间可以访问更多的物理内存，还有一个重要原因： 当内核需要连续多页面的空间时，如果内核空间全线性映射，那么，可能会出现内核空间碎片化而满足不了这么多连续页面分配的需求。基于此，内核空间也必须有一部分是非线性映射，从而在这碎片化物理地址空间上，用页表构造连续虚拟地址空间,这就是所谓vmalloc空间。</p>
+<h3 id="The-kernel-virtual-memory-area-in-x64-Linux"><a href="#The-kernel-virtual-memory-area-in-x64-Linux" class="headerlink" title="The kernel virtual memory area in x64 Linux"></a>The kernel virtual memory area in x64 Linux</h3><p>在课本上介绍的内核的地址空间都为1GB，然而这是在x86Linux上的情况。在x64Linux上内核虚拟地址空间又为多少呢?下面引用quora上的回答：</p>
+<blockquote>
+<p>Linux for AMD64 (x86_64) uses a 48-bit (“canonical mode”) address space which is divided into two regions.  The kernel’s virtual address space is 128TB and the user virtual address space is also 128TB (thus the two together are a 48-bit address space, though that is NOT contiguous).</p>
+</blockquote>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.zhihu.com/question/34787574/answer/60214771" target="_blank" rel="noopener">知乎 larmbr宇</a></li>
+<li><a href="https://www.quora.com/How-large-is-the-kernel-virtual-memory-area-in-x64-Linux-Is-it-still-1GB-as-in-x86-Linux" target="_blank" rel="noopener">quora Jim Dennis</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a><a href="/tags/Kernel/">Kernel</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/07/02/Linux用户虚拟地址和内核虚拟地址的关系/" data-title="Linux用户虚拟地址和内核虚拟地址的关系 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/07/03/get-user-pages函数详解/" title="get_user_pages函数详解">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  get_user_pages函数详解</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/07/02/Git的Patch功能/"  title="Git的Patch功能">
+ <strong>NEXT:</strong><br/> 
+ <span>Git的Patch功能
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux用户虚拟地址和内核虚拟地址的关系"><span class="toc-number">1.</span> <span class="toc-text">Linux用户虚拟地址和内核虚拟地址的关系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#知乎larmbr宇的回答"><span class="toc-number">1.1.</span> <span class="toc-text">知乎larmbr宇的回答</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#The-kernel-virtual-memory-area-in-x64-Linux"><span class="toc-number">1.2.</span> <span class="toc-text">The kernel virtual memory area in x64 Linux</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/07/02/Linux用户虚拟地址和内核虚拟地址的关系/';
+        this.page.identifier = '/2017/07/02/Linux用户虚拟地址和内核虚拟地址的关系/';
+        this.page.title = 'Linux用户虚拟地址和内核虚拟地址的关系';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

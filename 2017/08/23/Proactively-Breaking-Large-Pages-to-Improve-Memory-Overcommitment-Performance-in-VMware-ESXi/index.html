@@ -1,0 +1,524 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Proactively Breaking Large Pages to Improve Memory Overcommitment Performance in VMware ESXi | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="Proactively Breaking Large Pages to Improve Memory Overcommitment Performance相关资料
+作者
+
+
+
+
+姓名
+主页
+dblp
+
+
+
+
+Fei Guo
+Fei Guo
+Fei Guo
+
+
+Seongbeom Kim
+Seongb">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Proactively Breaking Large Pages to Improve Memory Overcommitment Performance in VMware ESXi | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/08/23/Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance-in-VMware-ESXi/" title="Proactively Breaking Large Pages to Improve Memory Overcommitment Performance in VMware ESXi" itemprop="url">Proactively Breaking Large Pages to Improve Memory Overcommitment Performance in VMware ESXi</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-08-23T01:20:17.000Z" itemprop="datePublished">2017-08-23</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance"><span class="toc-number">1.</span> <span class="toc-text">Proactively Breaking Large Pages to Improve Memory Overcommitment Performance</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-number">1.1.</span> <span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#问题"><span class="toc-number">1.2.</span> <span class="toc-text">问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实现"><span class="toc-number">1.3.</span> <span class="toc-text">实现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#VMware-ESXi内存管理基础原则"><span class="toc-number">1.3.1.</span> <span class="toc-text">VMware ESXi内存管理基础原则</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#拆分“冷”大页"><span class="toc-number">1.3.2.</span> <span class="toc-text">拆分“冷”大页</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#clear-内存状态"><span class="toc-number">1.3.3.</span> <span class="toc-text">clear 内存状态</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#high-to-clear的动态调整"><span class="toc-number">1.3.3.1.</span> <span class="toc-text">high-to-clear的动态调整</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面扫描速率的动态调整"><span class="toc-number">1.3.4.</span> <span class="toc-text">页面扫描速率的动态调整</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-number">1.4.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+		</div>
+		
+		<h2 id="Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance"><a href="#Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance" class="headerlink" title="Proactively Breaking Large Pages to Improve Memory Overcommitment Performance"></a>Proactively Breaking Large Pages to Improve Memory Overcommitment Performance</h2><h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
+<li>作者</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">姓名</th>
+<th style="text-align:center">主页</th>
+<th style="text-align:right">dblp</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Fei Guo</td>
+<td style="text-align:center"><a href="https://blogs.vmware.com/performance/author/fei_guo" target="_blank" rel="noopener">Fei Guo</a></td>
+<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/g/Guo:Fei" target="_blank" rel="noopener">Fei Guo</a></td>
+</tr>
+<tr>
+<td style="text-align:left">Seongbeom Kim</td>
+<td style="text-align:center"><a href="https://blogs.vmware.com/performance/author/skim" target="_blank" rel="noopener">Seongbeom Kim</a></td>
+<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/k/Kim:Seongbeom" target="_blank" rel="noopener">Seongbeom Kim</a></td>
+</tr>
+<tr>
+<td style="text-align:left">Ishan Banerjee</td>
+<td style="text-align:center"><a href="http://www.cs.umd.edu/~ishan/" target="_blank" rel="noopener">Ishan Banerjee</a></td>
+<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/b/Banerjee:Ishan" target="_blank" rel="noopener">Ishan Banerjee</a></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><a href="https://scholar.google.com/scholar?cites=17156731682018332745&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></li>
+</ul>
+<h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>当主机内存过量使用时，我们会衡量大页对工作负载性能的影响。由于使用大页会显著增加虚拟机内存消耗并降低页面共享，与使用小页相比，工作负载性能可能会大大降低。 然而，当主机有大量可用内存时，禁用大页通常会降低许多工作负载的性能。</p>
+<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><h4 id="VMware-ESXi内存管理基础原则"><a href="#VMware-ESXi内存管理基础原则" class="headerlink" title="VMware ESXi内存管理基础原则"></a>VMware ESXi内存管理基础原则</h4><p>主机空闲内存的数量决定了空闲内存状态，根据不同的状态，ESXi将采取不同的技术来回收内存。主机内存有high和low这两个状态，状态转换阈值称为minFree，并根据主机内存大小进行预设。<br><img src="/images/2017/8/5.png" alt=""><br>当主机内存处于high状态时，仅使用页面共享来回收内存；当主机内存处于low状态时，ESXi会使用气球和swapping来回收内存。</p>
+<h4 id="拆分“冷”大页"><a href="#拆分“冷”大页" class="headerlink" title="拆分“冷”大页"></a>拆分“冷”大页</h4><p>识别不经常使用的大页，即“冷”大页，并允许它们在主机空闲内存充足时被拆分。 基本上，我们通过定期扫描大页的Accessed位，实现一个简单的“冷”大页检测器。 然后，Hypervisor会拆分包含可共享小页的“冷”大页。</p>
+<h4 id="clear-内存状态"><a href="#clear-内存状态" class="headerlink" title="clear 内存状态"></a>clear 内存状态</h4><p>当主机内存压力低时，拆分“冷”大页会降低主机内存消耗，性能影响可以忽略不计。 然而，当主机内存压力增加时，拆分“冷”大页可能依然使主机内存不足，主机内存最终达到low状态。 在这种情况下，提前打破所有大页（包括“热”的）是有益的，以便hypervisor可以通过页面共享抢先回收内存， 然后将气球技术或swapping回收的内存量最小化。 为了实现这一点，我们提出了一种在high状态和low状态之间的clear状态。<br><img src="/images/2017/8/6.png" alt=""></p>
+<p>从high状态切换到clear状态的阈值，被称为high-to-clear。在clear状态下，任何大页如果包含可共享的小页，则可能会被拆分，并且不包含可共享的小页的大页仍然保留， ESXi中的大页分配和合并也都被禁用。</p>
+<h5 id="high-to-clear的动态调整"><a href="#high-to-clear的动态调整" class="headerlink" title="high-to-clear的动态调整"></a>high-to-clear的动态调整</h5><p>我们提出了一种基于空闲内存消耗率的high-to-clear调整机制。 本质上，如果主机空闲内存在clear状态时增加，我们将降低high-to-clear，以允许主机在将来重新进入high状态 ； 一旦我们检测到主机空闲内存迅速下降， high-to-clear将恢复为默认值。</p>
+<h4 id="页面扫描速率的动态调整"><a href="#页面扫描速率的动态调整" class="headerlink" title="页面扫描速率的动态调整"></a>页面扫描速率的动态调整</h4><p>一般来说，扫描速率应根据主机内存消耗速率和虚拟机内存共享性进行设置。 例如，如果大页中较少的小页可共享，则扫描速率需要更高，以便从拆分的大页中拾取足够可共享的小页，反之亦然。 由于VM大页中的内存共享性在ESXi中是未知的，因此我们提出了一种使用抽样技术来估计客户机内存的可共享量。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><ul>
+<li>识别“冷”大页，并允许在主机空闲内存足够时拆分它们</li>
+<li>ESXi内存管理中添加了一个新的clear状态，在该状态下可以主动拆分所有大页。 实现基于主机内存消耗率调整clear状态阈值的策略。</li>
+<li>在clear状态下，使用提出的VM大页共享性估计器调整页面共享扫描速率，以通过页面共享有效地回收内存。 </li>
+</ul>
+<p>总的来说，通过较早地分享小页，可以减少需要通过昂贵的气球技术或swapping进行回收的内存量。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/08/23/Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance-in-VMware-ESXi/" data-title="Proactively Breaking Large Pages to Improve Memory Overcommitment Performance in VMware ESXi | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/08/24/SmartMD-A-High-Performance-Deduplication-Engine-with-Mixed-Pages/" title="SmartMD: A High Performance Deduplication Engine with Mixed Pages">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  SmartMD: A High Performance Deduplication Engine with Mixed Pages</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/08/22/Singleton-system-wide-page-deduplication-in-virtual-environments/"  title="Singleton: system-wide page deduplication in virtual environments">
+ <strong>NEXT:</strong><br/> 
+ <span>Singleton: system-wide page deduplication in virtual environments
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance"><span class="toc-number">1.</span> <span class="toc-text">Proactively Breaking Large Pages to Improve Memory Overcommitment Performance</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-number">1.1.</span> <span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#问题"><span class="toc-number">1.2.</span> <span class="toc-text">问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实现"><span class="toc-number">1.3.</span> <span class="toc-text">实现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#VMware-ESXi内存管理基础原则"><span class="toc-number">1.3.1.</span> <span class="toc-text">VMware ESXi内存管理基础原则</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#拆分“冷”大页"><span class="toc-number">1.3.2.</span> <span class="toc-text">拆分“冷”大页</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#clear-内存状态"><span class="toc-number">1.3.3.</span> <span class="toc-text">clear 内存状态</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#high-to-clear的动态调整"><span class="toc-number">1.3.3.1.</span> <span class="toc-text">high-to-clear的动态调整</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面扫描速率的动态调整"><span class="toc-number">1.3.4.</span> <span class="toc-text">页面扫描速率的动态调整</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-number">1.4.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/08/23/Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance-in-VMware-ESXi/';
+        this.page.identifier = '/2017/08/23/Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance-in-VMware-ESXi/';
+        this.page.title = 'Proactively Breaking Large Pages to Improve Memory Overcommitment Performance in VMware ESXi';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

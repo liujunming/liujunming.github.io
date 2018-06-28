@@ -1,0 +1,568 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Ｃ程序员该知道的内存知识 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="本文翻译至What a C programmer should know about memory
+Ｃ程序员该知道的内存知识2007年，Ulrich Drepper写了What every programmer should know about memory这篇大作，本文是在这篇文章的基础上提炼而">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Ｃ程序员该知道的内存知识 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/09/19/C程序员该知道的内存知识/" title="Ｃ程序员该知道的内存知识" itemprop="url">Ｃ程序员该知道的内存知识</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-09-19T07:39:11.000Z" itemprop="datePublished">2017-09-19</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#C程序员该知道的内存知识"><span class="toc-number">1.</span> <span class="toc-text">Ｃ程序员该知道的内存知识</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#虚拟内存"><span class="toc-number">1.1.</span> <span class="toc-text">虚拟内存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#进程地址空间布局"><span class="toc-number">1.1.1.</span> <span class="toc-text">进程地址空间布局</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#stack-allocation"><span class="toc-number">1.2.</span> <span class="toc-text">stack allocation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#heap-allocation"><span class="toc-number">1.3.</span> <span class="toc-text">heap allocation</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#何时使用自定义分配器"><span class="toc-number">1.3.1.</span> <span class="toc-text">何时使用自定义分配器</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Slab-allocator"><span class="toc-number">1.3.1.1.</span> <span class="toc-text">Slab allocator</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Memory-pools"><span class="toc-number">1.3.1.2.</span> <span class="toc-text">Memory pools</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Demand-paging"><span class="toc-number">1.3.1.3.</span> <span class="toc-text">Demand paging</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#memory-mapping"><span class="toc-number">1.4.</span> <span class="toc-text">memory mapping</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Fixed-memory-mappings"><span class="toc-number">1.4.1.</span> <span class="toc-text">Fixed memory mappings</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#File-backed-memory-maps"><span class="toc-number">1.4.2.</span> <span class="toc-text">File-backed memory maps</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Copy-on-write"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">Copy-on-write</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Zero-copy-streaming"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">Zero-copy streaming</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#mmap-的问题"><span class="toc-number">1.4.2.3.</span> <span class="toc-text">mmap()的问题</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#memory-consumption"><span class="toc-number">1.5.</span> <span class="toc-text">memory consumption</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Terms"><span class="toc-number">1.5.1.</span> <span class="toc-text">Terms</span></a></li></ol></li></ol></li></ol>
+		</div>
+		
+		<p>本文翻译至<a href="http://marek.vavrusa.com/c/memory/2015/02/20/memory/" target="_blank" rel="noopener">What a C programmer should know about memory</a></p>
+<h1 id="C程序员该知道的内存知识"><a href="#C程序员该知道的内存知识" class="headerlink" title="Ｃ程序员该知道的内存知识"></a>Ｃ程序员该知道的内存知识</h1><p>2007年，Ulrich Drepper写了<a href="http://www.akkadia.org/drepper/cpumemory.pdf" target="_blank" rel="noopener">What every programmer should know about memory</a>这篇大作，本文是在这篇文章的基础上提炼而成的。</p>
+<h2 id="虚拟内存"><a href="#虚拟内存" class="headerlink" title="虚拟内存"></a>虚拟内存</h2><p>除非你处理某些嵌入式系统或内核空间代码，否则你将在保护模式下工作。在保护模式下，进程拥有自己的虚拟地址空间。为了使用这个空间，你必须要求操作系统用真实的介质来支持虚拟地址空间，这就是映射（mapping）。 支持的介质可以是物理内存（不一定是RAM）或持久化存储介质(如磁盘)。</p>
+<p>虚拟内存分配器(virtual memory allocator VMA)可能并没有给你分配真实的物理内存，VMA徒劳地希望你不会使用这些内存,这就叫做<a href="https://www.kernel.org/doc/Documentation/vm/overcommit-accounting" target="_blank" rel="noopener">overcommiting</a>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> *block = <span class="built_in">malloc</span>(<span class="number">1024</span> * <span class="keyword">sizeof</span>(<span class="keyword">char</span>));</span><br><span class="line"><span class="keyword">if</span> (block == <span class="literal">NULL</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> -ENOMEM; <span class="comment">/* Sad :( */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>检查<code>NULL</code>返回值是一个很好的做法，但并不像以前一样强大。 由于overcommit，操作系统可能会给你的内存分配器一个有效的内存指针，但如果你要访问它，就会发生异常。 在这种情况下，通常是一个<a href="http://www.win.tue.nl/~aeb/linux/lk/lk-9.html#ss9.6" target="_blank" rel="noopener">OOM killer</a> 杀死你的进程。</p>
+<h3 id="进程地址空间布局"><a href="#进程地址空间布局" class="headerlink" title="进程地址空间布局"></a>进程地址空间布局</h3><p><a href="http://duartes.org/gustavo/blog/post/anatomy-of-a-program-in-memory/" target="_blank" rel="noopener">Anatomy of a Program in Memory</a>这篇文章很好地说明了进程地址空间的布局。这里有些瑕疵，其中一个是它只涵盖x86-32架构的地址空间布局，但幸运的是x86-64架构的地址空间布局没有发生大的变化。与 x86-32架构相比，x86-64架构的进程可以使用更大的地址空间 (在Linux上最高达48位)。<br><img src="/images/2017/9/11.png" alt=""></p>
+<h2 id="stack-allocation"><a href="#stack-allocation" class="headerlink" title="stack allocation"></a>stack allocation</h2><p>实用程序：</p>
+<ul>
+<li><code>alloca()</code> - <a href="http://linux.die.net/man/3/alloca" target="_blank" rel="noopener">allocate memory in the stack frame of the caller</a></li>
+<li><code>getrlimit()</code> - <a href="http://linux.die.net/man/2/getrlimit" target="_blank" rel="noopener">get/set resource limits</a></li>
+<li><code>sigaltstack()</code> - <a href="http://linux.die.net/man/2/sigaltstack" target="_blank" rel="noopener">set and/or get signal stack context</a></li>
+</ul>
+<p>栈很容易理解，每个人都知道如何在栈上创建变量。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> stairway = <span class="number">2</span>;</span><br><span class="line"><span class="keyword">int</span> heaven[] = &#123; <span class="number">6</span>, <span class="number">5</span>, <span class="number">4</span> &#125;;</span><br></pre></td></tr></table></figure></p>
+<p>变量的有效性受范围限制,在C语言中，这意味着：{}。 所以每当一个}来了，一个变量就失效了。<code>alloca（）</code>在当前stack frame中动态分配内存,stack frame和物理页面不是一样的，它只是一组被压到栈上的数据（函数，参数，变量…）。</p>
+<p>variable-length arrays (VLA)与<code>alloca（）</code>有一个不同点:VLA的有效性受范围限制；在当前函数返回之前，alloca分配的内存将保持有效。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">laugh</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">unsigned</span> i = <span class="number">0</span>; i &lt; megatron; ++i) &#123;</span><br><span class="line">        <span class="keyword">char</span> *res = alloca(<span class="number">2</span>);</span><br><span class="line">        <span class="built_in">memcpy</span>(res, <span class="string">"ha"</span>, <span class="number">2</span>);</span><br><span class="line">        <span class="keyword">char</span> vla[<span class="number">2</span>] = &#123;<span class="string">'h'</span>,<span class="string">'a'</span>&#125;</span><br><span class="line">    &#125; <span class="comment">/* vla dies, res lives */</span></span><br><span class="line">&#125; <span class="comment">/* all allocas die */</span></span><br></pre></td></tr></table></figure></p>
+<p>无论是VLA还是alloca，在分配大量内存时，都有些问题，因为你几乎无法控制可用的栈内存，而如果待分配的内存超过了栈的空间限制，这就会导致stack overflow 问题。针对stack overflow问题，有两个解决方法，但是这两者都不实用。</p>
+<p>第一个方法是使用<a href="http://linux.die.net/man/2/sigaltstack" target="_blank" rel="noopener">sigaltstack()</a>来捕获和处理<code>SIGSEGV</code>。 但这只是捕获stack overflow这个异常。</p>
+<p>另一个方法是使用<em>split-stacks</em>进行编译， 它被称为这样，因为它真正地将完整的栈分解成一个称为<em>stacklets</em>的小栈链表。 据我所知，<a href="https://gcc.gnu.org/wiki/SplitStacks" target="_blank" rel="noopener">GCC</a>和<a href="http://llvm.org/releases/3.0/docs/SegmentedStacks.html" target="_blank" rel="noopener">clang</a>使用<code>-fsplit-stack</code>选项支持它。 在理论上，这也可以改善内存消耗，并降低创建线程的成本 －因为栈开始可以很小，并且随着需求而增加。</p>
+<h2 id="heap-allocation"><a href="#heap-allocation" class="headerlink" title="heap allocation"></a>heap allocation</h2><p>实用程序：</p>
+<ul>
+<li><code>brk()</code>, <code>sbrk()</code> - <a href="http://linux.die.net/man/2/sbrk" target="_blank" rel="noopener">manipulate the data segment size</a></li>
+<li><code>malloc()</code> family - <a href="http://linux.die.net/man/3/malloc" target="_blank" rel="noopener">portable libc memory allocator</a></li>
+</ul>
+<p>堆分配可以简单地移动<a href="http://linux.die.net/man/2/sbrk" target="_blank" rel="noopener">program break </a>，并且在旧位置和新位置之间分配内存。 到目前为止，堆分配与栈分配一样快。但是如果使用这个方法的话有些问题需要注意：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> *block = sbrk(<span class="number">1024</span> * <span class="keyword">sizeof</span>(<span class="keyword">char</span>));</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>我们无法回收未使用的内存块</li>
+<li>不是线程安全的，因为堆在线程之间是共享的</li>
+<li>接口几乎不可移植，libraries不得触及break<blockquote>
+<p> man 3 sbrk — Various systems use various types for the argument of sbrk(). Common are int, ssizet, ptrdifft, intptr_t.</p>
+</blockquote>
+</li>
+</ol>
+<p>由于这些原因，libc实现了用于内存分配的统一接口。 <a href="http://en.wikibooks.org/wiki/C_Programming/C_Reference/stdlib.h/malloc#Implementations" target="_blank" rel="noopener">实现方式各不相同</a>，但它为你提供了任何大小、线程安全的堆内存分配方式。 这样的成本是延迟，因为现在涉及到了锁机制，有关使用/空闲块信息的数据结构和额外的内存开销。</p>
+<p>堆从<code>start_brk</code>到<code>brk</code>是连续的，考虑下面的情况：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> *truck = <span class="built_in">malloc</span>(<span class="number">1024</span> * <span class="number">1024</span> * <span class="keyword">sizeof</span>(<span class="keyword">char</span>));</span><br><span class="line"><span class="keyword">char</span> *bike  = <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">char</span>));</span><br><span class="line"><span class="built_in">free</span>(truck);</span><br></pre></td></tr></table></figure></p>
+<p>堆分配器移动brk为<code>truck</code>分配空间。 <code>bike</code>同样如此。 但是在<code>truck</code>被free之后，brk不能向下移动，因为brk指向<code>bike</code>,而<code>bike</code>此刻占据着最高地址。 这样的结果是进程可以重新使用前一个<code>truck</code>的内存，但在<code>bike</code>被free之前，这部分地址空间不能返回给系统。 </p>
+<p>请注意，<code>free()</code>并不总是尝试缩小数据段，因为这是一个潜在的昂贵的操作。对于长时间运行的程序（如守护程序）来说，这是一个问题。 存在一个名为<a href="https://linux.die.net/man/3/malloc_trim" target="_blank" rel="noopener">malloc_trim()</a>的GNU扩展，它用于从堆顶部释放内存，但可能会使进程运行的很慢。 在很多应用场景中，这个问题很严重，所以应该谨慎使用<code>malloc_trim()</code>。</p>
+<h3 id="何时使用自定义分配器"><a href="#何时使用自定义分配器" class="headerlink" title="何时使用自定义分配器"></a>何时使用自定义分配器</h3><p>这里将上文提到的分配器称为GP分配器，有一些GP分配器不足的实际用例。例如分配大量固定大小的小块， 这可能看起来不像一个典型的模式，但它是非常频繁发生的。 例如，查找数据结构（如树和tries）通常需要节点来构建层次结构， 在这种情况下，不仅碎片是问题，还有数据的局部性。 缓存高效的数据结构将keys放在一起（最好在同一页面上），而不是将其与数据混合。 默认分配器不保证局部性。更糟糕的是，小块的分配将导致空间开销。  针对上述问题，这里有解决方案！</p>
+<h4 id="Slab-allocator"><a href="#Slab-allocator" class="headerlink" title="Slab allocator"></a>Slab allocator</h4><p>实用程序：</p>
+<ul>
+<li><code>posix_memalign()</code>- <a href="http://linux.die.net/man/3/posix_memalign" target="_blank" rel="noopener">allocate aligned memory</a></li>
+</ul>
+<p><a href="https://www.usenix.org/legacy/publications/library/proceedings/bos94/full_papers/bonwick.a" target="_blank" rel="noopener">Bonwick</a>为内核对象缓存描述了slab allocator的原理，但slab allocator也适用于用户空间。allocator分配slab内存，即一个整页，并将其切成许多固定大小的块。 假设每个块至少可以保存一个指针或整数，你可以将它们链接到list中，其中list head指向第一个空闲元素。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Super-simple slab. */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">slab</span> &#123;</span></span><br><span class="line">    <span class="keyword">void</span> **head;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="comment">/* Create page-aligned slab */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">slab</span> *<span class="title">slab</span> = <span class="title">NULL</span>;</span></span><br><span class="line">posix_memalign(&amp;slab, page_size, page_size);</span><br><span class="line">slab-&gt;head = (<span class="keyword">void</span> **)((<span class="keyword">char</span>*)slab + <span class="keyword">sizeof</span>(struct slab));</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Create a NULL-terminated slab freelist */</span></span><br><span class="line"><span class="keyword">char</span>* item = (<span class="keyword">char</span>*)slab-&gt;head;</span><br><span class="line"><span class="keyword">for</span>(<span class="keyword">unsigned</span> i = <span class="number">0</span>; i &lt; item_count; ++i) &#123;</span><br><span class="line">    *((<span class="keyword">void</span>**)item) = item + item_size;</span><br><span class="line">    item += item_size;</span><br><span class="line">&#125;</span><br><span class="line">*((<span class="keyword">void</span>**)item) = <span class="literal">NULL</span>;</span><br></pre></td></tr></table></figure></p>
+<p>allocation相当于pop list head，Freeing相当于push新的list head。 如果slab与page_size边界对齐，则可以使用<a href="http://stackoverflow.com/a/2601527/4591872" target="_blank" rel="noopener">rounding down</a>技巧。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Free an element */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">slab</span> *<span class="title">slab</span> = (<span class="title">void</span> *)((<span class="title">size_t</span>)<span class="title">ptr</span> &amp; <span class="title">PAGESIZE_BITS</span>);</span></span><br><span class="line">*((<span class="keyword">void</span>**)ptr) = (<span class="keyword">void</span>*)slab-&gt;head;</span><br><span class="line">slab-&gt;head = (<span class="keyword">void</span>**)ptr;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Allocate an element */</span></span><br><span class="line"><span class="keyword">if</span>((item = slab-&gt;head)) &#123;</span><br><span class="line">    slab-&gt;head = (<span class="keyword">void</span>**)*item;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">/* No elements left. */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>要想利用层级结构及缓存局部性的相关特性，我们可以使用现成的库，例如，<strong>gasp</strong> ，glib实现有一个<a href="https://developer.gnome.org/glib/stable/glib-Memory-Slices.html" target="_blank" rel="noopener">整洁的文档</a>，并称之为“memory slices”。</p>
+<h4 id="Memory-pools"><a href="#Memory-pools" class="headerlink" title="Memory pools"></a>Memory pools</h4><p>实用程序：</p>
+<ul>
+<li><code>obstack_alloc()</code>- <a href="http://www.gnu.org/software/libc/manual/html_node/Obstacks.html" target="_blank" rel="noopener">allocate memory from object stack</a></li>
+</ul>
+<p>Slab allocator一旦分配就分配一个slab，当free的时候，slab中的内存块会被全部释放掉；<code>obstack_alloc()</code>则提供了一个内存块的栈，你可以pop与push内存块，这样在free的时候就不需要释放全部的内存块，而且内存块还可以添加到栈中。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Define block allocator. */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> obstack_chunk_alloc malloc</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> obstack_chunk_free free</span></span><br><span class="line"><span class="comment">/* Initialize obstack and allocate a bunch of animals. */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">obstack</span> <span class="title">animal_stack</span>;</span></span><br><span class="line">obstack_init (&amp;animal_stack);</span><br><span class="line"><span class="keyword">char</span> *bob = obstack_alloc(&amp;animal_stack, <span class="keyword">sizeof</span>(animal));</span><br><span class="line"><span class="keyword">char</span> *fred = obstack_alloc(&amp;animal_stack, <span class="keyword">sizeof</span>(animal));</span><br><span class="line"><span class="keyword">char</span> *roger = obstack_alloc(&amp;animal_stack, <span class="keyword">sizeof</span>(animal));</span><br><span class="line"><span class="comment">/* Free everything after fred (i.e. fred and roger). */</span></span><br><span class="line">obstack_free(&amp;animal_stack, fred);</span><br><span class="line"><span class="comment">/* Free everything. */</span></span><br><span class="line">obstack_free(&amp;animal_stack, <span class="literal">NULL</span>);</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* This is wrong, I better cancel it. */</span></span><br><span class="line">obstack_grow(&amp;animal_stack, <span class="string">"long"</span>, <span class="number">4</span>);</span><br><span class="line">obstack_grow(&amp;animal_stack, <span class="string">"fred"</span>, <span class="number">5</span>);</span><br><span class="line">obstack_free (&amp;animal_stack, obstack_finish(&amp;animal_stack));</span><br><span class="line"></span><br><span class="line"><span class="comment">/* This time for real. */</span></span><br><span class="line">obstack_grow(&amp;animal_stack, <span class="string">"long"</span>, <span class="number">4</span>);</span><br><span class="line">obstack_grow(&amp;animal_stack, <span class="string">"bob"</span>, <span class="number">4</span>);</span><br><span class="line"><span class="keyword">char</span> *result = obstack_finish(&amp;animal_stack);</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">"%s\n"</span>, result); <span class="comment">/* "longbob" */</span></span><br></pre></td></tr></table></figure>
+<h4 id="Demand-paging"><a href="#Demand-paging" class="headerlink" title="Demand paging"></a>Demand paging</h4><p>实用程序：</p>
+<ul>
+<li><code>mlock()</code>- <a href="http://linux.die.net/man/2/mlock" target="_blank" rel="noopener">lock/unlock memory</a></li>
+<li><code>madvise()</code>- <a href="http://linux.die.net/man/2/madvise" target="_blank" rel="noopener">give advice about use of memory</a></li>
+</ul>
+<p>GP内存分配器不会立即将内存返回给系统的原因之一是成本高昂。如果要将内存立刻返回给系统， 系统必须做两件事情：(1)建立虚拟页面到真实页面的映射；(2)给你一个空白的真实页面。而overcommit的做法是： 虚拟内存分配器仅完成第一件事情，虚拟地址指向的页面不是指向一个真实的页面，而是指向一个特殊的页面0。</p>
+<p>每次尝试访问特殊页面时，都会发生page fault，这意味着：内核会暂停进程的执行并获取一个真实的页面，然后更新页面表，之后进程恢复执行。 <em>demand paging</em>也被称为<em>lazy loading</em>，<a href="http://duartes.org/gustavo/blog/post/how-the-kernel-manages-your-memory/" target="_blank" rel="noopener">这里</a>有更详细的解释。</p>
+<p>内存管理器对你如何访问内存做出非常保守的预测。你可以<a href="http://linux.die.net/man/2/mlock" target="_blank" rel="noopener">lock</a>物理内存中的连续内存块以避免页面被swap出去而发生page fault：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> *block = <span class="built_in">malloc</span>(<span class="number">1024</span> * <span class="keyword">sizeof</span>(<span class="keyword">char</span>));</span><br><span class="line">mlock(block, <span class="number">1024</span> * <span class="keyword">sizeof</span>(<span class="keyword">char</span>));</span><br></pre></td></tr></table></figure>
+<p>你还可以提供内存使用模式的<a href="http://linux.die.net/man/2/madvise" target="_blank" rel="noopener">advise</a>：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> *block = <span class="built_in">malloc</span>(<span class="number">1024</span> * <span class="keyword">sizeof</span>(block));</span><br><span class="line">madvise(block, <span class="number">1024</span> * <span class="keyword">sizeof</span>(block), MADV_SEQUENTIAL);</span><br></pre></td></tr></table></figure></p>
+<p>实际建议的解释是平台特定的，系统甚至可以选择忽略它。 并不是所有的建议都得到很好的支持，有些甚至会改变语义，但MADV_SEQUENTIAL，MADV_WILLNEED和MADV_DONTNEED这三个是最常用的。</p>
+<h2 id="memory-mapping"><a href="#memory-mapping" class="headerlink" title="memory mapping"></a>memory mapping</h2><p>实用程序：</p>
+<ul>
+<li><code>sysconf()</code>- <a href="http://linux.die.net/man/3/sysconf" target="_blank" rel="noopener">get configuration information at run time</a></li>
+<li><code>mmap()</code>- <a href="https://linux.die.net/man/2/mmap" target="_blank" rel="noopener">map virtual memory</a></li>
+<li><code>mincore()</code>- <a href="http://linux.die.net/man/2/mincore" target="_blank" rel="noopener">determine whether pages are resident in memory</a></li>
+<li><code>shmat()</code>- <a href="http://linux.die.net/man/2/shmat" target="_blank" rel="noopener">shared memory operations</a></li>
+</ul>
+<p>一个页面通常是一个4KB的块，但你不应该依赖它，应该使用<code>sysconf()</code>来获取页面大小。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> page_size = sysconf(_SC_PAGESIZE); <span class="comment">/* Slice and dice. */</span></span><br></pre></td></tr></table></figure></p>
+<p>即使平台统一页面大小，系统中所有页面的大小也未必相同。 例如，Linux有一个<a href="http://lwn.net/Articles/423584/" target="_blank" rel="noopener">透明大页面</a>（THP）机制，THP对你是透明的，但是Linux的<code>mmap</code>选项<a href="https://www.kernel.org/doc/Documentation/vm/hugetlbpage.txt" target="_blank" rel="noopener">MAP_HUGETLB</a>允许你明确地使用它。</p>
+<h3 id="Fixed-memory-mappings"><a href="#Fixed-memory-mappings" class="headerlink" title="Fixed memory mappings"></a>Fixed memory mappings</h3><p>在 x86-64架构下，大约2/3<code>TASK_SIZE</code>（用户进程的最高可用地址）的地址是一个安全的选择。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TASK_SIZE 0x800000000000</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> SHARED_BLOCK (void *)(2 * TASK_SIZE / 3)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> *shared_cats = shmat(shm_key, SHARED_BLOCK, <span class="number">0</span>);</span><br><span class="line"><span class="keyword">if</span>(shared_cats == (<span class="keyword">void</span> *)<span class="number">-1</span>) &#123;</span><br><span class="line">    perror(<span class="string">"shmat"</span>); <span class="comment">/* Sad :( */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这不是一个可移植的例子，但点明了要点。 映射固定地址范围通常被认为是不安全的，因为它不会检查这段地址空间是否已经被映射过。 <code>mincore()</code>函数可以告诉你页面是否被映射到物理内存中，但是在多线程环境下这个方法是行不通的。</p>
+<p>然而，固定地址映射不仅对未使用的地址范围有用，对于使用过的地址范围也是有用的。 内存分配器使用<code>mmap()</code>来获取更大的内存块，由于on-demand paging，这使得有效的稀疏阵列成为可能。 假设你创建了一个稀疏阵列，现在你要释放一些数据，那么该如何做呢？ 你不能完全free它，因此不能使用<code>munmap()</code>。 你可以使用<code>madvise()</code> <a href="http://lwn.net/Articles/591214/" target="_blank" rel="noopener">MADV_FREE</a> / MADV_DONTNEED来标记待free的页面，这是最佳的解决方案。</p>
+<p>下面是一个可移植的例子：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> *<span class="built_in">array</span> = mmap(<span class="literal">NULL</span>, length, PROT_READ|PROT_WRITE,</span><br><span class="line">                   MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* ... some magic gone awry ... */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* Let's clear some pages. */</span></span><br><span class="line">mmap(<span class="built_in">array</span> + offset, length, MAP_FIXED|MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br></pre></td></tr></table></figure></p>
+<p>这相当于unmap旧页面并再次map特殊页面，这样该进程仍然使用相同数量的虚拟内存，但驻留在物理内存中的数据量会降低。</p>
+<h3 id="File-backed-memory-maps"><a href="#File-backed-memory-maps" class="headerlink" title="File-backed memory maps"></a>File-backed memory maps</h3><p>实用程序：</p>
+<ul>
+<li><code>msync()</code>- <a href="http://linux.die.net/man/2/msync" target="_blank" rel="noopener">synchronize a file with memory map</a></li>
+<li><code>ftruncate()</code>- <a href="http://linux.die.net/man/2/ftruncate" target="_blank" rel="noopener">truncate a file to a specified length</a></li>
+<li><code>vmsplice()</code>- <a href="http://linux.die.net/man/2/vmsplice" target="_blank" rel="noopener">splice user pages into a pipe</a></li>
+</ul>
+<p>到目前为止，我们介绍的一直都是匿名内存，接下来将介绍 File-backed的内存映射，它提供了缓存，同步和 copy-on-write机制。</p>
+<p>File-backed的共享内存映射添加了新的模式<code>MAP_SHARED</code>，这意味着你对页面所做的更改将被写回文件，因此这个文件在进程间是共享的。 内存管理器决定什么时候同步，但幸运的是有<code>msync()</code>函数强制页面与backing store进行同步。<code>msync()</code>对数据库是非常好的，因为它保证了写数据的持久性。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Map the contents of a file into memory (shared). */</span></span><br><span class="line"><span class="keyword">int</span> fd = open(...);</span><br><span class="line"><span class="keyword">void</span> *db = mmap(<span class="literal">NULL</span>, file_size, PROT_READ|PROT_WRITE,</span><br><span class="line">                MAP_SHARED, fd, <span class="number">0</span>);</span><br><span class="line"><span class="keyword">if</span> (db == (<span class="keyword">void</span> *)<span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="comment">/* Mapping failed */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Write to a page */</span></span><br><span class="line"><span class="keyword">char</span> *page = (<span class="keyword">char</span> *)db;</span><br><span class="line"><span class="built_in">strcpy</span>(page, <span class="string">"bob"</span>);</span><br><span class="line"><span class="comment">/* This is going to be a durable page. */</span></span><br><span class="line">msync(page, <span class="number">4</span>, MS_SYNC);</span><br><span class="line"><span class="comment">/* This is going to be a less durable page. */</span></span><br><span class="line">page = page + PAGE_SIZE;</span><br><span class="line"><span class="built_in">strcpy</span>(page, <span class="string">"fred"</span>);</span><br><span class="line">msync(page, <span class="number">5</span>, MS_ASYNC);</span><br></pre></td></tr></table></figure></p>
+<p>请注意，你不能映射比实文件size更多的数据，因此你无法增长或缩小。 然而，你可以使用<code>ftruncate()</code>提前创建（或增长）稀疏文件。 缺点是，它使内存压缩(compaction)更加困难。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Resize the file. */</span></span><br><span class="line"><span class="keyword">int</span> fd = open(...);</span><br><span class="line">ftruncate(fd, expected_length);</span><br></pre></td></tr></table></figure></p>
+<h4 id="Copy-on-write"><a href="#Copy-on-write" class="headerlink" title="Copy-on-write"></a>Copy-on-write</h4><p>到目前为止，这是关于共享内存映射。 但是你可以使用另一种方式的内存映射－ 映射文件的共享副本，并且在修改后无需修改backing store。 请注意，页面不会被立即copy，这是没有意义的，但在你修改页面的那一刻，立刻发生copy操作。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> fd = open(...);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Copy-on-write mapping */</span></span><br><span class="line"><span class="keyword">void</span> *db = mmap(<span class="literal">NULL</span>, file_size, PROT_READ|PROT_WRITE,</span><br><span class="line">                    MAP_PRIVATE, fd, <span class="number">0</span>);</span><br><span class="line"><span class="keyword">if</span> (db == (<span class="keyword">void</span> *)<span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="comment">/* Mapping failed */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* This page will be copied as soon as we write to it */</span></span><br><span class="line"><span class="keyword">char</span> *page = (<span class="keyword">char</span> *)db;</span><br><span class="line"><span class="built_in">strcpy</span>(page, <span class="string">"bob"</span>);</span><br></pre></td></tr></table></figure></p>
+<h4 id="Zero-copy-streaming"><a href="#Zero-copy-streaming" class="headerlink" title="Zero-copy streaming"></a>Zero-copy streaming</h4><p>由于文件本质上是内存，你可以将其流式传输到管道（包括套接字）中，这样就无需发生copy操作。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> sock = get_client();</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">iovec</span> <span class="title">iov</span> = &#123;</span> .iov_base = cat_db, .iov_len = PAGE_SIZE &#125;;</span><br><span class="line"><span class="keyword">int</span> ret = vmsplice(sock, &amp;iov, <span class="number">1</span>, <span class="number">0</span>);</span><br><span class="line"><span class="keyword">if</span> (ret != <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="comment">/* No streaming :( */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="mmap-的问题"><a href="#mmap-的问题" class="headerlink" title="mmap()的问题"></a>mmap()的问题</h4><p>在有些情下况，与通常的read()/write()文件相比，mmap文件会大大降低系统性能。 处理 page fault会比简单地读取文件慢，因为mmap必须读取文件并做更多的事情。 实际上，mmapped I/ O可能会更快，因为它避免了数据的多重缓存，并且在后台可以预读。 但有时候这种做法将会损害系统的性能， 一个这样的例子是：当文件的大小超过可用内存空间，而我们只随机读取文件中的一小部分。 在这种情况下，系统会读取可能不被使用的块，并且每次内存访问都会发生page fault，从而导致TLB thrashing问题。 你可以用<code>madvise()</code>来减少系统损失。</p>
+<h2 id="memory-consumption"><a href="#memory-consumption" class="headerlink" title="memory consumption"></a>memory consumption</h2><p>实用程序：</p>
+<ul>
+<li><code>vmtouch</code>- <a href="http://hoytech.com/vmtouch/" target="_blank" rel="noopener">portable virtual memory toucher</a></li>
+</ul>
+<h3 id="Terms"><a href="#Terms" class="headerlink" title="Terms"></a>Terms</h3><ul>
+<li><strong>VSS</strong>- Virtual Set Size 进程虚拟使用内存（包含共享库占用的内存）</li>
+<li><strong>RSS</strong>- Resident Set Size 进程实际使用物理内存（包含共享库占用的内存）</li>
+<li><strong>PSS</strong>- Proportional Set Size 进程实际使用的物理内存（比例分配共享库占用的内存）</li>
+<li><strong>USS</strong>- Unique Set Size 进程独自占用的物理内存（不包含共享库占用的内存）</li>
+</ul>
+<p>一般来说内存占用大小有如下规律：VSS &gt;= RSS &gt;= PSS &gt;= USS</p>
+<hr>
+<p>资料整理:</p>
+<ol>
+<li><a href="https://www.win.tue.nl/~aeb/" target="_blank" rel="noopener">Andries E. Brouwer</a></li>
+<li><a href="http://duartes.org/gustavo/blog/" target="_blank" rel="noopener">Gustavo Duarte blog</a></li>
+<li><a href="http://agis.io/" target="_blank" rel="noopener">Agis Anastasopoulos</a></li>
+<li><a href="http://landley.net/" target="_blank" rel="noopener">landley.net</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/操作系统/">操作系统</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/操作系统/">操作系统</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/09/19/C程序员该知道的内存知识/" data-title="Ｃ程序员该知道的内存知识 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/09/28/Linux内核中的页面回收算法/" title="Linux内核中的页面回收算法">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Linux内核中的页面回收算法</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/09/19/How-can-one-really-learn-Linux-Kernel-Memory-Management/"  title="How can one really learn Linux Kernel Memory Management">
+ <strong>NEXT:</strong><br/> 
+ <span>How can one really learn Linux Kernel Memory Management
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#C程序员该知道的内存知识"><span class="toc-number">1.</span> <span class="toc-text">Ｃ程序员该知道的内存知识</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#虚拟内存"><span class="toc-number">1.1.</span> <span class="toc-text">虚拟内存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#进程地址空间布局"><span class="toc-number">1.1.1.</span> <span class="toc-text">进程地址空间布局</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#stack-allocation"><span class="toc-number">1.2.</span> <span class="toc-text">stack allocation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#heap-allocation"><span class="toc-number">1.3.</span> <span class="toc-text">heap allocation</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#何时使用自定义分配器"><span class="toc-number">1.3.1.</span> <span class="toc-text">何时使用自定义分配器</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Slab-allocator"><span class="toc-number">1.3.1.1.</span> <span class="toc-text">Slab allocator</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Memory-pools"><span class="toc-number">1.3.1.2.</span> <span class="toc-text">Memory pools</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Demand-paging"><span class="toc-number">1.3.1.3.</span> <span class="toc-text">Demand paging</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#memory-mapping"><span class="toc-number">1.4.</span> <span class="toc-text">memory mapping</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Fixed-memory-mappings"><span class="toc-number">1.4.1.</span> <span class="toc-text">Fixed memory mappings</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#File-backed-memory-maps"><span class="toc-number">1.4.2.</span> <span class="toc-text">File-backed memory maps</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Copy-on-write"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">Copy-on-write</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Zero-copy-streaming"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">Zero-copy streaming</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#mmap-的问题"><span class="toc-number">1.4.2.3.</span> <span class="toc-text">mmap()的问题</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#memory-consumption"><span class="toc-number">1.5.</span> <span class="toc-text">memory consumption</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Terms"><span class="toc-number">1.5.1.</span> <span class="toc-text">Terms</span></a></li></ol></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/09/19/C程序员该知道的内存知识/';
+        this.page.identifier = '/2017/09/19/C程序员该知道的内存知识/';
+        this.page.title = 'Ｃ程序员该知道的内存知识';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

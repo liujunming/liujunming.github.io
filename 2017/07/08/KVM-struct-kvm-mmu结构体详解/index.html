@@ -1,0 +1,472 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>KVM struct kvm_mmu结构体详解 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="本文展示的代码中,Linux内核版本为3.14.69。在看KVM源码的过程中，涉及EPT机制时，经常看到struct kvm_mmu这一结构体。下面，先看看这一结构体与其他结构体的关系。从上图可以看到，struct kvm_mmu是struct kvm_vcpu_arch的一个字段。kvm_mmu结">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="KVM struct kvm_mmu结构体详解 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/07/08/KVM-struct-kvm-mmu结构体详解/" title="KVM struct kvm_mmu结构体详解" itemprop="url">KVM struct kvm_mmu结构体详解</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-07-08T08:12:16.000Z" itemprop="datePublished">2017-07-08</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		
+		</div>
+		
+		<p>本文展示的代码中,Linux内核版本为<a href="http://elixir.free-electrons.com/linux/v3.14.69/source" target="_blank" rel="noopener">3.14.69</a>。<br>在看KVM源码的过程中，涉及EPT机制时，经常看到<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/include/asm/kvm_host.h#L262" target="_blank" rel="noopener">struct kvm_mmu</a>这一结构体。<br>下面，先看看这一结构体与其他结构体的关系。<br><img src="/images/2017/7/12.png" alt=""><br>从上图可以看到，struct kvm_mmu是struct kvm_vcpu_arch的一个字段。<br>kvm_mmu结构体具体内容如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * x86 supports 3 paging modes (4-level 64-bit, 3-level 64-bit, and 2-level</span></span><br><span class="line"><span class="comment"> * 32-bit).  The kvm_mmu structure abstracts the details of the current mmu</span></span><br><span class="line"><span class="comment"> * mode.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_mmu</span> &#123;</span></span><br><span class="line">	<span class="keyword">void</span> (*set_cr3)(struct kvm_vcpu *vcpu, <span class="keyword">unsigned</span> <span class="keyword">long</span> root);</span><br><span class="line">	<span class="function"><span class="keyword">unsigned</span> <span class="title">long</span> <span class="params">(*get_cr3)</span><span class="params">(struct kvm_vcpu *vcpu)</span></span>;</span><br><span class="line">	u64 (*get_pdptr)(struct kvm_vcpu *vcpu, <span class="keyword">int</span> index);</span><br><span class="line">	<span class="keyword">int</span> (*page_fault)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva, u32 err,</span><br><span class="line">			  <span class="keyword">bool</span> prefault);</span><br><span class="line">	<span class="keyword">void</span> (*inject_page_fault)(struct kvm_vcpu *vcpu,</span><br><span class="line">				  struct x86_exception *fault);</span><br><span class="line">	<span class="keyword">gpa_t</span> (*gva_to_gpa)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva, u32 access,</span><br><span class="line">			    struct x86_exception *exception);</span><br><span class="line">	<span class="keyword">gpa_t</span> (*translate_gpa)(struct kvm_vcpu *vcpu, <span class="keyword">gpa_t</span> gpa, u32 access);</span><br><span class="line">	<span class="keyword">int</span> (*sync_page)(struct kvm_vcpu *vcpu,</span><br><span class="line">			 struct kvm_mmu_page *sp);</span><br><span class="line">	<span class="keyword">void</span> (*invlpg)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva);</span><br><span class="line">	<span class="keyword">void</span> (*update_pte)(struct kvm_vcpu *vcpu, struct kvm_mmu_page *sp,</span><br><span class="line">			   u64 *spte, <span class="keyword">const</span> <span class="keyword">void</span> *pte);</span><br><span class="line">	<span class="keyword">hpa_t</span> root_hpa;</span><br><span class="line">	<span class="keyword">int</span> root_level;</span><br><span class="line">	<span class="keyword">int</span> shadow_root_level;</span><br><span class="line">	<span class="keyword">union</span> kvm_mmu_page_role base_role;</span><br><span class="line">	<span class="keyword">bool</span> direct_map;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Bitmap; bit set = permission fault</span></span><br><span class="line"><span class="comment">	 * Byte index: page fault error code [4:1]</span></span><br><span class="line"><span class="comment">	 * Bit index: pte permissions in ACC_* format</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	u8 permissions[<span class="number">16</span>];</span><br><span class="line">	u64 *pae_root;</span><br><span class="line">	u64 *lm_root;</span><br><span class="line">	u64 rsvd_bits_mask[<span class="number">2</span>][<span class="number">4</span>];</span><br><span class="line">	u64 bad_mt_xwr;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Bitmap: bit set = last pte in walk</span></span><br><span class="line"><span class="comment">	 * index[0:1]: level (zero-based)</span></span><br><span class="line"><span class="comment">	 * index[2]: pte.ps</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	u8 last_pte_bitmap;</span><br><span class="line">	<span class="keyword">bool</span> nx;</span><br><span class="line">	u64 pdptrs[<span class="number">4</span>]; <span class="comment">/* pae */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>在这里看到函数指针时你可能会感到困惑，下面将解决这些困惑。</p>
+<ul>
+<li><p>通过<code>lsmod | grep kvm</code>指令，看是否加载了kvm及kvm_intel模块<br><img src="/images/2017/7/13.png" alt=""></p>
+</li>
+<li><p>在<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/kvm/vmx.c#L8669" target="_blank" rel="noopener">vmx_init</a>执行初始化时，会执行<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/kvm/vmx.c#L8783" target="_blank" rel="noopener">kvm_enable_tdp</a>，将tdp_enabled变量置为true。</p>
+</li>
+<li>在<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/kvm/mmu.c#L3808" target="_blank" rel="noopener">init_kvm_mmu</a>时，会根据<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/kvm/mmu.c#L3812" target="_blank" rel="noopener">tdp_enabled</a>的情况选择使用哪种地址翻译模式。<br>当开启ept时，在init_kvm_mmu函数中会执行<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/kvm/mmu.c#L3672" target="_blank" rel="noopener">init_kvm_tdp_mmu</a>函数。该函数具体内容如下：<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">init_kvm_tdp_mmu</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kvm_mmu</span> *<span class="title">context</span> = <span class="title">vcpu</span>-&gt;<span class="title">arch</span>.<span class="title">walk_mmu</span>;</span></span><br><span class="line">	context-&gt;base_role.word = <span class="number">0</span>;</span><br><span class="line">	context-&gt;page_fault = tdp_page_fault;</span><br><span class="line">	context-&gt;sync_page = nonpaging_sync_page;</span><br><span class="line">	context-&gt;invlpg = nonpaging_invlpg;</span><br><span class="line">	context-&gt;update_pte = nonpaging_update_pte;</span><br><span class="line">	context-&gt;shadow_root_level = kvm_x86_ops-&gt;get_tdp_level();</span><br><span class="line">	context-&gt;root_hpa = INVALID_PAGE;</span><br><span class="line">	context-&gt;direct_map = <span class="literal">true</span>;</span><br><span class="line">	context-&gt;set_cr3 = kvm_x86_ops-&gt;set_tdp_cr3;</span><br><span class="line">	context-&gt;get_cr3 = get_cr3;</span><br><span class="line">	context-&gt;get_pdptr = kvm_pdptr_read;</span><br><span class="line">	context-&gt;inject_page_fault = kvm_inject_page_fault;</span><br><span class="line">	<span class="keyword">if</span> (!is_paging(vcpu)) &#123;</span><br><span class="line">		context-&gt;nx = <span class="literal">false</span>;</span><br><span class="line">		context-&gt;gva_to_gpa = nonpaging_gva_to_gpa;</span><br><span class="line">		context-&gt;root_level = <span class="number">0</span>;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (is_long_mode(vcpu)) &#123;</span><br><span class="line">		context-&gt;nx = is_nx(vcpu);</span><br><span class="line">		context-&gt;root_level = PT64_ROOT_LEVEL;</span><br><span class="line">		reset_rsvds_bits_mask(vcpu, context);</span><br><span class="line">		context-&gt;gva_to_gpa = paging64_gva_to_gpa;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (is_pae(vcpu)) &#123;</span><br><span class="line">		context-&gt;nx = is_nx(vcpu);</span><br><span class="line">		context-&gt;root_level = PT32E_ROOT_LEVEL;</span><br><span class="line">		reset_rsvds_bits_mask(vcpu, context);</span><br><span class="line">		context-&gt;gva_to_gpa = paging64_gva_to_gpa;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		context-&gt;nx = <span class="literal">false</span>;</span><br><span class="line">		context-&gt;root_level = PT32_ROOT_LEVEL;</span><br><span class="line">		reset_rsvds_bits_mask(vcpu, context);</span><br><span class="line">		context-&gt;gva_to_gpa = paging32_gva_to_gpa;</span><br><span class="line">	&#125;</span><br><span class="line">	update_permission_bitmask(vcpu, context, <span class="literal">false</span>);</span><br><span class="line">	update_last_pte_bitmap(vcpu, context);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>可以看到kvm_mmu中的函数指针最终指向的函数在init_kvm_tdp_mmu中被解析。</p>
+<p>也许读者不太清楚上述函数的使用环境，下面我将给出函数调用图方便大家了解。<br><img src="/images/2017/7/14.png" alt=""></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/虚拟化/">虚拟化</a><a href="/tags/KVM/">KVM</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/虚拟化/">虚拟化</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/07/08/KVM-struct-kvm-mmu结构体详解/" data-title="KVM struct kvm_mmu结构体详解 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/07/15/makefile入门教程/" title="makefile入门教程">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  makefile入门教程</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/07/03/kmalloc、vmalloc、malloc的区别与联系/"  title="kmalloc、vmalloc、malloc的区别与联系">
+ <strong>NEXT:</strong><br/> 
+ <span>kmalloc、vmalloc、malloc的区别与联系
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/07/08/KVM-struct-kvm-mmu结构体详解/';
+        this.page.identifier = '/2017/07/08/KVM-struct-kvm-mmu结构体详解/';
+        this.page.title = 'KVM struct kvm_mmu结构体详解';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

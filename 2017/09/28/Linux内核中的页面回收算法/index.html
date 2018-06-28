@@ -1,0 +1,559 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Linux内核中的页面回收算法 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="Linux内核中的页面回收算法本文将基于 2.6.18.1 版本的内核来探讨 Linux 中的页面回收机制。
+为什么要进行页面回收操作系统管理内存中的物理页面，同时也担任着内存分配的职责。应用程序可以通过内存分配函数向操作系统申请物理页面；在使用完这些物理页面之后，应用程序可以通过相应的内存释放函数">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Linux内核中的页面回收算法 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/09/28/Linux内核中的页面回收算法/" title="Linux内核中的页面回收算法" itemprop="url">Linux内核中的页面回收算法</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-09-28T02:16:47.000Z" itemprop="datePublished">2017-09-28</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux内核中的页面回收算法"><span class="toc-number">1.</span> <span class="toc-text">Linux内核中的页面回收算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#为什么要进行页面回收"><span class="toc-number">1.1.</span> <span class="toc-text">为什么要进行页面回收</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#页面回收机制背景"><span class="toc-number">1.2.</span> <span class="toc-text">页面回收机制背景</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#哪些页面可以被回收"><span class="toc-number">1.2.1.</span> <span class="toc-text">哪些页面可以被回收</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#进行页面回收的时机"><span class="toc-number">1.3.</span> <span class="toc-text">进行页面回收的时机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#页面回收算法"><span class="toc-number">1.4.</span> <span class="toc-text">页面回收算法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#LRU-链表"><span class="toc-number">1.4.1.</span> <span class="toc-text">LRU 链表</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#如何在两个-LRU-链表之间移动页面"><span class="toc-number">1.4.2.</span> <span class="toc-text">如何在两个 LRU 链表之间移动页面</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#LRU-缓存"><span class="toc-number">1.4.3.</span> <span class="toc-text">LRU 缓存</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#页面回收的实现"><span class="toc-number">1.5.</span> <span class="toc-text">页面回收的实现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#函数-shrink-zone"><span class="toc-number">1.5.1.</span> <span class="toc-text">函数 shrink_zone()</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#函数-shrink-slab"><span class="toc-number">1.5.2.</span> <span class="toc-text">函数 shrink_slab()</span></a></li></ol></li></ol></li></ol>
+		</div>
+		
+		<h2 id="Linux内核中的页面回收算法"><a href="#Linux内核中的页面回收算法" class="headerlink" title="Linux内核中的页面回收算法"></a>Linux内核中的页面回收算法</h2><p>本文将基于 2.6.18.1 版本的内核来探讨 Linux 中的页面回收机制。</p>
+<h3 id="为什么要进行页面回收"><a href="#为什么要进行页面回收" class="headerlink" title="为什么要进行页面回收"></a>为什么要进行页面回收</h3><p>操作系统管理内存中的物理页面，同时也担任着内存分配的职责。应用程序可以通过内存分配函数向操作系统申请物理页面；在使用完这些物理页面之后，应用程序可以通过相应的内存释放函数释放这些物理页面。但是，对于内存中的某些物理页面，页面的使用者并不会主动释放它们，如果这些物理页面一直被占用而得不到释放，那么无论计算机上可用的物理内存有多少，物理内存迟早都有被用完的时候。所以，对于无法被主动释放的物理页面，操作系统就需要提供相应的功能去释放它们，Linux 中提供页面回收机制进行页面回收。</p>
+<p>一般来说，page cache无法被页面的使用者主动释放，因为系统不知道这些页面何时应该被释放。Linux 中page cache存在的最大好处就是可以让程序从缓存中快速获取数据，从而提升系统的性能。在系统负载不重的情况下，Linux 操作系统会分配较多的物理页面用于页缓存，从而提高程序的运行效率；但是在系统负载较重的情况下，Linux 操作系统就可能会适当回收用于缓存的页面，并减少用于缓存的页面的分配，从而满足系统中优先级更高的内存分配请求。对于用户进程来说，Linux 操作系统可以在它需要的时候为它分配物理内存，但是当用户进程不再需要这些物理页面的时候，如果用户进程不主动释放占用的页面，Linux 操作系统也不会强制用户进程去释放这些物理页面。基于上述这些情况，当内存中可用的物理页面越来越少，并最终导致内存的使用捉襟见肘的时候，为了保证系统的顺利运行，Linux 操作系统就会根据一定的算法去回收那些长期被占用并且没有得到有效使用的物理页面。</p>
+<p>由操作系统内核本身使用的物理页面不在 Linux 操作系统进行页面回收的考虑范围之内，这是因为与用户进程相比，内核不需要占用非常多的内存，回收内核占用的物理页面会显著增加内核代码的复杂性，潜在收益非常低。</p>
+<h3 id="页面回收机制背景"><a href="#页面回收机制背景" class="headerlink" title="页面回收机制背景"></a>页面回收机制背景</h3><h4 id="哪些页面可以被回收"><a href="#哪些页面可以被回收" class="headerlink" title="哪些页面可以被回收"></a>哪些页面可以被回收</h4><p>内存中并非所有物理页面都是可以进行回收的，总的来说，以下这些种物理页面可以被 Linux 操作系统回收：</p>
+<ul>
+<li>文件读写操作过程中用于缓冲数据的页面</li>
+<li>用户地址空间中用于文件内存映射的页面</li>
+<li>匿名页面：进程用户模式下的堆栈或者是使用 mmap 匿名映射的内存区</li>
+<li>特殊的用于 slab 分配器的缓存，比如用于缓存文件目录结构 dentry 的 cache，以及用于缓存索引节点 inode 的 cache</li>
+</ul>
+<p>在页面被操作系统回收之前，所有与之关联的进程页表项必须要断开与该页面之间的映射关系。对于匿名页面来说，在页面被回收之前，匿名页面中的内容首先需要先被交换到交换区中去；对于page cache来说，如果要回收的页面是“脏”页面，那么该页面在被回收之前需要先将页面中的数据写回磁盘。<br>除此之外，其他的页面要么不可以被回收，要么根本不必进行回收。比如，内核占用的页面不会被回收；映射到内核空间中的页面也不会被回收；内核在执行的过程中动态生成的页面需要永驻内存；被锁住的页面不能被回收；而没有被占用的物理页面则根本不需要被回收。</p>
+<h3 id="进行页面回收的时机"><a href="#进行页面回收的时机" class="headerlink" title="进行页面回收的时机"></a>进行页面回收的时机</h3><p>Linux 操作系统使用如下这两种机制检查系统内存的使用情况，从而确定可用的内存是否太少从而需要进行页面回收。</p>
+<ul>
+<li>周期性的检查：这是由后台运行的守护进程 kswapd 完成的。该进程定期检查当前系统的内存使用情况，当发现系统内空闲的物理页面数目少于特定的阈值时，该进程就会发起页面回收的操作。</li>
+<li>“内存严重不足”事件的触发：在某些情况下，比如，操作系统忽然需要通过伙伴系统为用户进程分配一大块内存，或者需要创建一个很大的缓冲区，而当时系统中的内存没有办法提供足够多的物理内存以满足这种内存请求，这时候，操作系统就必须尽快进行页面回收操作，以便释放出一些内存空间从而满足上述的内存请求。这种页面回收方式也被称作“直接页面回收”。</li>
+</ul>
+<p>如果操作系统在进行了内存回收操作之后仍然无法回收到足够多的页面以满足上述内存要求，那么操作系统只有最后一个选择，那就是使用 OOM( out of memory )killer，它从系统中挑选一个最合适的进程杀死它，并释放该进程所占用的所有页面。<br>上面介绍的内存回收机制主要依赖于三个字段：pages_min，pages_low 以及 pages_high。每个内存区域（ <a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/include/linux/mmzone.h#L139" target="_blank" rel="noopener">zone</a> ）都在其区域描述符中定义了这样三个字段，这三个字段的具体含义如下表 1 所示。</p>
+<p><strong>表 1. 字段含义</strong></p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>字段描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pages_min</td>
+<td>区域的预留页面数目，如果空闲物理页面的数目低于 pages_min，那么系统的压力会比较大，此时，内存区域中急需空闲的物理页面，页面回收的需求非常紧迫。</td>
+</tr>
+<tr>
+<td>pages_low</td>
+<td>控制进行页面回收的最小阈值，如果空闲物理页面的数目低于 pages_low，那么操作系统内核会开始进行页面回收。</td>
+</tr>
+<tr>
+<td>pages_high</td>
+<td>控制进行页面回收的最大阈值，如果空闲物理页面的数目多于 pages_high，则内存区域的状态是理想的。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="页面回收算法"><a href="#页面回收算法" class="headerlink" title="页面回收算法"></a>页面回收算法</h3><p>Linux 中的页面回收是基于 LRU(least recently used，最近最少使用 ) 算法的。LRU 算法基于这样一个事实，过去一段时间内频繁使用的页面，在不久的将来很可能会被再次访问到。反过来说，已经很久没有访问过的页面在未来较短的时间内也不会被频繁访问到。因此，在物理内存不够用的情况下，这样的页面成为被换出的最佳候选者。<br>LRU 算法的基本原理很简单，为每个物理页面绑定一个计数器，用以标识该页面的访问频度。操作系统内核进行页面回收的时候就可以根据页面的计数器的值来确定要回收哪些页面。然而，在硬件上提供这种支持的体系结构很少，Linux 操作系统没有办法依靠这样一种页计数器去跟踪每个页面的访问情况，所以，Linux 在页表项中增加了一个 Accessed 位，当页面被访问到的时候，该位就会被硬件自动置位。该位被置位表示该页面还很年轻，不能被换出去。此后，在系统的运行过程中，该页面的年龄会被操作系统更改。在 Linux 中，相关的操作主要是基于两个 LRU 链表以及两个标识页面状态的标志符，下文会逐一介绍这些相应的数据结构以及 Linux 如何使用这些数据结构进行页面回收。</p>
+<h4 id="LRU-链表"><a href="#LRU-链表" class="headerlink" title="LRU 链表"></a>LRU 链表</h4><p>在 Linux 中，操作系统对 LRU 的实现主要是基于一对双向链表：active 链表和 inactive 链表，这两个链表是 Linux 操作系统进行页面回收所依赖的关键数据结构，每个内存区域都存在一对这样的链表。顾名思义，那些经常被访问的处于活跃状态的页面会被放在 active 链表上，而那些虽然可能关联到一个或者多个进程，但是并不经常使用的页面则会被放到 inactive 链表上。页面会在这两个双向链表中移动，操作系统会根据页面的活跃程度来判断应该把页面放到哪个链表上。页面可能会从 active 链表上被转移到 inactive 链表上，也可能从 inactive 链表上被转移到 active 链表上，但是，这种转移并不是每次页面访问都会发生，页面的这种转移发生的间隔有可能比较长。那些最近最少使用的页面会被逐个放到 inactive 链表的尾部。进行页面回收的时候，Linux 操作系统会从 inactive 链表的尾部开始进行回收。</p>
+<p>用于描述内存区域的 <a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/include/linux/mmzone.h#L139" target="_blank" rel="noopener">struct zone()</a> 中关于这两个链表以及相关的关键字段的定义如下所示：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">zone</span> &#123;</span> </span><br><span class="line">   ……</span><br><span class="line"> <span class="keyword">spinlock_t</span> 		    lru_lock; 	</span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>  	 <span class="title">active_list</span>;</span> </span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> 	 <span class="title">inactive_list</span>;</span> </span><br><span class="line"> <span class="keyword">unsigned</span> <span class="keyword">long</span> 		 nr_active; </span><br><span class="line"> <span class="keyword">unsigned</span> <span class="keyword">long</span> 		 nr_inactive; </span><br><span class="line">   ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>各字段含义如下所示：</p>
+<ul>
+<li>lru_lock：active_list 和 inactive_list 使用的自旋锁</li>
+<li>active_list：管理内存区域中处于活跃状态的页面</li>
+<li>inactive_list：管理内存区域中处于不活跃状态的页面</li>
+<li>nr_active：active_list 链表上的页面数目</li>
+<li>nr_inactive：inactive_list 链表上的页面数目</li>
+</ul>
+<h4 id="如何在两个-LRU-链表之间移动页面"><a href="#如何在两个-LRU-链表之间移动页面" class="headerlink" title="如何在两个 LRU 链表之间移动页面"></a>如何在两个 LRU 链表之间移动页面</h4><p>Linux 引入了两个页面标志符 PG_active 和 PG_referenced 用于标识页面的活跃程度，从而决定如何在两个链表之间移动页面。PG_active 用于表示页面当前是否是活跃的，如果该位被置位，则表示该页面是活跃的。PG_referenced 用于表示页面最近是否被访问过，每次页面被访问，该位都会被置位。Linux 必须同时使用这两个标志符来判断页面的活跃程度。</p>
+<p>Linux 2.6 中这两个标志符密切合作，其核心思想如下所示：</p>
+<ul>
+<li>如果页面被认为是活跃的，则将该页的 PG_active 置位；否则，不置位。</li>
+<li>当页面被访问时，检查该页的 PG_referenced 位，若未被置位，则将它置位；若发现该页的 PG_referenced 已经被置位了，则意味着该页经常被访问，这时，若该页在 inactive 链表上，则置位其 PG_active ，将其移动到 active 链表上去，并清除其 PG_referenced 位；如果页面的 PG_referenced 位被置位了一段时间后，该页面没有被再次访问，那么 Linux 操作系统会清除该页面的 PG_referenced 位，因为这意味着这个页面最近这段时间都没有被访问。</li>
+<li>PG_referenced 位同样也可以用于页面从 active 链表移动到 inactive 链表。对于某个在 active 链表上的页面来说，其 PG_active 位被置位，如果 PG_referenced 位未被置位，给定一段时间之后，该页面如果还是没有被访问，那么该页面会被清除其 PG_active 位，挪到 inactive 链表上去。</li>
+</ul>
+<p><em>注：PG_referenced利用的是Accessed位，Accessed由硬件置为1，软件置为0。</em></p>
+<p>Linux 中实现在 LRU 链表之间移动页面的关键函数如下所示（本文涉及的源代码均是基于 Linux 2.6.18.1 版本的）：</p>
+<ul>
+<li><a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/mm/swap.c#L142" target="_blank" rel="noopener">mark_page_accessed()</a>：当一个页面被访问时，则调用该函数相应地修改 PG_active 和 PG_referenced。</li>
+<li><a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/mm/rmap.c#L411" target="_blank" rel="noopener">page_referenced()</a>：当操作系统进行页面回收时，每扫描到一个页面，就会调用该函数设置页面的 PG_referenced 位。如果一个页面的 PG_referenced 位被置位，但是在一定时间内该页面没有被再次访问，那么该页面的 PG_referenced 位会被清除。</li>
+<li><a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/mm/swap.c#L121" target="_blank" rel="noopener">activate_page()</a>：该函数将页面放到 active 链表上去。</li>
+<li><a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/mm/vmscan.c#L715" target="_blank" rel="noopener">shrink_active_list()</a>：该函数将页面移动到 inactive 链表上去。</li>
+</ul>
+<h4 id="LRU-缓存"><a href="#LRU-缓存" class="headerlink" title="LRU 缓存"></a>LRU 缓存</h4><p>前边提到，页面根据其活跃程度会在 active 链表和 inactive 链表之间来回移动，如果要将某个页面插入到这两个链表中去，必须要通过自旋锁以保证对链表的并发访问操作不会出错。为了降低锁的竞争，Linux 提供了一种特殊的缓存：LRU 缓存，用以批量地向 LRU 链表中快速地添加页面。有了 LRU 缓存之后，新页不会被马上添加到相应的链表上去，而是先被放到一个缓冲区中去，当该缓冲区缓存了足够多的页面之后，缓冲区中的页面才会被一次性地全部添加到相应的 LRU 链表中去。Linux 采用这种方法降低了锁的竞争，极大地提升了系统的性能。<br>LRU 缓存用到了 pagevec 结构，如下所示 :<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pagevec</span> &#123;</span> </span><br><span class="line"> <span class="keyword">unsigned</span> <span class="keyword">long</span> nr; </span><br><span class="line"> <span class="keyword">unsigned</span> <span class="keyword">long</span> cold; </span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">page</span> *<span class="title">pages</span>[<span class="title">PAGEVEC_SIZE</span>];</span> </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>pagevec 这个结构就是用来管理 LRU 缓存中的这些页面的。该结构定义了一个数组，这个数组中的项是指向 page 结构的指针。一个 pagevec 结构最多可以存在 14 个这样的项（PAGEVEC_SIZE 的默认值是 14）。当一个 pagevec 的结构满了，那么该 pagevec 中的所有页面会一次性地被移动到相应的 LRU 链表上去。<br>用来实现 LRU 缓存的两个关键函数是 <a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/mm/swap.c#L161" target="_blank" rel="noopener">lru_cache_add()</a> 和 <a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/mm/swap.c#L171" target="_blank" rel="noopener">lru_cache_add_active()</a>。前者用于延迟将页面添加到 inactive 链表上去，后者用于延迟将页面添加到 active 链表上去。这两个函数都会将要移动的页面先放到页向量 pagevec 中，当 pagevec 满了（已经装了 14 个页面的描述符指针），pagevec 结构中的所有页面才会被一次性地移动到相应的链表上去。<br>下图概括总结了上文介绍的如何在两个链表之间移动页面，以及 LRU 缓存在其中起到的作用：</p>
+<p><strong>图 1. 页面在 LRU 链表之间移动示意图</strong><br><img src="/images/2017/9/12.png" alt=""><br>其中，1 表示函数 mark_page_accessed()，2 表示函数 page_referenced()，3 表示函数 activate_page()，4 表示函数 shrink_active_list()。</p>
+<h3 id="页面回收的实现"><a href="#页面回收的实现" class="headerlink" title="页面回收的实现"></a>页面回收的实现</h3><p>Linux 操作系统进行页面回收需要考虑的方面很多，下图列出了 Linux 操作系统进行页面回收的关键代码流程图，该图给出了实现页面回收的关键代码函数名，并说明它们之间是如何彼此链接的。<br><strong>图 2. 页面回收关键代码流程图</strong><br><img src="/images/2017/9/13.jpg" alt=""></p>
+<p>上文提到 Linux 中页面回收主要是通过两种方式触发的，一种是由“内存严重不足”事件触发的；一种是由后台进程 kswapd 触发的，该进程周期性地运行，一旦检测到内存不足，就会触发页面回收操作。对于第一种情况，系统会调用函数 try_to_free_pages() 去检查当前内存区域中的页面，回收那些最不常用的页面。对于第二种情况，函数 balance_pgdat() 是入口函数。<br>当 NUMA 上的某个节点的低内存区域调用函数 try_to_free_pages() 的时候，该函数会反复调用 shrink_zones() 以及 shrink_slab() 释放一定数目的页面，默认值是 32 个页面。如果在特定的循环次数内没有能够成功释放 32 个页面，那么页面回收会调用 OOM killer 选择并杀死一个进程，然后释放它占用的所有页面。函数 shrink_zones() 会对内存区域列表中的所有区域分别调用 shrink_zone() 函数，后者是从内存回收最近最少使用页面的入口函数。<br>对于定期页面检查并进行回收的入口函数 balance_pgdat() 来说，它主要调用的函数是 shrink_zone() 和 shrink_slab()。从上图中我们也可以看出，进行页面回收的两条代码路径最终汇合到函数 shrink_zone() 和函数 shrink_slab() 上。</p>
+<h4 id="函数-shrink-zone"><a href="#函数-shrink-zone" class="headerlink" title="函数 shrink_zone()"></a>函数 shrink_zone()</h4><p>其中，shrink_zone() 函数是 Linux 操作系统实现页面回收的最核心的函数之一，它实现了对一个内存区域的页面进行回收的功能，该函数主要做了两件事情：</p>
+<ul>
+<li>将某些页面从 active 链表移到 inactive 链表，这是由函数 shrink_active_list() 实现的。</li>
+<li>从 inactive 链表中选定一定数目的页面，将其放到一个临时链表中，这由函数 shrink_inactive_list() 完成。该函数最终会调用 shrink_page_list() 去回收这些页面。</li>
+</ul>
+<p>函数 shrink_page_list() 返回的是回收成功的页面数目。概括来说，对于可进行回收的页面，该函数主要做了这样几件事情，其代码流程图如下所示：</p>
+<p><img src="/images/2017/9/15.jpg" alt=""></p>
+<ul>
+<li>对于匿名页面来说，在回收此类页面时，需要将其数据写入到交换区。如果尚未为该页面分配交换区槽位，则先分配一个槽位，并将该页面添加到交换缓存。同时，将相关的 page 实例加入到交换区，这样，对该页面的处理就可以跟其他已经建立映射的页面一样；</li>
+<li>如果该页面已经被映射到一个或者多个进程的页表项中，那么必须找到所有引用该页面的进程，并更新页表中与这些进程相关的所有页表项。</li>
+<li>如果该页面中的数据是脏的，那么数据必须要被回写；</li>
+<li>释放Page cache中的干净页面。</li>
+</ul>
+<h4 id="函数-shrink-slab"><a href="#函数-shrink-slab" class="headerlink" title="函数 shrink_slab()"></a>函数 shrink_slab()</h4><p>函数 shrink_slab() 是用来回收磁盘缓存所占用的页面的。Linux 操作系统并不清楚这类页面是如何使用的，所以如果希望操作系统回收磁盘缓存所占用的页面，那么必须要向操作系统内核注册 shrinker 函数，shrinker 函数会在内存较少的时候主动释放一些该磁盘缓存占用的空间。函数 shrink_slab() 会遍历 shrinker 链表，从而对所有注册了 shrinker 函数的磁盘缓存进行处理。<br>从实现上来看，shrinker 函数和 slab 分配器并没有固定的联系，只是当前主要是 slab 缓存使用 shrinker 函数最多。<br>注册 shrinker 是通过函数 set_shrinker() 实现的，解除 shrinker 注册是通过函数 remove_shrinker() 实现的。当前，Linux 操作系统中主要的 shrinker 函数有如下几种：</p>
+<ul>
+<li>shrink_dcache_memory()：该 shrinker 函数负责 dentry 缓存。</li>
+<li>shrink_icache_memory()：该 shrinker 函数负责 inode 缓存。</li>
+<li>mb_cache_shrink_fn()：该 shrinker 函数负责用于文件系统元数据的缓存。</li>
+</ul>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.ibm.com/developerworks/cn/linux/l-cn-pagerecycle/index.html" target="_blank" rel="noopener">Linux 2.6 中的页面回收与反向映射</a></li>
+<li>《深入理解LINUX内核》</li>
+<li><a href="http://blog.chinaunix.net/uid-28236237-id-3370664.html" target="_blank" rel="noopener">shrink_page_list 函数分析 </a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a><a href="/tags/Kernel/">Kernel</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/09/28/Linux内核中的页面回收算法/" data-title="Linux内核中的页面回收算法 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/10/08/Linux-swapping机制详解/" title="Linux swapping机制详解">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Linux swapping机制详解</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/09/19/C程序员该知道的内存知识/"  title="Ｃ程序员该知道的内存知识">
+ <strong>NEXT:</strong><br/> 
+ <span>Ｃ程序员该知道的内存知识
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux内核中的页面回收算法"><span class="toc-number">1.</span> <span class="toc-text">Linux内核中的页面回收算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#为什么要进行页面回收"><span class="toc-number">1.1.</span> <span class="toc-text">为什么要进行页面回收</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#页面回收机制背景"><span class="toc-number">1.2.</span> <span class="toc-text">页面回收机制背景</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#哪些页面可以被回收"><span class="toc-number">1.2.1.</span> <span class="toc-text">哪些页面可以被回收</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#进行页面回收的时机"><span class="toc-number">1.3.</span> <span class="toc-text">进行页面回收的时机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#页面回收算法"><span class="toc-number">1.4.</span> <span class="toc-text">页面回收算法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#LRU-链表"><span class="toc-number">1.4.1.</span> <span class="toc-text">LRU 链表</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#如何在两个-LRU-链表之间移动页面"><span class="toc-number">1.4.2.</span> <span class="toc-text">如何在两个 LRU 链表之间移动页面</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#LRU-缓存"><span class="toc-number">1.4.3.</span> <span class="toc-text">LRU 缓存</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#页面回收的实现"><span class="toc-number">1.5.</span> <span class="toc-text">页面回收的实现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#函数-shrink-zone"><span class="toc-number">1.5.1.</span> <span class="toc-text">函数 shrink_zone()</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#函数-shrink-slab"><span class="toc-number">1.5.2.</span> <span class="toc-text">函数 shrink_slab()</span></a></li></ol></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/09/28/Linux内核中的页面回收算法/';
+        this.page.identifier = '/2017/09/28/Linux内核中的页面回收算法/';
+        this.page.title = 'Linux内核中的页面回收算法';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,510 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>CPU Cache | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="本文主要转载自卢钧轶(cenalulu)原文地址：http://cenalulu.github.io/linux/all-about-cpu-cache/
+为什么要有CPU Cache随着工艺的提升最近几十年CPU的频率不断提升，而受制于制造工艺和成本限制，目前计算机的内存主要是DRAM并且在访问速">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="CPU Cache | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/04/09/CPU-Cache/" title="CPU Cache" itemprop="url">CPU Cache</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-04-09T06:49:44.000Z" itemprop="datePublished">2018-04-09</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#为什么要有CPU-Cache"><span class="toc-number">1.</span> <span class="toc-text">为什么要有CPU Cache</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#为什么要有多级CPU-Cache"><span class="toc-number">2.</span> <span class="toc-text">为什么要有多级CPU Cache</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Cache-Line"><span class="toc-number">3.</span> <span class="toc-text">Cache Line</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CPU-Cache-是如何存放数据的"><span class="toc-number">4.</span> <span class="toc-text">CPU Cache 是如何存放数据的</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Fully-Associative-全关联映射"><span class="toc-number">4.1.</span> <span class="toc-text">Fully Associative(全关联映射)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#直接映射"><span class="toc-number">4.2.</span> <span class="toc-text">直接映射</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#组相连映射"><span class="toc-number">4.3.</span> <span class="toc-text">组相连映射</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#替换策略"><span class="toc-number">5.</span> <span class="toc-text">替换策略</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#随机"><span class="toc-number">5.1.</span> <span class="toc-text">随机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#先进先出"><span class="toc-number">5.2.</span> <span class="toc-text">先进先出</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#LRU（最近最少使用）"><span class="toc-number">5.3.</span> <span class="toc-text">LRU（最近最少使用）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#写模式"><span class="toc-number">6.</span> <span class="toc-text">写模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Write-through（直写模式）"><span class="toc-number">6.1.</span> <span class="toc-text">Write-through（直写模式）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Write-back（回写模式）"><span class="toc-number">6.2.</span> <span class="toc-text">Write-back（回写模式）</span></a></li></ol></li></ol>
+		</div>
+		
+		<p>本文主要转载自卢钧轶(cenalulu)<br>原文地址：<a href="http://cenalulu.github.io/linux/all-about-cpu-cache/" target="_blank" rel="noopener">http://cenalulu.github.io/linux/all-about-cpu-cache/</a></p>
+<h2 id="为什么要有CPU-Cache"><a href="#为什么要有CPU-Cache" class="headerlink" title="为什么要有CPU Cache"></a>为什么要有CPU Cache</h2><p>随着工艺的提升最近几十年CPU的频率不断提升，而受制于制造工艺和成本限制，目前计算机的内存主要是DRAM并且在访问速度上没有质的突破。因此，CPU的处理速度和内存的访问速度差距越来越大，甚至可以达到上万倍。同时又由于内存数据访问的热点集中性，在CPU和内存之间用较为快速而成本较高的SDRAM做一层缓存，就显得性价比极高了。</p>
+<h2 id="为什么要有多级CPU-Cache"><a href="#为什么要有多级CPU-Cache" class="headerlink" title="为什么要有多级CPU Cache"></a>为什么要有多级CPU Cache</h2><p>随着科技发展，热点数据的体积越来越大，单纯的增加一级缓存大小的性价比已经很低了。因此，就慢慢出现了在一级缓存(L1 Cache)和内存之间又增加一层访问速度和成本都介于两者之间的二级缓存(L2 Cache)。下面是一段从<a href="http://futuretech.blinkenlights.nl/misc/cpumemory.pdf" target="_blank" rel="noopener">What Every Programmer Should Know About Memory</a>中摘录的解释：</p>
+<blockquote>
+<p>Soon after the introduction of the cache the system got more complicated. The speed difference between the cache and the main memory increased again, to a point that another level of cache was added, bigger and slower than the first-level cache. Only increasing the size of the first-level cache was not an option for economical reasons.</p>
+</blockquote>
+<p>此外，又由于程序指令和程序数据的行为和热点分布差异很大，因此L1 Cache也被划分成L1i (i for instruction)和L1d (d for data)两种专门用途的缓存。 下面<a href="https://datatake.files.wordpress.com/2015/01/cpu-cache-access-in-cpu-cycles.png" target="_blank" rel="noopener">一张图</a>可以看出各级缓存之间的响应时间差距，以及内存到底有多慢！</p>
+<p><img src="https://datatake.files.wordpress.com/2015/01/cpu-cache-access-in-cpu-cycles.png" alt=""></p>
+<p>CPU包含多个核，每个核又有独自的一级缓存和二级缓存，各个核心之间共享三级缓存，并统一通过总线与内存进行交互。</p>
+<p><img src="/images/2018/4/1.png" alt=""></p>
+<h2 id="Cache-Line"><a href="#Cache-Line" class="headerlink" title="Cache Line"></a>Cache Line</h2><p>整个Cache被分成多个Line，每个Line通常是32byte或64byte。<br>Cache Line是Cache和内存交换数据的最小单位。</p>
+<p><img src="/images/2018/4/2.png" alt=""></p>
+<p>每个Cache Line包含三个部分:</p>
+<ul>
+<li>Valid：当前缓存是否有效</li>
+<li>Tag：对应的内存地址</li>
+<li>Block：缓存数据</li>
+</ul>
+<p><img src="/images/2018/4/3.png" alt=""></p>
+<p><strong>了解Cache Line的概念对我们程序猿有什么帮助？</strong> 我们来看下面这个C语言中<a href="https://www.quora.com/What-are-some-things-that-programmers-know-but-not-computer-scientists/answer/Josh-Taylor-26?srid=XtLV&amp;share=1" target="_blank" rel="noopener">常用的循环优化</a>例子 下面两段代码中，第一段代码在C语言中总是比第二段代码的执行速度要快。具体的原因相信你仔细阅读了Cache Line的介绍后就很容易理解了。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; n; i++) &#123;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; n; j++) &#123;</span><br><span class="line">        <span class="keyword">int</span> num;    </span><br><span class="line">        <span class="comment">//code</span></span><br><span class="line">        arr[i][j] = num;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; n; i++) &#123;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; n; j++) &#123;</span><br><span class="line">        <span class="keyword">int</span> num;    </span><br><span class="line">        <span class="comment">//code</span></span><br><span class="line">        arr[j][i] = num;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="CPU-Cache-是如何存放数据的"><a href="#CPU-Cache-是如何存放数据的" class="headerlink" title="CPU Cache 是如何存放数据的"></a>CPU Cache 是如何存放数据的</h2><p>假设我们有一块4MB的区域用于缓存，每个缓存对象的唯一标识是它所在的物理内存地址。每个缓存对象大小是64Bytes，所有可以被缓存对象的大小总和（即物理内存总大小）为4GB。那么我们该如何设计这个缓存？</p>
+<h3 id="Fully-Associative-全关联映射"><a href="#Fully-Associative-全关联映射" class="headerlink" title="Fully Associative(全关联映射)"></a>Fully Associative(全关联映射)</h3><p>Fully Associative 字面意思是全关联。在CPU Cache中的含义是：如果在一个Cache集内，任何一个内存地址的数据可以被缓存在任何一个Cache Line里，那么我们成这个cache是Fully Associative。从定义中我们可以得出这样的结论：给到一个内存地址，要知道他是否存在于Cache中，需要遍历所有Cache Line并比较缓存内容的内存地址。而Cache的本意就是为了在尽可能少得CPU Cycle内取到数据。那么想要设计一个快速的Fully Associative的Cache几乎是不可能的。</p>
+<p><img src="/images/2018/4/4.png" alt=""></p>
+<h3 id="直接映射"><a href="#直接映射" class="headerlink" title="直接映射"></a>直接映射</h3><p>和Fully Associative完全相反，使用Direct Mapped模式的Cache给定一个内存地址，就唯一确定了一条Cache Line。设计复杂度低且速度快。那么为什么Cache不使用这种模式呢？直接映射方式的缺点是不够灵活，因每个主存只能固定地对应某个缓存快，即使缓存内还空着许多位置也不能占用，使缓存的存储空间得不到充分的利用。此外，如果程序恰好重复要访问对应同一缓存位置的不同主存块，就要不停地进行替换，从而降低命中率。</p>
+<p><img src="/images/2018/4/5.png" alt=""></p>
+<h3 id="组相连映射"><a href="#组相连映射" class="headerlink" title="组相连映射"></a>组相连映射</h3><p>为了避免以上两种设计模式的缺陷，N-Way Set Associative缓存就出现了。他的原理是把一个缓存按照N个Cache Line作为一组（set），缓存按组划为等分。这样一个64位系统的内存地址在4MB二级缓存中就划成了三个部分（见下图），低位6个bit表示在Cache Line中的偏移量，中间12bit表示Cache组号（set index），剩余的高位46bit就是内存地址的唯一id。这样的设计相较前两种设计有以下两点好处：(16路组相连)</p>
+<ul>
+<li>给定一个内存地址可以唯一对应一个set，对于set中只需遍历16个元素就可以确定对象是否在缓存中（Full Associative中比较次数随内存大小线性增加）</li>
+<li>每2^18(512K)*64=32M的连续热点数据才会导致一个set内的conflict（Direct Mapped中512K的连续热点数据就会出现conflict）</li>
+</ul>
+<p><img src="/images/2018/4/6.png" alt=""></p>
+<p><img src="/images/2018/4/7.png" alt=""></p>
+<h2 id="替换策略"><a href="#替换策略" class="headerlink" title="替换策略"></a>替换策略</h2><h3 id="随机"><a href="#随机" class="headerlink" title="随机"></a>随机</h3><p>随机确定要替换的块</p>
+<h3 id="先进先出"><a href="#先进先出" class="headerlink" title="先进先出"></a>先进先出</h3><p>选择最先调入的块进行替换</p>
+<h3 id="LRU（最近最少使用）"><a href="#LRU（最近最少使用）" class="headerlink" title="LRU（最近最少使用）"></a>LRU（最近最少使用）</h3><p>根据块的使用情况，选择最近最少使用的块进行替换，反映了程序的局部性规律</p>
+<h2 id="写模式"><a href="#写模式" class="headerlink" title="写模式"></a>写模式</h2><h3 id="Write-through（直写模式）"><a href="#Write-through（直写模式）" class="headerlink" title="Write-through（直写模式）"></a>Write-through（直写模式）</h3><p>在数据更新时，同时写入缓存Cache和后端存储(如下一级cache或者内存)。此模式的优点是操作简单；缺点是因为数据修改需要同时写入存储，数据写入速度较慢。</p>
+<h3 id="Write-back（回写模式）"><a href="#Write-back（回写模式）" class="headerlink" title="Write-back（回写模式）"></a>Write-back（回写模式）</h3><p>在数据更新时只写入缓存Cache。只在数据被替换出缓存时，被修改的缓存数据才会被写到后端存储。此模式的优点是数据写入速度快，因为不需要写存储；缺点是一旦更新后的数据未被写入存储时出现系统掉电的情况，数据将无法找回。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="http://cenalulu.github.io/linux/all-about-cpu-cache/" target="_blank" rel="noopener">关于CPU Cache – 程序猿需要知道的那些事</a></li>
+<li><a href="https://www.jianshu.com/p/061a5d66ea20" target="_blank" rel="noopener">CPU Cache结构
+</a></li>
+<li>《计算机组成原理》（第2版） 唐朔飞 编著</li>
+<li><a href="http://witmax.cn/cache-writing-policies.html" target="_blank" rel="noopener">Cache写机制：Write-through与Write-back</a></li>
+<li><a href="https://coolshell.cn/articles/10249.html" target="_blank" rel="noopener">7个示例科普CPU CACHE</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/计算机系统/">计算机系统</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/计算机系统/">计算机系统</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2018/04/09/CPU-Cache/" data-title="CPU Cache | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/04/11/Intel-RDT特性详解/" title="Intel RDT特性详解">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Intel RDT特性详解</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/04/09/Jeff-Dean系统资料整理/"  title="Jeff Dean系统资料整理">
+ <strong>NEXT:</strong><br/> 
+ <span>Jeff Dean系统资料整理
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#为什么要有CPU-Cache"><span class="toc-number">1.</span> <span class="toc-text">为什么要有CPU Cache</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#为什么要有多级CPU-Cache"><span class="toc-number">2.</span> <span class="toc-text">为什么要有多级CPU Cache</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Cache-Line"><span class="toc-number">3.</span> <span class="toc-text">Cache Line</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CPU-Cache-是如何存放数据的"><span class="toc-number">4.</span> <span class="toc-text">CPU Cache 是如何存放数据的</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Fully-Associative-全关联映射"><span class="toc-number">4.1.</span> <span class="toc-text">Fully Associative(全关联映射)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#直接映射"><span class="toc-number">4.2.</span> <span class="toc-text">直接映射</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#组相连映射"><span class="toc-number">4.3.</span> <span class="toc-text">组相连映射</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#替换策略"><span class="toc-number">5.</span> <span class="toc-text">替换策略</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#随机"><span class="toc-number">5.1.</span> <span class="toc-text">随机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#先进先出"><span class="toc-number">5.2.</span> <span class="toc-text">先进先出</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#LRU（最近最少使用）"><span class="toc-number">5.3.</span> <span class="toc-text">LRU（最近最少使用）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#写模式"><span class="toc-number">6.</span> <span class="toc-text">写模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Write-through（直写模式）"><span class="toc-number">6.1.</span> <span class="toc-text">Write-through（直写模式）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Write-back（回写模式）"><span class="toc-number">6.2.</span> <span class="toc-text">Write-back（回写模式）</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/04/09/CPU-Cache/';
+        this.page.identifier = '/2018/04/09/CPU-Cache/';
+        this.page.title = 'CPU Cache';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

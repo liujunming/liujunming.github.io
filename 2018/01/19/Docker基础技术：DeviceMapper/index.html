@@ -1,0 +1,549 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Docker基础技术：DeviceMapper | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="本文转载自:DOCKER基础技术：DEVICEMAPPER
+在上一篇介绍AUFS的文章中，大家可以看到，Docker的分层镜像是怎么通过UnionFS这种文件系统做到的，但是，因为Docker首选的AUFS并不在Linux的内核主干里，所以，对于非Ubuntu的Linux分发包，比如CentOS，就">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Docker基础技术：DeviceMapper | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/01/19/Docker基础技术：DeviceMapper/" title="Docker基础技术：DeviceMapper" itemprop="url">Docker基础技术：DeviceMapper</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-01-19T11:47:56.000Z" itemprop="datePublished">2018-01-19</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Device-Mapper-简介"><span class="toc-number">1.</span> <span class="toc-text">Device Mapper 简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Thin-Provisioning-简介"><span class="toc-number">2.</span> <span class="toc-text">Thin Provisioning 简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Thin-Provisioning-Snapshot-演示"><span class="toc-number">3.</span> <span class="toc-text">Thin Provisioning Snapshot 演示</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Docker的DeviceMapper"><span class="toc-number">4.</span> <span class="toc-text">Docker的DeviceMapper</span></a></li></ol>
+		</div>
+		
+		<p>本文转载自:<a href="https://coolshell.cn/articles/17200.html" target="_blank" rel="noopener">DOCKER基础技术：DEVICEMAPPER</a></p>
+<p>在上一篇<a href="https://coolshell.cn/articles/17061.html" target="_blank" rel="noopener">介绍AUFS的文章</a>中，大家可以看到，Docker的分层镜像是怎么通过UnionFS这种文件系统做到的，但是，因为Docker首选的AUFS并不在Linux的内核主干里，所以，对于非Ubuntu的Linux分发包，比如CentOS，就无法使用AUFS作为Docker的文件系统了。于是作为第二优先级的DeviceMapper就被拿出来做分层镜像的一个实现。<br><img src="/images/2018/1/9.jpg" alt=""></p>
+<h2 id="Device-Mapper-简介"><a href="#Device-Mapper-简介" class="headerlink" title="Device Mapper 简介"></a>Device Mapper 简介</h2><p>DeviceMapper自Linux 2.6被引入，成为了Linux最重要的一个技术。它是内核中支持逻辑卷管理的通用设备映射机制，它为实现用于存储资源管理的块设备驱动提供了一个高度模块化的内核架构，它包含三个重要的对象概念，Mapped Device、Mapping Table、Target device。</p>
+<p>Mapped Device 是一个逻辑抽象，可以理解成为内核向外提供的逻辑设备，它通过Mapping Table描述的映射关系和 Target Device 建立映射。Target device 表示的是 Mapped Device 所映射的物理空间段，对 Mapped Device 所表示的逻辑设备来说，就是该逻辑设备映射到的一个物理设备。</p>
+<p>Mapping Table里有 Mapped Device 逻辑的起始地址、范围、和表示在 Target Device 所在物理设备的地址偏移量以及Target 类型等信息（注：这些地址和偏移量都是以磁盘的扇区为单位的，即 512 个字节大小，所以，当你看到128的时候，其实表示的是128*512=64K）。</p>
+<p>DeviceMapper 中的逻辑设备Mapped Device不但可以映射一个或多个物理设备Target Device，还可以映射另一个Mapped Device，于是，就是构成了一个迭代或递归的情况，就像文件系统中的目录里除了文件还可以有目录，理论上可以无限嵌套下去。</p>
+<p>DeviceMapper在内核中通过一个个模块化的 Target Driver 插件实现对 IO 请求的过滤或者重新定向等工作，当前已经实现的插件包括软 Raid、加密、多路径、镜像、快照等，这体现了在 Linux 内核设计中策略和机制分离的原则。如下图所示。从图中，我们可以<strong>看到DeviceMapper只是一个框架，在这个框架上，我们可以插入各种各样的策略</strong>，在这诸多“插件”中，<strong>有一个东西叫Thin Provisioning Snapshot，这是Docker使用DeviceMapper中最重要的模块</strong>。</p>
+<p><img src="/images/2018/1/10.gif" alt=""></p>
+<center>图片来源：<a href="http://people.redhat.com/agk/talks/FOSDEM_2005/" target="_blank" rel="noopener">http://people.redhat.com/agk/talks/FOSDEM_2005/</a></center>
+
+<h2 id="Thin-Provisioning-简介"><a href="#Thin-Provisioning-简介" class="headerlink" title="Thin Provisioning 简介"></a>Thin Provisioning 简介</h2><p>Thin Provisioning要怎么翻译成中文，真是一件令人头痛的事，我就不翻译了。这个技术是虚拟化技术中的一种。它是什么意思呢？你可以联想一下我们计算机中的内存管理中用到的——“虚拟内存技术”——操作系统给每个进程N多N多用不完的内址地址，但是呢，我们知道，物理内存是没有那么多的，如果按照进程内存和物理内存一一映射来玩的话，那么，我们得要多少的物理内存啊。所以，操作系统引入了虚拟内存的设计，意思是，我逻辑上给你无限多的内存，但是实际上是实报实销，因为我知道你一定用不了那么多，于是，达到了内存使用率提高的效果。（今天云计算中很多所谓的虚拟化其实完全都是在用和“虚拟内存”相似的Thin Provisioning的技术）</p>
+<p>好了，话题拉回来，我们这里说的是存储。看下面两个图（<a href="http://www.architecting.it/2009/06/04/enterprise-computing-why-thin-provisioning-is-not-the-holy-grail-for-utilisation/" target="_blank" rel="noopener">图片来源</a>），第一个是Fat Provisioning，第二个是Thin Provisioning，其很好的说明了是个怎么一回事（和虚拟内存是一个概念）</p>
+<p><img src="/images/2018/1/10.jpg" alt=""></p>
+<p><img src="/images/2018/1/11.jpg" alt=""></p>
+<p>那么，Docker是怎么使用Thin Provisioning这个技术做到像UnionFS那样的分层镜像的呢？答案是，Docker使用了Thin Provisioning的Snapshot的技术。下面我们来介绍一下Thin Provisioning的Snapshot。</p>
+<h2 id="Thin-Provisioning-Snapshot-演示"><a href="#Thin-Provisioning-Snapshot-演示" class="headerlink" title="Thin Provisioning Snapshot 演示"></a>Thin Provisioning Snapshot 演示</h2><p>下面，我们用一系列的命令来演示一下Device Mapper的Thin Provisioning Snapshot是怎么玩的,请切换到root用户运行命令。</p>
+<p>首先，我们需要先建两个文件，一个是data.img，另一个是meta.data.img：<br><code>dd if=/dev/zero of=/tmp/data.img bs=1K count=1 seek=10M</code><br><code>dd if=/dev/zero of=/tmp/meta.data.img bs=1K count=1 seek=100K</code></p>
+<p><img src="/images/2018/1/12.png" alt=""></p>
+<p>注意命令中seek选项，表示在备份时对of后面的部分也就是目标文件跳过多少块再开始写内容。因为bs是1K个字节，即块大小为1KB，所以当seek=10M时，也就是在备份时对data.img跳过10M个块（即10GB）再开始写内容。但此刻data.img在硬盘上占有空间只有1k的内容，当向其写入内容时，才会在硬盘上为其分配空间。我们可以用ls命令看一下data.img和meta.data.img实际分配的空间。</p>
+<p><code>ls -lsh /tmp/data.img</code><br><code>ls -lsh /tmp/meta.data.img</code></p>
+<p><img src="/images/2018/1/13.png" alt=""></p>
+<p>然后，我们为这些文件创建<a href="http://liujunming.top/2018/01/17/%E5%9B%9E%E7%8E%AF%E8%AE%BE%E5%A4%87loopback-device/" target="_blank" rel="noopener">loopback设备</a>。</p>
+<p><code>losetup /dev/loop2015 /tmp/data.img</code><br><code>losetup /dev/loop2016 /tmp/meta.data.img</code></p>
+<p><code>losetup -a</code></p>
+<p><img src="/images/2018/1/14.png" alt=""></p>
+<p>现在，我们为设备建一个Thin Provisioning的Pool，用dmsetup命令</p>
+<p><code>dmsetup create hchen-thin-pool --table &quot;0 20971520 thin-pool /dev/loop2016 /dev/loop2015 128 65536 1 skip_block_zeroing&quot;</code></p>
+<p>其中的参数解释如下（更多信息可参看<a href="https://github.com/torvalds/linux/blob/master/Documentation/device-mapper/thin-provisioning.txt" target="_blank" rel="noopener">Thin Provisioning的man page</a>）：</p>
+<ul>
+<li>dmsetup create是用来创建thin pool的命令</li>
+<li>hchen-thin-pool 是自定义的一个pool名，不冲突就好。</li>
+<li>–table是这个pool的参数设置<ul>
+<li>0代表数据起始的sector号</li>
+<li>20971520数据结束的sector号，一个sector是512字节，所以，20971520个正好是10GB</li>
+<li>/dev/loop2016是meta文件的设备（前面我们建好了）</li>
+<li>/dev/loop2015是data文件的设备（前面我们建好了）</li>
+<li>128是最小的可分配的sector数</li>
+<li>65536是最少可用sector的water mark，也就是一个threshold</li>
+<li>1 代表有一个附加参数</li>
+<li>skip_block_zeroing是个附加参数，表示略过用0填充的块</li>
+</ul>
+</li>
+</ul>
+<p>然后，我们就可以看到一个Device Mapper的设备了：<br><code>ll /dev/mapper/hchen-thin-pool</code></p>
+<p><img src="/images/2018/1/15.png" alt=""></p>
+<p>我们的初始化工作还没有完成，接下来，还要创建一个Thin Provisioning 的 Volume：</p>
+<p><code>dmsetup message /dev/mapper/hchen-thin-pool 0 &quot;create_thin 0&quot;</code><br><code>dmsetup create hchen-thin-volumn-001 --table &quot;0 2097152 thin /dev/mapper/hchen-thin-pool 0&quot;</code></p>
+<p>其中：</p>
+<ul>
+<li>第一个命令中的create_thin是关键字，后面的0表示这个Volume的device 的 id</li>
+<li>第二个命令，是真正的为这个Volumn创建一个可以mount的设备，名字叫hchen-thin-volumn-001。</li>
+</ul>
+<p>好了，在mount前，我们还要格式化一下：<br><code>mkfs.ext4 /dev/mapper/hchen-thin-volumn-001</code><br><img src="/images/2018/1/16.png" alt=""></p>
+<p>好了，我们可以mount了（下面的命令中，我还创建了一个文件）<br><code>mkdir -p /mnt/base</code><br><code>mount /dev/mapper/hchen-thin-volumn-001 /mnt/base</code><br><code>echo &quot;hello world, I am a base&quot; &gt; /mnt/base/id.txt</code><br><code>cat /mnt/base/id.txt</code><br><img src="/images/2018/1/17.png" alt=""><br>好了，接下来，我们来看看snapshot怎么搞：<br><code>dmsetup message /dev/mapper/hchen-thin-pool 0 &quot;create_snap 1 0&quot;</code><br><code>dmsetup create mysnap1 --table &quot;0 2097152 thin /dev/mapper/hchen-thin-pool 1&quot;</code></p>
+<p><code>ll /dev/mapper/mysnap1</code><br><img src="/images/2018/1/18.png" alt=""><br>上面的命令中：</p>
+<ul>
+<li>第一条命令是向hchen-thin-pool发一个create_snap的消息，后面跟两个id，第一个是新的dev id，第二个是要从哪个已有的dev id上做snapshot（0这个dev id是我们前面就创建了了）</li>
+<li>第二条命令是创建一个mysnap1的device，并可以被mount。</li>
+</ul>
+<p>下面我们来看看：<br><code>mkdir -p /mnt/mysnap1</code><br><code>mount /dev/mapper/mysnap1 /mnt/mysnap1</code></p>
+<p><code>ll /mnt/mysnap1/</code></p>
+<p><code>cat /mnt/mysnap1/id.txt</code></p>
+<p><img src="/images/2018/1/19.png" alt=""></p>
+<p>我们来修改一下/mnt/mysnap1/id.txt，并加上一个snap1.txt的文件：<br><code>echo &quot;I am snap1&quot; &gt;&gt; /mnt/mysnap1/id.txt</code><br><code>echo &quot;I am snap1&quot; &gt; /mnt/mysnap1/snap1.txt</code></p>
+<p><code>cat /mnt/mysnap1/id.txt</code></p>
+<p><code>cat /mnt/mysnap1/snap1.txt</code></p>
+<p><img src="/images/2018/1/20.png" alt=""></p>
+<p>我们再看一下/mnt/base，你会发现没有什么变化：<br><code>ls /mnt/base</code><br><code>cat /mnt/base/id.txt</code></p>
+<p><img src="/images/2018/1/21.png" alt=""></p>
+<p>你是不是已经看到了分层镜像的样子了？</p>
+<p>你还可以继续在刚才的snapshot上再建一个snapshot<br><code>dmsetup message /dev/mapper/hchen-thin-pool 0 &quot;create_snap 2 1&quot;</code><br><code>dmsetup create mysnap2  --table &quot;0 2097152 thin /dev/mapper/hchen-thin-pool 2&quot;</code></p>
+<p><code>ll /dev/mapper/mysnap2</code></p>
+<p><code>mkdir -p /mnt/mysnap2</code><br><code>mount /dev/mapper/mysnap2 /mnt/mysnap2</code><br><code>ls /mnt/mysnap2</code></p>
+<p><img src="/images/2018/1/22.png" alt=""></p>
+<p>好了，我相信你看到了分层镜像的样子了。</p>
+<p>看完演示，我们再来补点理论知识吧：</p>
+<ul>
+<li>Snapshot来自LVM（<a href="http://liujunming.top/2018/01/18/%E9%80%BB%E8%BE%91%E5%8D%B7%E7%AE%A1%E7%90%86-LVM/" target="_blank" rel="noopener">Logic Volumn Manager</a>），它可以在不中断服务的情况下为某个device打一个快照。</li>
+<li>Snapshot是Copy-On-Write的，也就是说，只有发生了修改，才会对对应的内容进行拷贝。</li>
+</ul>
+<p>另外，这里有篇文章<a href="http://searchstorage.techtarget.com/tip/Storage-thin-provisioning-benefits-and-challenges" target="_blank" rel="noopener">Storage thin provisioning benefits and challenges</a>可以前往一读。</p>
+<h2 id="Docker的DeviceMapper"><a href="#Docker的DeviceMapper" class="headerlink" title="Docker的DeviceMapper"></a>Docker的DeviceMapper</h2><p>上面基本上就是Docker的玩法了。</p>
+<p><code>ls -alhs /var/lib/docker/devicemapper/devicemapper</code><br><img src="/images/2018/1/24.png" alt=""></p>
+<p>下面是相关的thin-pool。其中，有个一大串hash的device是正在启动的容器：<br><code>sudo ll /dev/mapper/dock*</code><br><img src="/images/2018/1/25.png" alt=""></p>
+<p>我们可以看一下它的device id（Docker都把它们记下来了）：<br><code>cat /var/lib/docker/devicemapper/metadata/29ef919ba2a241fa4fdb024fb66923522cea89e155162ca83b454212569b8f21</code><br><img src="/images/2018/1/26.png" alt=""></p>
+<p>device_id是1326，size是10737418240，除以512，就是20971520 个 sector，我们用这些信息来做个snapshot看看（注：我用了一个比较大的dev id – 2048）：<br><code>dmsetup message &quot;/dev/mapper/docker-thinpool&quot; 0 &quot;create_snap 2048 1326&quot;</code><br><code>dmsetup create dockersnap --table &quot;0 20971520 thin /dev/mapper/docker-thinpool 2048&quot;</code><br><code>mkdir /mnt/docker</code><br><code>mount /dev/mapper/dockersnap /mnt/docker/</code><br><code>ls /mnt/docker/</code><br><code>ls /mnt/docker/rootfs/</code><br><img src="/images/2018/1/27.png" alt=""></p>
+<p>我们在docker的容器里用findmnt命令也可以看到相关的mount的情况（因为太长，下面只是摘要）：<br><code>findmnt</code><br><img src="/images/2018/1/28.png" alt=""></p>
+<p>如果你在使用loopback的devicemapper的话，当你的存储出现了问题后，正确的解决方案是：<br><code>rm -rf /var/lib/docker</code></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/容器/">容器</a><a href="/tags/docker/">docker</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/容器/">容器</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2018/01/19/Docker基础技术：DeviceMapper/" data-title="Docker基础技术：DeviceMapper | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/03/06/系统性能分析工具/" title="系统性能分析工具">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  系统性能分析工具</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/01/18/逻辑卷管理-LVM/"  title="逻辑卷管理(LVM)">
+ <strong>NEXT:</strong><br/> 
+ <span>逻辑卷管理(LVM)
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Device-Mapper-简介"><span class="toc-number">1.</span> <span class="toc-text">Device Mapper 简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Thin-Provisioning-简介"><span class="toc-number">2.</span> <span class="toc-text">Thin Provisioning 简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Thin-Provisioning-Snapshot-演示"><span class="toc-number">3.</span> <span class="toc-text">Thin Provisioning Snapshot 演示</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Docker的DeviceMapper"><span class="toc-number">4.</span> <span class="toc-text">Docker的DeviceMapper</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/01/19/Docker基础技术：DeviceMapper/';
+        this.page.identifier = '/2018/01/19/Docker基础技术：DeviceMapper/';
+        this.page.title = 'Docker基础技术：DeviceMapper';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,480 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>QEMU/KVM I/O 处理过程 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="本文展示的代码中,qemu版本为1.6.0, Linux内核版本为3.12.73。本篇文章主要描述IO从guest vm跳转到kvm和qemu后的处理过程。
+首先回顾一下kvm的启动过程。qemu通过调用kvm提供的一系列接口来启动kvm。qemu的入口为vl.c中的main函数,main函数通过调">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="QEMU/KVM I/O 处理过程 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/06/26/QEMU-KVM-I-O-处理过程/" title="QEMU/KVM I/O 处理过程" itemprop="url">QEMU/KVM I/O 处理过程</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-06-26T07:28:49.000Z" itemprop="datePublished">2017-06-26</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		
+		</div>
+		
+		<p>本文展示的代码中,qemu版本为<a href="https://github.com/qemu/qemu/tree/stable-1.6" target="_blank" rel="noopener">1.6.0</a>, Linux内核版本为<a href="http://elixir.free-electrons.com/linux/v3.12.73/source" target="_blank" rel="noopener">3.12.73</a>。<br>本篇文章主要描述IO从guest vm跳转到kvm和qemu后的处理过程。</p>
+<p>首先回顾一下<a href="http://liujunming.top/2017/06/26/KVM%E5%88%9D%E5%A7%8B%E5%8C%96%E8%BF%87%E7%A8%8B/" target="_blank" rel="noopener">kvm的启动过程</a>。qemu通过调用kvm提供的一系列接口来启动kvm。qemu的入口为vl.c中的main函数,main函数通过调用kvm_init 和 machine-&gt;init来初始化kvm。 其中, machine-&gt;init会创建vcpu, 用一个线程去模拟vcpu, 该线程执行的函数为qemu_kvm_cpu_thread_fn, 并且该线程调用kvm_cpu_exec,该函数调用kvm_vcpu_ioctl切换到kvm中,下次从kvm中返回时,会接着执行kvm_vcpu_ioctl之后的代码,判断exit_reason,然后进行相应处理。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kvm_cpu_exec</span><span class="params">(CPUState *cpu)</span>  </span></span><br><span class="line"><span class="function"></span>&#123;  </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">kvm_run</span> *<span class="title">run</span> = <span class="title">cpu</span>-&gt;<span class="title">kvm_run</span>;</span>  </span><br><span class="line">    <span class="keyword">int</span> ret, run_ret;  </span><br><span class="line">  </span><br><span class="line">    DPRINTF(<span class="string">"kvm_cpu_exec()\n"</span>);  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">if</span> (kvm_arch_process_async_events(cpu)) &#123;  </span><br><span class="line">        cpu-&gt;exit_request = <span class="number">0</span>;  </span><br><span class="line">        <span class="keyword">return</span> EXCP_HLT;  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">do</span> &#123;  </span><br><span class="line">        <span class="keyword">if</span> (cpu-&gt;kvm_vcpu_dirty) &#123;  </span><br><span class="line">            kvm_arch_put_registers(cpu, KVM_PUT_RUNTIME_STATE);  </span><br><span class="line">            cpu-&gt;kvm_vcpu_dirty = <span class="literal">false</span>;  </span><br><span class="line">        &#125;  </span><br><span class="line">  </span><br><span class="line">        kvm_arch_pre_run(cpu, run);  </span><br><span class="line">        <span class="keyword">if</span> (cpu-&gt;exit_request) &#123;  </span><br><span class="line">            DPRINTF(<span class="string">"interrupt exit requested\n"</span>);  </span><br><span class="line">            <span class="comment">/* </span></span><br><span class="line"><span class="comment">             * KVM requires us to reenter the kernel after IO exits to complete </span></span><br><span class="line"><span class="comment">             * instruction emulation. This self-signal will ensure that we </span></span><br><span class="line"><span class="comment">             * leave ASAP again. </span></span><br><span class="line"><span class="comment">             */</span>  </span><br><span class="line">            qemu_cpu_kick_self();  </span><br><span class="line">        &#125;  </span><br><span class="line">        qemu_mutex_unlock_iothread();  </span><br><span class="line">  </span><br><span class="line">        run_ret = kvm_vcpu_ioctl(cpu, KVM_RUN, <span class="number">0</span>);  </span><br><span class="line">  </span><br><span class="line">        qemu_mutex_lock_iothread();  </span><br><span class="line">        kvm_arch_post_run(cpu, run);  </span><br><span class="line">  </span><br><span class="line">        <span class="keyword">if</span> (run_ret &lt; <span class="number">0</span>) &#123;  </span><br><span class="line">            <span class="keyword">if</span> (run_ret == -EINTR || run_ret == -EAGAIN) &#123;  </span><br><span class="line">                DPRINTF(<span class="string">"io window exit\n"</span>);  </span><br><span class="line">                ret = EXCP_INTERRUPT;  </span><br><span class="line">                <span class="keyword">break</span>;  </span><br><span class="line">            &#125;  </span><br><span class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"error: kvm run failed %s\n"</span>,  </span><br><span class="line">                    strerror(-run_ret));  </span><br><span class="line">            <span class="built_in">abort</span>();  </span><br><span class="line">        &#125;  </span><br><span class="line">  </span><br><span class="line">        trace_kvm_run_exit(cpu-&gt;cpu_index, run-&gt;exit_reason);  </span><br><span class="line">        <span class="keyword">switch</span> (run-&gt;exit_reason) &#123;  </span><br><span class="line">        <span class="keyword">case</span> KVM_EXIT_IO:  </span><br><span class="line">            DPRINTF(<span class="string">"handle_io\n"</span>);  </span><br><span class="line">            kvm_handle_io(run-&gt;io.port,  </span><br><span class="line">                          (<span class="keyword">uint8_t</span> *)run + run-&gt;io.data_offset,  </span><br><span class="line">                          run-&gt;io.direction,  </span><br><span class="line">                          run-&gt;io.size,  </span><br><span class="line">                          run-&gt;io.count);  </span><br><span class="line">            ret = <span class="number">0</span>;  </span><br><span class="line">            <span class="keyword">break</span>;  </span><br><span class="line">        <span class="keyword">case</span> KVM_EXIT_MMIO:  </span><br><span class="line">            DPRINTF(<span class="string">"handle_mmio\n"</span>);  </span><br><span class="line">            cpu_physical_memory_rw(run-&gt;mmio.phys_addr,  </span><br><span class="line">                                   run-&gt;mmio.data,  </span><br><span class="line">                                   run-&gt;mmio.len,  </span><br><span class="line">                                   run-&gt;mmio.is_write);  </span><br><span class="line">            ret = <span class="number">0</span>;  </span><br><span class="line">            <span class="keyword">break</span>;  </span><br><span class="line">        <span class="keyword">case</span> KVM_EXIT_IRQ_WINDOW_OPEN:  </span><br><span class="line">            DPRINTF(<span class="string">"irq_window_open\n"</span>);  </span><br><span class="line">            ret = EXCP_INTERRUPT;  </span><br><span class="line">            <span class="keyword">break</span>;  </span><br><span class="line">        <span class="keyword">case</span> KVM_EXIT_SHUTDOWN:  </span><br><span class="line">            DPRINTF(<span class="string">"shutdown\n"</span>);  </span><br><span class="line">            qemu_system_reset_request();  </span><br><span class="line">            ret = EXCP_INTERRUPT;  </span><br><span class="line">            <span class="keyword">break</span>;  </span><br><span class="line">        <span class="keyword">case</span> KVM_EXIT_UNKNOWN:  </span><br><span class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"KVM: unknown exit, hardware reason %"</span> PRIx64 <span class="string">"\n"</span>,  </span><br><span class="line">                    (<span class="keyword">uint64_t</span>)run-&gt;hw.hardware_exit_reason);  </span><br><span class="line">            ret = <span class="number">-1</span>;  </span><br><span class="line">            <span class="keyword">break</span>;  </span><br><span class="line">        <span class="keyword">case</span> KVM_EXIT_INTERNAL_ERROR:  </span><br><span class="line">            ret = kvm_handle_internal_error(cpu, run);  </span><br><span class="line">            <span class="keyword">break</span>;  </span><br><span class="line">        <span class="keyword">default</span>:  </span><br><span class="line">            DPRINTF(<span class="string">"kvm_arch_handle_exit\n"</span>);  </span><br><span class="line">            ret = kvm_arch_handle_exit(cpu, run);  </span><br><span class="line">            <span class="keyword">break</span>;  </span><br><span class="line">        &#125;  </span><br><span class="line">    &#125; <span class="keyword">while</span> (ret == <span class="number">0</span>);  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;  </span><br><span class="line">        cpu_dump_state(cpu, <span class="built_in">stderr</span>, <span class="built_in">fprintf</span>, CPU_DUMP_CODE);  </span><br><span class="line">        vm_stop(RUN_STATE_INTERNAL_ERROR);  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    cpu-&gt;exit_request = <span class="number">0</span>;  </span><br><span class="line">    <span class="keyword">return</span> ret;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>kvm_vcpu_ioctl执行时,调用的kvm函数是virt/kvm/kvm-main.c中的<a href="http://elixir.free-electrons.com/linux/v3.12.73/source/virt/kvm/kvm_main.c#L1968" target="_blank" rel="noopener">kvm_vcpu_ioctl</a>函数。当传入参数为KVM_RUN时,最终会调用vcpu_enter_guest函数, 在vcpu_enter_guest函数中调用了kvm_x86_ops-&gt;run(vcpu),在intel处理器架构中该函数对应的实现为vmx_vcpu_run, vmx_vcpu_run设置好寄存器状态之后调用VM_LAUNCH或者VM_RESUME进入guest vm, 一旦发生vm exit则从此处继续执行下去。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function">noclone <span class="title">vmx_vcpu_run</span><span class="params">(struct kvm_vcpu *vcpu)</span>  </span></span><br><span class="line"><span class="function"></span>&#123;  </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">vcpu_vmx</span> *<span class="title">vmx</span> = <span class="title">to_vmx</span>(<span class="title">vcpu</span>);</span>  </span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> debugctlmsr;  </span><br><span class="line">  </span><br><span class="line">    <span class="comment">/*...此处省略n行代码...*/</span>  </span><br><span class="line">    vmx-&gt;__launched = vmx-&gt;loaded_vmcs-&gt;launched;  </span><br><span class="line">    <span class="keyword">asm</span>(  </span><br><span class="line">        <span class="comment">/* Store host registers */</span>  </span><br><span class="line">        <span class="string">"push %%"</span> _ASM_DX <span class="string">"; push %%"</span> _ASM_BP <span class="string">";"</span>  </span><br><span class="line">        <span class="string">"push %%"</span> _ASM_CX <span class="string">" \n\t"</span> <span class="comment">/* placeholder for guest rcx */</span>  </span><br><span class="line">        <span class="string">"push %%"</span> _ASM_CX <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"cmp %%"</span> _ASM_SP <span class="string">", %c[host_rsp](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"je 1f \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_SP <span class="string">", %c[host_rsp](%0) \n\t"</span>  </span><br><span class="line">        __ex(ASM_VMX_VMWRITE_RSP_RDX) <span class="string">"\n\t"</span>  </span><br><span class="line">        <span class="string">"1: \n\t"</span>  </span><br><span class="line">        <span class="comment">/* Reload cr2 if changed */</span>  </span><br><span class="line">        <span class="string">"mov %c[cr2](%0), %%"</span> _ASM_AX <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%cr2, %%"</span> _ASM_DX <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"cmp %%"</span> _ASM_AX <span class="string">", %%"</span> _ASM_DX <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"je 2f \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_AX<span class="string">", %%cr2 \n\t"</span>  </span><br><span class="line">        <span class="string">"2: \n\t"</span>  </span><br><span class="line">        <span class="comment">/* Check if vmlaunch of vmresume is needed */</span>  </span><br><span class="line">        <span class="string">"cmpl $0, %c[launched](%0) \n\t"</span>  </span><br><span class="line">        <span class="comment">/* Load guest registers.  Don't clobber flags. */</span>  </span><br><span class="line">        <span class="string">"mov %c[rax](%0), %%"</span> _ASM_AX <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[rbx](%0), %%"</span> _ASM_BX <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[rdx](%0), %%"</span> _ASM_DX <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[rsi](%0), %%"</span> _ASM_SI <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[rdi](%0), %%"</span> _ASM_DI <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[rbp](%0), %%"</span> _ASM_BP <span class="string">" \n\t"</span>  </span><br><span class="line">#ifdef CONFIG_X86_64  </span><br><span class="line">        <span class="string">"mov %c[r8](%0),  %%r8  \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[r9](%0),  %%r9  \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[r10](%0), %%r10 \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[r11](%0), %%r11 \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[r12](%0), %%r12 \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[r13](%0), %%r13 \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[r14](%0), %%r14 \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %c[r15](%0), %%r15 \n\t"</span>  </span><br><span class="line">#endif  </span><br><span class="line">        <span class="string">"mov %c[rcx](%0), %%"</span> _ASM_CX <span class="string">" \n\t"</span> <span class="comment">/* kills %0 (ecx) */</span>  </span><br><span class="line">  </span><br><span class="line">        <span class="comment">/* Enter guest mode */</span>  </span><br><span class="line">        <span class="string">"jne 1f \n\t"</span>  </span><br><span class="line">        __ex(ASM_VMX_VMLAUNCH) <span class="string">"\n\t"</span>  </span><br><span class="line">        <span class="string">"jmp 2f \n\t"</span>  </span><br><span class="line">        <span class="string">"1: "</span> __ex(ASM_VMX_VMRESUME) <span class="string">"\n\t"</span>  </span><br><span class="line">        <span class="string">"2: "</span>  </span><br><span class="line">        <span class="comment">/* Save guest registers, load host registers, keep flags */</span>  </span><br><span class="line">        <span class="string">"mov %0, %c[wordsize](%%"</span> _ASM_SP <span class="string">") \n\t"</span>  </span><br><span class="line">        <span class="string">"pop %0 \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_AX <span class="string">", %c[rax](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_BX <span class="string">", %c[rbx](%0) \n\t"</span>  </span><br><span class="line">        __ASM_SIZE(pop) <span class="string">" %c[rcx](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_DX <span class="string">", %c[rdx](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_SI <span class="string">", %c[rsi](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_DI <span class="string">", %c[rdi](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_BP <span class="string">", %c[rbp](%0) \n\t"</span>  </span><br><span class="line">#ifdef CONFIG_X86_64  </span><br><span class="line">        <span class="string">"mov %%r8,  %c[r8](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%r9,  %c[r9](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%r10, %c[r10](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%r11, %c[r11](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%r12, %c[r12](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%r13, %c[r13](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%r14, %c[r14](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%r15, %c[r15](%0) \n\t"</span>  </span><br><span class="line">#endif  </span><br><span class="line">        <span class="string">"mov %%cr2, %%"</span> _ASM_AX <span class="string">"   \n\t"</span>  </span><br><span class="line">        <span class="string">"mov %%"</span> _ASM_AX <span class="string">", %c[cr2](%0) \n\t"</span>  </span><br><span class="line">  </span><br><span class="line">        <span class="string">"pop  %%"</span> _ASM_BP <span class="string">"; pop  %%"</span> _ASM_DX <span class="string">" \n\t"</span>  </span><br><span class="line">        <span class="string">"setbe %c[fail](%0) \n\t"</span>  </span><br><span class="line">        <span class="string">".pushsection .rodata \n\t"</span>  </span><br><span class="line">        <span class="string">".global vmx_return \n\t"</span>  </span><br><span class="line">        <span class="string">"vmx_return: "</span> _ASM_PTR <span class="string">" 2b \n\t"</span>  </span><br><span class="line">        <span class="string">".popsection"</span>  </span><br><span class="line">          : : <span class="string">"c"</span>(vmx), <span class="string">"d"</span>((<span class="keyword">unsigned</span> <span class="keyword">long</span>)HOST_RSP),  </span><br><span class="line">        [launched]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, __launched)),  </span><br><span class="line">        [fail]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, fail)),  </span><br><span class="line">        [host_rsp]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, host_rsp)),  </span><br><span class="line">        [rax]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_RAX])),  </span><br><span class="line">        [rbx]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_RBX])),  </span><br><span class="line">        [rcx]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_RCX])),  </span><br><span class="line">        [rdx]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_RDX])),  </span><br><span class="line">        [rsi]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_RSI])),  </span><br><span class="line">        [rdi]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_RDI])),  </span><br><span class="line">        [rbp]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_RBP])),  </span><br><span class="line">#ifdef CONFIG_X86_64  </span><br><span class="line">        [r8]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_R8])),  </span><br><span class="line">        [r9]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_R9])),  </span><br><span class="line">        [r10]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_R10])),  </span><br><span class="line">        [r11]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_R11])),  </span><br><span class="line">        [r12]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_R12])),  </span><br><span class="line">        [r13]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_R13])),  </span><br><span class="line">        [r14]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_R14])),  </span><br><span class="line">        [r15]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.regs[VCPU_REGS_R15])),  </span><br><span class="line">#endif  </span><br><span class="line">        [cr2]<span class="string">"i"</span>(offsetof(struct vcpu_vmx, vcpu.arch.cr2)),  </span><br><span class="line">        [wordsize]<span class="string">"i"</span>(<span class="keyword">sizeof</span>(ulong))  </span><br><span class="line">          : <span class="string">"cc"</span>, <span class="string">"memory"</span>  </span><br><span class="line">#ifdef CONFIG_X86_64  </span><br><span class="line">        , <span class="string">"rax"</span>, <span class="string">"rbx"</span>, <span class="string">"rdi"</span>, <span class="string">"rsi"</span>  </span><br><span class="line">        , <span class="string">"r8"</span>, <span class="string">"r9"</span>, <span class="string">"r10"</span>, <span class="string">"r11"</span>, <span class="string">"r12"</span>, <span class="string">"r13"</span>, <span class="string">"r14"</span>, <span class="string">"r15"</span>  </span><br><span class="line">#<span class="keyword">else</span>  </span><br><span class="line">        , <span class="string">"eax"</span>, <span class="string">"ebx"</span>, <span class="string">"edi"</span>, <span class="string">"esi"</span>  </span><br><span class="line">#endif  </span><br><span class="line">          );  </span><br><span class="line">  </span><br><span class="line">    <span class="comment">/* MSR_IA32_DEBUGCTLMSR is zeroed on vmexit. Restore it if needed */</span>  </span><br><span class="line">    <span class="keyword">if</span> (debugctlmsr)  </span><br><span class="line">        update_debugctlmsr(debugctlmsr);  </span><br><span class="line">  </span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CONFIG_X86_64  </span></span><br><span class="line">    <span class="comment">/* </span></span><br><span class="line"><span class="comment">     * The sysexit path does not restore ds/es, so we must set them to </span></span><br><span class="line"><span class="comment">     * a reasonable value ourselves. </span></span><br><span class="line"><span class="comment">     * </span></span><br><span class="line"><span class="comment">     * We can't defer this to vmx_load_host_state() since that function </span></span><br><span class="line"><span class="comment">     * may be executed in interrupt context, which saves and restore segments </span></span><br><span class="line"><span class="comment">     * around it, nullifying its effect. </span></span><br><span class="line"><span class="comment">     */</span>  </span><br><span class="line">    loadsegment(ds, __USER_DS);  </span><br><span class="line">    loadsegment(es, __USER_DS);  </span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span>  </span></span><br><span class="line">  </span><br><span class="line">    vcpu-&gt;arch.regs_avail = ~((<span class="number">1</span> &lt;&lt; VCPU_REGS_RIP) | (<span class="number">1</span> &lt;&lt; VCPU_REGS_RSP)  </span><br><span class="line">                  | (<span class="number">1</span> &lt;&lt; VCPU_EXREG_RFLAGS)  </span><br><span class="line">                  | (<span class="number">1</span> &lt;&lt; VCPU_EXREG_CPL)  </span><br><span class="line">                  | (<span class="number">1</span> &lt;&lt; VCPU_EXREG_PDPTR)  </span><br><span class="line">                  | (<span class="number">1</span> &lt;&lt; VCPU_EXREG_SEGMENTS)  </span><br><span class="line">                  | (<span class="number">1</span> &lt;&lt; VCPU_EXREG_CR3));  </span><br><span class="line">    vcpu-&gt;arch.regs_dirty = <span class="number">0</span>;  </span><br><span class="line">  </span><br><span class="line">    vmx-&gt;idt_vectoring_info = vmcs_read32(IDT_VECTORING_INFO_FIELD);  </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">if</span> (is_guest_mode(vcpu)) &#123;  </span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">vmcs12</span> *<span class="title">vmcs12</span> = <span class="title">get_vmcs12</span>(<span class="title">vcpu</span>);</span>  </span><br><span class="line">        vmcs12-&gt;idt_vectoring_info_field = vmx-&gt;idt_vectoring_info;  </span><br><span class="line">        <span class="keyword">if</span> (vmx-&gt;idt_vectoring_info &amp; VECTORING_INFO_VALID_MASK) &#123;  </span><br><span class="line">            vmcs12-&gt;idt_vectoring_error_code =  </span><br><span class="line">                vmcs_read32(IDT_VECTORING_ERROR_CODE);  </span><br><span class="line">            vmcs12-&gt;vm_exit_instruction_len =  </span><br><span class="line">                vmcs_read32(VM_EXIT_INSTRUCTION_LEN);  </span><br><span class="line">        &#125;  </span><br><span class="line">    &#125;  </span><br><span class="line">  </span><br><span class="line">    vmx-&gt;loaded_vmcs-&gt;launched = <span class="number">1</span>;  </span><br><span class="line">  </span><br><span class="line">    vmx-&gt;exit_reason = vmcs_read32(VM_EXIT_REASON);  </span><br><span class="line">    trace_kvm_exit(vmx-&gt;exit_reason, vcpu, KVM_ISA_VMX);  </span><br><span class="line">  </span><br><span class="line">    vmx_complete_atomic_exit(vmx);  </span><br><span class="line">    vmx_recover_nmi_blocking(vmx);  </span><br><span class="line">    vmx_complete_interrupts(vmx);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2017/6/9.png" alt=""></p>
+<p>介绍完初始化的流程,可以介绍IO在kvm和qemu中的处理流程了。当Guest Vm进行IO操作需要访问设备时,就会触发vm exit 返回到vmx_vcpu_run, vmx保存好vmcs并且记录下VM_EXIT_REASON后返回到调用该函数的<a href="http://elixir.free-electrons.com/linux/v3.12.73/source/arch/x86/kvm/x86.c#L5867" target="_blank" rel="noopener">vcpu_enter_guest</a>, 在vcpu_enter_guest函数末尾调用了<a href="http://elixir.free-electrons.com/linux/v3.12.73/source/arch/x86/kvm/x86.c#L6052" target="_blank" rel="noopener">r= kvm_x86_ops-&gt;handle_exit(vcpu)</a>, 该函数对应于<a href="http://elixir.free-electrons.com/linux/v3.12.73/source/arch/x86/kvm/vmx.c#L6759" target="_blank" rel="noopener">vmx_handle_exit</a>函数(intel cpu架构对应关系可以查看vmx.c文件中<a href="http://elixir.free-electrons.com/linux/v3.12.73/source/arch/x86/kvm/vmx.c#L8431" target="_blank" rel="noopener">static struct kvm_x86_ops vmx_x86_ops</a>), vmx_handle_exit 调用kvm_vmx_exit_handlers[exit_reason](vcpu),该语句根据exit_reason调用不同的函数,该数据结构定义如下:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">int</span> <span class="params">(*<span class="keyword">const</span> kvm_vmx_exit_handlers[])</span><span class="params">(struct kvm_vcpu *vcpu)</span> </span>= &#123;  </span><br><span class="line">    [EXIT_REASON_EXCEPTION_NMI]           = handle_exception,  </span><br><span class="line">    [EXIT_REASON_EXTERNAL_INTERRUPT]      = handle_external_interrupt,  </span><br><span class="line">    [EXIT_REASON_TRIPLE_FAULT]            = handle_triple_fault,  </span><br><span class="line">    [EXIT_REASON_NMI_WINDOW]          = handle_nmi_window,  </span><br><span class="line">    [EXIT_REASON_IO_INSTRUCTION]          = handle_io,  </span><br><span class="line">    [EXIT_REASON_CR_ACCESS]               = handle_cr,  </span><br><span class="line">    [EXIT_REASON_DR_ACCESS]               = handle_dr,  </span><br><span class="line">    [EXIT_REASON_CPUID]                   = handle_cpuid,  </span><br><span class="line">    [EXIT_REASON_MSR_READ]                = handle_rdmsr,  </span><br><span class="line">    [EXIT_REASON_MSR_WRITE]               = handle_wrmsr,  </span><br><span class="line">    [EXIT_REASON_PENDING_INTERRUPT]       = handle_interrupt_window,  </span><br><span class="line">    [EXIT_REASON_HLT]                     = handle_halt,  </span><br><span class="line">    [EXIT_REASON_INVD]            = handle_invd,  </span><br><span class="line">    [EXIT_REASON_INVLPG]              = handle_invlpg,  </span><br><span class="line">    [EXIT_REASON_RDPMC]                   = handle_rdpmc,  </span><br><span class="line">    [EXIT_REASON_VMCALL]                  = handle_vmcall,  </span><br><span class="line">    [EXIT_REASON_VMCLEAR]                 = handle_vmclear,  </span><br><span class="line">    [EXIT_REASON_VMLAUNCH]                = handle_vmlaunch,  </span><br><span class="line">    [EXIT_REASON_VMPTRLD]                 = handle_vmptrld,  </span><br><span class="line">    [EXIT_REASON_VMPTRST]                 = handle_vmptrst,  </span><br><span class="line">    [EXIT_REASON_VMREAD]                  = handle_vmread,  </span><br><span class="line">    [EXIT_REASON_VMRESUME]                = handle_vmresume,  </span><br><span class="line">    [EXIT_REASON_VMWRITE]                 = handle_vmwrite,  </span><br><span class="line">    [EXIT_REASON_VMOFF]                   = handle_vmoff,  </span><br><span class="line">    [EXIT_REASON_VMON]                    = handle_vmon,  </span><br><span class="line">    [EXIT_REASON_TPR_BELOW_THRESHOLD]     = handle_tpr_below_threshold,  </span><br><span class="line">    [EXIT_REASON_APIC_ACCESS]             = handle_apic_access,  </span><br><span class="line">    [EXIT_REASON_WBINVD]                  = handle_wbinvd,  </span><br><span class="line">    [EXIT_REASON_XSETBV]                  = handle_xsetbv,  </span><br><span class="line">    [EXIT_REASON_TASK_SWITCH]             = handle_task_switch,  </span><br><span class="line">    [EXIT_REASON_MCE_DURING_VMENTRY]      = handle_machine_check,  </span><br><span class="line">    [EXIT_REASON_EPT_VIOLATION]       = handle_ept_violation,  </span><br><span class="line">    [EXIT_REASON_EPT_MISCONFIG]           = handle_ept_misconfig,  </span><br><span class="line">    [EXIT_REASON_PAUSE_INSTRUCTION]       = handle_pause,  </span><br><span class="line">    [EXIT_REASON_MWAIT_INSTRUCTION]       = handle_invalid_op,  </span><br><span class="line">    [EXIT_REASON_MONITOR_INSTRUCTION]     = handle_invalid_op,  </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>如果是因为IO原因导致的vm exit,则调用的处理函数为<a href="http://elixir.free-electrons.com/linux/v3.12.73/source/arch/x86/kvm/vmx.c#L4871" target="_blank" rel="noopener">handle_io</a>,handle_io的处理可以查看<a href="http://www.aiuxian.com/article/p-2337270.html" target="_blank" rel="noopener">io的虚拟化 </a>, 该过程结束之后需要qemu去处理IO,这时候会返回到qemu, 在kvm_cpu_exec中继续执行下去,看上面kvm_cpu_exec的代码,如果是因为IO原因返回到qemu,会调用kvm_handle_io函数.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (run-&gt;exit_reason) &#123;</span><br><span class="line">        <span class="keyword">case</span> KVM_EXIT_IO:</span><br><span class="line">            DPRINTF(<span class="string">"handle_io\n"</span>);</span><br><span class="line">            kvm_handle_io(run-&gt;io.port,</span><br><span class="line">                          (<span class="keyword">uint8_t</span> *)run + run-&gt;io.data_offset,</span><br><span class="line">                          run-&gt;io.direction,</span><br><span class="line">                          run-&gt;io.size,</span><br><span class="line">                          run-&gt;io.count);</span><br><span class="line">            ret = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+<p>kvm_handle_io调用cpu_outb, cpu_outw等指令处理IO操作。</p>
+<p>当qemu完成IO操作后,会在kvm_cpu_exec函数的循环中,调用kvm_vcpu_ioctl重新进入kvm。<br><img src="/images/2017/6/10.png" alt=""></p>
+<p>以上阐述了IO操作在kvm和qemu中处理的整个过程。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="http://blog.csdn.net/dashulu/article/details/17090293" target="_blank" rel="noopener">csdn dashulu</a></li>
+<li><a href="http://www.aiuxian.com/article/p-2337270.html" target="_blank" rel="noopener">io的虚拟化 </a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/虚拟化/">虚拟化</a><a href="/tags/KVM/">KVM</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/虚拟化/">虚拟化</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/06/26/QEMU-KVM-I-O-处理过程/" data-title="QEMU/KVM I/O 处理过程 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/06/27/KVM内核模块重要的数据结构/" title="KVM内核模块重要的数据结构">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  KVM内核模块重要的数据结构</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/06/26/KVM初始化过程/"  title="KVM初始化过程">
+ <strong>NEXT:</strong><br/> 
+ <span>KVM初始化过程
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/06/26/QEMU-KVM-I-O-处理过程/';
+        this.page.identifier = '/2017/06/26/QEMU-KVM-I-O-处理过程/';
+        this.page.title = 'QEMU/KVM I/O 处理过程';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,528 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Linux swapping机制详解 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="swapping说明：本文中介绍的内核版本为2.6.11
+名词汇总：
+
+交换区(swap area)
+页槽(page slot)
+swap in (换入)：是指页面从交换分区转移到内存之中
+swap out (换出)：是指页面从内存转移到交换分区中
+PFRA(page frame reclaimin">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Linux swapping机制详解 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/10/08/Linux-swapping机制详解/" title="Linux swapping机制详解" itemprop="url">Linux swapping机制详解</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-10-08T08:19:47.000Z" itemprop="datePublished">2017-10-08</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#swapping"><span class="toc-number">1.</span> <span class="toc-text">swapping</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#交换区"><span class="toc-number">1.1.</span> <span class="toc-text">交换区</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#创建与激活交换区"><span class="toc-number">1.1.1.</span> <span class="toc-text">创建与激活交换区</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#如何在交换区中分布页"><span class="toc-number">1.1.2.</span> <span class="toc-text">如何在交换区中分布页</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#交换区描述符"><span class="toc-number">1.2.</span> <span class="toc-text">交换区描述符</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#换出页标识符"><span class="toc-number">1.3.</span> <span class="toc-text">换出页标识符</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#激活和禁用交换区"><span class="toc-number">1.4.</span> <span class="toc-text">激活和禁用交换区</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#分配和释放页槽"><span class="toc-number">1.5.</span> <span class="toc-text">分配和释放页槽</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#swap-cache"><span class="toc-number">1.6.</span> <span class="toc-text">swap cache</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#换出页"><span class="toc-number">1.7.</span> <span class="toc-text">换出页</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#换入页"><span class="toc-number">1.8.</span> <span class="toc-text">换入页</span></a></li></ol></li></ol>
+		</div>
+		
+		<h2 id="swapping"><a href="#swapping" class="headerlink" title="swapping"></a>swapping</h2><p>说明：本文中介绍的内核版本为<a href="http://elixir.free-electrons.com/linux/v2.6.11/source" target="_blank" rel="noopener">2.6.11</a></p>
+<p>名词汇总：</p>
+<ol>
+<li>交换区(swap area)</li>
+<li>页槽(page slot)</li>
+<li>swap in (换入)：是指页面从交换分区转移到内存之中</li>
+<li>swap out (换出)：是指页面从内存转移到交换分区中</li>
+<li>PFRA(page frame reclaiming algorithm)</li>
+<li>交换子区(swap extent)</li>
+</ol>
+<p>swapping子系统的主要功能总结如下:</p>
+<ul>
+<li>在磁盘上建立交换区(swap area)，用于存放没有磁盘映像的页</li>
+<li>管理交换区空间。当需求发生时，分配与释放页槽(page slot)</li>
+<li>提供函数用于从RAM中把页换出(swap out)到交换区或从交换区换入(swap in)到RAM中</li>
+<li>利用页表项中的换出页标识符跟踪数据在交换区中的位置</li>
+</ul>
+<h3 id="交换区"><a href="#交换区" class="headerlink" title="交换区"></a>交换区</h3><p>从内存中换出的页存放在交换区(swap area)中，交换区的实现可以使用磁盘分区，也可以使用包含在大型分区中的文件。可以定义多个交换区，最大个数由<code>MAX_SWAPFILES</code>宏(通常被设置为32)确定。</p>
+<p>每个交换区都由一组页槽(page slot)组成，也就是说，由一组4096字节大小的块组成，每块中包含一个换出的页。交换区的第一个页槽用来永久存放有关交换区的信息。</p>
+<h4 id="创建与激活交换区"><a href="#创建与激活交换区" class="headerlink" title="创建与激活交换区"></a>创建与激活交换区</h4><p>通常，系统管理员在创建Linux系统中的其他分区时都创建一个交换分区，然后使用<code>mkswap</code>命令把这个磁盘区设置成一个新的交换区。该命令对刚才介绍的第一个页槽中的字段进行初始化。由于磁盘中可能会有一些坏块，这个程序还可以对其他所有的页槽进行检查从而确定有缺陷页槽的位置。但是执行<code>mkswap</code>命令会把交换区设置为非激活状态。每个交换区都可以在系统启动时在脚本文件中被激活，也可以在系统执行之后动态激活。<br>每个交换区都由一个或者多个交换子区(swap extent)组成，每个交换子区由一个<br><code>swap_extent</code>描述符表示，每个子区对应一组页槽，它们在磁盘上是物理相邻的。当激活交换区自身的同时，组成交换区的有序子区链表也被创建。存放在磁盘分区中的交换区只有一个子区；但是存放在普通文件中的交换区则可能有多个子区，这是因为文件系统有可能没把该文件全部分配在磁盘的一组连续块中。</p>
+<h4 id="如何在交换区中分布页"><a href="#如何在交换区中分布页" class="headerlink" title="如何在交换区中分布页"></a>如何在交换区中分布页</h4><p>当换出时，内核尽力把换出的页存放在相邻的页槽中，从而减少在访问交换区时磁盘的寻道时间，这是高效交换算法的一个重要因素。</p>
+<h3 id="交换区描述符"><a href="#交换区描述符" class="headerlink" title="交换区描述符"></a>交换区描述符</h3><p>每个活动的交换区在内存中都有自己的<a href="http://elixir.free-electrons.com/linux/v2.6.11/source/include/linux/swap.h#L121" target="_blank" rel="noopener">swap_info_struct</a>描述符，其结构如下所示：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The in-memory structure used to track swap areas.</span></span><br><span class="line"><span class="comment"> * extent_list.prev points at the lowest-index extent.  That list is</span></span><br><span class="line"><span class="comment"> * sorted.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">swap_info_struct</span> &#123;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> flags; <span class="comment">//交换区标志</span></span><br><span class="line">	<span class="keyword">spinlock_t</span> sdev_lock;<span class="comment">//保护交换区的自旋锁</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file</span> *<span class="title">swap_file</span>;</span><span class="comment">//指针，指向存放交换区的普通文件或者设备文件的文件对象</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">block_device</span> *<span class="title">bdev</span>;</span><span class="comment">//存放交换区的块设备描述符</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">extent_list</span>;</span><span class="comment">//组成交换区的子区链表的头部</span></span><br><span class="line">	<span class="keyword">int</span> nr_extents;<span class="comment">//组成交换区的子区数量</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">swap_extent</span> *<span class="title">curr_swap_extent</span>;</span></span><br><span class="line">	<span class="keyword">unsigned</span> old_block_size;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">short</span> * swap_map;<span class="comment">//指向计数器数组的指针，交换区的每个页槽对应一个数组元素</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> lowest_bit;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> highest_bit;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> cluster_next;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> cluster_nr;</span><br><span class="line">	<span class="keyword">int</span> prio;<span class="comment">// 交换区优先级</span></span><br><span class="line">	<span class="keyword">int</span> pages;<span class="comment">//可用页槽的个数</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> max;<span class="comment">//交换区的大小，以页为单位</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> inuse_pages;<span class="comment">//交换区内已用页槽数</span></span><br><span class="line">	<span class="keyword">int</span> next;<span class="comment">// 指向下一个交换区描述符的指针</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p><code>swap_map</code>字段指向一个计数器数组，交换区的每个页槽对应一个元素。如果计数器值等于０，那么这个页槽就是空闲的；如果计数器为正数，那么换出页就填充了这个页槽，实际上，页槽计数器的值就表示共享换出页的进程数；如果计数器的值是<br>SWAP_MAP_BAD(等于32768)，那么就认为这个页槽是有缺陷的，也就是不可用的。<br><code>swap_info</code>数组包括<code>MAX_SWAPFILES</code>个交换区描述符。</p>
+<p>下图说明了<code>swap_info</code>数组、一个交换区和相应的计数器数组的情况。</p>
+<p><img src="/images/2017/10/1.png" alt=""></p>
+<h3 id="换出页标识符"><a href="#换出页标识符" class="headerlink" title="换出页标识符"></a>换出页标识符</h3><p>可以很简单地而又唯一地标志一个换出页，这是通过<code>swap_info</code>数组中指定交换区的索引和在交换区内指定页槽的索引实现的。由于交换区的第一个页(索引为0)用来存放有关交换区的信息，第一个可用页槽的索引就为1。换出页标识符的格式如下图所示:<br><img src="/images/2017/10/2.png" alt=""></p>
+<p>当页被换出时，其换出标识符就作为page entry插入页表中，这样在需要时就可以再找到这个页。要注意这中标志符的最低位与<code>Present</code>标志对应，通常被清除来说明该页目前不在RAM中。但是，剩余31位中至少有一个被置位，因为没有页存放在交换区0的页槽0中。这样就可以从一个页表项中区分三种不同的情况:</p>
+<ul>
+<li>空项:该页相应的页框还没有分配给进程</li>
+<li>前31个最高位不全等于0，最后一位等于0:该页现在被换出</li>
+<li>最低位等于１:该页包含在RAM中</li>
+</ul>
+<h3 id="激活和禁用交换区"><a href="#激活和禁用交换区" class="headerlink" title="激活和禁用交换区"></a>激活和禁用交换区</h3><p>一旦交换区被初始化，超级用户就可以分别使用<em>swapon</em>  和<em>swapoff</em> 程序激活和禁用交换区，这两个程序分别使用了<code>swapon()</code>和<code>swapoff()</code>系统调用。</p>
+<h3 id="分配和释放页槽"><a href="#分配和释放页槽" class="headerlink" title="分配和释放页槽"></a>分配和释放页槽</h3><p>在释放内存时，内核要在很短的时间内把很多页都交换出去。因此尽力把这些页存放在相邻的页槽中非常重要，这样就可以减少在访问交换区时磁盘的寻道时间。</p>
+<h3 id="swap-cache"><a href="#swap-cache" class="headerlink" title="swap cache"></a>swap cache</h3><p>向交换区来回传送页会引发很多竞争，具体来说，交换子系统必须仔细处理下面的情形:</p>
+<ul>
+<li>多重换入：两个进程可能同时要换入同一个共享匿名页</li>
+<li>同时换入换出:一个进程可能换入正由PFRA换出的页</li>
+</ul>
+<p>swap cache的引入就是为了解决这类同步问题。关键的原则是，没有检查swap cache是否已包括了所涉及的页，就不能进行换入或者换出操作。有了swap cache,涉及同一页的并发交换操作总是作用于同一个页框的。因此，内核可以安全地依赖页描述符的<code>PG_locked</code>标志，以避免任何竞争。</p>
+<p>考虑一下共享同一换出页的两个进程这种情形。当第一个进程试图访问页时，内核开始换入页操作，第一步就是检查页框是否在swap cache中，我们假定页框不在swap cache中，那么内核就分配一个新页框并把它插入到swap cache，然后开始I/O操作，从交换区读入页的数据；同时，第二个进程访问该共享匿名页，与上面相同，内核开始换入操作，检查涉及的页框是否在swap cache中。现在页框是在swap cache，因此内核只是访问页框描述符，在PG_locked标志清0之前（即I/O数据传输完毕之前），让当前进程睡眠。</p>
+<p>当换入换出操作同时出现时，swap cache起着至关重要的作用。<code>shrink_list()</code>函数要开始换出一个匿名页，就必须当<code>try_to_unmap()</code>从进程（所有拥有该页的进程）的用户态页表中成功删除了该页后才可以。但是当换出的页写操作还在执行的时候，这些进程中可能有某个进程要访问该页，而产生换入操作。<br>在写入磁盘前，待换出的页由<code>shrink_list()</code>存放在swap cache。考虑页由两个进程（A和B）共享的情况，如下图(a)所示。最初，两个进程的页表项都引用该页框，该页有两个拥有者。当PFRA选择回收页时，<code>shrink_list()</code>把页框插入swap cache，如下图(b)所示。然后PFRA调用<code>try_to_unmap()</code>从这两个进程的页表项中删除对该页框的引用。一旦这个函数结束，该页框就只有swap cache引用它，而引用页槽的有这两个进程和swap cache，如下图(c)所示。假如正当页中的数据写入磁盘时，进程B又访问该页，即它要用该页内部的线性地址访问它，那么缺页异常处理程序会发现页框正在swap cache中，并把物理地址放回进程B的页表项，如下图(d)所示。如果上面并发的换入操作没发生，换出操作结束，则<code>shrink_list()</code>会从swap cache删除该页框并把它释放到伙伴系统，如下图(e)所示。<br><img src="/images/2017/10/3.png" alt=""></p>
+<p>可以认为swap cache是一个临时区域，该区域存有正在被换入或换出的匿名页描述符。当换入或换出结束时（对于共享匿名页，换入换出操作必须对共享该页的所有进程进行），匿名页描述符就可以从swap cache删除。</p>
+<h3 id="换出页"><a href="#换出页" class="headerlink" title="换出页"></a>换出页</h3><ol>
+<li>向swap cache插入页框</li>
+<li>更新页表项</li>
+<li>将页写入交换区</li>
+<li>从swap cache中删除页框</li>
+</ol>
+<h3 id="换入页"><a href="#换入页" class="headerlink" title="换入页"></a>换入页</h3><p>当进程试图对一个已被换出的页进行寻址时，必然会发生页的换入。在以下条件全满足时，缺页异常处理程序会触发一个换入操作:</p>
+<ul>
+<li>引起异常的地址所在的页是一个有效的页，也就是说，它属于当前进程的一个线性区</li>
+<li>页不在内存中，也就是页表项的Present标志被清除</li>
+<li>与页有关的页表项不为空，但是<code>PG_dirty</code>位被清0，意味着页表项包含一个换出页标识符</li>
+</ul>
+<p>如果上面的所有条件满足，则<code>handle_pte_fault()</code>调用<code>do_swap_page()</code>函数换入所需的页。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li>《深入理解LINUX内核》第十七章第４节</li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a><a href="/tags/Kernel/">Kernel</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/10/08/Linux-swapping机制详解/" data-title="Linux swapping机制详解 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/10/10/Linux内核高端内存/" title="Linux内核高端内存">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Linux内核高端内存</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/09/28/Linux内核中的页面回收算法/"  title="Linux内核中的页面回收算法">
+ <strong>NEXT:</strong><br/> 
+ <span>Linux内核中的页面回收算法
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#swapping"><span class="toc-number">1.</span> <span class="toc-text">swapping</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#交换区"><span class="toc-number">1.1.</span> <span class="toc-text">交换区</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#创建与激活交换区"><span class="toc-number">1.1.1.</span> <span class="toc-text">创建与激活交换区</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#如何在交换区中分布页"><span class="toc-number">1.1.2.</span> <span class="toc-text">如何在交换区中分布页</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#交换区描述符"><span class="toc-number">1.2.</span> <span class="toc-text">交换区描述符</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#换出页标识符"><span class="toc-number">1.3.</span> <span class="toc-text">换出页标识符</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#激活和禁用交换区"><span class="toc-number">1.4.</span> <span class="toc-text">激活和禁用交换区</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#分配和释放页槽"><span class="toc-number">1.5.</span> <span class="toc-text">分配和释放页槽</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#swap-cache"><span class="toc-number">1.6.</span> <span class="toc-text">swap cache</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#换出页"><span class="toc-number">1.7.</span> <span class="toc-text">换出页</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#换入页"><span class="toc-number">1.8.</span> <span class="toc-text">换入页</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/10/08/Linux-swapping机制详解/';
+        this.page.identifier = '/2017/10/08/Linux-swapping机制详解/';
+        this.page.title = 'Linux swapping机制详解';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

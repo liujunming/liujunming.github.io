@@ -1,0 +1,529 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>perf内核源码解析 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="本文所演示的内核版本为3.14.69，平台架构为x86架构,主要以通过perf测试进程的内存带宽为例，讲述了在内核的调用过程。
+perf用户态使用在用户态，用户可以调用perf_event_open系统调用来使用perf。建议读者好好阅读下下面推荐的资料，这样可以对perf_event_open的理">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="perf内核源码解析 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/05/10/perf内核源码解析/" title="perf内核源码解析" itemprop="url">perf内核源码解析</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-05-10T04:06:14.000Z" itemprop="datePublished">2018-05-10</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#perf用户态使用"><span class="toc-number">1.</span> <span class="toc-text">perf用户态使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#perf-event子系统架构"><span class="toc-number">2.</span> <span class="toc-text">perf event子系统架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#perf-event子系统中的数据结构"><span class="toc-number">3.</span> <span class="toc-text">perf event子系统中的数据结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#perf-event"><span class="toc-number">3.1.</span> <span class="toc-text">perf_event</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#perf-event-attr"><span class="toc-number">3.2.</span> <span class="toc-text">perf_event_attr</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#perf-event-context"><span class="toc-number">3.3.</span> <span class="toc-text">perf_event_context</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#pmu"><span class="toc-number">3.4.</span> <span class="toc-text">pmu</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Counting-Support-in-Linux-Perf"><span class="toc-number">4.</span> <span class="toc-text">Counting Support in Linux Perf</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#perf-event-open系统调用的具体过程"><span class="toc-number">5.</span> <span class="toc-text">perf_event_open系统调用的具体过程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#具体实例"><span class="toc-number">6.</span> <span class="toc-text">具体实例</span></a></li></ol>
+		</div>
+		
+		<p>本文所演示的内核版本为<a href="https://elixir.bootlin.com/linux/v3.14.69/source" target="_blank" rel="noopener">3.14.69</a>，平台架构为x86架构,主要以<a href="https://www.zybuluo.com/ljm/note/1125361" target="_blank" rel="noopener">通过perf测试进程的内存带宽</a>为例，讲述了在内核的调用过程。</p>
+<h2 id="perf用户态使用"><a href="#perf用户态使用" class="headerlink" title="perf用户态使用"></a>perf用户态使用</h2><p>在用户态，用户可以调用<a href="https://elixir.bootlin.com/linux/v3.14.69/source/kernel/events/core.c#L7094" target="_blank" rel="noopener">perf_event_open</a>系统调用来使用perf。<br>建议读者好好阅读下下面推荐的资料，这样可以对perf_event_open的理解更加深刻些。</p>
+<ol>
+<li><a href="http://man7.org/linux/man-pages/man2/perf_event_open.2.html" target="_blank" rel="noopener">man2　perf_event_open</a></li>
+<li><a href="http://ozlabs.org/~anton/junkcode/perf_events_example1.c" target="_blank" rel="noopener">perf events self profiling example</a></li>
+<li><a href="http://hchen229.iteye.com/blog/585434" target="_blank" rel="noopener">使用performance counter读取硬件或软件Event</a></li>
+<li><a href="https://blog.csdn.net/u012884354/article/details/45720737" target="_blank" rel="noopener">perf_event_open 设置性能监视</a></li>
+</ol>
+<h2 id="perf-event子系统架构"><a href="#perf-event子系统架构" class="headerlink" title="perf event子系统架构"></a>perf event子系统架构</h2><p><img src="/images/2018/5/1.png" alt=""></p>
+<p>The Linux Perf_Event Subsystem consists of the files <a href="https://elixir.bootlin.com/linux/v3.14.69/source/kernel/events/core.c" target="_blank" rel="noopener">core.c</a> and <a href="https://elixir.bootlin.com/linux/v3.14.69/source/arch/x86/kernel/cpu/perf_event.c" target="_blank" rel="noopener">perf_event.c</a>. These files are the interface between the linux kernel and various user space performance monitoring tool.</p>
+<h2 id="perf-event子系统中的数据结构"><a href="#perf-event子系统中的数据结构" class="headerlink" title="perf event子系统中的数据结构"></a>perf event子系统中的数据结构</h2><p>数据结构的定义在<a href="https://elixir.bootlin.com/linux/v3.14.69/source/include/linux/perf_event.h" target="_blank" rel="noopener">perf_event.h</a>文件中。</p>
+<p>The following are some of the important data structures which are used by the perf_event subsystem.</p>
+<p><img src="/images/2018/5/2.png" alt=""></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">struct perf_event;</span><br><span class="line">struct perf_event_attr;</span><br><span class="line">struct perf_event_context;</span><br><span class="line">struct pmu;</span><br></pre></td></tr></table></figure>
+<p><strong>Important Fields in the Data Structures</strong></p>
+<h3 id="perf-event"><a href="#perf-event" class="headerlink" title="perf_event"></a>perf_event</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">perf_event</span> &#123;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">perf_event</span> *<span class="title">group_leader</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pmu</span> *<span class="title">pmu</span>;</span></span><br><span class="line">u64 total_time_enabled;</span><br><span class="line">u64 total_time_running;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">perf_event_attr</span> <span class="title">attr</span>;</span></span><br><span class="line"><span class="keyword">atomic64_t</span> child_count;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">perf_event_context</span> *<span class="title">ctx</span>;</span></span><br><span class="line"><span class="keyword">perf_overflow_handler_t</span> overflow_handler;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">owner</span>;</span>&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>Description:</strong></p>
+<ul>
+<li>group_leader<br>This field specifies the leader of the group of events attached to the process.</li>
+<li>pmu<br>This field points to the generic performance monitoring unit structure.</li>
+<li>total_time_enabled<br>This field specify the total time in nanoseconds that the event has been enabled.</li>
+<li>total_time_running<br>This field specify total time in nanoseconds that the event is running(scheduled onto the<br>CPU)</li>
+<li>owner<br>This field points to the task structure of the process which has monitoring this event.</li>
+</ul>
+<h3 id="perf-event-attr"><a href="#perf-event-attr" class="headerlink" title="perf_event_attr"></a>perf_event_attr</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">perf_event_attr</span> &#123;</span></span><br><span class="line">__u32 type;</span><br><span class="line">__u64 config;</span><br><span class="line">__u64 sample_period;</span><br><span class="line">__u64 sample_freq;</span><br><span class="line">__u64 sample_type;</span><br><span class="line">exclusive : <span class="number">1</span>,</span><br><span class="line">exclude_user : <span class="number">1</span>,</span><br><span class="line">exclude_kernel : <span class="number">1</span>,</span><br><span class="line">exclude_hv : <span class="number">1</span>,</span><br><span class="line">exclude_idle : <span class="number">1</span>,</span><br><span class="line">exclude_host : <span class="number">1</span>,</span><br><span class="line">exclude_guest : <span class="number">1</span> &#125;</span><br></pre></td></tr></table></figure>
+<p><strong>Description:</strong></p>
+<ul>
+<li>type<br>This field specifies the overall event type.</li>
+<li>config<br>This field specifies which event needs to be monitored. It is used along with type to<br>decide the exact event.</li>
+<li>sample_period, sample_freq<br>Sampling period defines the N value where N is the number of events after which the<br>interrupt is generated. It can be counted in terms of frequency as well.</li>
+<li>sample_type<br>The various bits in this field specify which values to include in the sample.</li>
+<li>exclude_user<br>This bit when enabled the count excludes the user-space events.</li>
+<li>exclude_kernel<br>This bit when enabled the count exclude the kernel-space events.</li>
+</ul>
+<h3 id="perf-event-context"><a href="#perf-event-context" class="headerlink" title="perf_event_context"></a>perf_event_context</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">perf_event_context</span> &#123;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">event_list</span>;</span></span><br><span class="line"><span class="keyword">int</span> nr_events;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">perf_event_context</span> *<span class="title">parent_ctx</span>;</span></span><br><span class="line">u64 time;</span><br><span class="line">u64 timestamp; &#125;</span><br></pre></td></tr></table></figure>
+<p><strong>Description:</strong></p>
+<ul>
+<li>event_lists<br>This field specifies the list of events.</li>
+<li>nr_events<br>This field specifies the number of events that are currently monitored.</li>
+<li>parent_ctx<br>This fields points to the context of the processes parent.</li>
+<li>time,timestamp<br>These are context clocks, they run when the context is enabled.</li>
+</ul>
+<h3 id="pmu"><a href="#pmu" class="headerlink" title="pmu"></a>pmu</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pmu</span> &#123;</span></span><br><span class="line"><span class="keyword">void</span> (*pmu_enable) (struct pmu *pmu);</span><br><span class="line"><span class="keyword">void</span> (*pmu_disable) (struct pmu *pmu);</span><br><span class="line"><span class="keyword">void</span> (*start) (struct perf_event *event, <span class="keyword">int</span> flags);</span><br><span class="line"><span class="keyword">void</span> (*stop) (struct perf_event *event, <span class="keyword">int</span> flags);</span><br><span class="line"><span class="keyword">void</span> (*read) (struct perf_event *event); &#125;</span><br></pre></td></tr></table></figure>
+<p><strong>Description:</strong><br>This structure majorly contains the function pointers to various PMU related functions.</p>
+<ul>
+<li>pmu_enable,pmu_disable<br>These functions are used to fully disable/enable a PMU.</li>
+<li>start,stop<br>These functions are used to start or stop a counter on a PMU.</li>
+<li>read<br>This function is used to update the event value for a particular counter.</li>
+</ul>
+<h2 id="Counting-Support-in-Linux-Perf"><a href="#Counting-Support-in-Linux-Perf" class="headerlink" title="Counting Support in Linux Perf"></a>Counting Support in Linux Perf</h2><p>perf_event assigns one file descriptor per event and either per-thread or per-CPU. The system call perf_event_open() configures the hardware MSRs and creates a file descriptor which can be used for reading the performance measurement data. Once the file descriptor is obtained we can issue subsequent read calls to get the values of the performance counters. These values are then aggregated at the end of the program execution.</p>
+<p>The following is the execution flow for getting the file descriptor.</p>
+<p><img src="/images/2018/5/4.png" alt=""></p>
+<p>For enabling and disabling performance monitoring events we use the ioclt and prctl system calls.</p>
+<p>Execution flow of the read system call:<br> <img src="/images/2018/5/5.png" alt=""></p>
+<h2 id="perf-event-open系统调用的具体过程"><a href="#perf-event-open系统调用的具体过程" class="headerlink" title="perf_event_open系统调用的具体过程"></a>perf_event_open系统调用的具体过程</h2><p><img src="/images/2018/5/3.png" alt=""></p>
+<h2 id="具体实例"><a href="#具体实例" class="headerlink" title="具体实例"></a>具体实例</h2><p>好了，背景知识终于介绍完成了，下面介绍下具体的实例，方便读者理解。<br><code>perf stat -e cache-misses -I 1000 -p 2234</code><br>每隔1000ms，会输出2234进程在过去1000ms的cache_misses硬件事件，这是如何做到的呢？</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">perf_event_attr</span> <span class="title">attr</span>;</span></span><br><span class="line">type:<span class="number">0</span> <span class="comment">//PERF_TYPE_HARDWARE</span></span><br><span class="line">config:<span class="number">3</span> <span class="comment">//PERF_COUNT_HW_CACHE_MISSES</span></span><br></pre></td></tr></table></figure>
+<p>每隔1000ms输出结果是通过用户态程序控制的，阅读完<a href="http://hchen229.iteye.com/blog/585434" target="_blank" rel="noopener">使用performance counter读取硬件或软件Event</a>中的程序即可明白。</p>
+<p>当需要监听2234进程的cache_misses时，实际上是对2234进程中的所有线程进行监听,假设线程的数目为5个，此刻，会调用perf_event_open系统调用5次。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">perf_event_read_one</span><span class="params">(struct perf_event *event,</span></span></span><br><span class="line"><span class="function"><span class="params">                 u64 read_format, <span class="keyword">char</span> __user *buf)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    u64 enabled, running;</span><br><span class="line">    u64 values[<span class="number">4</span>];</span><br><span class="line">    <span class="keyword">int</span> n = <span class="number">0</span>;</span><br><span class="line">    values[n++] = perf_event_read_value(event, &amp;enabled, &amp;running);</span><br><span class="line">    printk(<span class="string">"&lt;0&gt;"</span><span class="string">"liujunming  perf_event_read_one value%llu\n"</span>, values[<span class="number">0</span>]);</span><br><span class="line">    <span class="keyword">if</span> (read_format &amp; PERF_FORMAT_TOTAL_TIME_ENABLED)</span><br><span class="line">        values[n++] = enabled;</span><br><span class="line">    <span class="keyword">if</span> (read_format &amp; PERF_FORMAT_TOTAL_TIME_RUNNING)</span><br><span class="line">        values[n++] = running;</span><br><span class="line">    <span class="keyword">if</span> (read_format &amp; PERF_FORMAT_ID)</span><br><span class="line">        values[n++] = primary_event_id(event);</span><br><span class="line">    <span class="keyword">if</span> (copy_to_user(buf, values, n * <span class="keyword">sizeof</span>(u64)))</span><br><span class="line">        <span class="keyword">return</span> -EFAULT;</span><br><span class="line">    <span class="keyword">return</span> n * <span class="keyword">sizeof</span>(u64);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>perf_event_read_value会读取相应线程寄存器中记录的cache_miss值。</p>
+<p>当统计2234进程时，实际上是对它5个线程的cache_misses值进行累加。假设前２秒内，2234进程的cache_misses为10000,前3秒内，2234进程的cache_misses为30000。那么在2~3秒这一秒内，进程的cache_misses即为20000。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="http://rts.lab.asu.edu/web_438/project_final/CSE_598_Performance_Monitoring_Unit.pdf" target="_blank" rel="noopener">A Study of Performance Monitoring Unit, perf and perf_events subsystem</a></li>
+<li><a href="http://cdmd.cnki.com.cn/Article/CDMD-10358-1011284067.htm" target="_blank" rel="noopener">龙芯多核平台上性能分析工具的设计与实现</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/Kernel/">Kernel</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Kernel/">Kernel</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2018/05/10/perf内核源码解析/" data-title="perf内核源码解析 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/05/25/Bloom-Filter的解析/" title="Bloom-Filter的解析">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Bloom-Filter的解析</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/04/24/深度解析perf/"  title="深度解析perf">
+ <strong>NEXT:</strong><br/> 
+ <span>深度解析perf
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#perf用户态使用"><span class="toc-number">1.</span> <span class="toc-text">perf用户态使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#perf-event子系统架构"><span class="toc-number">2.</span> <span class="toc-text">perf event子系统架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#perf-event子系统中的数据结构"><span class="toc-number">3.</span> <span class="toc-text">perf event子系统中的数据结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#perf-event"><span class="toc-number">3.1.</span> <span class="toc-text">perf_event</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#perf-event-attr"><span class="toc-number">3.2.</span> <span class="toc-text">perf_event_attr</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#perf-event-context"><span class="toc-number">3.3.</span> <span class="toc-text">perf_event_context</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#pmu"><span class="toc-number">3.4.</span> <span class="toc-text">pmu</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Counting-Support-in-Linux-Perf"><span class="toc-number">4.</span> <span class="toc-text">Counting Support in Linux Perf</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#perf-event-open系统调用的具体过程"><span class="toc-number">5.</span> <span class="toc-text">perf_event_open系统调用的具体过程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#具体实例"><span class="toc-number">6.</span> <span class="toc-text">具体实例</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/05/10/perf内核源码解析/';
+        this.page.identifier = '/2018/05/10/perf内核源码解析/';
+        this.page.title = 'perf内核源码解析';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

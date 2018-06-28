@@ -1,0 +1,528 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Linux中匿名页的反向映射 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="vma, anon_vma和anon_vma_chain的联系本文主要参考了vma, anon_vma和anon_vma_chain的联系这篇文章，结合相关资料，对该文进行了一些改进。
+Linux提供了内存映射这一特性，它实现了把物理内存页映射(map)到进程的地址空间中, 以实现高效的数据操作或传">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Linux中匿名页的反向映射 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/09/03/Linux中匿名页的反向映射/" title="Linux中匿名页的反向映射" itemprop="url">Linux中匿名页的反向映射</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-09-03T04:57:00.000Z" itemprop="datePublished">2017-09-03</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#vma-anon-vma和anon-vma-chain的联系"><span class="toc-number">1.</span> <span class="toc-text">vma, anon_vma和anon_vma_chain的联系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#vma"><span class="toc-number">1.1.</span> <span class="toc-text">vma</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#anon-vma"><span class="toc-number">1.2.</span> <span class="toc-text">anon_vma</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#反向映射的引入"><span class="toc-number">1.2.1.</span> <span class="toc-text">反向映射的引入</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#基于对象的反向映射"><span class="toc-number">1.2.2.</span> <span class="toc-text">基于对象的反向映射</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#匿名页的反向映射"><span class="toc-number">1.2.3.</span> <span class="toc-text">匿名页的反向映射</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#anon-vma-chain"><span class="toc-number">1.3.</span> <span class="toc-text">anon_vma_chain</span></a></li></ol></li></ol>
+		</div>
+		
+		<h2 id="vma-anon-vma和anon-vma-chain的联系"><a href="#vma-anon-vma和anon-vma-chain的联系" class="headerlink" title="vma, anon_vma和anon_vma_chain的联系"></a>vma, anon_vma和anon_vma_chain的联系</h2><p>本文主要参考了<a href="http://larmbr.com/2013/12/08/the-relation-between-vma-anon_vma-and-anon_vma_chain/" target="_blank" rel="noopener">vma, anon_vma和anon_vma_chain的联系</a>这篇文章，结合相关资料，对该文进行了一些改进。</p>
+<p>Linux提供了内存映射这一特性，它实现了把物理内存页映射(map)到进程的地址空间中, 以实现高效的数据操作或传输。内核在处理这一特性时, 使用了<code>struct vm_area_struct</code>, <code>struct anon_vma</code>和<code>struct anon_vma_chain</code>这三个重要数据结构, 所以理解这三个数据结构是重中之重,　本文试图厘清这三者的来历与联系。</p>
+<h3 id="vma"><a href="#vma" class="headerlink" title="vma"></a>vma</h3><p><a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/mm_types.h#L130" target="_blank" rel="noopener">struct vm_area_struct</a>在内核代码中常被简称为<code>vma</code>, 所以下文以<code>vma</code>指称这一结构。</p>
+<p><code>vma</code>是内存映射的单位, 它表示进程地址空间中的一个连续的区间, 其中字段<code>vm_start</code>和<code>vm_end</code>标明这块连续区间的起始虚拟地址。在使用<code>mmap</code>系统调用创建映射时, 用户指定<strong>起始地址(可选)</strong>和<strong>长度</strong>, 内核将据此寻找进程地址空间中符合条件的合法<code>vma</code>以供映射。<code>cat /proc/&lt;pid&gt;/maps</code>可以查看某一进程的所有映射区间。</p>
+<h3 id="anon-vma"><a href="#anon-vma" class="headerlink" title="anon_vma"></a>anon_vma</h3><p><a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/rmap.h#L27" target="_blank" rel="noopener">anon_vma</a>的引入需要一番解释。</p>
+<h4 id="反向映射的引入"><a href="#反向映射的引入" class="headerlink" title="反向映射的引入"></a>反向映射的引入</h4><p>当Linux系统内存不足时, swap子系统会释放一些页面, 交换到交换设备中, 以空出多余的内存页。虚拟内存的理念就是通过<strong>页表</strong>来维护虚拟地址到物理地址的映射。但是, <strong>页表</strong>是种<strong>单向映射</strong>, 即通过虚拟地址查找物理地址很容易,　但反之通过物理地址查找虚拟地址则很麻烦。这种问题在共享内存的情况下更加严重。而swap子系统在释放页面时就遇到这个问题, 对于特定页面(物理地址), 要找到映射到它的<code>页表项(PTE)</code>, 并修改<strong>PTE</strong>, 以使其指向交换设备中的该页的位置。在2.4之前的内核中, 这是件费时的工作, 因为内核需要遍历每一个进程的所有页表, 以找出所有映射该页的页表项。</p>
+<p>解决这一问题的做法是引入<strong>反向映射(reverse mapping)</strong>这一概念。该做法就是为每一个内存页(<code>struct page</code>)维护一个数据结构, 其中包含所有映射到该页的<code>PTE</code>, 这样在寻找一个内存页的反向映射时只要扫描这个结构即可, 大大提高了效率。这正是Rik van Riel的做法, 他在<code>struct page</code>中增加了一个<code>pte_chain</code>的字段, 它是一个指向所有映射到该页的PTE的链表指针。</p>
+<p>当然, 它是有代价的。</p>
+<ul>
+<li><p>每个<code>struct page</code>都增加了一个字段, 而系统中每个内存页都对应一个<code>struct page</code>结构, 这意味着相当数量的内存被用来维护这个字段。而<code>struct page</code>是重要的内核数据结构, 存放在有限的低端内存中, 增加一个字段浪费了大量的保贵低端内存, 而且, 当物理内存很大时, 这种情况更突出, 这引起了<strong>伸缩性(scalability)</strong>问题。</p>
+</li>
+<li><p>其它一些需要操作大量页面的函数慢下来了。<code>fork()</code>系统调用就是一个。由于Linux采取<strong>写时复制(COW, Copy On Write)</strong>的语义, 意味着新进程共享父进程的页表, 这样, 进程地址空间内的所有页都新增了一个PTE指向它, 因此, 需要为每个页新增一个反向映射, 这显著地拖慢了速度。</p>
+</li>
+</ul>
+<h4 id="基于对象的反向映射"><a href="#基于对象的反向映射" class="headerlink" title="基于对象的反向映射"></a>基于对象的反向映射</h4><p>这种代价显然是不能容忍的, 于是, Dave McCracken提出了一个叫做<strong>基于对象的反向映射(object-based reverse mapping)</strong>的解决方案。他的观察是, 前面所述的代价来源于反向映射字段的引入, 而如果存在可以从<code>struct page</code>中获取映射到该页面的所有页表项, 这个字段就不需要了, 自然不需要付出这些代价。他确实找到了一种方法。</p>
+<p>Linux的用户态内存页大致分<strong>两种使用情况</strong>:</p>
+<ul>
+<li><p>其中一大部分叫做<strong>文件后备页(file-backed page)</strong>, 顾名思义, 这种内存页的内容关联着后备存储系统中的文件, 比如程序的代码, 比如普通的文本文件, 这种内存页使用时一般通过上述的<code>mmap</code>系统调用映射到地址空间中, 并且, 在内存紧张时, 可以简单地丢弃, 因为可以从后备文件中轻易的恢复。</p>
+</li>
+<li><p>一种叫<strong>匿名页(anonymous page)</strong>, 这是一种普通的内存页, 比如栈或堆内存就属于这种, 这种内存页没有后备文件, 这也是其称为<strong>匿名</strong>的缘故。</p>
+</li>
+</ul>
+<p>Dave的方案中的<strong>对象</strong>指的就是第一种内存页的<strong>后备文件</strong>。他通过<strong>后备文件对象</strong>, 以迂回的方式算出PTE,在本文中就不做过多的介绍。</p>
+<h4 id="匿名页的反向映射"><a href="#匿名页的反向映射" class="headerlink" title="匿名页的反向映射"></a>匿名页的反向映射</h4><p>Dave的方案只解决了第一种内存页的反向映射, 于是, Andrea Arcangeli顺着Dave的思路, 给出了匿名页的反向映射解决方案。</p>
+<p>如前所述, 匿名页没有所谓的<strong>后备文件</strong>, 但是, 匿名页有个特点, 就是它们都是私有的, 而非共享的(比如栈, 椎内存都是独立每个进程的, 非共享的)。这意味着, <strong>每一个匿名内存页, 只有一个PTE关联着它, 也就是只有一个vma关联着它</strong>。Andrea的方案是复用<code>struct page</code>的<code>mapping</code>字段, 因为对于匿名页, <code>mapping</code>为<code>null</code>, 不指向后备空间。复用方法是利用C语言的<code>union</code>, 在匿名页的情况下,<code>mapping</code>字段不是指向<code>struct address_space</code>的指针, 而是指向关联该内存页的唯一的<code>vma</code>。由此, 也可以方便地计算出PTE来。</p>
+<p>但是, 事情并不是如此简单。当进程被fork复制时, 前面已经说过, 由于COW的语义, 新进程只是复制父进程的页表, 这意味着现在<strong>一个匿名页有两个页表指向它了</strong>, 这样, 上面的简单复用<code>mapping</code>字段的做法不适用了, 因为一个指针, 如何表示两个vma呢。</p>
+<p>Andrea的做法就是<strong>多加一层</strong>。新创建一个<code>struct anon_vma</code>结构, 现在<code>mapping</code>字段是指向它了, 而<code>anon_vma</code>中, 不出意料的, 包含一个链表, 链接起所有的<code>vma</code>。每当进程fork一个子进程, 子进程由于COW机制会复制父进程的<code>vma</code>, 这个新<code>vma</code>就链接到父进程中的<code>anon_vma</code>中。这样, 每次unmap一个内存页时, 通过<code>mapping</code>字段指向的<code>anon_vma</code>, 就可以找到可能关联该页的<code>vma</code>链表, 遍历该链表, 就可以找到所有映射到该匿名页的PTE。</p>
+<p><img src="/images/2017/9/1.png" alt=""></p>
+<p>这也有代价, 那就是</p>
+<ul>
+<li>每个<code>struct vm_area_struct</code>结构多了一个<code>list_head</code>结构字段用以串起所有的<code>vma</code>。</li>
+<li>需要额外为<code>anon_vma</code>结构分配内存。</li>
+</ul>
+<p>但是, 这种方案所需要的内存远小于前面所提的在每个<code>struct page</code>中增加一个反向映射字段来得少, 因此是可以接受的。</p>
+<p>以上, 便介绍完了<code>anon_vma</code>结构的来由和作用。</p>
+<h3 id="anon-vma-chain"><a href="#anon-vma-chain" class="headerlink" title="anon_vma_chain"></a>anon_vma_chain</h3><p><code>anon_vma</code>结构的提出, 完善了反向映射机制, 一路看来, 无论是效率还是内存使用, 都有了提升, 应该说是很完美的一套解决方案。但现实不断提出难题。一开始提到的Rik van Riel就举了一种工作负载(workload)的<a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=5beb49305251e5669852ed541e8e2f2f7696c53e" target="_blank" rel="noopener">例子</a>来反驳说该方案有缺陷。</p>
+<p>前面的匿名页反向映射机制在解除一页映射时, 通过访问<code>anon_vma</code>访问<code>vma</code>链表, 遍历整个<code>vma</code>链表, 以查找可能映射到该页的PTE。但是, 这种方法忽略了一点: 当进程fork而复制产生的子进程中的<code>vma</code>如果发生了写访问, 将会分配新的匿名页, 把该<code>vma</code>指向这个新的匿名页, 这个<code>vma</code>就跟原来的那个匿名页没有关系了, 但原来的<code>vma</code>链表却没反映出这种变化, 从而导致了对该<code>vma</code>不必要的检查。 Rik举的例子正是对这种极端情况的描述。</p>
+<p>Rik采取的方案是又增加一层, 新增了一个结构叫<a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/rmap.h#L65" target="_blank" rel="noopener">anon_vma_chain</a>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The copy-on-write semantics of fork mean that an anon_vma</span></span><br><span class="line"><span class="comment"> * can become associated with multiple processes. Furthermore,</span></span><br><span class="line"><span class="comment"> * each child process will have its own anon_vma, where new</span></span><br><span class="line"><span class="comment"> * pages for that process are instantiated.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This structure allows us to find the anon_vmas associated</span></span><br><span class="line"><span class="comment"> * with a VMA, or the VMAs associated with an anon_vma.</span></span><br><span class="line"><span class="comment"> * The "same_vma" list contains the anon_vma_chains linking</span></span><br><span class="line"><span class="comment"> * all the anon_vmas associated with this VMA.</span></span><br><span class="line"><span class="comment"> * The "same_anon_vma" list contains the anon_vma_chains</span></span><br><span class="line"><span class="comment"> * which link all the VMAs associated with this anon_vma.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">anon_vma_chain</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">vma</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">anon_vma</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">same_vma</span>;</span>   <span class="comment">/* locked by mmap_sem &amp; page_table_lock */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">same_anon_vma</span>;</span>	<span class="comment">/* locked by anon_vma-&gt;lock */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>每个<code>anon_vma_chain</code>（AVC）维护两个链表</p>
+<ul>
+<li>same_vma：与给定<code>vma</code>相关联的所有<code>anon_vma</code></li>
+<li>same_anon_vma：与给定<code>anon_vma</code>相关联的所有<code>vma</code></li>
+</ul>
+<p> 最初，我们有一个进程与一个匿名<code>vma</code>：<br> <img src="/images/2017/9/2.png" alt=""></p>
+<p>这里，“AV”是<code>anon_vma</code>，“AVC”是上面看到的<code>anon_vma_chain</code>。 AVC直接通过指针链接到<code>anon_vma</code>和<code>vma</code>。 （蓝色）链表是same_anon_vma链表，而（红色）链表是same_vma链表。 </p>
+<p>想象一下，这个进程进行了fork操作，导致子进程复制了<code>vma</code>; 现在有了一个孤立的新<code>vma</code>：<br> <img src="/images/2017/9/3.png" alt=""></p>
+<p> 内核需要将此<code>vma</code>链接到父进程的<code>anon_vma</code>中; 这需要添加一个新的<code>anon_vma_chain</code>：<br>  <img src="/images/2017/9/4.png" alt=""></p>
+<p> 请注意，新的AVC已被添加到same_anon_vma链表中。 新的<code>vma</code>也需要自己的<code>anon_vma</code>：<br>   <img src="/images/2017/9/5.png" alt=""><br> 现在还有另一个<code>anon_vma_chain</code>链接在新的<code>anon_vma</code>中。 新的AVC已被添加到same_vma链表中。</p>
+<p> 此刻，根据上图，可以验证<code>anon_vma_chain</code>（AVC）中两个链表的作用。</p>
+<blockquote>
+<p>The “same_vma” list contains the anon_vma_chains linking all the anon_vmas associated with this VMA.<br> The “same_anon_vma” list contains the anon_vma_chains  which link all the VMAs associated with this anon_vma.</p>
+</blockquote>
+<p>当子进程写内存页时,发生COW, 子进程的<code>vma</code>将指向自己匿名页, 同时, 这个新的匿名页指向子进程的<code>anon_vma</code>(此时same_anon_vma链与same_vma链解除)。<br>   <img src="/images/2017/9/6.png" alt=""></p>
+<p>这样, 在解除一页映射时, 对于子进程自己的匿名页, 只要遍历子进程自己的<code>anon_vma</code>下的<code>vma</code>链表即可; 拥有大量子进程的父进程对于共享的页(未发生COW), 则按原来的方法遍历, 对于子进程自己的匿名页，父进程则不需要访问对应的<code>vma</code>，这样大大减少了父进程需要遍历的<code>vma</code>。</p>
+<p>再看<code>anon_vma_chain</code>这个名字, 它就像个粘合剂, 也像个链条, 把初始时父,子进程关联的<code>vma</code>和<code>anon_vma</code>链接起来, 当子进程通过COW拥有自己的匿名页后, 会发生解链, 以分冶策略各自管理, 从而使得在解除一页映射时, 减少了父进程遍历的<code>vma</code>数目, 也减少了相应的锁冲突, 因而提高了效率。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="http://larmbr.com/2013/12/08/the-relation-between-vma-anon_vma-and-anon_vma_chain/" target="_blank" rel="noopener">vma, anon_vma和anon_vma_chain的联系</a></li>
+<li><a href="https://lwn.net/Articles/383162/" target="_blank" rel="noopener">The case of the overly anonymous anon_vma</a></li>
+<li><a href="http://www.cnblogs.com/tolimit/p/5398552.html" target="_blank" rel="noopener">linux内存源码分析 - 内存回收(匿名页反向映射)</a></li>
+<li><a href="http://bbs.chinaunix.net/thread-4232791-1-1.html" target="_blank" rel="noopener">chinaunix</a></li>
+<li><a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/rmap.h#L65" target="_blank" rel="noopener">rmap.h</a></li>
+<li><a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/mm_types.h#L130" target="_blank" rel="noopener">mm_types.h</a></li>
+<li><a href="http://www.it165.net/os/html/201411/9928.html" target="_blank" rel="noopener">Linux内核剖析之回收页框</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a><a href="/tags/Kernel/">Kernel</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/09/03/Linux中匿名页的反向映射/" data-title="Linux中匿名页的反向映射 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/09/05/An-Empirical-Study-of-Memory-Sharing-in-Virtual-Machines/" title="An Empirical Study of Memory Sharing in Virtual Machines">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  An Empirical Study of Memory Sharing in Virtual Machines</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/08/30/Liblinear-benchmark环境搭建/"  title="Liblinear benchmark环境搭建">
+ <strong>NEXT:</strong><br/> 
+ <span>Liblinear benchmark环境搭建
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#vma-anon-vma和anon-vma-chain的联系"><span class="toc-number">1.</span> <span class="toc-text">vma, anon_vma和anon_vma_chain的联系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#vma"><span class="toc-number">1.1.</span> <span class="toc-text">vma</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#anon-vma"><span class="toc-number">1.2.</span> <span class="toc-text">anon_vma</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#反向映射的引入"><span class="toc-number">1.2.1.</span> <span class="toc-text">反向映射的引入</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#基于对象的反向映射"><span class="toc-number">1.2.2.</span> <span class="toc-text">基于对象的反向映射</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#匿名页的反向映射"><span class="toc-number">1.2.3.</span> <span class="toc-text">匿名页的反向映射</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#anon-vma-chain"><span class="toc-number">1.3.</span> <span class="toc-text">anon_vma_chain</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/09/03/Linux中匿名页的反向映射/';
+        this.page.identifier = '/2017/09/03/Linux中匿名页的反向映射/';
+        this.page.title = 'Linux中匿名页的反向映射';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

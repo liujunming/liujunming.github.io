@@ -1,0 +1,511 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Linux内核高端内存 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="Linux内核高端内存本文内容主要来自ilinuxkernel.com，并对该部分内容进行了扩充。
+下图展示的部分内容包含了本文的知识点，值得细细分析。
+Linux内核地址空间划分通常32位Linux进程地址空间划分0~3G为用户空间，3~4G为空间。注意这里是32位进程地址空间划分，64位进程地址">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Linux内核高端内存 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/10/10/Linux内核高端内存/" title="Linux内核高端内存" itemprop="url">Linux内核高端内存</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-10-10T06:49:28.000Z" itemprop="datePublished">2017-10-10</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux内核高端内存"><span class="toc-number">1.</span> <span class="toc-text">Linux内核高端内存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Linux内核地址空间划分"><span class="toc-number">1.1.</span> <span class="toc-text">Linux内核地址空间划分</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Linux内核高端内存的由来"><span class="toc-number">1.2.</span> <span class="toc-text">Linux内核高端内存的由来</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Linux内核高端内存的理解"><span class="toc-number">1.3.</span> <span class="toc-text">Linux内核高端内存的理解</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#高端内存的映射"><span class="toc-number">1.4.</span> <span class="toc-text">高端内存的映射</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#常见问题"><span class="toc-number">1.5.</span> <span class="toc-text">常见问题</span></a></li></ol></li></ol>
+		</div>
+		
+		<h2 id="Linux内核高端内存"><a href="#Linux内核高端内存" class="headerlink" title="Linux内核高端内存"></a>Linux内核高端内存</h2><p>本文内容主要来自<a href="http://ilinuxkernel.com/?p=1013" target="_blank" rel="noopener">ilinuxkernel.com</a>，并对该部分内容进行了扩充。</p>
+<p>下图展示的部分内容包含了本文的知识点，值得细细分析。<br><img src="/images/2017/10/8.gif" alt=""></p>
+<h3 id="Linux内核地址空间划分"><a href="#Linux内核地址空间划分" class="headerlink" title="Linux内核地址空间划分"></a>Linux内核地址空间划分</h3><p>通常<strong>32位Linux进程地址空间</strong>划分0~3G为用户空间，3~4G为空间。注意这里是32位进程地址空间划分，64位进程地址空间划分是不同的。<br><img src="/images/2017/10/4.png" alt=""></p>
+<h3 id="Linux内核高端内存的由来"><a href="#Linux内核高端内存的由来" class="headerlink" title="Linux内核高端内存的由来"></a>Linux内核高端内存的由来</h3><p>当内核模块代码或线程访问内存时，代码中的内存地址都为逻辑地址，而对应到真正的物理内存地址，需要地址<strong>一对一</strong>的映射，如逻辑地址0xc0000003对应的物理地址为0x3，0xc0000004对应的物理地址为0x4，… …，逻辑地址与物理地址对应的关系为:<br><code>物理地址 = 逻辑地址 – 0xC0000000</code></p>
+<p>假设按照上述简单的地址映射关系，那么内核逻辑地址空间访问为0xc0000000 ~ 0xffffffff，那么对应的物理内存范围就为0x0 ~ 0x40000000，即只能访问1G物理内存。若机器中安装8G物理内存，那么内核就只能访问前1G物理内存，后面7G物理内存将会无法访问，因为内核的地址空间已经全部映射到物理内存地址范围0x0 ~ 0x40000000。即使安装了8G物理内存，那么物理地址为0x40000001的内存，内核该怎么去访问呢？代码中必须要有内存逻辑地址的，0xc0000000 ~ 0xffffffff的地址空间已经被用完了，所以无法访问物理地址0x40000000以后的内存。</p>
+<p>显然不能将内核地址空间0xc0000000 ~ 0xfffffff全部用来简单的地址映射。x86架构中将物理地址空间划分三部分：ZONE_DMA、ZONE_NORMAL和ZONE_HIGHMEM。ZONE_HIGHMEM即为高端内存，这就是高端内存概念的由来。</p>
+<p>在x86结构中，三种类型的区域如下：</p>
+<ul>
+<li><strong> ZONE_DMA</strong>        物理内存开始的16MB</li>
+<li><strong>ZONE_NORMAL</strong>       物理内存的16MB~896MB</li>
+<li><strong>ZONE_HIGHMEM</strong>       物理内存的896MB ~ 结束<br><img src="/images/2017/10/5.png" alt=""></li>
+</ul>
+<h3 id="Linux内核高端内存的理解"><a href="#Linux内核高端内存的理解" class="headerlink" title="Linux内核高端内存的理解"></a>Linux内核高端内存的理解</h3><p>前面我们解释了高端内存的由来。 Linux将物理地址空间划分为三部分ZONE_DMA、ZONE_NORMAL和ZONE_HIGHMEM，高端内存HIGH_MEM地址空间映射的内核线性地址范围为0xF8000000 ~ 0xFFFFFFFF（896MB～1024MB）。</p>
+<p>当内核想访问高于896MB物理地址内存时，从0xF8000000 ~ 0xFFFFFFFF地址空间范围内找一段相应大小空闲的逻辑地址空间，借用一会。借用这段逻辑地址空间，建立映射到想访问的那段物理内存（即填充内核页表），<strong>临时用一会，用完后归还</strong>。这样别人也可以借用这段地址空间访问其他物理内存，实现了使用有限的地址空间，访问所有所有物理内存。如下图:<br><img src="/images/2017/10/6.png" alt=""></p>
+<p>例如内核想访问2G开始的一段大小为1MB的物理内存，即物理地址范围为0x80000000 ~ 0x800FFFFF。访问之前先找到一段1MB大小的空闲地址空间，假设找到的空闲地址空间为0xF8700000 ~ 0xF87FFFFF，用这1MB的逻辑地址空间映射到物理地址空间0x80000000 ~ 0x800FFFFF的内存。</p>
+<p>当内核访问完0x80000000 ~ 0x800FFFFF物理内存后，就将0xF8700000 ~ 0xF87FFFFF内核线性空间释放。这样其他进程或代码也可以使用0xF8700000 ~ 0xF87FFFFF这段地址访问其他物理内存。</p>
+<p>从上面的描述，我们可以知道<strong>高端内存的最基本思想</strong>：借一段地址空间，建立临时地址映射，用完后释放，达到这段地址空间可以循环使用，访问所有物理内存。</p>
+<h3 id="高端内存的映射"><a href="#高端内存的映射" class="headerlink" title="高端内存的映射"></a>高端内存的映射</h3><p>0xF8000000 ~ 0xFFFFFFFF（896MB～1024MB)的128MB内核线性地址空间被划分为3部分：VMALLOC_START~VMALLOC_END、KMAP_BASE~FIXADDR_START和FIXADDR_START~4G。</p>
+<p><img src="/images/2017/10/7.png" alt=""></p>
+<p>对于高端内存，可以通过 alloc_page() 或者其它函数获得对应的 page，但是要想访问实际物理内存，还得把 page 转为线性地址才行，也就是说，我们需要为高端内存对应的 page 找一个线性空间，这个过程称为高端内存映射。</p>
+<p>对应128MB内核线性地址空间的3部分，高端内存映射有三种方式：</p>
+<ul>
+<li><strong>映射到”内核动态映射空间”（noncontiguous memory allocation）</strong></li>
+</ul>
+<p>这种方式很简单，因为通过 vmalloc() ，在”内核动态映射空间”申请内存的时候，就从高端内存获得页面，因此说高端内存有可能映射到”内核动态映射空间”中。</p>
+<ul>
+<li><strong>持久内核映射（permanent kernel mapping）</strong></li>
+</ul>
+<p>内核专门留出一块线性空间，从 PKMAP_BASE 到 FIXADDR_START ，用于映射高端内存。在 2.6内核上，这个地址范围是 4G-8M 到 4G-4M 之间。这个空间叫”持久内核映射空间”。通过<code>kmap()</code>，可以把一个 page 映射到这个空间来。因为允许永久映射的数量有限，当不再需要高端内存时，应该解除映射，这可以通过<code>kunmap()</code>函数来完成。</p>
+<ul>
+<li><strong>临时映射（temporary kernel mapping）</strong></li>
+</ul>
+<p>内核在 FIXADDR_START 到 FIXADDR_TOP(4GB)之间保留了一些线性空间用于特殊需求。这个空间称为”固定映射空间”，在这个空间中，有一部分用于高端内存的临时映射。<br>这个空间具有如下特点：</p>
+<ol>
+<li>每个 CPU 占用一块空间</li>
+<li>在每个 CPU 占用的那块空间中，又分为多个小空间，每个小空间大小是 1 个 page，每个小空间用于一个目的，这些目的定义在 kmap_types.h 中的 km_type 中。</li>
+</ol>
+<p>当要进行一次临时映射的时候，需要指定映射的目的，根据映射目的，可以找到对应的小空间，然后把这个空间的地址作为映射地址。这意味着一次临时映射会导致以前的映射被覆盖。通过<code>kmap_atomic()</code>可实现临时映射。</p>
+<h3 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h3><p>1. 用户空间是否有高端内存概念？</p>
+<p>用户空间没有高端内存概念，只有内核空间才存在高端内存。</p>
+<p>2. 64位内核中有高端内存吗？</p>
+<p>目前现实中，64位Linux内核不存在高端内存，因为64位内核可以支持超过512GB内存。若机器安装的物理内存超过内核地址空间范围，就会存在高端内存。</p>
+<p>3. 高端内存和物理地址、线性地址的关系？</p>
+<p>高端内存只和物理地址有关系，和线性地址没有直接关系。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="http://ilinuxkernel.com/?p=1013" target="_blank" rel="noopener">ilinuxkernel Linux内核高端内存</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a><a href="/tags/Kernel/">Kernel</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/10/10/Linux内核高端内存/" data-title="Linux内核高端内存 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/10/31/SPECjbb环境搭建/" title="SPECjbb环境搭建">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  SPECjbb环境搭建</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/10/08/Linux-swapping机制详解/"  title="Linux swapping机制详解">
+ <strong>NEXT:</strong><br/> 
+ <span>Linux swapping机制详解
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux内核高端内存"><span class="toc-number">1.</span> <span class="toc-text">Linux内核高端内存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Linux内核地址空间划分"><span class="toc-number">1.1.</span> <span class="toc-text">Linux内核地址空间划分</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Linux内核高端内存的由来"><span class="toc-number">1.2.</span> <span class="toc-text">Linux内核高端内存的由来</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Linux内核高端内存的理解"><span class="toc-number">1.3.</span> <span class="toc-text">Linux内核高端内存的理解</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#高端内存的映射"><span class="toc-number">1.4.</span> <span class="toc-text">高端内存的映射</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#常见问题"><span class="toc-number">1.5.</span> <span class="toc-text">常见问题</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/10/10/Linux内核高端内存/';
+        this.page.identifier = '/2017/10/10/Linux内核高端内存/';
+        this.page.title = 'Linux内核高端内存';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

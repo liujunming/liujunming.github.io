@@ -1,0 +1,522 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Memory Resource Management in VMware ESX Server | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="Memory Resource Management in VMware ESX Server此论文是OSDI’02上的一篇文章，影响力较大，今天特意总结一下，希望对读者会有所帮助。在本文中，shares的含义为权重(weights)。
+相关资料
+文档资料
+
+paper
+slides
+
+
+作者
+
+
+">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Memory Resource Management in VMware ESX Server | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/08/18/Memory-Resource-Management-in-VMware-ESX-Server/" title="Memory Resource Management in VMware ESX Server" itemprop="url">Memory Resource Management in VMware ESX Server</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-08-18T06:58:36.000Z" itemprop="datePublished">2017-08-18</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Memory-Resource-Management-in-VMware-ESX-Server"><span class="toc-number">1.</span> <span class="toc-text">Memory Resource Management in VMware ESX Server</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-number">1.1.</span> <span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#摘要"><span class="toc-number">1.2.</span> <span class="toc-text">摘要</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#内存回收机制"><span class="toc-number">1.3.</span> <span class="toc-text">内存回收机制</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#气球技术"><span class="toc-number">1.3.1.</span> <span class="toc-text">气球技术</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面调度机制"><span class="toc-number">1.3.2.</span> <span class="toc-text">页面调度机制</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#内存共享"><span class="toc-number">1.4.</span> <span class="toc-text">内存共享</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#shares-vs-工作集"><span class="toc-number">1.5.</span> <span class="toc-text">shares vs 工作集</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#按shares分配"><span class="toc-number">1.5.1.</span> <span class="toc-text">按shares分配</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#回收空闲内存"><span class="toc-number">1.5.2.</span> <span class="toc-text">回收空闲内存</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+		</div>
+		
+		<h2 id="Memory-Resource-Management-in-VMware-ESX-Server"><a href="#Memory-Resource-Management-in-VMware-ESX-Server" class="headerlink" title="Memory Resource Management in VMware ESX Server"></a>Memory Resource Management in VMware ESX Server</h2><p>此论文是OSDI’02上的一篇文章，影响力较大，今天特意总结一下，希望对读者会有所帮助。在本文中，shares的含义为权重(weights)。</p>
+<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
+<li><p>文档资料</p>
+<ul>
+<li><a href="http://www.waldspurger.org/carl/papers/esx-mem-osdi02.pdf" target="_blank" rel="noopener">paper</a></li>
+<li><a href="http://www.waldspurger.org/carl/papers/esx-osdi02-slides.pdf" target="_blank" rel="noopener">slides</a></li>
+</ul>
+</li>
+<li><p>作者</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">姓名</th>
+<th style="text-align:center">主页</th>
+<th style="text-align:right">谷歌学术</th>
+<th style="text-align:right">dblp</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Carl A. Waldspurger</td>
+<td style="text-align:center"><a href="http://www.waldspurger.org/carl/" target="_blank" rel="noopener">Carl A. Waldspurger</a></td>
+<td style="text-align:right"><a href="https://scholar.google.com/citations?user=6Ex1MMYAAAAJ&amp;hl=zh-CN" target="_blank" rel="noopener">Carl A. Waldspurger</a></td>
+<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/w/Waldspurger:Carl_A=" target="_blank" rel="noopener">Carl A. Waldspurger</a></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><a href="https://scholar.google.com/scholar?cites=17687765205706524922&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></li>
+</ul>
+<h3 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h3><p>VMware ESX Server是为了在虚拟机之间高效地复用硬件资源而设计的软件层。</p>
+<p>气球技术回收了客户机中最不重要的页面； 空闲内存税可实现高效的内存使用，同时保障性能的隔离； 基于内容的页面共享则是利用透明的页面重映射技术来消除冗余。 这些技术相互结合，可以有效地支持过量使用内存的虚拟机工作负载。</p>
+<h3 id="内存回收机制"><a href="#内存回收机制" class="headerlink" title="内存回收机制"></a>内存回收机制</h3><blockquote>
+<p>Overcommitment means that the total size configured for all running virtual machines exceeds the total amount of actual machine memory.</p>
+</blockquote>
+<p>上述引用很好地说明了过量使用的含义，即所有运行虚拟机的配置内存之和超过了实际内存的容量。</p>
+<h4 id="气球技术"><a href="#气球技术" class="headerlink" title="气球技术"></a>气球技术</h4><p>理想情况下，内存被回收一些的虚拟机应该表现地如同配置的内存更少一样， ESX Server使用气球技术与客户机操作系统协作来达到该目的。下图展示了这个过程：</p>
+<p><img src="/images/2017/8/4.png" alt=""></p>
+<ul>
+<li>气球模块作为伪设备驱动程序或内核服务加载到客户机操作系统中，它通过专用通道与ESX Server进行通信</li>
+<li>当ESX Server 想要回收内存时，它会指示气球通过使用适当的本机接口在虚拟机内分配固定的物理页面来“膨胀”</li>
+<li>ESX Server 通过指示气球释放先前分配好的页面来“放气”</li>
+</ul>
+<h4 id="页面调度机制"><a href="#页面调度机制" class="headerlink" title="页面调度机制"></a>页面调度机制</h4><p>ESX Server优先使用气球技术来回收内存，但是 当气球技术使用不了或内存不足时，系统会使用页面调度机制。系统通过将页面交换到ESX Server  swap区域来回收内存而无需客户机的参与。</p>
+<h3 id="内存共享"><a href="#内存共享" class="headerlink" title="内存共享"></a>内存共享</h3><p>ESX Server 根据页面内容来识别页面副本，哈希用于有效识别具有潜在相同内容的页面。</p>
+<h3 id="shares-vs-工作集"><a href="#shares-vs-工作集" class="headerlink" title="shares vs 工作集"></a>shares vs 工作集</h3><h4 id="按shares分配"><a href="#按shares分配" class="headerlink" title="按shares分配"></a>按shares分配</h4><p>每个虚拟机都有一个shares值，系统按照shares的份额来按比例分配相应数量的内存。</p>
+<p>动态算法min-funding revocation的思想是：当一个虚拟机想要更多的内存时，就从shares值最小的虚拟机中获取。</p>
+<h4 id="回收空闲内存"><a href="#回收空闲内存" class="headerlink" title="回收空闲内存"></a>回收空闲内存</h4><p>完全按比例分配内存的算法有一个明显局限性：忽略内存的使用情况。拥有较大shares的空闲虚拟机占用了大量内存却不使用，而拥有较小shares的活跃虚拟机因占用较少的内存而面临内存不足的处境，这样造成了系统内存利用率的降低。<br>ESX Server通过引入空闲内存税来解决上述问题，其基本思想是虚拟机为空闲页面付出比活跃页面更多的费用。 当内存不足时，ESX Server将优先从不积极使用内存的虚拟机回收页面。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>几个虚拟机运行在ESX Server中，例如当面临内存不足时，我们需要选择从哪个虚拟机中回收内存，此刻，就可以利用空闲内存税机制来选择最合适的虚拟机。而如何回收内存，系统则会根据不同的策略选择气球技术或者页面调度。同时，根据页面内容重删的技术可以节省内存，从而使系统更好地支持过量使用。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2017/08/18/Memory-Resource-Management-in-VMware-ESX-Server/" data-title="Memory Resource Management in VMware ESX Server | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/08/22/计算机系统领域大牛资料集锦/" title="计算机系统领域大牛资料集锦">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  计算机系统领域大牛资料集锦</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/08/15/Coordinated-and-Efficient-Huge-Page-Management-with-Ingens/"  title="Coordinated and Efficient Huge Page Management with Ingens">
+ <strong>NEXT:</strong><br/> 
+ <span>Coordinated and Efficient Huge Page Management with Ingens
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Memory-Resource-Management-in-VMware-ESX-Server"><span class="toc-number">1.</span> <span class="toc-text">Memory Resource Management in VMware ESX Server</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-number">1.1.</span> <span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#摘要"><span class="toc-number">1.2.</span> <span class="toc-text">摘要</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#内存回收机制"><span class="toc-number">1.3.</span> <span class="toc-text">内存回收机制</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#气球技术"><span class="toc-number">1.3.1.</span> <span class="toc-text">气球技术</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#页面调度机制"><span class="toc-number">1.3.2.</span> <span class="toc-text">页面调度机制</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#内存共享"><span class="toc-number">1.4.</span> <span class="toc-text">内存共享</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#shares-vs-工作集"><span class="toc-number">1.5.</span> <span class="toc-text">shares vs 工作集</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#按shares分配"><span class="toc-number">1.5.1.</span> <span class="toc-text">按shares分配</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#回收空闲内存"><span class="toc-number">1.5.2.</span> <span class="toc-text">回收空闲内存</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2017/08/18/Memory-Resource-Management-in-VMware-ESX-Server/';
+        this.page.identifier = '/2017/08/18/Memory-Resource-Management-in-VMware-ESX-Server/';
+        this.page.title = 'Memory Resource Management in VMware ESX Server';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>

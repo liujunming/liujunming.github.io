@@ -1,0 +1,555 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Linux内核中zram模块的理解 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="在第一次接触zram这个名词的时候有点懵，究竟什么是zram呢？其实zram就是linux内核中内存压缩模块，那么问题又来了，什么是内存压缩呢？
+内存压缩术语：
+Active memoryActive memory：活跃的内存，比方可以说是开个5个App，每个占用了100M，那么就有500M活跃内存">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Linux内核中zram模块的理解 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2016/07/04/Linux内核中zram模块的理解/" title="Linux内核中zram模块的理解" itemprop="url">Linux内核中zram模块的理解</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2016-07-04T12:27:15.000Z" itemprop="datePublished">2016-07-04</time>
+    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#内存压缩"><span class="toc-number">1.</span> <span class="toc-text">内存压缩</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Active-memory"><span class="toc-number">1.1.</span> <span class="toc-text">Active memory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Inactive-memory"><span class="toc-number">1.2.</span> <span class="toc-text">Inactive memory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Compressed-Memory的作用"><span class="toc-number">1.3.</span> <span class="toc-text">Compressed Memory的作用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#技术特点"><span class="toc-number">1.4.</span> <span class="toc-text">技术特点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#zram的使用"><span class="toc-number">2.</span> <span class="toc-text">zram的使用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#创建zramswap-conf-文件"><span class="toc-number">2.1.</span> <span class="toc-text">创建zramswap.conf 文件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#重启计算机"><span class="toc-number">2.2.</span> <span class="toc-text">重启计算机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#查看swap的信息"><span class="toc-number">2.3.</span> <span class="toc-text">查看swap的信息</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#验证zram的使用"><span class="toc-number">2.4.</span> <span class="toc-text">验证zram的使用</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#zram源码解析"><span class="toc-number">3.</span> <span class="toc-text">zram源码解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#zram-架构"><span class="toc-number">3.1.</span> <span class="toc-text">zram 架构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#zram-驱动部分代码分析"><span class="toc-number">3.2.</span> <span class="toc-text">zram 驱动部分代码分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#数据流操作部分代码分析"><span class="toc-number">3.3.</span> <span class="toc-text">数据流操作部分代码分析</span></a></li></ol></li></ol>
+		</div>
+		
+		<p>在第一次接触zram这个名词的时候有点懵，究竟什么是zram呢？其实zram就是linux内核中内存压缩模块，那么问题又来了，什么是内存压缩呢？</p>
+<h2 id="内存压缩"><a href="#内存压缩" class="headerlink" title="内存压缩"></a>内存压缩</h2><p>术语：</p>
+<h3 id="Active-memory"><a href="#Active-memory" class="headerlink" title="Active memory"></a>Active memory</h3><p>Active memory：活跃的内存，比方可以说是开个5个App，每个占用了100M，那么就有500M活跃内存；</p>
+<h3 id="Inactive-memory"><a href="#Inactive-memory" class="headerlink" title="Inactive memory"></a>Inactive memory</h3><p>Inactive memory：非活跃的内存，比如关掉了三个App，那么这三个App占用的共300M内存就不再是活跃了，但是内核还会保留它。如果这时立马再启动这三个App，就会以非常快的速度打开了，因为还没有被其他App占用的Inactive memory这时又被激活了。如果很长一段时间内这些非活跃内存都没有再用的话，随着系统内存占用增加，这些非活跃内存也会被清空而用做新的用途。</p>
+<h3 id="Compressed-Memory的作用"><a href="#Compressed-Memory的作用" class="headerlink" title="Compressed Memory的作用"></a>Compressed Memory的作用</h3><p>那么Compressed Memory在其中扮演什么角色呢？很简单，它尽可能久的保留那些会用到的非活跃内存，以使系统更快的响应潜在的第二次响应。但是为了照顾新的内存需求，内核会压缩这些非活跃内存以腾出空间，以供新的App使用。</p>
+<p><img src="/images/2016/7/4/1.png" alt="这里写图片描述"></p>
+<h3 id="技术特点"><a href="#技术特点" class="headerlink" title="技术特点"></a>技术特点</h3><ol>
+<li>缩减了内存使用：很明显，压缩了非活跃内存；</li>
+<li>改善了电源效能：在内存不足的情况下，优先使用压缩非活跃内存技术，而非把内存存为SWAP到硬盘上，减少了硬盘IO带来的能量损耗；</li>
+<li>最小化CPU使用：正如上面一样，通过CPU压缩或解压内存是非常快速的一件事情，也减少了CPU处理其他任务的损耗；</li>
+<li>多核支持：传统的虚拟内存、或写SWAP等操作都是单核的，但是压缩内存技术则是可以并行跑在多核上，同时压缩内存和开辟新的内存空间</li>
+</ol>
+<h2 id="zram的使用"><a href="#zram的使用" class="headerlink" title="zram的使用"></a>zram的使用</h2><p>在调研期间，尝试过各种方法，最终发现一个好的方法。</p>
+<h3 id="创建zramswap-conf-文件"><a href="#创建zramswap-conf-文件" class="headerlink" title="创建zramswap.conf 文件"></a>创建zramswap.conf 文件</h3><p>在<code>/etc/init</code>目录下，创建<code>zramswap.conf</code>，文本内容如下：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">description "Initializes zram swaping"</span><br><span class="line">start on runlevel [2345]</span><br><span class="line">stop on runlevel [!2345]</span><br><span class="line">pre-start script</span><br><span class="line"><span class="meta">#</span><span class="bash"> load dependency modules</span></span><br><span class="line">modprobe zram num_devices=2</span><br><span class="line"><span class="meta">#</span><span class="bash"> initialize the devices</span></span><br><span class="line">echo 1073741824 &gt; /sys/block/zram0/disksize</span><br><span class="line">echo 1073741824 &gt; /sys/block/zram1/disksize</span><br><span class="line"><span class="meta">#</span><span class="bash"> Creating swap filesystems</span></span><br><span class="line">mkswap /dev/zram0</span><br><span class="line">mkswap /dev/zram1</span><br><span class="line"><span class="meta">#</span><span class="bash"> Switch the swaps on</span></span><br><span class="line">swapon -p 5 /dev/zram0</span><br><span class="line">swapon -p 5 /dev/zram1</span><br><span class="line">end script</span><br><span class="line">post-stop script</span><br><span class="line"><span class="meta">#</span><span class="bash"> Switching off swap</span></span><br><span class="line">swapoff /dev/zram0</span><br><span class="line">swapoff /dev/zram1</span><br><span class="line">rmmod zram</span><br><span class="line">end script</span><br></pre></td></tr></table></figure></p>
+<h3 id="重启计算机"><a href="#重启计算机" class="headerlink" title="重启计算机"></a>重启计算机</h3><h3 id="查看swap的信息"><a href="#查看swap的信息" class="headerlink" title="查看swap的信息"></a>查看swap的信息</h3><ol>
+<li><code>grep Swap /proc/meminfo</code> see total swap, and free swap (all linux)</li>
+<li><code>cat /proc/swaps</code> see which swap devices are being used (all linux)</li>
+<li><code>swapon -s</code> see swap devices and sizes (where swapon is installed)</li>
+</ol>
+<h3 id="验证zram的使用"><a href="#验证zram的使用" class="headerlink" title="验证zram的使用"></a>验证zram的使用</h3><p>说明运行环境，物理内存8个G，设置zram0和zram1两个块设备的大小为1个G，测试程序申请7个G的内存，测试程序源码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;  </span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">//printf("%d\n", sizeof(int));</span></span><br><span class="line">	<span class="keyword">int</span>  *mem;</span><br><span class="line">	<span class="keyword">int</span> i, size;</span><br><span class="line">	size = <span class="number">0x70000000</span>;</span><br><span class="line">	mem = (<span class="keyword">int</span>*)<span class="built_in">malloc</span>(size*<span class="keyword">sizeof</span>(<span class="keyword">int</span>));</span><br><span class="line">	<span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; size; i++)</span><br><span class="line">		mem[i] = (i%<span class="number">1024</span>);</span><br><span class="line">	getchar();</span><br><span class="line">	<span class="built_in">free</span>(mem);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试程序运行前，zram0和zram1的使用情况如下图：</p>
+<p><img src="/images/2016/7/11/1.png" alt="这里写图片描述"></p>
+<p>测试程序运行后，zram0和zram1的使用情况如下图：</p>
+<p><img src="/images/2016/7/11/2.png" alt="这里写图片描述"></p>
+<p>从以上两张图看出zram已经成功使用了！</p>
+<h2 id="zram源码解析"><a href="#zram源码解析" class="headerlink" title="zram源码解析"></a>zram源码解析</h2><p>对于zram源码的解析，<a href="http://kernel.meizu.com/zram-introduction.html" target="_blank" rel="noopener">魅族内核团队</a>已经写了技术博客。<br><a href="http://lxr.free-electrons.com/source/drivers/block/zram/zram_drv.c?v=3.14" target="_blank" rel="noopener">zram源码</a></p>
+<p>对于块设备基础概念和块设备驱动整体框架的相关知识，请读者自己查阅相关资料。</p>
+<ul>
+<li><a href="http://blog.chinaunix.net/xmlrpc.php?r=blog/article&amp;uid=30282771&amp;id=5144166" target="_blank" rel="noopener">资料1</a></li>
+<li><a href="http://blog.csdn.net/flyingcloud_2008/article/details/5818995" target="_blank" rel="noopener">资料2</a></li>
+</ul>
+<h3 id="zram-架构"><a href="#zram-架构" class="headerlink" title="zram 架构"></a>zram 架构</h3><p>zram 从架构上可以分为三部分：</p>
+<ul>
+<li>驱动部分</li>
+</ul>
+<p>该部分创建了一个块设备，然后提供了处理 IO 请求的接口；</p>
+<ul>
+<li>数据流操作部分</li>
+</ul>
+<p>该部分主要提供串行或者并行的压缩和解压操作；</p>
+<ul>
+<li>解压缩算法部分</li>
+</ul>
+<p>该部分主要是一个个压缩和解压算法，每个算法都提供统一的压缩和解压接口给数据流操作部分调用。</p>
+<p><img src="/images/2016/7/12/zram 架构.png" alt="这里写图片描述"></p>
+<h3 id="zram-驱动部分代码分析"><a href="#zram-驱动部分代码分析" class="headerlink" title="zram 驱动部分代码分析"></a>zram 驱动部分代码分析</h3><ul>
+<li>zram_init</li>
+</ul>
+<p>首先调用 register_blkdev 注册块设备驱动到内核中，然后再根据 num_devices 调用 create_device 来创建相应个数的块设备， 这里默认是创建一个块设备。</p>
+<p><img src="/images/2016/7/12/zram_init.png" alt="这里写图片描述"></p>
+<ul>
+<li>create_device</li>
+</ul>
+<p>对于 flash、 RAM 等完全随机访问的非机械设备，并不需要进行复杂的 I/O 调度，所以这里直接调用 blk_alloc_queue 分配一个 “请求队列”，然后使用 blk_queue_make_request 函数绑定分配好的 “请求队列” 和 “请求处理”函数 zram_make_request。接着初始化块设备的操作函数集 zram_devops 及设备容量、名字、队列等其他属性，最后调用 add_disk 将该块设备真正添加到内核中。</p>
+<p><img src="/images/2016/7/12/create_device.png" alt="这里写图片描述"></p>
+<ul>
+<li>disksize_store</li>
+</ul>
+<p>zram 使用了 Zsmalloc 分配器来管理它的内存空间，Zsmalloc 分配器尝试将多个相同大小的对象存放在组合页（称为 zspage）中，这个组合页不要求物理连续，从而提高内存的使用率。</p>
+<p>首先会根据 zram 的内存中页面的个数，创建相应个数的 zram table，每个 zram table 都对应一个页面；然后会调用 zs_create_pool 创建一个 zsmalloc 的内存池，以后所有的页面申请和释放都是通过 zs_malloc 和 zs_free 来分配和释放相对应的对象。</p>
+<p><img src="/images/2016/7/12/disksize_store.png" alt="这里写图片描述"></p>
+<ul>
+<li>zram_make_request</li>
+</ul>
+<p>在整个块设备的 I/O 操作中，贯穿于始终的就是“请求”，块设备的 I/O 操作会排队和整合。块设备驱动的任务就是处理请求，对请求的排队和整合则是由 I/O 调度算法解决，因此，zram 块设备驱动的核心这个请求处理函数，所有的 zram I/O 请求都是通过这个请求处理函数来处理的。</p>
+<p>首先它判断这个 I/O 请求是否是有效的，即检测请求是否在 zram 逻辑块的范围以内，且是否对齐。然后调用__zram_make_request 遍历 bio 中的每个段 bio_vec，根据 bio 的传输方向选择执行写 (zram_bvec_write) 或者读 (zram_bvec_read) 操作。</p>
+<p><img src="/images/2016/7/12/zram_make_request.png" alt="这里写图片描述"></p>
+<ul>
+<li>zram_bvec_write</li>
+</ul>
+<p>在写数据之前，首先使用 GFP_NOIO 标志创建一个不允许任何 I/O 初始化的页面，然后将 zram_data 对应的数据先解压出来放到该创建的页面中。接着去调用 zcomp_strm_find 找到一个压缩操作流，如果是单压缩流，则实际调用的是 zcomp_strm_single_find，如果是多压缩流，则实际调用的是 zcomp_strm_multi_find。</p>
+<p>然后，将段 bio_vec 中的页面临时映射到高端地址，并将高端地址空间页面的内容复制到已保存好 zram_data 压缩后的数据的页面。调用 zs_malloc 申请一个 zram table，使 zcomp_compress 压缩内容并将压缩后的内容存放到新申请的 zram table。最后调用 zram_free_page 删除旧内容所占用的 zram table。</p>
+<p>zcomp_decompress 会根据 struct zcomp_backend 初始化时设定的压缩算法来调用相应的解压接口，lzo 压缩算法的解压接口是 lzo_compress ，而 lz4 压缩算法的解压接口是 zcomp_lz4_compress ，该接口还调用了压缩操作流，以此执行串行或者并行写操作。</p>
+<p><img src="/images/2016/7/12/zram_bvec_write.png" alt="这里写图片描述"></p>
+<ul>
+<li>zram_bvec_read</li>
+</ul>
+<p>读操作首先将段 bio_vec 中的页面临时映射到高端地址，然后再调用 zram_decompress_page 将 zram_meta 所对应的数据解压到这块映射的高端内存空间，解压的接口是 zcomp_decompress，它会根据 struct zcomp_backend 初始化时设定的压缩算法来调用相应的解压接口，lzo 压缩算法的解压接口是 lzo_decompress ，而 lz4 压缩算法的解压接口是 zcomp_lz4_decompress 。</p>
+<p><img src="/images/2016/7/12/zram_bvec_read.png" alt="这里写图片描述"></p>
+<h3 id="数据流操作部分代码分析"><a href="#数据流操作部分代码分析" class="headerlink" title="数据流操作部分代码分析"></a>数据流操作部分代码分析</h3><ul>
+<li>zcomp_create</li>
+</ul>
+<p>若最大可能同时执行压缩操作的个数来调用为一，则调用 zcomp_strm_single_create 来创建一个压缩流，而若最大可能同时执行压缩操作的个数来调用大于一，则调用 zcomp_strm_multi_create 先创建一个压缩流，然后创建一个压缩流链表，并将创建好的压缩流加到压缩流链表中，后面再根据需求来动态创建更多的压缩流。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://imtx.me/archives/1830.html" target="_blank" rel="noopener">imtx</a></li>
+<li><a href="https://weirdfellow.wordpress.com/2011/05/04/compressed-ram-with-zram/" target="_blank" rel="noopener">weirdfellow</a></li>
+<li><a href="http://unix.stackexchange.com/questions/23072/how-can-i-check-if-swap-is-active-from-the-command-line" target="_blank" rel="noopener">stackexchange</a></li>
+<li><a href="http://kernel.meizu.com/zram-introduction.html" target="_blank" rel="noopener">魅族</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/blockdev/zram.txt" target="_blank" rel="noopener">kernel.org</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/内存管理/">内存管理</a><a href="/tags/Kernel/">Kernel</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/内存管理/">内存管理</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2016/07/04/Linux内核中zram模块的理解/" data-title="Linux内核中zram模块的理解 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2016/07/07/Linux中libhugetlbfs的使用/" title="Linux中libhugetlbfs的使用">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Linux中libhugetlbfs的使用</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2016/06/30/理解inode/"  title="理解inode">
+ <strong>NEXT:</strong><br/> 
+ <span>理解inode
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#内存压缩"><span class="toc-number">1.</span> <span class="toc-text">内存压缩</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Active-memory"><span class="toc-number">1.1.</span> <span class="toc-text">Active memory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Inactive-memory"><span class="toc-number">1.2.</span> <span class="toc-text">Inactive memory</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Compressed-Memory的作用"><span class="toc-number">1.3.</span> <span class="toc-text">Compressed Memory的作用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#技术特点"><span class="toc-number">1.4.</span> <span class="toc-text">技术特点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#zram的使用"><span class="toc-number">2.</span> <span class="toc-text">zram的使用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#创建zramswap-conf-文件"><span class="toc-number">2.1.</span> <span class="toc-text">创建zramswap.conf 文件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#重启计算机"><span class="toc-number">2.2.</span> <span class="toc-text">重启计算机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#查看swap的信息"><span class="toc-number">2.3.</span> <span class="toc-text">查看swap的信息</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#验证zram的使用"><span class="toc-number">2.4.</span> <span class="toc-text">验证zram的使用</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#zram源码解析"><span class="toc-number">3.</span> <span class="toc-text">zram源码解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#zram-架构"><span class="toc-number">3.1.</span> <span class="toc-text">zram 架构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#zram-驱动部分代码分析"><span class="toc-number">3.2.</span> <span class="toc-text">zram 驱动部分代码分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#数据流操作部分代码分析"><span class="toc-number">3.3.</span> <span class="toc-text">数据流操作部分代码分析</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>2</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>4</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2016/07/04/Linux内核中zram模块的理解/';
+        this.page.identifier = '/2016/07/04/Linux内核中zram模块的理解/';
+        this.page.title = 'Linux内核中zram模块的理解';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>
