@@ -1,0 +1,489 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>线段树 | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="线段树的概念Tushar的讲解视频Segment Tree Range Minimum Query清晰明了。
+线段树的例子Sum of given rangeWe have an array arr[0 . . . n-1]. We should be able to
+
+Find the sum o">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="线段树 | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/09/08/线段树/" title="线段树" itemprop="url">线段树</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-09-08T13:55:33.000Z" itemprop="datePublished">2018-09-08</time>
+    更新日期:<time datetime="2018-09-10T04:32:42.907Z" itemprop="dateModified">2018-09-10</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#线段树的概念"><span class="toc-number">1.</span> <span class="toc-text">线段树的概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#线段树的例子"><span class="toc-number">2.</span> <span class="toc-text">线段树的例子</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Sum-of-given-range"><span class="toc-number">2.1.</span> <span class="toc-text">Sum of given range</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Range-Minimum-Query"><span class="toc-number">2.2.</span> <span class="toc-text">Range Minimum Query</span></a></li></ol></li></ol>
+		</div>
+		
+		<h2 id="线段树的概念"><a href="#线段树的概念" class="headerlink" title="线段树的概念"></a>线段树的概念</h2><p>Tushar的讲解视频<a href="https://www.youtube.com/watch?v=ZBHKZF5w4YU" target="_blank" rel="noopener">Segment Tree Range Minimum Query</a>清晰明了。</p>
+<h2 id="线段树的例子"><a href="#线段树的例子" class="headerlink" title="线段树的例子"></a>线段树的例子</h2><h3 id="Sum-of-given-range"><a href="#Sum-of-given-range" class="headerlink" title="Sum of given range"></a>Sum of given range</h3><p>We have an array arr[0 . . . n-1]. We should be able to</p>
+<ol>
+<li>Find the sum of elements from index l to r where 0 &lt;= l &lt;= r &lt;= n-1</li>
+<li>Change value of a specified element of the array to a new value x. We need to do arr[i] = x where 0 &lt;= i &lt;= n-1.</li>
+</ol>
+<p><strong>Representation of Segment trees</strong></p>
+<ol>
+<li>Leaf Nodes are the elements of the input array.</li>
+<li>Each internal node represents some merging of the leaf nodes. The merging may be different for different problems. For this problem, merging is sum of leaves under a node.</li>
+</ol>
+<p>An array representation of tree is used to represent Segment Trees. For each node at index i, the left child is at index <code>2*i+1</code>, right child at <code>2*i+2</code> and the parent is at<code>(i-1)/2</code>.<br><img src="/images/2018/9/6.png" alt=""><br><strong>Construction of Segment Tree from given array</strong><br>We start with a segment arr[0 . . . n-1]. and every time we divide the current segment into two halves(if it has not yet become a segment of length 1), and then call the same procedure on both halves, and for each such segment, we store the sum in the corresponding node.<br>All levels of the constructed segment tree will be completely filled except the last level. Also, the tree will be a Full Binary Tree because we always divide segments in two halves at every level. Since the constructed tree is always a full binary tree with n leaves, there will be n-1 internal nodes. So total number of nodes will be 2*n – 1.</p>
+<p>Height of the segment tree will be <code>logN</code>. Since the tree is represented using array and relation between parent and child indexes must be maintained, size of memory allocated for segment tree will be  <code>2*pow(2, logN)-1</code>.<br><strong>Query for Sum of given range</strong><br>Once the tree is constructed, how to get the sum using the constructed segment tree. Following is the algorithm to get the sum of elements.<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getSum</span><span class="params">(node, l, r)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">if</span> the range of the node is within l <span class="keyword">and</span> r</span><br><span class="line">        <span class="keyword">return</span> value in the node</span><br><span class="line">   <span class="keyword">else</span> <span class="keyword">if</span> the range of the node is completely outside l <span class="keyword">and</span> r</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">   <span class="keyword">else</span></span><br><span class="line">    <span class="keyword">return</span> getSum(node's left child, l, r) + </span><br><span class="line">           getSum(node's right child, l, r)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><strong>Update a value</strong><br>Like tree construction and query operations, the update can also be done recursively. We are given an index which needs to be updated. Let <em>diff</em> be the value to be added. We start from root of the segment tree and add <em>diff</em> to all nodes which have given index in their range. If a node doesn’t have given index in its range, we don’t make any changes to that node.<br><strong>Implementation</strong><br>Following is the implementation of segment tree. The program implements construction of segment tree for any given array. It also implements query and update operations.<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// CPP program to show segment tree operations like construction, query </span></span><br><span class="line"><span class="comment">// and update </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt; </span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;cstdio&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;math.h&gt; </span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line">  </span><br><span class="line"><span class="comment">// A utility function to get the middle index from corner indexes. </span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getMid</span><span class="params">(<span class="keyword">int</span> s, <span class="keyword">int</span> e)</span> </span>&#123;  <span class="keyword">return</span> s + (e -s)/<span class="number">2</span>;  &#125; </span><br><span class="line">  </span><br><span class="line"><span class="comment">/*  A recursive function to get the sum of values in given range </span></span><br><span class="line"><span class="comment">    of the array. The following are parameters for this function. </span></span><br><span class="line"><span class="comment">  </span></span><br><span class="line"><span class="comment">    st    --&gt; Pointer to segment tree </span></span><br><span class="line"><span class="comment">    si    --&gt; Index of current node in the segment tree. Initially </span></span><br><span class="line"><span class="comment">              0 is passed as root is always at index 0 </span></span><br><span class="line"><span class="comment">    ss &amp; se  --&gt; Starting and ending indexes of the segment represented </span></span><br><span class="line"><span class="comment">                 by current node, i.e., st[si] </span></span><br><span class="line"><span class="comment">    qs &amp; qe  --&gt; Starting and ending indexes of query range */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getSumUtil</span><span class="params">(<span class="keyword">int</span> *st, <span class="keyword">int</span> ss, <span class="keyword">int</span> se, <span class="keyword">int</span> qs, <span class="keyword">int</span> qe, <span class="keyword">int</span> si)</span> </span>&#123; </span><br><span class="line">    <span class="comment">// If segment of this node is a part of given range, then return </span></span><br><span class="line">    <span class="comment">// the sum of the segment </span></span><br><span class="line">    <span class="keyword">if</span> (qs &lt;= ss &amp;&amp; qe &gt;= se) </span><br><span class="line">        <span class="keyword">return</span> st[si]; </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// If segment of this node is outside the given range </span></span><br><span class="line">    <span class="keyword">if</span> (se &lt; qs || ss &gt; qe) </span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// If a part of this segment overlaps with the given range </span></span><br><span class="line">    <span class="keyword">int</span> mid = getMid(ss, se); </span><br><span class="line">    <span class="keyword">return</span> getSumUtil(st, ss, mid, qs, qe, <span class="number">2</span>*si+<span class="number">1</span>) + </span><br><span class="line">           getSumUtil(st, mid+<span class="number">1</span>, se, qs, qe, <span class="number">2</span>*si+<span class="number">2</span>); </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="comment">/* A recursive function to update the nodes which have the given  </span></span><br><span class="line"><span class="comment">   index in their range. The following are parameters </span></span><br><span class="line"><span class="comment">    st, si, ss and se are same as getSumUtil() </span></span><br><span class="line"><span class="comment">    i    --&gt; index of the element to be updated. This index is  </span></span><br><span class="line"><span class="comment">             in the input array. </span></span><br><span class="line"><span class="comment">   diff --&gt; Value to be added to all nodes which have i in range */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">updateValueUtil</span><span class="params">(<span class="keyword">int</span> *st, <span class="keyword">int</span> ss, <span class="keyword">int</span> se, <span class="keyword">int</span> i, <span class="keyword">int</span> diff, <span class="keyword">int</span> si)</span> </span>&#123; </span><br><span class="line">    <span class="comment">// Base Case: If the input index lies outside the range of  </span></span><br><span class="line">    <span class="comment">// this segment </span></span><br><span class="line">    <span class="keyword">if</span> (i &lt; ss || i &gt; se) </span><br><span class="line">        <span class="keyword">return</span>; </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// If the input index is in range of this node, then update  </span></span><br><span class="line">    <span class="comment">// the value of the node and its children </span></span><br><span class="line">    st[si] = st[si] + diff; </span><br><span class="line">    <span class="keyword">if</span> (se != ss) &#123; </span><br><span class="line">        <span class="keyword">int</span> mid = getMid(ss, se); </span><br><span class="line">        updateValueUtil(st, ss, mid, i, diff, <span class="number">2</span>*si + <span class="number">1</span>); </span><br><span class="line">        updateValueUtil(st, mid+<span class="number">1</span>, se, i, diff, <span class="number">2</span>*si + <span class="number">2</span>); </span><br><span class="line">    &#125; </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="comment">// The function to update a value in input array and segment tree. </span></span><br><span class="line"><span class="comment">// It uses updateValueUtil() to update the value in segment tree </span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">updateValue</span><span class="params">(<span class="keyword">int</span> arr[], <span class="keyword">int</span> *st, <span class="keyword">int</span> n, <span class="keyword">int</span> i, <span class="keyword">int</span> new_val)</span> </span>&#123; </span><br><span class="line">    <span class="comment">// Check for erroneous input index </span></span><br><span class="line">    <span class="keyword">if</span> (i &lt; <span class="number">0</span> || i &gt; n<span class="number">-1</span>) &#123; </span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Invalid Input"</span>); </span><br><span class="line">        <span class="keyword">return</span>; </span><br><span class="line">    &#125; </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Get the difference between new value and old value </span></span><br><span class="line">    <span class="keyword">int</span> diff = new_val - arr[i]; </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Update the value in array </span></span><br><span class="line">    arr[i] = new_val; </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Update the values of nodes in segment tree </span></span><br><span class="line">    updateValueUtil(st, <span class="number">0</span>, n<span class="number">-1</span>, i, diff, <span class="number">0</span>); </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="comment">// Return sum of elements in range from index qs (quey start) </span></span><br><span class="line"><span class="comment">// to qe (query end).  It mainly uses getSumUtil() </span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getSum</span><span class="params">(<span class="keyword">int</span> *st, <span class="keyword">int</span> n, <span class="keyword">int</span> qs, <span class="keyword">int</span> qe)</span> </span>&#123; </span><br><span class="line">    <span class="comment">// Check for erroneous input values </span></span><br><span class="line">    <span class="keyword">if</span> (qs &lt; <span class="number">0</span> || qe &gt; n<span class="number">-1</span> || qs &gt; qe) &#123; </span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Invalid Input"</span>); </span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>; </span><br><span class="line">    &#125; </span><br><span class="line">  </span><br><span class="line">    <span class="keyword">return</span> getSumUtil(st, <span class="number">0</span>, n<span class="number">-1</span>, qs, qe, <span class="number">0</span>); </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="comment">// A recursive function that constructs Segment Tree for array[ss..se]. </span></span><br><span class="line"><span class="comment">// si is index of current node in segment tree st </span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">constructSTUtil</span><span class="params">(<span class="keyword">int</span> arr[], <span class="keyword">int</span> ss, <span class="keyword">int</span> se, <span class="keyword">int</span> *st, <span class="keyword">int</span> si)</span> </span>&#123; </span><br><span class="line">    <span class="comment">// If there is one element in array, store it in current node of </span></span><br><span class="line">    <span class="comment">// segment tree and return </span></span><br><span class="line">    <span class="keyword">if</span> (ss == se) &#123; </span><br><span class="line">        st[si] = arr[ss]; </span><br><span class="line">        <span class="keyword">return</span> arr[ss]; </span><br><span class="line">    &#125; </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// If there are more than one elements, then recur for left and </span></span><br><span class="line">    <span class="comment">// right subtrees and store the sum of values in this node </span></span><br><span class="line">    <span class="keyword">int</span> mid = getMid(ss, se); </span><br><span class="line">    st[si] =  constructSTUtil(arr, ss, mid, st, si*<span class="number">2</span>+<span class="number">1</span>) + </span><br><span class="line">              constructSTUtil(arr, mid+<span class="number">1</span>, se, st, si*<span class="number">2</span>+<span class="number">2</span>); </span><br><span class="line">    <span class="keyword">return</span> st[si]; </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="comment">/* Function to construct segment tree from given array. This function </span></span><br><span class="line"><span class="comment">   allocates memory for segment tree and calls constructSTUtil() to </span></span><br><span class="line"><span class="comment">   fill the allocated memory */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> *<span class="title">constructST</span><span class="params">(<span class="keyword">int</span> arr[], <span class="keyword">int</span> n)</span> </span>&#123; </span><br><span class="line">    <span class="comment">// Allocate memory for the segment tree </span></span><br><span class="line">  </span><br><span class="line">    <span class="comment">//Height of segment tree </span></span><br><span class="line">    <span class="keyword">int</span> x = (<span class="keyword">int</span>)(<span class="built_in">ceil</span>(log2(n)));  </span><br><span class="line">  </span><br><span class="line">    <span class="comment">//Maximum size of segment tree </span></span><br><span class="line">    <span class="keyword">int</span> max_size = <span class="number">2</span>*(<span class="keyword">int</span>)<span class="built_in">pow</span>(<span class="number">2</span>, x) - <span class="number">1</span>;  </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Allocate memory </span></span><br><span class="line">    <span class="keyword">int</span> *st = <span class="keyword">new</span> <span class="keyword">int</span>[max_size]; </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Fill the allocated memory st </span></span><br><span class="line">    constructSTUtil(arr, <span class="number">0</span>, n<span class="number">-1</span>, st, <span class="number">0</span>); </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Return the constructed segment tree </span></span><br><span class="line">    <span class="keyword">return</span> st; </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="comment">// Driver program to test above functions </span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123; </span><br><span class="line">    <span class="keyword">int</span> arr[] = &#123;<span class="number">1</span>, <span class="number">3</span>, <span class="number">5</span>, <span class="number">7</span>, <span class="number">9</span>, <span class="number">11</span>&#125;; </span><br><span class="line">    <span class="keyword">int</span> n = <span class="keyword">sizeof</span>(arr)/<span class="keyword">sizeof</span>(arr[<span class="number">0</span>]); </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Build segment tree from given array </span></span><br><span class="line">    <span class="keyword">int</span> *st = constructST(arr, n); <span class="comment">//确保n大于0</span></span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Print sum of values in array from index 1 to 3 </span></span><br><span class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="string">"Sum of values in given range = "</span>&lt;&lt;getSum(st, n, <span class="number">1</span>, <span class="number">3</span>)&lt;&lt;<span class="built_in">endl</span>; </span><br><span class="line">             </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Update: set arr[1] = 10 and update corresponding  </span></span><br><span class="line">    <span class="comment">// segment tree nodes </span></span><br><span class="line">    updateValue(arr, st, n, <span class="number">1</span>, <span class="number">10</span>); </span><br><span class="line">  </span><br><span class="line">    <span class="comment">// Find sum after the value is updated </span></span><br><span class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="string">"Updated sum of values in given range = "</span>&lt;&lt;getSum(st, n, <span class="number">1</span>, <span class="number">3</span>)&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">   </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Output:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Sum of values in given range = 15</span><br><span class="line">Updated sum of values in given range = 22</span><br></pre></td></tr></table></figure></p>
+<p><strong>Time Complexity</strong><br>Time Complexity for tree construction is O(n). There are total 2n-1 nodes, and value of every node is calculated only once in tree construction.</p>
+<p>Time complexity to query is O(logN). To query a sum, we process at most four nodes at every level and number of levels is O(logN).</p>
+<p>The time complexity of update is also O(logN). To update a leaf value, we process one node at every level and number of levels is O(logN).</p>
+<h3 id="Range-Minimum-Query"><a href="#Range-Minimum-Query" class="headerlink" title="Range Minimum Query"></a>Range Minimum Query</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt; </span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;cstdio&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;math.h&gt; </span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line">  </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getMid</span><span class="params">(<span class="keyword">int</span> s, <span class="keyword">int</span> e)</span> </span>&#123;  <span class="keyword">return</span> s + (e -s)/<span class="number">2</span>;  &#125; </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">min</span><span class="params">(<span class="keyword">int</span> a, <span class="keyword">int</span> b)</span> </span>&#123; <span class="keyword">return</span> a &gt;= b ? b : a; &#125;</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getMinUtil</span><span class="params">(<span class="keyword">int</span> *st, <span class="keyword">int</span> ss, <span class="keyword">int</span> se, <span class="keyword">int</span> qs, <span class="keyword">int</span> qe, <span class="keyword">int</span> si)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">if</span> (qs &lt;= ss &amp;&amp; qe &gt;= se) </span><br><span class="line">        <span class="keyword">return</span> st[si]; </span><br><span class="line">    <span class="keyword">if</span> (se &lt; qs || ss &gt; qe) </span><br><span class="line">        <span class="keyword">return</span> INT_MAX; </span><br><span class="line">    <span class="keyword">int</span> mid = getMid(ss, se); </span><br><span class="line">    <span class="keyword">return</span> min(getMinUtil(st, ss, mid, qs, qe, <span class="number">2</span>*si+<span class="number">1</span>), getMinUtil(st, mid+<span class="number">1</span>, se, qs, qe, <span class="number">2</span>*si+<span class="number">2</span>)); </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">updateValueUtil</span><span class="params">(<span class="keyword">int</span> *st, <span class="keyword">int</span> ss, <span class="keyword">int</span> se, <span class="keyword">int</span> i, <span class="keyword">int</span> new_val, <span class="keyword">int</span> si)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">if</span> (i &lt; ss || i &gt; se) </span><br><span class="line">        <span class="keyword">return</span>; </span><br><span class="line">    st[si] = min(st[si], new_val); </span><br><span class="line">    <span class="keyword">if</span> (se != ss) &#123; </span><br><span class="line">        <span class="keyword">int</span> mid = getMid(ss, se); </span><br><span class="line">        updateValueUtil(st, ss, mid, i, new_val, <span class="number">2</span>*si + <span class="number">1</span>); </span><br><span class="line">        updateValueUtil(st, mid+<span class="number">1</span>, se, i, new_val, <span class="number">2</span>*si + <span class="number">2</span>); </span><br><span class="line">    &#125; </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">updateValue</span><span class="params">(<span class="keyword">int</span> arr[], <span class="keyword">int</span> *st, <span class="keyword">int</span> n, <span class="keyword">int</span> i, <span class="keyword">int</span> new_val)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">if</span> (i &lt; <span class="number">0</span> || i &gt; n<span class="number">-1</span>) &#123; </span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Invalid Input"</span>); </span><br><span class="line">        <span class="keyword">return</span>; </span><br><span class="line">    &#125; </span><br><span class="line">    arr[i] = new_val; </span><br><span class="line">    updateValueUtil(st, <span class="number">0</span>, n<span class="number">-1</span>, i, new_val, <span class="number">0</span>); </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getMin</span><span class="params">(<span class="keyword">int</span> *st, <span class="keyword">int</span> n, <span class="keyword">int</span> qs, <span class="keyword">int</span> qe)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">if</span> (qs &lt; <span class="number">0</span> || qe &gt; n<span class="number">-1</span> || qs &gt; qe) &#123; </span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Invalid Input"</span>); </span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>; </span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">return</span> getMinUtil(st, <span class="number">0</span>, n<span class="number">-1</span>, qs, qe, <span class="number">0</span>); </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">constructSTUtil</span><span class="params">(<span class="keyword">int</span> arr[], <span class="keyword">int</span> ss, <span class="keyword">int</span> se, <span class="keyword">int</span> *st, <span class="keyword">int</span> si)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">if</span> (ss == se) &#123; </span><br><span class="line">        st[si] = arr[ss]; </span><br><span class="line">        <span class="keyword">return</span> arr[ss]; </span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">int</span> mid = getMid(ss, se); </span><br><span class="line">    st[si] =  min(constructSTUtil(arr, ss, mid, st, si*<span class="number">2</span>+<span class="number">1</span>), constructSTUtil(arr, mid+<span class="number">1</span>, se, st, si*<span class="number">2</span>+<span class="number">2</span>)); </span><br><span class="line">    <span class="keyword">return</span> st[si]; </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">int</span> *<span class="title">constructST</span><span class="params">(<span class="keyword">int</span> arr[], <span class="keyword">int</span> n)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">int</span> x = (<span class="keyword">int</span>)(<span class="built_in">ceil</span>(log2(n)));  </span><br><span class="line">    <span class="keyword">int</span> max_size = <span class="number">2</span>*(<span class="keyword">int</span>)<span class="built_in">pow</span>(<span class="number">2</span>, x) - <span class="number">1</span>;  </span><br><span class="line">    <span class="keyword">int</span> *st = <span class="keyword">new</span> <span class="keyword">int</span>[max_size]; </span><br><span class="line">    constructSTUtil(arr, <span class="number">0</span>, n<span class="number">-1</span>, st, <span class="number">0</span>); </span><br><span class="line">    <span class="keyword">return</span> st; </span><br><span class="line">&#125; </span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123; </span><br><span class="line">    <span class="keyword">int</span> arr[] = &#123;<span class="number">1</span>, <span class="number">3</span>, <span class="number">2</span>, <span class="number">7</span>, <span class="number">9</span>, <span class="number">11</span>&#125;; </span><br><span class="line">    <span class="keyword">int</span> n = <span class="keyword">sizeof</span>(arr)/<span class="keyword">sizeof</span>(arr[<span class="number">0</span>]); </span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> *st = constructST(arr, n); <span class="comment">//确保n大于0</span></span><br><span class="line">    updateValue(arr, st, n, <span class="number">1</span>, <span class="number">-10</span>); </span><br><span class="line">  </span><br><span class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="string">"min of values in given range = "</span>&lt;&lt;getMin(st, n, <span class="number">1</span>, <span class="number">3</span>)&lt;&lt;<span class="built_in">endl</span>; </span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.youtube.com/watch?v=ZBHKZF5w4YU" target="_blank" rel="noopener">Tushar Segment Tree Range Minimum Query</a></li>
+<li><a href="https://www.geeksforgeeks.org/segment-tree-set-1-sum-of-given-range/" target="_blank" rel="noopener">Segment Tree | Set 1 (Sum of given range)</a></li>
+<li><a href="https://www.geeksforgeeks.org/segment-tree-set-1-range-minimum-query/" target="_blank" rel="noopener">Segment Tree | Set 2 (Range Minimum Query)</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/数据结构/">数据结构</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/数据结构/">数据结构</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2018/09/08/线段树/" data-title="线段树 | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/09/09/Interval Tree/" title="Interval Tree">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Interval Tree</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/09/07/Best-Time-to-Buy-and-Sell-Stock-problem/"  title="Best Time to Buy and Sell Stock problem">
+ <strong>NEXT:</strong><br/> 
+ <span>Best Time to Buy and Sell Stock problem
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#线段树的概念"><span class="toc-number">1.</span> <span class="toc-text">线段树的概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#线段树的例子"><span class="toc-number">2.</span> <span class="toc-text">线段树的例子</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Sum-of-given-range"><span class="toc-number">2.1.</span> <span class="toc-text">Sum of given range</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Range-Minimum-Query"><span class="toc-number">2.2.</span> <span class="toc-text">Range Minimum Query</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>7</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>5</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>1</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>7</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">九月 2018</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/09/08/线段树/';
+        this.page.identifier = '/2018/09/08/线段树/';
+        this.page.title = '线段树';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>
