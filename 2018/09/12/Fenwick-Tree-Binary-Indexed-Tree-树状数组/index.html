@@ -4,22 +4,19 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>深入理解计算机系统之重要概念 | L</title>
+    <title>Fenwick Tree/Binary Indexed Tree/树状数组 | L</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
     
     <meta name="author" content="liujunming">
     
-    <meta name="description" content="重要主题并发与并行在深入理解计算机系统中，是这样定义并发与并行的。
-
-并发(concurrency)是一个通用的概念，指一个同时具有多个活动的系统；并行(parallelism)指的是用并发使一个系统运行的更快。
-
-感觉很抽象，有木有！嘿嘿，于是我机智的google了一下，在stackoverflo">
+    <meta name="description" content="观看花花酱 Fenwick Tree / Binary Indexed Tree的视频，结合Visualizer即可理解Fenwick Tree。
+Fenwick Tree is mainly designed for solving the single point update range su">
     
     
     
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:site" content="ljm11636" />
-    <meta name="twitter:title" content="深入理解计算机系统之重要概念 | L" />
+    <meta name="twitter:title" content="Fenwick Tree/Binary Indexed Tree/树状数组 | L" />
       
     
     
@@ -79,15 +76,15 @@
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2016/04/29/深入理解计算机系统之重要概念/" title="深入理解计算机系统之重要概念" itemprop="url">深入理解计算机系统之重要概念</a>
+      <a href="/2018/09/12/Fenwick-Tree-Binary-Indexed-Tree-树状数组/" title="Fenwick Tree/Binary Indexed Tree/树状数组" itemprop="url">Fenwick Tree/Binary Indexed Tree/树状数组</a>
   </h1>
   <p class="article-author">By
     
       <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
     </p>
   <p class="article-time">
-    <time datetime="2016-04-29T05:02:45.000Z" itemprop="datePublished">2016-04-29</time>
-    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    <time datetime="2018-09-12T07:59:22.000Z" itemprop="datePublished">2018-09-12</time>
+    更新日期:<time datetime="2018-09-12T08:12:14.230Z" itemprop="dateModified">2018-09-12</time>
     
   </p>
 </header>
@@ -96,38 +93,27 @@
 		
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
-		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#重要主题"><span class="toc-number">1.</span> <span class="toc-text">重要主题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#并发与并行"><span class="toc-number">1.0.1.</span> <span class="toc-text">并发与并行</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#线程级并发"><span class="toc-number">1.0.1.1.</span> <span class="toc-text">线程级并发</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#指令级并行"><span class="toc-number">1.0.1.2.</span> <span class="toc-text">指令级并行</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#单指令、多数据并行"><span class="toc-number">1.0.1.3.</span> <span class="toc-text">单指令、多数据并行</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#计算机系统中抽象的重要性"><span class="toc-number">1.0.2.</span> <span class="toc-text">计算机系统中抽象的重要性</span></a></li></ol></li></ol></li></ol>
+		
 		</div>
 		
-		<h2 id="重要主题"><a href="#重要主题" class="headerlink" title="重要主题"></a>重要主题</h2><h4 id="并发与并行"><a href="#并发与并行" class="headerlink" title="并发与并行"></a>并发与并行</h4><p>在深入理解计算机系统中，是这样定义并发与并行的。</p>
-<blockquote>
-<p>并发(concurrency)是一个通用的概念，指一个同时具有多个活动的系统；并行(parallelism)指的是用并发使一个系统运行的更快。</p>
-</blockquote>
-<p>感觉很抽象，有木有！嘿嘿，于是我机智的google了一下，在<a href="http://stackoverflow.com/questions/1050222/concurrency-vs-parallelism-what-is-the-difference" target="_blank" rel="noopener">stackoverflow</a>中找到了满意的答案。</p>
-<blockquote>
-<p> Concurrency is when two or more tasks can start, run, and complete in overlapping time periods. It doesn’t necessarily mean they’ll ever both be running at the same instant. Eg. multitasking on a single-core machine.</p>
-</blockquote>
-<blockquote>
-<p>Parallelism is when tasks literally run at the same time, eg. on a multicore processor.</p>
-</blockquote>
-<p>并行可以在计算机系统的多个抽象层次上应用。在此，我们按照系统层次结构中由高到低的顺序重点强调三个层次。</p>
-<h5 id="线程级并发"><a href="#线程级并发" class="headerlink" title="线程级并发"></a>线程级并发</h5><p>在以前，即使处理器必须在多个任务间切换，大多数实际的计算也都是由一个处理器来完成的。这种配置成为<em>单处理器系统</em>。<br><img src="/images/2016/4/29/11.png" alt="这里写图片描述"><br><img src="/images/2016/4/29/12.png" alt="这里写图片描述"><br><em>超线程</em>，有时称为同时多线程是一项允许一个CPU执行多个控制流的技术。<br>对于超线程的解释，可以参考下面内容：</p>
-<blockquote>
-<p>Intel的超线程技术，目的是为了更充分地利用一个单核CPU的资源。CPU在执行一条机器指令时，并不会完全地利用所有的CPU资源，而且实际上，是有大量资源被闲置着的。超线程技术允许两个线程同时不冲突地使用CPU中的资源。比如一条整数运算指令只会用到整数运算单元，此时浮点运算单元就空闲了，若使用了超线程技术，且另一个线程刚好此时要执行一个浮点运算指令，CPU就允许属于两个不同线程的整数运算指令和浮点运算指令同时执行，这是真的并行。</p>
-</blockquote>
-<blockquote>
-<p>我不了解其它的硬件多线程技术是怎么样的，但单就超线程技术而言，它是可以实现真正的并行的。但这也并不意味着两个线程在同一个CPU中一直都可以并行执行，只是恰好碰到两个线程当前要执行的指令不使用相同的CPU资源时才可以真正地并行执行。</p>
-</blockquote>
-<p>上面的解释来自<a href="https://www.zhihu.com/question/20277695" target="_blank" rel="noopener">知乎</a></p>
-<h5 id="指令级并行"><a href="#指令级并行" class="headerlink" title="指令级并行"></a>指令级并行</h5><p>在较低的抽象层次上，现代处理器可以同时执行多条指令的属性称为<em>指令级并行</em>。如果处理器可以达到比一个周期一个指令更快的执行速率，就称之位<em>超标量</em>处理器。</p>
-<h5 id="单指令、多数据并行"><a href="#单指令、多数据并行" class="headerlink" title="单指令、多数据并行"></a>单指令、多数据并行</h5><p>在最底层次上，许多现代处理器拥有特殊的硬件，允许一条指令产生多个可以并行执行的操作，这种方式称为<em>单指令、多数据</em>，即SIMD并行。例如，较新的Intel和AMD处理器都具有并行地对4对单精度浮点数(c数据类型float)做加法的指令。</p>
-<h4 id="计算机系统中抽象的重要性"><a href="#计算机系统中抽象的重要性" class="headerlink" title="计算机系统中抽象的重要性"></a>计算机系统中抽象的重要性</h4><p><img src="/images/2016/4/29/13.png" alt="这里写图片描述"></p>
+		<p>观看<a href="https://www.youtube.com/watch?v=WbafSgetDDk" target="_blank" rel="noopener">花花酱 Fenwick Tree / Binary Indexed Tree</a>的视频，结合<a href="https://visualgo.net/bn/fenwicktree" target="_blank" rel="noopener">Visualizer</a>即可理解Fenwick Tree。</p>
+<p>Fenwick Tree is mainly designed for solving the single point update range sum problems. e.g. what’s the sum between i-th and j-th element while the values of the elements are mutable.</p>
+<p>Init the tree (include building all prefix sums) takes O(nlogn)</p>
+<p>Update the value of an element takes O(logn)</p>
+<p>Query the range sum takes O(logn)</p>
+<p>Space complexity: O(n)</p>
+<p><img src="/images/2018/9/8.png" alt=""></p>
+<p><img src="/images/2018/9/9.png" alt=""></p>
+<p><em>Using Binary Indexed Tree, we can do both tasks in O(Logn) time. The advantages of Binary Indexed Tree over Segment are, requires less space and very easy to implement..</em></p>
+<p>模板：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FenwickTree</span> &#123;</span>    </span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    FenwickTree(<span class="keyword">int</span> n): sums_(n + <span class="number">1</span>, <span class="number">0</span>) &#123;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">update</span><span class="params">(<span class="keyword">int</span> i, <span class="keyword">int</span> delta)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">while</span> (i &lt; sums_.size()) &#123;</span><br><span class="line">            sums_[i] += delta;</span><br><span class="line">            i += lowbit(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">query</span><span class="params">(<span class="keyword">int</span> i)</span> <span class="keyword">const</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">while</span> (i &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            sum += sums_[i];</span><br><span class="line">            i -= lowbit(i);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> sum;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">int</span> <span class="title">lowbit</span><span class="params">(<span class="keyword">int</span> x)</span> </span>&#123; </span><br><span class="line">        <span class="keyword">return</span> x &amp; (-x); </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; sums_;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 <hr>
 <p>参考资料：</p>
 <ol>
-<li>《深入理解计算机系统》</li>
-<li><a href="http://stackoverflow.com/questions/1050222/concurrency-vs-parallelism-what-is-the-difference" target="_blank" rel="noopener">stackoverflow 并发并行区别</a></li>
-<li><a href="https://www.zhihu.com/question/20277695" target="_blank" rel="noopener">超线程的解释</a></li>
+<li><a href="https://www.youtube.com/watch?v=WbafSgetDDk" target="_blank" rel="noopener">花花酱 Fenwick Tree / Binary Indexed Tree</a></li>
+<li><a href="https://zxi.mytechroad.com/blog/sp/fenwick-tree-binary-indexed-tree-sp3/" target="_blank" rel="noopener">代码</a></li>
+<li><a href="https://visualgo.net/bn/fenwicktree" target="_blank" rel="noopener">Visualizer</a></li>
+<li><a href="https://www.geeksforgeeks.org/binary-indexed-tree-or-fenwick-tree-2/" target="_blank" rel="noopener">geeksforgeeks</a></li>
 </ol>
   
 	</div>
@@ -135,20 +121,20 @@
 
   <div class="article-tags">
   
-  <span></span> <a href="/tags/深入理解计算机系统/">深入理解计算机系统</a><a href="/tags/读书笔记/">读书笔记</a>
+  <span></span> <a href="/tags/数据结构/">数据结构</a>
   </div>
 
 
 <div class="article-categories">
   <span></span>
-  <a class="article-category-link" href="/categories/计算机系统/">计算机系统</a>
+  <a class="article-category-link" href="/categories/数据结构/">数据结构</a>
 </div>
 
 
 
 <div class="article-share" id="share">
 
-  <div data-url="http://liujunming.github.io/2016/04/29/深入理解计算机系统之重要概念/" data-title="深入理解计算机系统之重要概念 | L" data-tsina="null" class="share clearfix">
+  <div data-url="http://liujunming.github.io/2018/09/12/Fenwick-Tree-Binary-Indexed-Tree-树状数组/" data-title="Fenwick Tree/Binary Indexed Tree/树状数组 | L" data-tsina="null" class="share clearfix">
   </div>
 
 </div>
@@ -157,19 +143,11 @@
 	
 <nav class="article-nav clearfix">
  
- <div class="prev" >
- <a href="/2016/05/08/linux-mmap函数的应用/" title="linux mmap函数的应用">
-  <strong>PREVIOUS:</strong><br/>
-  <span>
-  linux mmap函数的应用</span>
-</a>
-</div>
-
 
 <div class="next">
-<a href="/2016/04/28/深入理解计算机系统之系统概论/"  title="深入理解计算机系统之系统概论">
+<a href="/2018/09/09/Interval Tree/"  title="Interval Tree">
  <strong>NEXT:</strong><br/> 
- <span>深入理解计算机系统之系统概论
+ <span>Interval Tree
 </span>
 </a>
 </div>
@@ -192,7 +170,7 @@
 
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
-  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#重要主题"><span class="toc-number">1.</span> <span class="toc-text">重要主题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#并发与并行"><span class="toc-number">1.0.1.</span> <span class="toc-text">并发与并行</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#线程级并发"><span class="toc-number">1.0.1.1.</span> <span class="toc-text">线程级并发</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#指令级并行"><span class="toc-number">1.0.1.2.</span> <span class="toc-text">指令级并行</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#单指令、多数据并行"><span class="toc-number">1.0.1.3.</span> <span class="toc-text">单指令、多数据并行</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#计算机系统中抽象的重要性"><span class="toc-number">1.0.2.</span> <span class="toc-text">计算机系统中抽象的重要性</span></a></li></ol></li></ol></li></ol>
+  
   </div>
 
 <div id="asidepart">
@@ -471,9 +449,9 @@ $(document).ready(function(){
     <script type="text/javascript">
     var disqus_shortname = 'junmingliu';
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2016/04/29/深入理解计算机系统之重要概念/';
-        this.page.identifier = '/2016/04/29/深入理解计算机系统之重要概念/';
-        this.page.title = '深入理解计算机系统之重要概念';
+        this.page.url = 'http://liujunming.github.io/2018/09/12/Fenwick-Tree-Binary-Indexed-Tree-树状数组/';
+        this.page.identifier = '/2018/09/12/Fenwick-Tree-Binary-Indexed-Tree-树状数组/';
+        this.page.title = 'Fenwick Tree/Binary Indexed Tree/树状数组';
     };
     (function(){
       var d = document;
