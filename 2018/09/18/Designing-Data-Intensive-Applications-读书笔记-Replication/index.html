@@ -1,0 +1,566 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Designing Data-Intensive Applications 读书笔记 -Replication | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="Leader 和 Follower
+用户端写入的时候，必须先经过Leader处理
+其它节点是Follower，Leader写入完毕后会通知他们复制数据，保证一致性
+客户端读的时候，可以随便读，但写的时候只能向Leader写
+
+
+同步复制与异步复制上图中Follower1是同步复制，Follower2">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Designing Data-Intensive Applications 读书笔记 -Replication | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/09/18/Designing-Data-Intensive-Applications-读书笔记-Replication/" title="Designing Data-Intensive Applications 读书笔记 -Replication" itemprop="url">Designing Data-Intensive Applications 读书笔记 -Replication</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-09-18T05:23:36.000Z" itemprop="datePublished">2018-09-18</time>
+    更新日期:<time datetime="2018-09-18T07:58:55.909Z" itemprop="dateModified">2018-09-18</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Leader-和-Follower"><span class="toc-number">1.</span> <span class="toc-text">Leader 和 Follower</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#同步复制与异步复制"><span class="toc-number">1.1.</span> <span class="toc-text">同步复制与异步复制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#增加新的-Follower"><span class="toc-number">1.2.</span> <span class="toc-text">增加新的 Follower</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#处理节点宕机"><span class="toc-number">1.3.</span> <span class="toc-text">处理节点宕机</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Follower-宕机"><span class="toc-number">1.3.1.</span> <span class="toc-text">Follower 宕机</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Leader-宕机"><span class="toc-number">1.3.2.</span> <span class="toc-text">Leader 宕机</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Implementation-of-Replication-Logs"><span class="toc-number">1.4.</span> <span class="toc-text">Implementation of Replication Logs</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Statement-based-replication"><span class="toc-number">1.4.1.</span> <span class="toc-text">Statement-based replication</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Write-ahead-log-WAL-shipping"><span class="toc-number">1.4.2.</span> <span class="toc-text">Write-ahead log (WAL) shipping</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Logical-row-based-log-replication"><span class="toc-number">1.4.3.</span> <span class="toc-text">Logical (row-based) log replication</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#复制滞后产生的问题"><span class="toc-number">2.</span> <span class="toc-text">复制滞后产生的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Reading-Your-Own-Writes"><span class="toc-number">2.1.</span> <span class="toc-text">Reading Your Own Writes</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#单调读（Monotonic-Reads）"><span class="toc-number">2.2.</span> <span class="toc-text">单调读（Monotonic Reads）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Consistent-Prefix-Reads"><span class="toc-number">2.3.</span> <span class="toc-text">Consistent Prefix Reads</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Multi-Leader-Replication"><span class="toc-number">3.</span> <span class="toc-text">Multi-Leader Replication</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Use-Cases-for-Multi-Leader-Replication"><span class="toc-number">3.1.</span> <span class="toc-text">Use Cases for Multi-Leader Replication</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#多个数据中心"><span class="toc-number">3.1.1.</span> <span class="toc-text">多个数据中心</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#可以离线的客户端"><span class="toc-number">3.1.2.</span> <span class="toc-text">可以离线的客户端</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#多人协作编辑"><span class="toc-number">3.1.3.</span> <span class="toc-text">多人协作编辑</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#解决写冲突"><span class="toc-number">3.2.</span> <span class="toc-text">解决写冲突</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#同步冲突检测"><span class="toc-number">3.2.1.</span> <span class="toc-text">同步冲突检测</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#避免冲突"><span class="toc-number">3.2.2.</span> <span class="toc-text">避免冲突</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#收敛至一致的状态"><span class="toc-number">3.2.3.</span> <span class="toc-text">收敛至一致的状态</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#自定义冲突解决逻辑"><span class="toc-number">3.2.4.</span> <span class="toc-text">自定义冲突解决逻辑</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#多-Leader-的拓扑结构"><span class="toc-number">3.3.</span> <span class="toc-text">多 Leader 的拓扑结构</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#无-Leader-复制"><span class="toc-number">4.</span> <span class="toc-text">无 Leader 复制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#当有节点挂掉时，如何写入数据库"><span class="toc-number">4.1.</span> <span class="toc-text">当有节点挂掉时，如何写入数据库</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Read-repair-and-anti-entropy"><span class="toc-number">4.1.1.</span> <span class="toc-text">Read repair and anti-entropy</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Quorums-for-reading-and-writing"><span class="toc-number">4.1.2.</span> <span class="toc-text">Quorums for reading and writing</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Quorums-机制的局限性"><span class="toc-number">4.2.</span> <span class="toc-text">Quorums 机制的局限性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sloppy-Quorums-and-Hinted-Handoff"><span class="toc-number">4.3.</span> <span class="toc-text">Sloppy Quorums and Hinted Handoff</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Detecting-Concurrent-Writes"><span class="toc-number">4.4.</span> <span class="toc-text">Detecting Concurrent Writes</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Last-write-wins-discarding-concurrent-writes"><span class="toc-number">4.4.1.</span> <span class="toc-text">Last write wins (discarding concurrent writes)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#The-“happens-before”-relationship-and-concurrency"><span class="toc-number">4.4.2.</span> <span class="toc-text">The “happens-before” relationship and concurrency</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Capturing-the-happens-before-relationship"><span class="toc-number">4.4.3.</span> <span class="toc-text">Capturing the happens-before relationship</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Merging-concurrently-written-values"><span class="toc-number">4.4.4.</span> <span class="toc-text">Merging concurrently written values</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Version-vectors"><span class="toc-number">4.4.5.</span> <span class="toc-text">Version vectors</span></a></li></ol></li></ol></li></ol>
+		</div>
+		
+		<h2 id="Leader-和-Follower"><a href="#Leader-和-Follower" class="headerlink" title="Leader 和 Follower"></a>Leader 和 Follower</h2><ul>
+<li>用户端写入的时候，必须先经过Leader处理</li>
+<li>其它节点是Follower，Leader写入完毕后会通知他们复制数据，保证一致性</li>
+<li>客户端读的时候，可以随便读，但写的时候只能向Leader写</li>
+</ul>
+<p><img src="/images/2018/9/10.png" alt=""></p>
+<h3 id="同步复制与异步复制"><a href="#同步复制与异步复制" class="headerlink" title="同步复制与异步复制"></a>同步复制与异步复制</h3><p><img src="/images/2018/9/11.png" alt=""><br>上图中Follower1是同步复制，Follower2是异步复制</p>
+<p><strong>同步复制：</strong></p>
+<p>写入请求时，Leader 会一直等到所有 Follower 都确认已经写入后（期间不处理任何写请求），才向客户端返回成功</p>
+<p>优点：保证强一致性</p>
+<p>缺点：如果任何 Follower 挂掉，都会写失败，这在大型系统中是不现实的</p>
+<p>所以在实际的数据库中，使用的都是半同步（semi-synchronous），即一个 Follower 是同步的，其它都是异步；如果同步的那个 Follower 挂了，那么设置一个新的 Follower 为同步模式</p>
+<p><strong>异步复制：</strong></p>
+<p>写入请求时，Leader 自己写入成功后就返回，不等待 Follower</p>
+<p>优点：可以立刻响应写入请求，即使所有 Follower 都挂掉了</p>
+<p>缺点：可能会导致不一致(Leader和Follower中的状态不一样)</p>
+<h3 id="增加新的-Follower"><a href="#增加新的-Follower" class="headerlink" title="增加新的 Follower"></a>增加新的 Follower</h3><p>即如何在集群不断写入数据的同时，加入新的 Follower，让它的数据跟上大部队</p>
+<ol>
+<li>给 Leader 某个时刻的数据做一个快照</li>
+<li>把快照复制到新的 Follower 上</li>
+<li>新的 Follower 连接上 Leader，告诉它从哪个时刻开始同步数据</li>
+<li>直到新 Follower 的数据跟上了 Leader 的步伐（caught up），开始进入工作</li>
+</ol>
+<h3 id="处理节点宕机"><a href="#处理节点宕机" class="headerlink" title="处理节点宕机"></a>处理节点宕机</h3><h4 id="Follower-宕机"><a href="#Follower-宕机" class="headerlink" title="Follower 宕机"></a>Follower 宕机</h4><p>从宕机前的日志开始和 Leader 同步即可，直到Follower 的数据跟上了 Leader 的步伐，开始进入工作</p>
+<h4 id="Leader-宕机"><a href="#Leader-宕机" class="headerlink" title="Leader 宕机"></a>Leader 宕机</h4><p>one of the followers needs to be promoted to be the new leader, clients need to be reconfigured to send their writes to the new leader, and the other followers need to start consuming data changes from the new leader. This process is called <code>failover</code>.</p>
+<p>failover的步骤如下：</p>
+<ol>
+<li>检测 Leader 宕机</li>
+<li>选出新的 Leader</li>
+<li>把系统配置改为新的 Leader</li>
+</ol>
+<h3 id="Implementation-of-Replication-Logs"><a href="#Implementation-of-Replication-Logs" class="headerlink" title="Implementation of Replication Logs"></a>Implementation of Replication Logs</h3><h4 id="Statement-based-replication"><a href="#Statement-based-replication" class="headerlink" title="Statement-based replication"></a>Statement-based replication</h4><p>基于语句的复制，比如在 SQL 中复制 INSERT、UPDATE、DELETE 语句到 Follower。</p>
+<p>存在一些问题：</p>
+<ul>
+<li>NOW()、RANDOM()这样的函数，没法基于语句复制，因为每次运行的结果都不一样</li>
+<li>如果语句依赖自增数，或者跟数据库中现有的数据强相关，那么必须保证语句执行顺序跟 Leader 完全一致，在并发处理多个事务时这一点很难保证</li>
+<li>语句有副作用时，可能会导致不一致的出现</li>
+</ul>
+<h4 id="Write-ahead-log-WAL-shipping"><a href="#Write-ahead-log-WAL-shipping" class="headerlink" title="Write-ahead log (WAL) shipping"></a>Write-ahead log (WAL) shipping</h4><p>本书的第三章讨论了日志结构的储存引擎的实现（SSTable、LSM-Tree 和 B-Tree），如果是这种储存引擎，我们可以把它的每一次写日志都复制到 Follower 上，这样可以保证一致性。</p>
+<p>PostgreSQL 和 Oracle 就是这样实现的，缺陷在于，这种复制方式非常底层，每一条 WAL 包含的信息实际上是“向哪一个硬盘 block 写哪些 bytes”，这就导致 WAL 和储存引擎强相关，也就是必须保证 Leader 和 Follower 的储存引擎底层完全一致，导致集群很难进行版本升级。</p>
+<h4 id="Logical-row-based-log-replication"><a href="#Logical-row-based-log-replication" class="headerlink" title="Logical (row-based) log replication"></a>Logical (row-based) log replication</h4><p>把日志抽象为与底层引擎无关，采用 change data capture，每次有数据更改的时候都记下改了什么，例如记录每次写入的值和行号，MySQL 的 binlog 就是这样实现的。</p>
+<h2 id="复制滞后产生的问题"><a href="#复制滞后产生的问题" class="headerlink" title="复制滞后产生的问题"></a>复制滞后产生的问题</h2><p>对于单 Leader，多 Follower的架构来说，一般是只能向 Leader 写，但可以向任何 Follower 读，这样可以大大增加读的性能。</p>
+<p>但由于写操作需要向 Follower 复制，这里就会产生滞后问题，写完后立刻读，有可能会从 Follower 中读到旧的值（因为此时 Leader 可能还没有同步变化到 Follower 上）。</p>
+<p>当然这种不一致的状态是转临时逝的（如果停止向数据库中写入数据并等待一段时间，从库最终会赶上并与主库保持一致），不会永久存在，也就是所谓的 “最终一致性”。</p>
+<p>因为滞后时间太长引入的不一致性，可不仅是一个理论问题，更是应用设计中会遇到的真实问题。本节将重点介绍三个由复制滞后所带来的问题，并简述解决这些问题的一些方法。</p>
+<h3 id="Reading-Your-Own-Writes"><a href="#Reading-Your-Own-Writes" class="headerlink" title="Reading Your Own Writes"></a>Reading Your Own Writes</h3><p>许多应用让用户提交一些数据，然后查看他们提交的内容。但对于异步复制，问题就来了。如下图所示：如果用户在写入后马上就查看数据，则新数据可能尚未到达副本。对用户而言，看起来好像是刚提交的数据丢失了。<br><img src="/images/2018/9/12.png" alt=""></p>
+<p>在这种情况下，我们需要读写一致性（read-after-write consistency）。这是一个保证，如果用户重新加载页面，他们总会看到他们自己提交的任何更新。它不会对其他用户的写入做出承诺：其他用户的更新可能稍等才会看到。它保证用户自己的输入已被正确保存。</p>
+<p>具体可以有以下策略：</p>
+<ul>
+<li>如果读的字段可能已经发生了变化，那么向 Leader 读取（因为 Leader 的数据一定是最新的）；</li>
+<li>如果读的字段距离上一次变更时间很短，那么向 Leader 读；</li>
+<li>客户端在读请求的时候带上自己最近一次写操作的时间戳，处理这个读请求的服务器看到这个时间戳，就可以知道自己本地的数据是否过时了</li>
+</ul>
+<h3 id="单调读（Monotonic-Reads）"><a href="#单调读（Monotonic-Reads）" class="headerlink" title="单调读（Monotonic Reads）"></a>单调读（Monotonic Reads）</h3><p>客户端进行多次读操作时，这些读操作可能会分配到不同的 Follower 上，所以可能会发生第一次读到了数据，然后第二次读的时候数据又消失了的问题，如下图 User 2345，第一次在 Follower1 上读到了评论，第二次在 Follower2 上没有读到评论：</p>
+<p><img src="/images/2018/9/13.png" alt=""></p>
+<p>所以，客户端读到了新的数据，那么就不能让它读到旧数据。最简单的解决方法就是，把每个客户端的读请求都分配到固定的 Follower 上。</p>
+<h3 id="Consistent-Prefix-Reads"><a href="#Consistent-Prefix-Reads" class="headerlink" title="Consistent Prefix Reads"></a>Consistent Prefix Reads</h3><p>由于服务器之间复制数据可能产生的滞后，数据的时序可能会产生问题。</p>
+<p>比如下图，Mr. Poons 先说了一句话，然后 Mrs. Cake 回复了他，然而对于第三方观察者而言，他们的对话时序可能是混乱的：</p>
+<p><img src="/images/2018/9/14.png" alt=""></p>
+<p>防止这种异常，需要另一种类型的保证：一致前缀读（consistent prefix reads）。 这个保证了：如果一系列写入按某个顺序发生，那么任何人读取这些写入时，也会看见它们以同样的顺序出现。</p>
+<p>​这是分区（partitioned）数据库中的一个特殊问题。如果数据库总是以相同的顺序应用写入，则读取总是会看到一致的前缀，所以这种异常不会发生。但是在许多分布式数据库中，不同的分区独立运行，因此不存在全局写入顺序：当用户从数据库中读取数据时，可能会看到数据库的某些部分处于较旧的状态，而某些处于较新的状态。</p>
+<p>​一种解决方案是，确保任何因果相关的写入都写入相同的分区。对于某些无法高效完成这种操作的应用，还有一些显式跟踪因果依赖关系的算法。</p>
+<h2 id="Multi-Leader-Replication"><a href="#Multi-Leader-Replication" class="headerlink" title="Multi-Leader Replication"></a>Multi-Leader Replication</h2><p>单个 Leader 的缺点在于，如果任何因素导致无法连接 Leader，那么你就无法向数据库写入任何数据了，这会让整个系统非常脆弱，所以我们在一些情境下需要多 Leader 的架构。</p>
+<h3 id="Use-Cases-for-Multi-Leader-Replication"><a href="#Use-Cases-for-Multi-Leader-Replication" class="headerlink" title="Use Cases for Multi-Leader Replication"></a>Use Cases for Multi-Leader Replication</h3><p>下面是一些多 Leader 架构的示例</p>
+<h4 id="多个数据中心"><a href="#多个数据中心" class="headerlink" title="多个数据中心"></a>多个数据中心</h4><p><img src="/images/2018/9/15.png" alt=""></p>
+<p>像上图这种情况，你可以有多个 Leader 分布在不同地方的数据中心，每个数据中心都是一个独立的集群，它们的 Leader 之间会相互同步数据。</p>
+<h4 id="可以离线的客户端"><a href="#可以离线的客户端" class="headerlink" title="可以离线的客户端"></a>可以离线的客户端</h4><p>我们可以把一个支持离线运行的客户端，和服务器端，视为两个“数据中心”，比如一些日历应用，会在本地维护一份数据，直到有网络时，才会和服务器进行数据同步，这就是一个异步的多 Leader 架构。</p>
+<p>CouchDB 就是为此设计的。</p>
+<h4 id="多人协作编辑"><a href="#多人协作编辑" class="headerlink" title="多人协作编辑"></a>多人协作编辑</h4><p>像 Etherpad、Google Docs 这样的应用，允许多人同时编辑同一份文档，每个人都是一个 “Leader”，相互之间同步数据，但这显然会遇到冲突的问题。</p>
+<h3 id="解决写冲突"><a href="#解决写冲突" class="headerlink" title="解决写冲突"></a>解决写冲突</h3><p>多 Leader 之间同步数据，最大的问题就是如何解决写冲突。比如下图中，两个用户都修改了文档的标题，发请求给服务器，都返回了成功，但直到 Leader 之间进行同步时才发现之前的数据有冲突。</p>
+<p><img src="/images/2018/9/16.png" alt=""></p>
+<h4 id="同步冲突检测"><a href="#同步冲突检测" class="headerlink" title="同步冲突检测"></a>同步冲突检测</h4><p>单 Leader 不会发生冲突，因为每次写入都是一个原子化的事务。</p>
+<p>多 Leader 如果采用同步的方式检测冲突，也不会发生冲突。即每次写入时，都向其它的 Leader 检查有没有冲突，如果都没有冲突，那么写入成功。但这样性能极差，也丢掉了多 Leader 架构的好处，还不如用单个 Leader。</p>
+<h4 id="避免冲突"><a href="#避免冲突" class="headerlink" title="避免冲突"></a>避免冲突</h4><p>多 Leader 架构避免冲突最简单的方式就是，让可能产生冲突的请求，都走向同一个 Leader。比如对于同一项资料的修改，都路由到固定的某个 Leader 上。</p>
+<p>这样做的缺陷在于，集群是不断变化的，很难做到长期固定，Leader 的变化就会让这个策略失效。</p>
+<h4 id="收敛至一致的状态"><a href="#收敛至一致的状态" class="headerlink" title="收敛至一致的状态"></a>收敛至一致的状态</h4><p>实现冲突合并解决有多种途径：</p>
+<ul>
+<li>给每个写入一个唯一的ID（例如，一个时间戳，一个长的随机数，一个UUID或者一个键和值的哈希），挑选最高ID的写入作为胜利者，并丢弃其他写入。如果使用时间戳，这种技术被称为最后写入胜利（LWW, last write wins）。虽然这种方法很流行，但是很容易造成数据丢失。</li>
+<li>为每个副本分配一个唯一的ID，ID编号更高的写入具有更高的优先级。这种方法也意味着数据丢失。</li>
+<li>以某种方式将这些值合并在一起 - 例如，按字母顺序排序，然后连接它们（在图5-7中，合并的标题可能类似于“B/C”）。</li>
+<li>在保留所有信息的显式数据结构中记录冲突，并编写解决冲突的应用程序代码（也许通过提示用户的方式）。<br>​ </li>
+</ul>
+<h4 id="自定义冲突解决逻辑"><a href="#自定义冲突解决逻辑" class="headerlink" title="自定义冲突解决逻辑"></a>自定义冲突解决逻辑</h4><p>作为解决冲突最合适的方法可能取决于应用程序，大多数多主复制工具允许使用应用程序代码编写冲突解决逻辑。该代码可以在写入或读取时执行。</p>
+<blockquote>
+<p><strong>自动冲突解决</strong><br>冲突解决规则可能很快变得复杂，并且自定义代码可能容易出错。<br>已经有一些有趣的研究来自动解决由于数据修改引起的冲突。有几个研究值得一提：</p>
+<ul>
+<li>无冲突复制数据类型（Conflict-free replicated datatypes）（CRDT）是可以由多个用户同时编辑的集合，映射，有序列表，计数器等的一系列数据结构，它们以合理的方式自动解决冲突。</li>
+<li>可合并的持久数据结构（Mergeable persistent data structures）显式跟踪历史记录，类似于Git版本控制系统。</li>
+<li>可执行的转换（operational transformation）是Etherpad和Google Docs等合作编辑应用背后的冲突解决算法。</li>
+</ul>
+<p>这些算法在数据库中的实现还很年轻，但很可能将来它们将被集成到更多的复制数据系统中。自动冲突解决方案可以使应用程序处理多领导者数据同步更为简单。</p>
+</blockquote>
+<h3 id="多-Leader-的拓扑结构"><a href="#多-Leader-的拓扑结构" class="headerlink" title="多 Leader 的拓扑结构"></a>多 Leader 的拓扑结构</h3><p>多 Leader 可以有很多种拓扑结构，环形、星形、全连接形。<br><img src="/images/2018/9/17.png" alt=""><br>MySQL 使用的是环形连接。全连接形是最符合直觉的，每个 Leader 都和其它所有 Leader 相互交换数据。<br>另一方面，全连接形拓扑也可能有问题。特别是，一些网络链接可能比其他网络链接更快（例如，由于网络拥塞），结果是一些复制消息可能“超过”其他复制消息，如下图示。</p>
+<p><img src="/images/2018/9/18.png" alt=""></p>
+<p>这是一个因果关系的问题：更新取决于先前的插入，所以我们需要确保所有节点先处理插入，然后再处理更新。</p>
+<p>要正确排序这些事件，可以使用一种称为<strong>version vectors</strong>的技术。</p>
+<h2 id="无-Leader-复制"><a href="#无-Leader-复制" class="headerlink" title="无 Leader 复制"></a>无 Leader 复制</h2><p>无 Leader 复制完全不需要 Leader 的存在，这种架构中，客户端可以向多个节点发起读写请求。</p>
+<h3 id="当有节点挂掉时，如何写入数据库"><a href="#当有节点挂掉时，如何写入数据库" class="headerlink" title="当有节点挂掉时，如何写入数据库"></a>当有节点挂掉时，如何写入数据库</h3><p>只要保证多个节点写入成功，那么客户端就可以认为写入成功。<br><img src="/images/2018/9/19.png" alt=""></p>
+<h4 id="Read-repair-and-anti-entropy"><a href="#Read-repair-and-anti-entropy" class="headerlink" title="Read repair and anti-entropy"></a>Read repair and anti-entropy</h4><p>在读取的时候，可能会存在不一致（因为有部分节点写入失败），这时可以发现不一致并且修复它。或者所有节点都定期检查是否自己的数据跟别人有不一致的地方。</p>
+<h4 id="Quorums-for-reading-and-writing"><a href="#Quorums-for-reading-and-writing" class="headerlink" title="Quorums for reading and writing"></a>Quorums for reading and writing</h4><p>如果有n个副本，每个写入必须由w节点确认才能被认为是成功的，并且我们必须至少为每个读查询r个节点。 只要<code>w + r&gt; n</code>，我们期望在读取时获得最新的值，因为r个读取中至少有一个节点是最新的。</p>
+<h3 id="Quorums-机制的局限性"><a href="#Quorums-机制的局限性" class="headerlink" title="Quorums 机制的局限性"></a>Quorums 机制的局限性</h3><h3 id="Sloppy-Quorums-and-Hinted-Handoff"><a href="#Sloppy-Quorums-and-Hinted-Handoff" class="headerlink" title="Sloppy Quorums and Hinted Handoff"></a>Sloppy Quorums and Hinted Handoff</h3><p><em>sloppy quorum</em>:写和读仍然需要w和r成功的响应，但是那些可能包括不在指定的n个“主”节点中的值。比方说，如果你把自己锁在房子外面，你可能会敲开邻居的门，问你是否可以暂时停留在沙发上。</p>
+<p>​ 一旦网络中断得到解决，代表另一个节点临时接受的一个节点的任何写入都被发送到适当的“本地”节点，这就是hinted handoff。 （一旦你再次找到你的房子的钥匙，你的邻居礼貌地要求你离开沙发回家。）</p>
+<h3 id="Detecting-Concurrent-Writes"><a href="#Detecting-Concurrent-Writes" class="headerlink" title="Detecting Concurrent Writes"></a>Detecting Concurrent Writes</h3><h4 id="Last-write-wins-discarding-concurrent-writes"><a href="#Last-write-wins-discarding-concurrent-writes" class="headerlink" title="Last write wins (discarding concurrent writes)"></a>Last write wins (discarding concurrent writes)</h4><h4 id="The-“happens-before”-relationship-and-concurrency"><a href="#The-“happens-before”-relationship-and-concurrency" class="headerlink" title="The “happens-before” relationship and concurrency"></a>The “happens-before” relationship and concurrency</h4><h4 id="Capturing-the-happens-before-relationship"><a href="#Capturing-the-happens-before-relationship" class="headerlink" title="Capturing the happens-before relationship"></a>Capturing the happens-before relationship</h4><h4 id="Merging-concurrently-written-values"><a href="#Merging-concurrently-written-values" class="headerlink" title="Merging concurrently written values"></a>Merging concurrently written values</h4><h4 id="Version-vectors"><a href="#Version-vectors" class="headerlink" title="Version vectors"></a>Version vectors</h4><hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://zhuanlan.zhihu.com/p/36282816" target="_blank" rel="noopener">知乎 Starkwang</a></li>
+<li><a href="https://github.com/Vonng/ddia/blob/master/ch5.md" target="_blank" rel="noopener">Vonng/ddia</a></li>
+</ol>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/分布式系统/">分布式系统</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/分布式系统/">分布式系统</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2018/09/18/Designing-Data-Intensive-Applications-读书笔记-Replication/" data-title="Designing Data-Intensive Applications 读书笔记 -Replication | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+
+<div class="next">
+<a href="/2018/09/12/Fenwick-Tree-Binary-Indexed-Tree-树状数组/"  title="Fenwick Tree/Binary Indexed Tree/树状数组">
+ <strong>NEXT:</strong><br/> 
+ <span>Fenwick Tree/Binary Indexed Tree/树状数组
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Leader-和-Follower"><span class="toc-number">1.</span> <span class="toc-text">Leader 和 Follower</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#同步复制与异步复制"><span class="toc-number">1.1.</span> <span class="toc-text">同步复制与异步复制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#增加新的-Follower"><span class="toc-number">1.2.</span> <span class="toc-text">增加新的 Follower</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#处理节点宕机"><span class="toc-number">1.3.</span> <span class="toc-text">处理节点宕机</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Follower-宕机"><span class="toc-number">1.3.1.</span> <span class="toc-text">Follower 宕机</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Leader-宕机"><span class="toc-number">1.3.2.</span> <span class="toc-text">Leader 宕机</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Implementation-of-Replication-Logs"><span class="toc-number">1.4.</span> <span class="toc-text">Implementation of Replication Logs</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Statement-based-replication"><span class="toc-number">1.4.1.</span> <span class="toc-text">Statement-based replication</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Write-ahead-log-WAL-shipping"><span class="toc-number">1.4.2.</span> <span class="toc-text">Write-ahead log (WAL) shipping</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Logical-row-based-log-replication"><span class="toc-number">1.4.3.</span> <span class="toc-text">Logical (row-based) log replication</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#复制滞后产生的问题"><span class="toc-number">2.</span> <span class="toc-text">复制滞后产生的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Reading-Your-Own-Writes"><span class="toc-number">2.1.</span> <span class="toc-text">Reading Your Own Writes</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#单调读（Monotonic-Reads）"><span class="toc-number">2.2.</span> <span class="toc-text">单调读（Monotonic Reads）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Consistent-Prefix-Reads"><span class="toc-number">2.3.</span> <span class="toc-text">Consistent Prefix Reads</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Multi-Leader-Replication"><span class="toc-number">3.</span> <span class="toc-text">Multi-Leader Replication</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Use-Cases-for-Multi-Leader-Replication"><span class="toc-number">3.1.</span> <span class="toc-text">Use Cases for Multi-Leader Replication</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#多个数据中心"><span class="toc-number">3.1.1.</span> <span class="toc-text">多个数据中心</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#可以离线的客户端"><span class="toc-number">3.1.2.</span> <span class="toc-text">可以离线的客户端</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#多人协作编辑"><span class="toc-number">3.1.3.</span> <span class="toc-text">多人协作编辑</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#解决写冲突"><span class="toc-number">3.2.</span> <span class="toc-text">解决写冲突</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#同步冲突检测"><span class="toc-number">3.2.1.</span> <span class="toc-text">同步冲突检测</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#避免冲突"><span class="toc-number">3.2.2.</span> <span class="toc-text">避免冲突</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#收敛至一致的状态"><span class="toc-number">3.2.3.</span> <span class="toc-text">收敛至一致的状态</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#自定义冲突解决逻辑"><span class="toc-number">3.2.4.</span> <span class="toc-text">自定义冲突解决逻辑</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#多-Leader-的拓扑结构"><span class="toc-number">3.3.</span> <span class="toc-text">多 Leader 的拓扑结构</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#无-Leader-复制"><span class="toc-number">4.</span> <span class="toc-text">无 Leader 复制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#当有节点挂掉时，如何写入数据库"><span class="toc-number">4.1.</span> <span class="toc-text">当有节点挂掉时，如何写入数据库</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Read-repair-and-anti-entropy"><span class="toc-number">4.1.1.</span> <span class="toc-text">Read repair and anti-entropy</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Quorums-for-reading-and-writing"><span class="toc-number">4.1.2.</span> <span class="toc-text">Quorums for reading and writing</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Quorums-机制的局限性"><span class="toc-number">4.2.</span> <span class="toc-text">Quorums 机制的局限性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sloppy-Quorums-and-Hinted-Handoff"><span class="toc-number">4.3.</span> <span class="toc-text">Sloppy Quorums and Hinted Handoff</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Detecting-Concurrent-Writes"><span class="toc-number">4.4.</span> <span class="toc-text">Detecting Concurrent Writes</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Last-write-wins-discarding-concurrent-writes"><span class="toc-number">4.4.1.</span> <span class="toc-text">Last write wins (discarding concurrent writes)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#The-“happens-before”-relationship-and-concurrency"><span class="toc-number">4.4.2.</span> <span class="toc-text">The “happens-before” relationship and concurrency</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Capturing-the-happens-before-relationship"><span class="toc-number">4.4.3.</span> <span class="toc-text">Capturing the happens-before relationship</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Merging-concurrently-written-values"><span class="toc-number">4.4.4.</span> <span class="toc-text">Merging concurrently written values</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Version-vectors"><span class="toc-number">4.4.5.</span> <span class="toc-text">Version vectors</span></a></li></ol></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>2</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>8</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>5</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>2</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>8</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">九月 2018</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/09/18/Designing-Data-Intensive-Applications-读书笔记-Replication/';
+        this.page.identifier = '/2018/09/18/Designing-Data-Intensive-Applications-读书笔记-Replication/';
+        this.page.title = 'Designing Data-Intensive Applications 读书笔记 -Replication';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>
