@@ -4,26 +4,20 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>内核开发经验 | L</title>
+    <title>分布式系统中clock相关知识点 | L</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
     
     <meta name="author" content="liujunming">
     
-    <meta name="description" content="总结下在看Linux源码的过程中的开发经验。
-
-看内核源码的神器LXR
-
-有时候需要下Linux内核特定版本，可能在kernel官网中没有找到，此时可以去这里下载特定版本内核。
-
-在内核调试的过程中,可以在 /var/log/syslog中查看到一些信息
-
-dmesg时需要用到正则, dmesg |">
+    <meta name="description" content="因为网上资料较多，本文主要是总结一下相关资料。
+Time, clocks, and the ordering of events in a distributed system
+论文： Time, clocks, and the ordering of events in a distributed">
     
     
     
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:site" content="ljm11636" />
-    <meta name="twitter:title" content="内核开发经验 | L" />
+    <meta name="twitter:title" content="分布式系统中clock相关知识点 | L" />
       
     
     
@@ -83,15 +77,15 @@ dmesg时需要用到正则, dmesg |">
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2017/07/01/内核开发经验/" title="内核开发经验" itemprop="url">内核开发经验</a>
+      <a href="/2018/09/19/分布式系统中clock相关知识点/" title="分布式系统中clock相关知识点" itemprop="url">分布式系统中clock相关知识点</a>
   </h1>
   <p class="article-author">By
     
       <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
     </p>
   <p class="article-time">
-    <time datetime="2017-07-01T06:25:04.000Z" itemprop="datePublished">2017-07-01</time>
-    更新日期:<time datetime="2018-06-25T14:52:44.000Z" itemprop="dateModified">2018-06-25</time>
+    <time datetime="2018-09-19T06:43:42.000Z" itemprop="datePublished">2018-09-19</time>
+    更新日期:<time datetime="2018-09-19T11:53:53.563Z" itemprop="dateModified">2018-09-19</time>
     
   </p>
 </header>
@@ -100,36 +94,30 @@ dmesg时需要用到正则, dmesg |">
 		
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
-		
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Time-clocks-and-the-ordering-of-events-in-a-distributed-system"><span class="toc-number">1.</span> <span class="toc-text">Time, clocks, and the ordering of events in a distributed system</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#clock同步"><span class="toc-number">2.</span> <span class="toc-text">clock同步</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Vector-Clock-Version-Clock"><span class="toc-number">3.</span> <span class="toc-text">Vector Clock/Version Clock</span></a></li></ol>
 		</div>
 		
-		<p>总结下在看Linux源码的过程中的开发经验。</p>
-<ul>
-<li><p>看内核源码的神器<a href="https://elixir.bootlin.com/linux/latest/source" target="_blank" rel="noopener">LXR</a></p>
-</li>
-<li><p>有时候需要下Linux内核特定版本，可能在kernel官网中没有找到，此时可以去<a href="https://www.kernel.org/pub/linux/kernel/" target="_blank" rel="noopener">这里</a>下载特定版本内核。</p>
-</li>
-<li><p>在内核调试的过程中,可以在 <code>/var/log/syslog</code>中查看到一些信息</p>
-</li>
-<li><p>dmesg时需要用到正则, <code>dmesg | grep ljm</code></p>
-</li>
-<li><p>在编译内核重启的时候,发现开不了机,很大可能是因为 printk打印的信息太多, 此刻,需要删除这些信息,删除的文件为 /var/log/syslog或者 /var/log/dmesg</p>
-</li>
-<li><p>编译完内核的时候打开kvm,发现总是报internal error:Network ‘default’ is not active.的错误。<br>首先尝试:<code>sudo virsh net-start default</code><br>否则采取如下方案：<br><a href="http://forums.debian.net/viewtopic.php?f=5&amp;t=94729" target="_blank" rel="noopener">forums</a>上给出了问题的解答,发现是编译内核的时候NAT有些模块没有模块化。<br><img src="/images/2017/6/1.png" alt=""></p>
-</li>
-<li><p>linux 没有高级选项引导内核的时候</p>
-<ul>
-<li>在 <code>/etc/default/grub</code>中,注释掉 <code>GRUB_HIDDEN_TIMEOUT</code></li>
-<li>sudo update-grub</li>
+		<p>因为网上资料较多，本文主要是总结一下相关资料。</p>
+<h2 id="Time-clocks-and-the-ordering-of-events-in-a-distributed-system"><a href="#Time-clocks-and-the-ordering-of-events-in-a-distributed-system" class="headerlink" title="Time, clocks, and the ordering of events in a distributed system"></a>Time, clocks, and the ordering of events in a distributed system</h2><ul>
+<li>论文： Time, clocks, and the ordering of events in a distributed system</li>
+<li>看paper时可以结合着这片<a href="https://www.cnblogs.com/hzmark/p/- Time_Clocks_Ordering.html" target="_blank" rel="noopener">译文</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/34057588" target="_blank" rel="noopener">论文笔记</a>总结了该论文</li>
 </ul>
-</li>
-<li><p>KVM不可用,虚拟机的性能可能很差<br>必须使用CPU的VT技术支持,故需要<a href="http://www.linuxfly.org/post/635/" target="_blank" rel="noopener">开启VT功能</a></p>
-</li>
-<li><p>安装新的内核,打开kvm系统崩溃<br>经过一周时间的探索,发现是内核版本的问题,当内核选择3.14的时候没有问题,选择3.16内核就会崩溃</p>
-</li>
-<li><p>current的应用<br>current 指针指向当前在运行的进程，内核代码可以通过使用 current 来使用进程特定的信息。指向 task_struct 的current指针在内核堆栈内，是一个全局项。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">printk(KERN_INFO <span class="string">"The cuurent process commond ： \"%s\"  the pid ：%i\n"</span>,</span><br><span class="line">current-&gt;comm, current-&gt;pid);<span class="comment">//comm：当前进程执行的程序文件名,pid：当前进程的pid号。</span></span><br></pre></td></tr></table></figure>
-</li>
+<h2 id="clock同步"><a href="#clock同步" class="headerlink" title="clock同步"></a>clock同步</h2><ul>
+<li><a href="https://www.cs.rutgers.edu/~pxk/417/notes/content/05-clock-synchronization-slides.pdf" target="_blank" rel="noopener">Clock synchronization</a></li>
+</ul>
+<p>slides中名次解释：Real-Time Clock (RTC)</p>
+<ul>
+<li><a href="https://www.cs.rutgers.edu/~pxk/417/notes/ptp.html" target="_blank" rel="noopener">Precision Time Protocol - notes</a></li>
+<li><a href="https://www.cs.rutgers.edu/~pxk/417/notes/content/06-logical-clocks-slides.pdf" target="_blank" rel="noopener">Logical clocks</a></li>
+<li><a href="https://www.cs.rutgers.edu/~pxk/417/notes/clocks/index.html" target="_blank" rel="noopener">Vector clocks - notes</a></li>
+</ul>
+<h2 id="Vector-Clock-Version-Clock"><a href="#Vector-Clock-Version-Clock" class="headerlink" title="Vector Clock/Version Clock"></a>Vector Clock/Version Clock</h2><ul>
+<li><a href="http://www.cnblogs.com/foxmailed/p/4985848.html" target="_blank" rel="noopener">吴镝 Vector Clock/Version Clock</a></li>
+</ul>
+<p>Version Clock即为Version Vectors。<br>Vector Clock最初是为了给分布式系统的事件定序发明的，本质上是一种捕获causality的手段，只是他们捕获的是事件的关系。而Version Clock是捕获同一个数据的不同版本之间的causality.</p>
+<ul>
+<li><a href="https://haslab.wordpress.com/2011/07/08/version-vectors-are-not-vector-clocks/" target="_blank" rel="noopener">Version Vectors are not Vector Clocks</a></li>
 </ul>
   
 	</div>
@@ -137,20 +125,20 @@ dmesg时需要用到正则, dmesg |">
 
   <div class="article-tags">
   
-  <span></span> <a href="/tags/Kernel/">Kernel</a><a href="/tags/经验/">经验</a>
+  <span></span> <a href="/tags/分布式系统/">分布式系统</a>
   </div>
 
 
 <div class="article-categories">
   <span></span>
-  <a class="article-category-link" href="/categories/经验/">经验</a>
+  <a class="article-category-link" href="/categories/分布式系统/">分布式系统</a>
 </div>
 
 
 
 <div class="article-share" id="share">
 
-  <div data-url="http://liujunming.github.io/2017/07/01/内核开发经验/" data-title="内核开发经验 | L" data-tsina="null" class="share clearfix">
+  <div data-url="http://liujunming.github.io/2018/09/19/分布式系统中clock相关知识点/" data-title="分布式系统中clock相关知识点 | L" data-tsina="null" class="share clearfix">
   </div>
 
 </div>
@@ -159,19 +147,11 @@ dmesg时需要用到正则, dmesg |">
 	
 <nav class="article-nav clearfix">
  
- <div class="prev" >
- <a href="/2017/07/02/Git的Patch功能/" title="Git的Patch功能">
-  <strong>PREVIOUS:</strong><br/>
-  <span>
-  Git的Patch功能</span>
-</a>
-</div>
-
 
 <div class="next">
-<a href="/2017/06/28/XLH-More-effective-memory-deduplication-scanners-through-cross-layer-hints/"  title="XLH: More effective memory deduplication scanners through cross-layer hints">
+<a href="/2018/09/18/Designing-Data-Intensive-Applications-读书笔记-Replication/"  title="Designing Data-Intensive Applications 读书笔记 -Replication">
  <strong>NEXT:</strong><br/> 
- <span>XLH: More effective memory deduplication scanners through cross-layer hints
+ <span>Designing Data-Intensive Applications 读书笔记 -Replication
 </span>
 </a>
 </div>
@@ -194,7 +174,7 @@ dmesg时需要用到正则, dmesg |">
 
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
-  
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Time-clocks-and-the-ordering-of-events-in-a-distributed-system"><span class="toc-number">1.</span> <span class="toc-text">Time, clocks, and the ordering of events in a distributed system</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#clock同步"><span class="toc-number">2.</span> <span class="toc-text">clock同步</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Vector-Clock-Version-Clock"><span class="toc-number">3.</span> <span class="toc-text">Vector Clock/Version Clock</span></a></li></ol>
   </div>
 
 <div id="asidepart">
@@ -473,9 +453,9 @@ $(document).ready(function(){
     <script type="text/javascript">
     var disqus_shortname = 'junmingliu';
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2017/07/01/内核开发经验/';
-        this.page.identifier = '/2017/07/01/内核开发经验/';
-        this.page.title = '内核开发经验';
+        this.page.url = 'http://liujunming.github.io/2018/09/19/分布式系统中clock相关知识点/';
+        this.page.identifier = '/2018/09/19/分布式系统中clock相关知识点/';
+        this.page.title = '分布式系统中clock相关知识点';
     };
     (function(){
       var d = document;
