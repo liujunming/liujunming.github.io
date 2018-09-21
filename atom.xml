@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2018-09-19T12:58:37.323Z</updated>
+  <updated>2018-09-21T12:32:20.467Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Designing Data-Intensive Applications 读书笔记 -Partitioning</title>
+    <link href="http://liujunming.github.io/2018/09/20/Designing-Data-Intensive-Applications-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-Partitioning/"/>
+    <id>http://liujunming.github.io/2018/09/20/Designing-Data-Intensive-Applications-读书笔记-Partitioning/</id>
+    <published>2018-09-20T08:23:50.000Z</published>
+    <updated>2018-09-21T12:32:20.467Z</updated>
+    
+    <content type="html"><![CDATA[<p>partition在本文中的翻译为分区。<br>数据量非常大的时候，在单台机器上存储和处理不再可行，则分区十分必要。分区的目标是在多台机器上均匀分布数据和查询负载，避免出现热点（负载不成比例的节点）。这需要选择适合于您的数据的分区方案，并在将节点添加到集群或从集群删除时进行再分区。分区主要是为了可扩展性(scalability)。</p><h2 id="Partitioning-and-Replication"><a href="#Partitioning-and-Replication" class="headerlink" title="Partitioning and Replication"></a>Partitioning and Replication</h2><p>分区通常与复制结合使用，使得每个分区的副本存储在多个节点上。 这意味着，即使每条记录属于一个分区，它仍然可以存储在多个不同的节点上以获得容错能力。</p><p><img src="/images/2018/9/20.png" alt=""></p><h2 id="Partitioning-of-Key-Value-Data"><a href="#Partitioning-of-Key-Value-Data" class="headerlink" title="Partitioning of Key-Value Data"></a>Partitioning of Key-Value Data</h2><p>如果分区是不公平的，一些分区比其他分区有更多的数据或查询，我们称之为偏斜（skew）。数据偏斜的存在使分区效率下降很多。在极端的情况下，所有的负载可能压在一个分区上，其余节点空闲的，那么瓶颈落在这一个繁忙的节点上。不均衡导致的高负载的分区被称为热点（hot spot）。</p><p>避免热点最简单的方法是将记录随机分配给节点。这将在所有节点上平均分配数据，但是它有一个很大的缺点：当你试图读取一个特定的值时，你无法知道它在哪个节点上，所以你必须并行地查询所有的节点。</p><h3 id="Partitioning-by-Key-Range"><a href="#Partitioning-by-Key-Range" class="headerlink" title="Partitioning by Key Range"></a>Partitioning by Key Range</h3><p>一种分区的方法是为每个分区指定一块连续的键范围（从最小值到最大值），如果知道范围之间的边界，则可以轻松确定哪个分区包含某个值。</p><p><img src="/images/2018/9/21.png" alt=""></p><p>在每个分区中，我们可以按照一定的顺序保存键。优点是进行范围扫描非常简单，缺点是某些特定的访问模式会导致热点。</p><h3 id="Partitioning-by-Hash-of-Key"><a href="#Partitioning-by-Hash-of-Key" class="headerlink" title="Partitioning by Hash of Key"></a>Partitioning by Hash of Key</h3><p>一个好的散列函数可以将将偏斜的数据均匀分布。假设你有一个32位散列函数,无论何时给定一个新的字符串输入，它将返回一个0到2^{32}-1之间的”随机”数。即使输入的字符串非常相似，它们的散列也会均匀分布在这个数字范围内。</p><p>一旦你有一个合适的键散列函数，你可以为每个分区分配一个散列范围（而不是键的范围），每个通过哈希散列落在分区范围内的键将被存储在该分区中。如下图所示。</p><p><img src="/images/2018/9/22.png" alt=""></p><p>不幸的是，通过使用Key散列进行分区，我们失去了键范围分区的一个很好的属性：高效执行范围查询的能力。曾经相邻的Key现在分散在所有分区中，所以它们之间的顺序就丢失了。 </p><p>Cassandra采取了折衷的策略。Cassandra中的表可以使用由多个列组成的复合主键来声明。键中只有第一列会作为散列的依据，而其他列则被用作Casssandra的SSTables中排序数据的连接索引。尽管查询无法在复合主键的第一列中按范围扫表，但如果第一列已经指定了固定值，则可以对该键的其他列执行有效的范围扫描。</p><h3 id="Skewed-Workloads-and-Relieving-Hot-Spots"><a href="#Skewed-Workloads-and-Relieving-Hot-Spots" class="headerlink" title="Skewed Workloads and Relieving Hot Spots"></a>Skewed Workloads and Relieving Hot Spots</h3><p>在极端情况下，所有的读写操作都是针对同一个键的，所有的请求都会被路由到同一个分区。</p><p>​如今，大多数数据系统无法自动补偿这种高度偏斜的负载，因此应用程序有责任减少偏斜。例如，如果一个主键被认为是非常火爆的，一个简单的方法是在主键的开始或结尾添加一个随机数。只要一个两位数的十进制随机数就可以将主键分散为100钟不同的主键,从而存储在不同的分区中。</p><h2 id="Partitioning-and-Secondary-Indexes"><a href="#Partitioning-and-Secondary-Indexes" class="headerlink" title="Partitioning and Secondary Indexes"></a>Partitioning and Secondary Indexes</h2><h3 id="Partitioning-Secondary-Indexes-by-Document"><a href="#Partitioning-Secondary-Indexes-by-Document" class="headerlink" title="Partitioning Secondary Indexes by Document"></a>Partitioning Secondary Indexes by Document</h3><p>按文档分区（本地索引），其中二级索引存储在与主键和值相同的分区中。这意味着只有一个分区需要在写入时更新，但是读取二级索引需要在所有分区之间进行scatter/gather。</p><p><img src="/images/2018/9/23.png" alt=""></p><h3 id="Partitioning-Secondary-Indexes-by-Term"><a href="#Partitioning-Secondary-Indexes-by-Term" class="headerlink" title="Partitioning Secondary Indexes by Term"></a>Partitioning Secondary Indexes by Term</h3><p>按关键词分区（全局索引），其中二级索引存在不同的分区的。当文档写入时，需要更新多个分区中的二级索引；但是可以从单个分区中进行读取</p><p><img src="/images/2018/9/24.png" alt=""></p><h2 id="Rebalancing-Partitions"><a href="#Rebalancing-Partitions" class="headerlink" title="Rebalancing Partitions"></a>Rebalancing Partitions</h2><p>随着时间的推移，数据库会有各种变化。如机器出现故障，其他机器需要接管故障机器。<br>这些更改需要将数据和请求从一个节点移动到另一个节点。 将load从集群中的一个节点向另一个节点移动的过程称为再平衡（reblancing）。</p><h3 id="Strategies-for-Rebalancing"><a href="#Strategies-for-Rebalancing" class="headerlink" title="Strategies for Rebalancing"></a>Strategies for Rebalancing</h3><p>有几种不同的分区分配方法,让我们依次简要讨论一下。</p><h4 id="反面教材：hash-mod-N"><a href="#反面教材：hash-mod-N" class="headerlink" title="反面教材：hash mod N"></a>反面教材：hash mod N</h4><p>模N方法的问题是，如果节点数量N发生变化，大多数Key将需要从一个节点移动到另一个节点。如此频繁的移动使得重新平衡的代价过于昂贵。</p><p>我们需要一种只移动必需数据的方法。</p><h4 id="固定数量的分区"><a href="#固定数量的分区" class="headerlink" title="固定数量的分区"></a>固定数量的分区</h4><p>创建比节点更多的分区，并为每个节点分配多个分区。例如，运行在10个节点的集群上的数据库可能会从一开始就被拆分为1,000个分区，因此大约有100个分区被分配给每个节点。</p><p>现在，如果一个节点被添加到集群中，新节点可以从当前每个节点中窃取一些分区，直到分区再次公平分配。这个过程下图所示。</p><p><img src="/images/2018/9/25.png" alt=""></p><p>如果数据集的总大小难以预估（例如，如果它开始很小，但随着时间的推移可能会变得更大），选择正确的分区数是困难的。由于每个分区包含了总数据量固定比率的数据，因此每个分区的大小与集群中的数据总量成比例增长。如果分区非常大，再平衡和从节点故障恢复变得昂贵。但是，如果分区太小，则会产生太多的开销。当分区大小“恰到好处”的时候才能获得很好的性能，如果分区数量固定，但数据量变动很大，则难以达到最佳性能。</p><h4 id="动态分区"><a href="#动态分区" class="headerlink" title="动态分区"></a>动态分区</h4><p>对于使用键范围分区的数据库，具有固定边界的固定数量的分区将非常不便，手动重新配置分区边界将非常繁琐。</p><p>出于这个原因，按键的范围进行分区的数据库（如HBase）会动态创建分区。当分区增长到超过配置的大小时（在HBase上，默认值是10GB），会被分成两个分区，每个分区约占一半的数据。与之相反，如果大量数据被删除并且分区缩小到某个阈值以下，则可以将其与相邻分区合并。</p><p>动态分区的一个优点是分区数量适应总数据量。如果只有少量的数据，少量的分区就足够了，所以开销很小;如果有大量的数据，每个分区的大小被限制在一个可配置的最大值。</p><p>动态分区不仅适用于数据的范围分区，而且也适用于hash分区。</p><h4 id="Partitioning-proportionally-to-nodes"><a href="#Partitioning-proportionally-to-nodes" class="headerlink" title="Partitioning proportionally to nodes"></a>Partitioning proportionally to nodes</h4><p>每个节点具有固定数量的分区，在这种情况下，每个分区的大小与数据集大小成比例地增长，而节点数量保持不变，但是当增加节点数时，分区将再次变小。由于较大的数据量通常需要较大数量的节点进行存储，因此这种方法也使每个分区的大小较为稳定。</p><h2 id="Request-Routing"><a href="#Request-Routing" class="headerlink" title="Request Routing"></a>Request Routing</h2><p>现在我们已经将数据集分割到多个机器上运行的多个节点上。但是仍然存在一个悬而未决的问题：当客户想要发出请求时，如何知道要连接哪个节点？随着分区重新平衡，分区对节点的分配也发生变化。为了回答这个问题，需要有人知晓这些变化：如果我想读或写键“foo”，需要连接哪个IP地址和端口号？</p><p>​这个问题可以概括为 服务发现(service discovery) 。</p><p>概括来说，这个问题有几种不同的方案（如下图所示）：<br><img src="/images/2018/9/26.png" alt=""></p><ol><li>允许客户联系任何节点（例如，通过循环策略的负载均衡（Round-Robin Load Balancer））。如果该节点恰巧拥有请求的分区，则它可以直接处理该请求;否则，它将请求转发到适当的节点，接收回复并传递给客户端。</li><li>首先将所有来自客户端的请求发送到路由层，它决定了应该处理请求的节点，并相应地转发。此路由层本身不处理任何请求，它仅负责分区的负载均衡。</li><li>要求客户端知道分区和节点的分配。在这种情况下，客户端可以直接连接到适当的节点，而不需要任何中介。</li></ol><p>以上所有情况中的关键问题是：作出路由决策的组件（可能是节点之一，还是路由层或客户端）如何了解分区-节点之间的分配关系变化？</p><p>许多分布式数据系统都依赖于一个独立的协调服务，比如用ZooKeeper来跟踪集群元数据，如下图所示。 </p><p><img src="/images/2018/9/27.png" alt=""></p><p>每个节点在ZooKeeper中注册自己，ZooKeeper维护分区到节点的可靠映射。 其他参与者（如路由层或分区感知客户端）可以在ZooKeeper中订阅此信息。 只要分区分配发生的改变，或者集群中添加或删除了一个节点，ZooKeeper就会通知路由层使路由信息保持最新状态。</p><p>Cassandra和Riak采取不同的方法：他们在节点之间使用流言协议（gossip protocol） 来传播群集状态的变化。请求可以发送到任意节点，该节点会转发到包含所请求的分区的适当节点（图Figure 6-7中的方法1）。这个模型在数据库节点中增加了更多的复杂性，但是避免了对像ZooKeeper这样的外部协调服务的依赖。</p><hr><p>参考资料：</p><ol><li><a href="https://github.com/Vonng/ddia/blob/master/ch6.md" target="_blank" rel="noopener">Vonng ddia翻译</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;partition在本文中的翻译为分区。&lt;br&gt;数据量非常大的时候，在单台机器上存储和处理不再可行，则分区十分必要。分区的目标是在多台机器上均匀分布数据和查询负载，避免出现热点（负载不成比例的节点）。这需要选择适合于您的数据的分区方案，并在将节点添加到集群或从集群删除时进行
+      
+    
+    </summary>
+    
+      <category term="分布式系统" scheme="http://liujunming.github.io/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+      <category term="分布式系统" scheme="http://liujunming.github.io/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/"/>
+    
+  </entry>
   
   <entry>
     <title>分布式系统中clock相关知识点</title>
@@ -487,32 +512,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>数据结构:树的归纳总结</title>
-    <link href="http://liujunming.github.io/2018/03/20/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E6%A0%91%E7%9A%84%E5%BD%92%E7%BA%B3%E6%80%BB%E7%BB%93/"/>
-    <id>http://liujunming.github.io/2018/03/20/数据结构-树的归纳总结/</id>
-    <published>2018-03-20T10:59:03.000Z</published>
-    <updated>2018-06-28T13:47:41.207Z</updated>
-    
-    <content type="html"><![CDATA[<p>最近，因为要准备找工作，所以本文特意总结归纳一下数据结构中重要的一块：树。</p><h2 id="二叉查找树"><a href="#二叉查找树" class="headerlink" title="二叉查找树"></a>二叉查找树</h2><p>二叉查找树（BST：Binary Search Tree）是一种特殊的二叉树，它改善了二叉树节点查找的效率。二叉查找树有以下性质：</p><p>对于任意一个节点 n，</p><ul><li>其左子树（left subtree）下的每个后代节点（descendant node）的值都小于节点 n 的值；</li><li>其右子树（right subtree）下的每个后代节点的值都大于节点 n 的值。</li></ul><p>所谓节点 n 的子树，可以将其看作是以节点 n 为根节点的树。子树的所有节点都是节点 n 的后代，而子树的根则是节点 n 本身。</p><p>BST的查找、插入、删除操作的运行时间与BST的拓扑结构有关，最佳情况是O(log­ n)，而最坏情况是 O(n)。</p><h2 id="AVL树"><a href="#AVL树" class="headerlink" title="AVL树"></a>AVL树</h2><p><a href="https://www.cs.usfca.edu/~galles/visualization/AVLtree.html" target="_blank" rel="noopener">AVL树</a>是最先发明的自平衡二叉查找树。在AVL树中任何节点的两个子树的高度最大差别为1，所以它也被称为高度平衡树。查找、插入和删除在平均和最坏情况下的时间复杂度都是O(log n)。增加和删除可能需要通过一次或多次树旋转来重新平衡这个树。</p><p>引入平衡二叉树的目的是为了提高二叉查找树的搜索的效率,减少树的平均搜索长度。</p><h2 id="红黑树"><a href="#红黑树" class="headerlink" title="红黑树"></a>红黑树</h2><p><a href="https://github.com/liujunming/Data-Structure/tree/master/%E7%BA%A2%E9%BB%91%E6%A0%91" target="_blank" rel="noopener">红黑树</a>是一种自平衡二叉查找树，典型的用途是实现关联数组。</p><p>红黑树的性质:</p><ol><li>节点是红色或黑色</li><li>根是黑色</li><li>所有叶子都是黑色</li><li>每个红色节点必须有两个黑色的子节点（从每个叶子到根的所有路径上不能有两个连续的红色节点）</li><li>从任一节点到其每个叶子的所有简单路径都包含相同数目的黑色节点</li></ol><p>红黑树相对于AVL树来说，牺牲了部分平衡性以换取插入/删除操作时少量的旋转操作，性能整体来说要优于AVL树。</p><h2 id="Trie树"><a href="#Trie树" class="headerlink" title="Trie树"></a>Trie树</h2><p>在计算机科学中，<a href="http://liujunming.top/2016/07/12/Trie%E6%A0%91%E7%9A%84%E6%A6%82%E5%BF%B5%E5%8F%8A%E5%85%B6%E5%AE%9E%E7%8E%B0/" target="_blank" rel="noopener">Trie</a>，又称前缀树或字典树，是一种有序树，用于保存关联数组，其中的键通常是字符串。与二叉查找树不同，键不是直接保存在节点中，而是由节点在树中的位置决定。一个节点的所有子孙都有相同的前缀，也就是这个节点对应的字符串，而根节点对应空字符串。一般情况下，不是所有的节点都有对应的值，只有叶子节点和部分内部节点所对应的键才有相关的值。</p><p><img src="/images/2018/3/6.png" alt=""></p><center>一个保存了8个键的trie结构，”A”, “to”, “tea”, “ted”, “ten”, “i”, “in”, and “inn”.</center><h2 id="基数树-Radix-Tree"><a href="#基数树-Radix-Tree" class="headerlink" title="基数树(Radix Tree)"></a>基数树(Radix Tree)</h2><p>基数树，或称压缩前缀树，是一种更节省空间的Trie。对于基数树的每个节点，如果该节点是唯一的子树的话，就和父节点合并。</p><p><img src="/images/2018/3/7.png" alt=""></p><p>在Linux内核中，<a href="http://liujunming.top/2017/06/25/address-space-%E9%A1%B5%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/" target="_blank" rel="noopener">一个address_space对象对应一个基树</a>。</p><h2 id="B树与B-树"><a href="#B树与B-树" class="headerlink" title="B树与B+树"></a>B树与B+树</h2><p>详情请从参考<a href="http://liujunming.top/2016/05/13/B%E6%A0%91%E5%92%8CB-%E6%A0%91%E7%9A%84%E5%AE%9A%E4%B9%89%E4%BB%A5%E5%8F%8A%E5%BA%94%E7%94%A8/" target="_blank" rel="noopener">B树和B+树的定义以及应用</a>。</p><p>对于在内存中的查找结构而言，红黑树的效率已经非常好了。但是如果是数据量非常大的查找呢？将这些数据全部放入内存组织成红黑树结构显然是不实际的。实际上，像OS中的文件目录存储，数据库中的文件索引结构的存储…. 都不可能在内存中建立查找结构，必须在磁盘中建立好这个结构。那么在这个背景下，红黑树显然不是一种好的选择。</p><p>在磁盘中组织查找结构，从任何一个结点指向其他结点都有可能读取一次磁盘数据，再将数据写入内存进行比较。大家都知道，频繁的磁盘IO操作，效率是很低下的(机械运动比电子运动要慢不知道多少)。显而易见，所有的二叉树的查找结构在磁盘中都是低效的。因此，B树很好的解决了这一个问题。</p><hr><p>参考资料：</p><ol><li><a href="https://troywu0.gitbooks.io/spark/content/b-%E6%A0%91-%E7%BA%A2%E9%BB%91%E6%A0%91-%E4%BA%8C%E5%8F%89%E6%90%9C%E7%B4%A2%E6%A0%91-avl%E6%A0%91-%E6%AF%94%E8%BE%83.html" target="_blank" rel="noopener">b-树-红黑树-二叉搜索树-avl树-比较</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;最近，因为要准备找工作，所以本文特意总结归纳一下数据结构中重要的一块：树。&lt;/p&gt;
-&lt;h2 id=&quot;二叉查找树&quot;&gt;&lt;a href=&quot;#二叉查找树&quot; class=&quot;headerlink&quot; title=&quot;二叉查找树&quot;&gt;&lt;/a&gt;二叉查找树&lt;/h2&gt;&lt;p&gt;二叉查找树（BST：Bin
-      
-    
-    </summary>
-    
-      <category term="数据结构" scheme="http://liujunming.github.io/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="数据结构" scheme="http://liujunming.github.io/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
