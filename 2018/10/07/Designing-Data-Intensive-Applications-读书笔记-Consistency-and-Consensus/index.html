@@ -1,0 +1,556 @@
+
+ <!DOCTYPE HTML>
+<html >
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Designing Data-Intensive Applications 读书笔记 -Consistency and Consensus | L</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="liujunming">
+    
+    <meta name="description" content="consensus: that is, getting all of the nodes to agree on something. 
+If two nodes both believe that they are the leader, that situation is called spli">
+    
+    
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="ljm11636" />
+    <meta name="twitter:title" content="Designing Data-Intensive Applications 读书笔记 -Consistency and Consensus | L" />
+      
+    
+    
+    <link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="L" title="L"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="L">L</a></h1>
+				<h2 class="blog-motto">make it simple, make it happen.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:liujunming.top">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/10/07/Designing-Data-Intensive-Applications-读书笔记-Consistency-and-Consensus/" title="Designing Data-Intensive Applications 读书笔记 -Consistency and Consensus" itemprop="url">Designing Data-Intensive Applications 读书笔记 -Consistency and Consensus</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="http://liujunming.github.io" title="liujunming">liujunming</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-10-07T09:08:17.000Z" itemprop="datePublished">2018-10-07</time>
+    更新日期:<time datetime="2018-10-07T12:01:07.432Z" itemprop="dateModified">2018-10-07</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Consistency-Guarantees"><span class="toc-number">1.</span> <span class="toc-text">Consistency Guarantees</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Linearizability"><span class="toc-number">2.</span> <span class="toc-text">Linearizability</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#What-Makes-a-System-Linearizable"><span class="toc-number">2.1.</span> <span class="toc-text">What Makes a System Linearizable?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Relying-on-Linearizability"><span class="toc-number">2.2.</span> <span class="toc-text">Relying on Linearizability</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Locking-and-leader-election"><span class="toc-number">2.2.1.</span> <span class="toc-text">Locking and leader election</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Constraints-and-uniqueness-guarantees"><span class="toc-number">2.2.2.</span> <span class="toc-text">Constraints and uniqueness guarantees</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Cross-channel-timing-dependencies"><span class="toc-number">2.2.3.</span> <span class="toc-text">Cross-channel timing dependencies</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Implementing-Linearizable-Systems"><span class="toc-number">2.3.</span> <span class="toc-text">Implementing Linearizable Systems</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Linearizability-and-quorums"><span class="toc-number">2.3.1.</span> <span class="toc-text">Linearizability and quorums</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#The-Cost-of-Linearizability"><span class="toc-number">2.4.</span> <span class="toc-text">The Cost of Linearizability</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#The-CAP-theorem"><span class="toc-number">2.4.1.</span> <span class="toc-text">The CAP theorem</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Linearizability-and-network-delays"><span class="toc-number">2.4.2.</span> <span class="toc-text">Linearizability and network delays</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ordering-Guarantees"><span class="toc-number">3.</span> <span class="toc-text">Ordering Guarantees</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Ordering-and-Causality"><span class="toc-number">3.1.</span> <span class="toc-text">Ordering and Causality</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#The-causal-order-is-not-a-total-order"><span class="toc-number">3.1.1.</span> <span class="toc-text">The causal order is not a total order</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Linearizability-is-stronger-than-causal-consistency"><span class="toc-number">3.1.2.</span> <span class="toc-text">Linearizability is stronger than causal consistency</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Capturing-causal-dependencies"><span class="toc-number">3.1.3.</span> <span class="toc-text">Capturing causal dependencies</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sequence-Number-Ordering"><span class="toc-number">3.2.</span> <span class="toc-text">Sequence Number Ordering</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Lamport-timestamps"><span class="toc-number">3.2.1.</span> <span class="toc-text">Lamport timestamps</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Timestamp-ordering-is-not-sufficient"><span class="toc-number">3.2.2.</span> <span class="toc-text">Timestamp ordering is not sufficient</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Total-Order-Broadcast"><span class="toc-number">3.3.</span> <span class="toc-text">Total Order Broadcast</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Using-total-order-broadcast"><span class="toc-number">3.3.1.</span> <span class="toc-text">Using total order broadcast</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Implementing-linearizable-storage-using-total-order-broadcast"><span class="toc-number">3.3.2.</span> <span class="toc-text">Implementing linearizable storage using total order broadcast</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Distributed-Transactions-and-Consensus"><span class="toc-number">4.</span> <span class="toc-text">Distributed Transactions and Consensus</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Atomic-Commit-and-Two-Phase-Commit-2PC"><span class="toc-number">4.1.</span> <span class="toc-text">Atomic Commit and Two-Phase Commit (2PC)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#From-single-node-to-distributed-atomic-commit"><span class="toc-number">4.1.1.</span> <span class="toc-text">From single-node to distributed atomic commit</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Introduction-to-two-phase-commit"><span class="toc-number">4.1.2.</span> <span class="toc-text">Introduction to two-phase commit</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Coordinator-failure"><span class="toc-number">4.1.3.</span> <span class="toc-text">Coordinator failure</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Three-phase-commit"><span class="toc-number">4.1.4.</span> <span class="toc-text">Three-phase commit</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Distributed-Transactions-in-Practice"><span class="toc-number">4.2.</span> <span class="toc-text">Distributed Transactions in Practice</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Exactly-once-message-processing"><span class="toc-number">4.2.1.</span> <span class="toc-text">Exactly-once message processing</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#XA-transactions"><span class="toc-number">4.2.2.</span> <span class="toc-text">XA transactions</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Holding-locks-while-in-doubt"><span class="toc-number">4.2.3.</span> <span class="toc-text">Holding locks while in doubt</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Recovering-from-coordinator-failure"><span class="toc-number">4.2.4.</span> <span class="toc-text">Recovering from coordinator failure</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Limitations-of-distributed-transactions"><span class="toc-number">4.2.5.</span> <span class="toc-text">Limitations of distributed transactions</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Fault-Tolerant-Consensus"><span class="toc-number">4.3.</span> <span class="toc-text">Fault-Tolerant Consensus</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Consensus-algorithms-and-total-order-broadcast"><span class="toc-number">4.3.1.</span> <span class="toc-text">Consensus algorithms and total order broadcast</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Single-leader-replication-and-consensus"><span class="toc-number">4.3.2.</span> <span class="toc-text">Single-leader replication and consensus</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Epoch-numbering-and-quorums"><span class="toc-number">4.3.3.</span> <span class="toc-text">Epoch numbering and quorums</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Limitations-of-consensus"><span class="toc-number">4.3.4.</span> <span class="toc-text">Limitations of consensus</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Membership-and-Coordination-Services"><span class="toc-number">4.4.</span> <span class="toc-text">Membership and Coordination Services</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Allocating-work-to-nodes"><span class="toc-number">4.4.1.</span> <span class="toc-text">Allocating work to nodes</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Service-discovery"><span class="toc-number">4.4.2.</span> <span class="toc-text">Service discovery</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Membership-services"><span class="toc-number">4.4.3.</span> <span class="toc-text">Membership services</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Summary"><span class="toc-number">5.</span> <span class="toc-text">Summary</span></a></li></ol>
+		</div>
+		
+		<p><em>consensus</em>: that is, getting all of the nodes to agree on something. </p>
+<p>If two nodes both believe that they are the leader, that situation is called split brain, and it often leads to data loss. Correct implementations of consensus help avoid such problems.</p>
+<h2 id="Consistency-Guarantees"><a href="#Consistency-Guarantees" class="headerlink" title="Consistency Guarantees"></a>Consistency Guarantees</h2><p>Systems with stronger guarantees may have worse performance or be less fault-tolerant than systems with weaker guarantees.</p>
+<p>Transaction isolation is primarily about avoiding race conditions due to concurrently executing transactions, whereas distributed consistency is mostly about coordinating the state of replicas in the face of delays and faults.</p>
+<h2 id="Linearizability"><a href="#Linearizability" class="headerlink" title="Linearizability"></a>Linearizability</h2><p>中文翻译：线性一致性(强一致性)</p>
+<p>Linearizability，the basic idea is to make a system appear as if there were only one copy of the data, and all operations on it are atomic.</p>
+<p><img src="/images/2018/10/1.png" alt=""></p>
+<h3 id="What-Makes-a-System-Linearizable"><a href="#What-Makes-a-System-Linearizable" class="headerlink" title="What Makes a System Linearizable?"></a>What Makes a System Linearizable?</h3><p><img src="/images/2018/10/2.png" alt=""></p>
+<p>To make the system linearizable, we need to add another constraint.<br><img src="/images/2018/10/3.png" alt=""></p>
+<p><img src="/images/2018/10/4.png" alt=""></p>
+<p><strong>Linearizability Versus Serializability</strong></p>
+<ul>
+<li><em>Serializability</em></li>
+</ul>
+<p>Serializability is an isolation property of transactions, where every transaction may read and write multiple objects (rows, documents, records).It guarantees that transactions behave the same as if they had executed in some serial order (each transaction running to completion before the next transaction starts).</p>
+<ul>
+<li><em>Linearizability</em></li>
+</ul>
+<p>Linearizability is a recency guarantee on reads and writes of a register (an individual object).  It doesn’t group operations together into transactions, so it does not prevent problems such as write skew, unless you take additional measures.</p>
+<h3 id="Relying-on-Linearizability"><a href="#Relying-on-Linearizability" class="headerlink" title="Relying on Linearizability"></a>Relying on Linearizability</h3><h4 id="Locking-and-leader-election"><a href="#Locking-and-leader-election" class="headerlink" title="Locking and leader election"></a>Locking and leader election</h4><h4 id="Constraints-and-uniqueness-guarantees"><a href="#Constraints-and-uniqueness-guarantees" class="headerlink" title="Constraints and uniqueness guarantees"></a>Constraints and uniqueness guarantees</h4><p>Uniqueness constraints are common in databases.</p>
+<p>Similar issues arise if you want to ensure that a bank account balance never goes neg‐ ative, or that you don’t sell more items than you have in stock in the warehouse, or that two people don’t concurrently book the same seat on a flight or in a theater. These constraints all require there to be a single up-to-date value (the account balance, the stock level, the seat occupancy) that all nodes agree on.</p>
+<h4 id="Cross-channel-timing-dependencies"><a href="#Cross-channel-timing-dependencies" class="headerlink" title="Cross-channel timing dependencies"></a>Cross-channel timing dependencies</h4><p><img src="/images/2018/10/5.png" alt=""></p>
+<p> The message queue (steps 3 and 4 in Figure 9-5) might be faster than the internal replication inside the storage service.</p>
+<p> This problem arises because there are two different communication channels between the web server and the resizer: the file storage and the message queue.</p>
+<h3 id="Implementing-Linearizable-Systems"><a href="#Implementing-Linearizable-Systems" class="headerlink" title="Implementing Linearizable Systems"></a>Implementing Linearizable Systems</h3><p>Linearizability essentially means “behave as though there is only a single copy of the data, and all operations on it are atomic”.</p>
+<ul>
+<li>Single-leader replication (potentially linearizable)</li>
+<li>Consensus algorithms (linearizable)</li>
+<li>Multi-leader replication (not linearizable)</li>
+<li>Leaderless replication (probably not linearizable)</li>
+</ul>
+<h4 id="Linearizability-and-quorums"><a href="#Linearizability-and-quorums" class="headerlink" title="Linearizability and quorums"></a>Linearizability and quorums</h4><p>Intuitively, it seems as though strict quorum reads and writes should be linearizable in a Dynamo-style model. However, when we have variable network delays, it is possible to have race conditions, as demonstrated in Figure 9-6.</p>
+<p><img src="/images/2018/10/6.png" alt=""></p>
+<p>It is safest to assume that a leaderless system with Dynamo-style replication does not provide linearizability.</p>
+<h3 id="The-Cost-of-Linearizability"><a href="#The-Cost-of-Linearizability" class="headerlink" title="The Cost of Linearizability"></a>The Cost of Linearizability</h3><p><img src="/images/2018/10/7.png" alt=""></p>
+<h4 id="The-CAP-theorem"><a href="#The-CAP-theorem" class="headerlink" title="The CAP theorem"></a>The CAP theorem</h4><p>The CAP theorem as formally defined is of very narrow scope: it only considers one consistency model (namely linearizability) and one kind of fault(network partitions). It doesn’t say anything about network delays, dead nodes, or other trade-offs. Thus, although CAP has been historically influential, it has little practical value for designing systems.</p>
+<h4 id="Linearizability-and-network-delays"><a href="#Linearizability-and-network-delays" class="headerlink" title="Linearizability and network delays"></a>Linearizability and network delays</h4><h2 id="Ordering-Guarantees"><a href="#Ordering-Guarantees" class="headerlink" title="Ordering Guarantees"></a>Ordering Guarantees</h2><h3 id="Ordering-and-Causality"><a href="#Ordering-and-Causality" class="headerlink" title="Ordering and Causality"></a>Ordering and Causality</h3><p>Causality imposes an ordering on events: cause comes before effect.If a system obeys the ordering imposed by causality, we say that it is <em>causally consistent</em>. </p>
+<h4 id="The-causal-order-is-not-a-total-order"><a href="#The-causal-order-is-not-a-total-order" class="headerlink" title="The causal order is not a total order"></a>The causal order is not a total order</h4><h4 id="Linearizability-is-stronger-than-causal-consistency"><a href="#Linearizability-is-stronger-than-causal-consistency" class="headerlink" title="Linearizability is stronger than causal consistency"></a>Linearizability is stronger than causal consistency</h4><p>Causal consistency is the strongest possible consistency model that does not slow down due to network delays, and remains available in the face of network failures.</p>
+<h4 id="Capturing-causal-dependencies"><a href="#Capturing-causal-dependencies" class="headerlink" title="Capturing causal dependencies"></a>Capturing causal dependencies</h4><p>In order to maintain causality, you need to know which operation happened before which other operation. </p>
+<h3 id="Sequence-Number-Ordering"><a href="#Sequence-Number-Ordering" class="headerlink" title="Sequence Number Ordering"></a>Sequence Number Ordering</h3><p>We can use sequence numbers or timestamps to order events.</p>
+<h4 id="Lamport-timestamps"><a href="#Lamport-timestamps" class="headerlink" title="Lamport timestamps"></a>Lamport timestamps</h4><p><img src="/images/2018/10/8.png" alt=""></p>
+<h4 id="Timestamp-ordering-is-not-sufficient"><a href="#Timestamp-ordering-is-not-sufficient" class="headerlink" title="Timestamp ordering is not sufficient"></a>Timestamp ordering is not sufficient</h4><p>It is not sufficient when a node has just received a request from a user to create a username, and needs to decide <em>right now</em> whether the request should succeed or fail. </p>
+<p>In order to be sure that no other node is in the process of concurrently creating an account with the same username and a lower timestamp, you would have to check with every other node to see what it is doing.</p>
+<p>The problem here is that the total order of operations only emerges after you have collected all of the operations.</p>
+<p>In order to implement something like a uniqueness constraint for usernames, it’s not sufficient to have a total ordering of operations—you also need to know when that order is finalized. </p>
+<p>This idea of knowing when your total order is finalized is captured in the topic of total order broadcast.</p>
+<h3 id="Total-Order-Broadcast"><a href="#Total-Order-Broadcast" class="headerlink" title="Total Order Broadcast"></a>Total Order Broadcast</h3><p>Total order broadcast is usually described as a protocol for exchanging messages between nodes. Informally, it requires that two safety properties always be satisfied:</p>
+<ul>
+<li><em>Reliable delivery</em></li>
+<li><em>Totally ordered delivery</em></li>
+</ul>
+<h4 id="Using-total-order-broadcast"><a href="#Using-total-order-broadcast" class="headerlink" title="Using total order broadcast"></a>Using total order broadcast</h4><p>Consensus services such as ZooKeeper and etcd actually implement total order broadcast. </p>
+<p>An important aspect of total order broadcast is that the order is fixed at the time the messages are delivered.</p>
+<h4 id="Implementing-linearizable-storage-using-total-order-broadcast"><a href="#Implementing-linearizable-storage-using-total-order-broadcast" class="headerlink" title="Implementing linearizable storage using total order broadcast"></a>Implementing linearizable storage using total order broadcast</h4><p>Total order broadcast is asynchronous: messages are guaranteed to be delivered reliably in a fixed order, but there is no guarantee about when a message will be delivered. By contrast, linearizability is a recency guarantee: a read is guaranteed to see the latest value written.</p>
+<h2 id="Distributed-Transactions-and-Consensus"><a href="#Distributed-Transactions-and-Consensus" class="headerlink" title="Distributed Transactions and Consensus"></a>Distributed Transactions and Consensus</h2><ul>
+<li><em>Leader election</em></li>
+<li><em>Atomic commit</em></li>
+</ul>
+<h3 id="Atomic-Commit-and-Two-Phase-Commit-2PC"><a href="#Atomic-Commit-and-Two-Phase-Commit-2PC" class="headerlink" title="Atomic Commit and Two-Phase Commit (2PC)"></a>Atomic Commit and Two-Phase Commit (2PC)</h3><h4 id="From-single-node-to-distributed-atomic-commit"><a href="#From-single-node-to-distributed-atomic-commit" class="headerlink" title="From single-node to distributed atomic commit"></a>From single-node to distributed atomic commit</h4><h4 id="Introduction-to-two-phase-commit"><a href="#Introduction-to-two-phase-commit" class="headerlink" title="Introduction to two-phase commit"></a>Introduction to two-phase commit</h4><p>Two-phase commit is an algorithm for achieving atomic transaction commit across multiple nodes—i.e., to ensure that either all nodes commit or all nodes abort.</p>
+<p>The commit/abort process in 2PC is split into two phases (hence the name).</p>
+<p><img src="/images/2018/10/9.png" alt=""></p>
+<h4 id="Coordinator-failure"><a href="#Coordinator-failure" class="headerlink" title="Coordinator failure"></a>Coordinator failure</h4><p>If any of the prepare requests fail or time out, the coordinator aborts the transaction; if any of the commit or abort requests fail, the coordinator retries them indefinitely.</p>
+<p><img src="/images/2018/10/10.png" alt=""></p>
+<p>The only way 2PC can complete is by waiting for the coordinator to recover.</p>
+<h4 id="Three-phase-commit"><a href="#Three-phase-commit" class="headerlink" title="Three-phase commit"></a>Three-phase commit</h4><p>Two-phase commit is called a <em>blocking</em> atomic commit protocol due to the fact that 2PC can become stuck waiting for the coordinator to recover. </p>
+<p>three-phase commit (3PC)  assumes a network with bounded delay and nodes with bounded response times; in most practical systems with unbounded network delay and process pauses , it cannot guarantee atomicity.</p>
+<h3 id="Distributed-Transactions-in-Practice"><a href="#Distributed-Transactions-in-Practice" class="headerlink" title="Distributed Transactions in Practice"></a>Distributed Transactions in Practice</h3><p><em>Database-internal distributed transactions</em><br><em>Heterogeneous distributed transactions</em></p>
+<h4 id="Exactly-once-message-processing"><a href="#Exactly-once-message-processing" class="headerlink" title="Exactly-once message processing"></a>Exactly-once message processing</h4><h4 id="XA-transactions"><a href="#XA-transactions" class="headerlink" title="XA transactions"></a>XA transactions</h4><p>XA is not a network protocol—it is merely a C API for interfacing with a transaction coordinator.</p>
+<h4 id="Holding-locks-while-in-doubt"><a href="#Holding-locks-while-in-doubt" class="headerlink" title="Holding locks while in doubt"></a>Holding locks while in doubt</h4><h4 id="Recovering-from-coordinator-failure"><a href="#Recovering-from-coordinator-failure" class="headerlink" title="Recovering from coordinator failure"></a>Recovering from coordinator failure</h4><h4 id="Limitations-of-distributed-transactions"><a href="#Limitations-of-distributed-transactions" class="headerlink" title="Limitations of distributed transactions"></a>Limitations of distributed transactions</h4><h3 id="Fault-Tolerant-Consensus"><a href="#Fault-Tolerant-Consensus" class="headerlink" title="Fault-Tolerant Consensus"></a>Fault-Tolerant Consensus</h3><p>Informally, consensus means getting several nodes to agree on something.</p>
+<p>The consensus problem is normally formalized as follows: one or more nodes may <em>propose</em> values, and the consensus algorithm <em>decides</em> on one of those values.</p>
+<p>In this formalism, a consensus algorithm must satisfy the following properties:</p>
+<ul>
+<li>Uniform agreement</li>
+<li>Integrity</li>
+<li>Validity</li>
+<li>Termination</li>
+</ul>
+<h4 id="Consensus-algorithms-and-total-order-broadcast"><a href="#Consensus-algorithms-and-total-order-broadcast" class="headerlink" title="Consensus algorithms and total order broadcast"></a>Consensus algorithms and total order broadcast</h4><p>The best-known fault-tolerant consensus algorithms are Viewstamped Replication (VSR), Paxos, Raft, and Zab.</p>
+<p>They decide on a <em>sequence</em> of values, which makes them <em>total order broadcast</em> algorithms</p>
+<h4 id="Single-leader-replication-and-consensus"><a href="#Single-leader-replication-and-consensus" class="headerlink" title="Single-leader replication and consensus"></a>Single-leader replication and consensus</h4><h4 id="Epoch-numbering-and-quorums"><a href="#Epoch-numbering-and-quorums" class="headerlink" title="Epoch numbering and quorums"></a>Epoch numbering and quorums</h4><p>All of the consensus protocols discussed so far internally use a leader in some form or another, but they don’t guarantee that the leader is unique. Instead, they can make a weaker guarantee: the protocols define an <em>epoch number</em> and guarantee that within each epoch, the leader is unique.</p>
+<p>We have two rounds of voting: once to choose a leader, and a second time to vote on a leader’s proposal. </p>
+<p>This voting process looks superficially similar to two-phase commit. The biggest differences are that in 2PC the coordinator is not elected, and that fault-tolerant consensus algorithms only require votes from a majority of nodes, whereas 2PC requires a “yes” vote from every participant. Moreover, consensus algorithms define a recovery process by which nodes can get into a consistent state after a new leader is elected, ensuring that the safety properties are always met. These differences are key to the correctness and fault tolerance of a consensus algorithm.</p>
+<h4 id="Limitations-of-consensus"><a href="#Limitations-of-consensus" class="headerlink" title="Limitations of consensus"></a>Limitations of consensus</h4><p>The process by which nodes vote on proposals before they are decided is a kind of synchronous replication.<br>Consensus systems always require a strict majority to operate.<br>Most consensus algorithms assume a fixed set of nodes that participate in voting, which means that you can’t just add or remove nodes in the cluster.<br>Consensus systems generally rely on timeouts to detect failed nodes.<br>Sometimes, consensus algorithms are particularly sensitive to network problems.</p>
+<h3 id="Membership-and-Coordination-Services"><a href="#Membership-and-Coordination-Services" class="headerlink" title="Membership and Coordination Services"></a>Membership and Coordination Services</h3><p>ZooKeeper and etcd are designed to hold small amounts of data that can fit entirely in memory.That small amount of data is replicated across all the nodes using a fault-tolerant total order broadcast algorithm. </p>
+<p>ZooKeeper is modeled after Google’s Chubby lock service , implementing not only total order broadcast (and hence consensus), but also an interesting set of other features that turn out to be particularly useful when building distributed systems:</p>
+<ul>
+<li>Linearizable atomic operations</li>
+<li>Total ordering of operations</li>
+<li>Failure detection</li>
+<li>Change notifications</li>
+</ul>
+<h4 id="Allocating-work-to-nodes"><a href="#Allocating-work-to-nodes" class="headerlink" title="Allocating work to nodes"></a>Allocating work to nodes</h4><p>Normally, the kind of data managed by ZooKeeper is quite slow-changing.</p>
+<h4 id="Service-discovery"><a href="#Service-discovery" class="headerlink" title="Service discovery"></a>Service discovery</h4><h4 id="Membership-services"><a href="#Membership-services" class="headerlink" title="Membership services"></a>Membership services</h4><p>A membership service determines which nodes are currently active and live members of a cluster. </p>
+<h2 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h2><p>It turns out that a wide range of problems are actually reducible to consensus and are equivalent to each other.</p>
+<ul>
+<li>Linearizable compare-and-set registers</li>
+<li>Atomic transaction commit</li>
+<li>Total order broadcast</li>
+<li>Locks and leases</li>
+<li>Membership/coordination service</li>
+<li>Uniqueness constraint</li>
+</ul>
+<p>Not every system necessarily requires consensus: for example, leaderless and multi-leader replication systems typically do not use global consensus.</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/分布式系统/">分布式系统</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/分布式系统/">分布式系统</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://liujunming.github.io/2018/10/07/Designing-Data-Intensive-Applications-读书笔记-Consistency-and-Consensus/" data-title="Designing Data-Intensive Applications 读书笔记 -Consistency and Consensus | L" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+
+<div class="next">
+<a href="/2018/09/25/Designing-Data-Intensive-Applications-读书笔记-The-Trouble-with-Distributed-Systems/"  title="Designing Data-Intensive Applications 读书笔记 -The Trouble with Distributed Systems">
+ <strong>NEXT:</strong><br/> 
+ <span>Designing Data-Intensive Applications 读书笔记 -The Trouble with Distributed Systems
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comment">
+  
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+  
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Consistency-Guarantees"><span class="toc-number">1.</span> <span class="toc-text">Consistency Guarantees</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Linearizability"><span class="toc-number">2.</span> <span class="toc-text">Linearizability</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#What-Makes-a-System-Linearizable"><span class="toc-number">2.1.</span> <span class="toc-text">What Makes a System Linearizable?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Relying-on-Linearizability"><span class="toc-number">2.2.</span> <span class="toc-text">Relying on Linearizability</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Locking-and-leader-election"><span class="toc-number">2.2.1.</span> <span class="toc-text">Locking and leader election</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Constraints-and-uniqueness-guarantees"><span class="toc-number">2.2.2.</span> <span class="toc-text">Constraints and uniqueness guarantees</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Cross-channel-timing-dependencies"><span class="toc-number">2.2.3.</span> <span class="toc-text">Cross-channel timing dependencies</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Implementing-Linearizable-Systems"><span class="toc-number">2.3.</span> <span class="toc-text">Implementing Linearizable Systems</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Linearizability-and-quorums"><span class="toc-number">2.3.1.</span> <span class="toc-text">Linearizability and quorums</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#The-Cost-of-Linearizability"><span class="toc-number">2.4.</span> <span class="toc-text">The Cost of Linearizability</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#The-CAP-theorem"><span class="toc-number">2.4.1.</span> <span class="toc-text">The CAP theorem</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Linearizability-and-network-delays"><span class="toc-number">2.4.2.</span> <span class="toc-text">Linearizability and network delays</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ordering-Guarantees"><span class="toc-number">3.</span> <span class="toc-text">Ordering Guarantees</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Ordering-and-Causality"><span class="toc-number">3.1.</span> <span class="toc-text">Ordering and Causality</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#The-causal-order-is-not-a-total-order"><span class="toc-number">3.1.1.</span> <span class="toc-text">The causal order is not a total order</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Linearizability-is-stronger-than-causal-consistency"><span class="toc-number">3.1.2.</span> <span class="toc-text">Linearizability is stronger than causal consistency</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Capturing-causal-dependencies"><span class="toc-number">3.1.3.</span> <span class="toc-text">Capturing causal dependencies</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sequence-Number-Ordering"><span class="toc-number">3.2.</span> <span class="toc-text">Sequence Number Ordering</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Lamport-timestamps"><span class="toc-number">3.2.1.</span> <span class="toc-text">Lamport timestamps</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Timestamp-ordering-is-not-sufficient"><span class="toc-number">3.2.2.</span> <span class="toc-text">Timestamp ordering is not sufficient</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Total-Order-Broadcast"><span class="toc-number">3.3.</span> <span class="toc-text">Total Order Broadcast</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Using-total-order-broadcast"><span class="toc-number">3.3.1.</span> <span class="toc-text">Using total order broadcast</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Implementing-linearizable-storage-using-total-order-broadcast"><span class="toc-number">3.3.2.</span> <span class="toc-text">Implementing linearizable storage using total order broadcast</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Distributed-Transactions-and-Consensus"><span class="toc-number">4.</span> <span class="toc-text">Distributed Transactions and Consensus</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Atomic-Commit-and-Two-Phase-Commit-2PC"><span class="toc-number">4.1.</span> <span class="toc-text">Atomic Commit and Two-Phase Commit (2PC)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#From-single-node-to-distributed-atomic-commit"><span class="toc-number">4.1.1.</span> <span class="toc-text">From single-node to distributed atomic commit</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Introduction-to-two-phase-commit"><span class="toc-number">4.1.2.</span> <span class="toc-text">Introduction to two-phase commit</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Coordinator-failure"><span class="toc-number">4.1.3.</span> <span class="toc-text">Coordinator failure</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Three-phase-commit"><span class="toc-number">4.1.4.</span> <span class="toc-text">Three-phase commit</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Distributed-Transactions-in-Practice"><span class="toc-number">4.2.</span> <span class="toc-text">Distributed Transactions in Practice</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Exactly-once-message-processing"><span class="toc-number">4.2.1.</span> <span class="toc-text">Exactly-once message processing</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#XA-transactions"><span class="toc-number">4.2.2.</span> <span class="toc-text">XA transactions</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Holding-locks-while-in-doubt"><span class="toc-number">4.2.3.</span> <span class="toc-text">Holding locks while in doubt</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Recovering-from-coordinator-failure"><span class="toc-number">4.2.4.</span> <span class="toc-text">Recovering from coordinator failure</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Limitations-of-distributed-transactions"><span class="toc-number">4.2.5.</span> <span class="toc-text">Limitations of distributed transactions</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Fault-Tolerant-Consensus"><span class="toc-number">4.3.</span> <span class="toc-text">Fault-Tolerant Consensus</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Consensus-algorithms-and-total-order-broadcast"><span class="toc-number">4.3.1.</span> <span class="toc-text">Consensus algorithms and total order broadcast</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Single-leader-replication-and-consensus"><span class="toc-number">4.3.2.</span> <span class="toc-text">Single-leader replication and consensus</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Epoch-numbering-and-quorums"><span class="toc-number">4.3.3.</span> <span class="toc-text">Epoch numbering and quorums</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Limitations-of-consensus"><span class="toc-number">4.3.4.</span> <span class="toc-text">Limitations of consensus</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Membership-and-Coordination-Services"><span class="toc-number">4.4.</span> <span class="toc-text">Membership and Coordination Services</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Allocating-work-to-nodes"><span class="toc-number">4.4.1.</span> <span class="toc-text">Allocating work to nodes</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Service-discovery"><span class="toc-number">4.4.2.</span> <span class="toc-text">Service discovery</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Membership-services"><span class="toc-number">4.4.3.</span> <span class="toc-text">Membership services</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Summary"><span class="toc-number">5.</span> <span class="toc-text">Summary</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Kernel/" title="Kernel">Kernel<sup>8</sup></a></li>
+		
+			<li><a href="/categories/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/categories/kv-store/" title="kv store">kv store<sup>2</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>3</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/categories/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/categories/内存管理/" title="内存管理">内存管理<sup>20</sup></a></li>
+		
+			<li><a href="/categories/分布式系统/" title="分布式系统">分布式系统<sup>7</sup></a></li>
+		
+			<li><a href="/categories/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/categories/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/categories/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/categories/数据结构/" title="数据结构">数据结构<sup>8</sup></a></li>
+		
+			<li><a href="/categories/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>5</sup></a></li>
+		
+			<li><a href="/categories/经验/" title="经验">经验<sup>9</sup></a></li>
+		
+			<li><a href="/categories/虚拟化/" title="虚拟化">虚拟化<sup>6</sup></a></li>
+		
+			<li><a href="/categories/计算机系统/" title="计算机系统">计算机系统<sup>8</sup></a></li>
+		
+			<li><a href="/categories/计算机网络/" title="计算机网络">计算机网络<sup>2</sup></a></li>
+		
+			<li><a href="/categories/软件工程/" title="软件工程">软件工程<sup>24</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/C语言/" title="C语言">C语言<sup>3</sup></a></li>
+		
+			<li><a href="/tags/KVM/" title="KVM">KVM<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Kernel/" title="Kernel">Kernel<sup>26</sup></a></li>
+		
+			<li><a href="/tags/benchmark/" title="benchmark">benchmark<sup>4</sup></a></li>
+		
+			<li><a href="/tags/docker/" title="docker">docker<sup>2</sup></a></li>
+		
+			<li><a href="/tags/ksm/" title="ksm">ksm<sup>1</sup></a></li>
+		
+			<li><a href="/tags/leveldb/" title="leveldb">leveldb<sup>2</sup></a></li>
+		
+			<li><a href="/tags/linux/" title="linux">linux<sup>5</sup></a></li>
+		
+			<li><a href="/tags/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/tags/scala/" title="scala">scala<sup>2</sup></a></li>
+		
+			<li><a href="/tags/spark/" title="spark">spark<sup>2</sup></a></li>
+		
+			<li><a href="/tags/xv6/" title="xv6">xv6<sup>2</sup></a></li>
+		
+			<li><a href="/tags/内存管理/" title="内存管理">内存管理<sup>21</sup></a></li>
+		
+			<li><a href="/tags/分布式系统/" title="分布式系统">分布式系统<sup>7</sup></a></li>
+		
+			<li><a href="/tags/存储/" title="存储">存储<sup>1</sup></a></li>
+		
+			<li><a href="/tags/容器/" title="容器">容器<sup>2</sup></a></li>
+		
+			<li><a href="/tags/工具/" title="工具">工具<sup>4</sup></a></li>
+		
+			<li><a href="/tags/操作系统/" title="操作系统">操作系统<sup>3</sup></a></li>
+		
+			<li><a href="/tags/数据结构/" title="数据结构">数据结构<sup>8</sup></a></li>
+		
+			<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/10/">十月 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/09/">九月 2018</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/12/">十二月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a><span class="archive-list-count">12</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">7</span></li></ul>
+  </div>
+
+
+  <div class="linkslist">
+  <p class="asidetitle">友情链接</p>
+    <ul>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910" target="_blank">ustc个人主页</a></li>
+      <li><a href="http://home.ustc.edu.cn/~ljm0910/paper.html" target="_blank">论文整理</a></li>
+      <li><a href="https://dremy.cn/" target="_blank">Dremy's Blog</a></li>
+    </ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> Hello, I am Liujunming <br/>
+			This is my blog</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/u/3947739858?is_all=1" target="_blank" title="weibo"></a>
+		
+		
+		<a href="https://twitter.com/ljm11636" target="_blank" title="twitter"></a>
+		
+		
+		<a href="https://github.com/liujunming" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/profile.php?id=100007411297476" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Copyright © 2015-2018 <br>liujunming<br>All Right Reserved
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+
+    <script type="text/javascript">
+    var disqus_shortname = 'junmingliu';
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/10/07/Designing-Data-Intensive-Applications-读书笔记-Consistency-and-Consensus/';
+        this.page.identifier = '/2018/10/07/Designing-Data-Intensive-Applications-读书笔记-Consistency-and-Consensus/';
+        this.page.title = 'Designing Data-Intensive Applications 读书笔记 -Consistency and Consensus';
+    };
+    (function(){
+      var d = document;
+      var dsq = d.createElement('script');
+      dsq.type = 'text/javascript';
+      dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (d.head || d.body).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+
+
+  </body>
+</html>
