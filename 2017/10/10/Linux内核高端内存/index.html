@@ -256,8 +256,7 @@
 
     <div class="post-content">
       
-        <h2 id="Linux内核高端内存"><a href="#Linux内核高端内存" class="headerlink" title="Linux内核高端内存"></a>Linux内核高端内存</h2><p>本文内容主要来自<a href="http://ilinuxkernel.com/?p=1013" target="_blank" rel="noopener">ilinuxkernel.com</a>，并对该部分内容进行了扩充。</p>
-<p>下图展示的部分内容包含了本文的知识点，值得细细分析。<br><img src="/images/2017/10/8.gif" alt=""></p>
+        <h2 id="Linux内核高端内存"><a href="#Linux内核高端内存" class="headerlink" title="Linux内核高端内存"></a>Linux内核高端内存</h2><p>本文内容主要来自<a href="http://ilinuxkernel.com/?p=1013" target="_blank" rel="noopener">ilinuxkernel.com</a>，并对该部分内容进行了扩充。<br><a id="more"></a><br>下图展示的部分内容包含了本文的知识点，值得细细分析。<br><img src="/images/2017/10/8.gif" alt=""></p>
 <h3 id="Linux内核地址空间划分"><a href="#Linux内核地址空间划分" class="headerlink" title="Linux内核地址空间划分"></a>Linux内核地址空间划分</h3><p>通常<strong>32位Linux进程地址空间</strong>划分0~3G为用户空间，3~4G为空间。注意这里是32位进程地址空间划分，64位进程地址空间划分是不同的。<br><img src="/images/2017/10/4.png" alt=""></p>
 <h3 id="Linux内核高端内存的由来"><a href="#Linux内核高端内存的由来" class="headerlink" title="Linux内核高端内存的由来"></a>Linux内核高端内存的由来</h3><p>当内核模块代码或线程访问内存时，代码中的内存地址都为逻辑地址，而对应到真正的物理内存地址，需要地址<strong>一对一</strong>的映射，如逻辑地址0xc0000003对应的物理地址为0x3，0xc0000004对应的物理地址为0x4，… …，逻辑地址与物理地址对应的关系为:<br><code>物理地址 = 逻辑地址 – 0xC0000000</code></p>
 <p>假设按照上述简单的地址映射关系，那么内核逻辑地址空间访问为0xc0000000 ~ 0xffffffff，那么对应的物理内存范围就为0x0 ~ 0x40000000，即只能访问1G物理内存。若机器中安装8G物理内存，那么内核就只能访问前1G物理内存，后面7G物理内存将会无法访问，因为内核的地址空间已经全部映射到物理内存地址范围0x0 ~ 0x40000000。即使安装了8G物理内存，那么物理地址为0x40000001的内存，内核该怎么去访问呢？代码中必须要有内存逻辑地址的，0xc0000000 ~ 0xffffffff的地址空间已经被用完了，所以无法访问物理地址0x40000000以后的内存。</p>

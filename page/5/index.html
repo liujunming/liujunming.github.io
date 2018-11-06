@@ -253,65 +253,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="Thermostat"><a href="#Thermostat" class="headerlink" title="Thermostat"></a>Thermostat</h2><p>此论文是ASPLOS’17上的一篇文章，今天特意总结一下，希望对读者会有所帮助。</p>
-<ul>
-<li><p>在本文中混合内存是指内存中既有DRAM，又有新型内存(NVM),但是目前NVM尚未投入商用，系统中使用的NVM都是在DRAM的基础上使用软件模拟的。</p>
-</li>
-<li><p>Thermostat运行在KVM的虚拟机中，而非运行在主机OS中，这相当于我们修改的是虚拟机的操作系统。</p>
-</li>
-</ul>
-<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
-<li><a href="https://github.com/nehaag/thermostat_asplos_2017" target="_blank" rel="noopener">源码</a></li>
-<li>作者</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">姓名</th>
-<th style="text-align:center">主页</th>
-<th style="text-align:right">谷歌学术</th>
-<th style="text-align:right">dblp</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">Neha Agarwaln</td>
-<td style="text-align:center"><a href="https://web.eecs.umich.edu/~nehaag/" target="_blank" rel="noopener">Neha Agarwal</a></td>
-<td style="text-align:right"><a href="https://scholar.google.com/citations?user=CmoC12kAAAAJ&amp;hl=zh-CN&amp;oi=sra" target="_blank" rel="noopener">Neha Agarwal</a></td>
-<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/a/Agarwal:Neha" target="_blank" rel="noopener">Neha Agarwal</a></td>
-</tr>
-<tr>
-<td style="text-align:left">Thomas F. Wenisch</td>
-<td style="text-align:center"><a href="http://www.eecs.umich.edu/~twenisch/" target="_blank" rel="noopener">Thomas F. Wenisch</a></td>
-<td style="text-align:right"><a href="https://scholar.google.com/citations?user=MJ5G4xgAAAAJ&amp;hl=zh-CN&amp;oi=sra" target="_blank" rel="noopener">Thomas F. Wenisch</a></td>
-<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/w/Wenisch:Thomas_F=" target="_blank" rel="noopener">Thomas F. Wenisch</a></td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li><a href="https://scholar.google.com/scholar?cites=1275265614885108365&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></li>
-</ul>
-<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>新型内存(NVM)比DRAM更加密集、更加便宜，但是NVM与DRAM相比有更高的访问延迟。DRAM中不经常访问的应用数据可以存储在NVM中，以显著地节省内存成本。以往对混合内存的研究都假定页面大小为4KB， 然而，在云计算应用中，2MB大页的使用能大大提高系统的性能。Thermostat是一个应用程序透明的大页感知机制，将页面放置在混合内存系统中，同时实现了混合内存的成本优势和大页的性能优势。</p>
-<h3 id="贡献点"><a href="#贡献点" class="headerlink" title="贡献点"></a>贡献点</h3><ul>
-<li><p>我们提出一种低开销机制，用于估计由于将特定页面置于NVM中而导致的性能下降。</p>
-</li>
-<li><p>我们在一个页面(大页与小页)冷热分类系统中使用上述机制，只需要一个输入，该输入代表我们所设定的系统性能下降的最大值。</p>
-</li>
-<li><p>我们提出一种方法来检测错误分类并纠正它们，从而最小化错误分类对应用吞吐量的影响。</p>
-</li>
-<li><p>通过在软件中模拟NVM，我们展示了Thermostat利用3%性能下降的代价可以将最高达50％的云应用程序占用内存迁移到NVM中，从而最高可以降低内存成本30%。</p>
-</li>
-</ul>
-<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><p>Thermostat定期对应用程序占用的一小部分内存进行采样，使用页面poison技术来估计每个页面的访问速率，将页面访问速率较低的页面放置在NVM中。 然后继续监控这些冷页，以便检测并快速更正任何错误分类或行为变化。</p>
-<h4 id="页面取样"><a href="#页面取样" class="headerlink" title="页面取样"></a>页面取样</h4><p>对于大页，将其拆分为512个小页，假设<em>Accessed</em>位为1的小页有50个，我们在这50个小页中再选择一部分进行取样监视。</p>
-<h4 id="页面访问速率计算"><a href="#页面访问速率计算" class="headerlink" title="页面访问速率计算"></a>页面访问速率计算</h4><p>利用BadgerTrap计算页面的访问速率。</p>
-<h4 id="页面分类"><a href="#页面分类" class="headerlink" title="页面分类"></a>页面分类</h4><p>根据用户所设定的系统性能下降的最大值，计算出一个页面访问速率阈值，然后利用页面的访问速率与该阈值进行比较，我们将页面分为冷页或者热页。</p>
-<h4 id="错误分类页面的更正"><a href="#错误分类页面的更正" class="headerlink" title="错误分类页面的更正"></a>错误分类页面的更正</h4><p>对于已经被迁移到NVM中的冷页，我们对它继续监视，如果之前对该页判断错误，或者随着时间的变化它的访问速率变高，我们就更正错误，将该页迁回到DRAM中。</p>
-<h4 id="页面迁移"><a href="#页面迁移" class="headerlink" title="页面迁移"></a>页面迁移</h4><p>一旦客户机识别出冷页，就必须将它们迁移到NVM中。 我们在KVM客户机中使用NUMA支持来实现迁移。 NVM内存空间作为单独的NUMA区域暴露给客户机操作系统，客户机操作系统可以向其迁移内存。</p>
-<h4 id="Thermostat例子"><a href="#Thermostat例子" class="headerlink" title="Thermostat例子"></a>Thermostat例子</h4><p><img src="/images/2017/9/7.png" alt=""></p>
-
+          <h2 id="Thermostat"><a href="#Thermostat" class="headerlink" title="Thermostat"></a>Thermostat</h2><p>此论文是ASPLOS’17上的一篇文章，今天特意总结一下，希望对读者会有所帮助。<br>
+          <div class="read-more">
+            <a href="/2017/09/07/Thermostat-Application-transparent-Page-Management-for-Two-tiered-Main-Memory/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -355,78 +304,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="An-Empirical-Study-of-Memory-Sharing-in-Virtual-Machines"><a href="#An-Empirical-Study-of-Memory-Sharing-in-Virtual-Machines" class="headerlink" title="An Empirical Study of Memory Sharing in Virtual Machines"></a>An Empirical Study of Memory Sharing in Virtual Machines</h2><p>此论文是ATC’12上的一篇文章，今天特意总结一下，希望对读者会有所帮助。</p>
-<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
-<li><a href="https://www.usenix.org/conference/atc12/technical-sessions/presentation/barker" target="_blank" rel="noopener">An Empirical Study of Memory Sharing in Virtual Machines</a><br>这里可以下载到paper与slides，同时还有音频资料。</li>
-<li>作者</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">姓名</th>
-<th style="text-align:center">主页</th>
-<th style="text-align:right">谷歌学术</th>
-<th style="text-align:right">dblp</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">Sean Barker</td>
-<td style="text-align:center"><a href="https://www.bowdoin.edu/~sbarker/" target="_blank" rel="noopener">Sean Barker</a></td>
-<td style="text-align:right"><a href="https://scholar.google.com.hk/citations?user=nBDKcywAAAAJ&amp;hl=zh-CN&amp;oi=sra" target="_blank" rel="noopener">Sean Barker</a></td>
-<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/b/Barker:Sean_Kenneth" target="_blank" rel="noopener">Sean Barker</a></td>
-</tr>
-<tr>
-<td style="text-align:left">Timothy Wood</td>
-<td style="text-align:center"><a href="https://www.seas.gwu.edu/timothy-wood" target="_blank" rel="noopener">Timothy Wood</a></td>
-<td style="text-align:right"><a href="https://scholar.google.com/citations?user=gZnLi9sAAAAJ&amp;hl=zh-CN" target="_blank" rel="noopener">Timothy Wood</a></td>
-<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/w/Wood:Timothy" target="_blank" rel="noopener">Timothy Wood</a></td>
-</tr>
-<tr>
-<td style="text-align:left">Prashant Shenoy</td>
-<td style="text-align:center"><a href="https://people.cs.umass.edu/~shenoy/home" target="_blank" rel="noopener">Prashant Shenoy</a></td>
-<td style="text-align:right"><a href="https://scholar.google.com.hk/citations?user=TciP6mcAAAAJ&amp;hl=zh-CN&amp;oi=sra" target="_blank" rel="noopener">Prashant Shenoy</a></td>
-<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/s/Shenoy:Prashant_J=" target="_blank" rel="noopener">Prashant Shenoy</a></td>
-</tr>
-<tr>
-<td style="text-align:left">Ramesh Sitaraman</td>
-<td style="text-align:center"><a href="https://people.cs.umass.edu/~ramesh/Site/HOME.html" target="_blank" rel="noopener">Ramesh Sitaraman</a></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/s/Sitaraman:Ramesh_K=" target="_blank" rel="noopener">Ramesh Sitaraman</a></td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li><a href="https://scholar.google.com.hk/scholar?hl=zh-CN&amp;as_sdt=2005&amp;sciodt=0,5&amp;cites=12651277162713792602&amp;scipsc=" target="_blank" rel="noopener">最新动态</a></li>
-</ul>
-<h3 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h3><p>我们将内存重删分为两个基本类别：Self-sharing和Inter-VM sharing。</p>
-<ul>
-<li>Self-sharing:　单个虚拟机内部的内存重删</li>
-<li>Inter-VM sharing:　多个虚拟机之间的内存重删</li>
-<li>现实系统内存重删：内存重删往往考虑的场景是在虚拟化环境下，重删的内存也是虚拟机占用的内存，现实系统考虑的是整个系统内存的重删，而不单单局限于虚拟机的内存。</li>
-</ul>
-<h3 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h3><ol>
-<li>我们观察到绝对重删效果（不包括零页）通常保持在15％以下，而以前的工作经常宣称可以节省30％以上内存。</li>
-<li>在一组虚拟机中，Self-sharing往往会占据大部分的重删，而Inter-VM sharing对重删的贡献则较小。而且，机器之间的差异也大大降低了机器间重删的可能性。</li>
-<li>我们发现操作系统功能，如地址空间布局随机化，可以进一步降低去重效果。</li>
-</ol>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><ul>
-<li><p>在大多数情况下，主要的去重效果归因于单个虚拟机机中的冗余（Self-sharing），而不是在多台机器之间（Inter-VM sharing）。 这表明:</p>
-<ul>
-<li>可以在单个虚拟机而不是Ｈypervisor级别上有效地利用重删</li>
-<li>重删完全不需要限制在虚拟化系统中</li>
-</ul>
-</li>
-<li><p>操作系统同质性是Inter-VM sharing最重要的因素，应用程序，体系结构和版本的同质性对Inter-VM sharing重要性则小一些（但仍然很重要）。特别地，我们看到，不同的平台之间，例如Windows和Linux系统之间没有Inter-VM sharing。通过更改基本系统的版本， Inter-VM sharing仍然存在，但大大减少。</p>
-</li>
-<li><p>我们在Linux系统中进行Self-sharing的研究，发现GUI应用程序和相关系统库是Self-sharing最重要的来源。</p>
-</li>
-<li><p>我们探讨地址空间布局随机化对去重效果的影响，发现在所有系统中，这一特征对去重效果具有一定的负面影响。</p>
-</li>
-</ul>
-
+          <h2 id="An-Empirical-Study-of-Memory-Sharing-in-Virtual-Machines"><a href="#An-Empirical-Study-of-Memory-Sharing-in-Virtual-Machines" class="headerlink" title="An Empirical Study of Memory Sharing in Virtual Machines"></a>An Empirical Study of Memory Sharing in Virtual Machines</h2><p>此论文是ATC’12上的一篇文章，今天特意总结一下，希望对读者会有所帮助。<br>
+          <div class="read-more">
+            <a href="/2017/09/05/An-Empirical-Study-of-Memory-Sharing-in-Virtual-Machines/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -470,76 +355,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="vma-anon-vma和anon-vma-chain的联系"><a href="#vma-anon-vma和anon-vma-chain的联系" class="headerlink" title="vma, anon_vma和anon_vma_chain的联系"></a>vma, anon_vma和anon_vma_chain的联系</h2><p>本文主要参考了<a href="http://larmbr.com/2013/12/08/the-relation-between-vma-anon_vma-and-anon_vma_chain/" target="_blank" rel="noopener">vma, anon_vma和anon_vma_chain的联系</a>这篇文章，结合相关资料，对该文进行了一些改进。</p>
-<p>Linux提供了内存映射这一特性，它实现了把物理内存页映射(map)到进程的地址空间中, 以实现高效的数据操作或传输。内核在处理这一特性时, 使用了<code>struct vm_area_struct</code>, <code>struct anon_vma</code>和<code>struct anon_vma_chain</code>这三个重要数据结构, 所以理解这三个数据结构是重中之重,　本文试图厘清这三者的来历与联系。</p>
-<h3 id="vma"><a href="#vma" class="headerlink" title="vma"></a>vma</h3><p><a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/mm_types.h#L130" target="_blank" rel="noopener">struct vm_area_struct</a>在内核代码中常被简称为<code>vma</code>, 所以下文以<code>vma</code>指称这一结构。</p>
-<p><code>vma</code>是内存映射的单位, 它表示进程地址空间中的一个连续的区间, 其中字段<code>vm_start</code>和<code>vm_end</code>标明这块连续区间的起始虚拟地址。在使用<code>mmap</code>系统调用创建映射时, 用户指定<strong>起始地址(可选)</strong>和<strong>长度</strong>, 内核将据此寻找进程地址空间中符合条件的合法<code>vma</code>以供映射。<code>cat /proc/&lt;pid&gt;/maps</code>可以查看某一进程的所有映射区间。</p>
-<h3 id="anon-vma"><a href="#anon-vma" class="headerlink" title="anon_vma"></a>anon_vma</h3><p><a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/rmap.h#L27" target="_blank" rel="noopener">anon_vma</a>的引入需要一番解释。</p>
-<h4 id="反向映射的引入"><a href="#反向映射的引入" class="headerlink" title="反向映射的引入"></a>反向映射的引入</h4><p>当Linux系统内存不足时, swap子系统会释放一些页面, 交换到交换设备中, 以空出多余的内存页。虚拟内存的理念就是通过<strong>页表</strong>来维护虚拟地址到物理地址的映射。但是, <strong>页表</strong>是种<strong>单向映射</strong>, 即通过虚拟地址查找物理地址很容易,　但反之通过物理地址查找虚拟地址则很麻烦。这种问题在共享内存的情况下更加严重。而swap子系统在释放页面时就遇到这个问题, 对于特定页面(物理地址), 要找到映射到它的<code>页表项(PTE)</code>, 并修改<strong>PTE</strong>, 以使其指向交换设备中的该页的位置。在2.4之前的内核中, 这是件费时的工作, 因为内核需要遍历每一个进程的所有页表, 以找出所有映射该页的页表项。</p>
-<p>解决这一问题的做法是引入<strong>反向映射(reverse mapping)</strong>这一概念。该做法就是为每一个内存页(<code>struct page</code>)维护一个数据结构, 其中包含所有映射到该页的<code>PTE</code>, 这样在寻找一个内存页的反向映射时只要扫描这个结构即可, 大大提高了效率。这正是Rik van Riel的做法, 他在<code>struct page</code>中增加了一个<code>pte_chain</code>的字段, 它是一个指向所有映射到该页的PTE的链表指针。</p>
-<p>当然, 它是有代价的。</p>
-<ul>
-<li><p>每个<code>struct page</code>都增加了一个字段, 而系统中每个内存页都对应一个<code>struct page</code>结构, 这意味着相当数量的内存被用来维护这个字段。而<code>struct page</code>是重要的内核数据结构, 存放在有限的低端内存中, 增加一个字段浪费了大量的保贵低端内存, 而且, 当物理内存很大时, 这种情况更突出, 这引起了<strong>伸缩性(scalability)</strong>问题。</p>
-</li>
-<li><p>其它一些需要操作大量页面的函数慢下来了。<code>fork()</code>系统调用就是一个。由于Linux采取<strong>写时复制(COW, Copy On Write)</strong>的语义, 意味着新进程共享父进程的页表, 这样, 进程地址空间内的所有页都新增了一个PTE指向它, 因此, 需要为每个页新增一个反向映射, 这显著地拖慢了速度。</p>
-</li>
-</ul>
-<h4 id="基于对象的反向映射"><a href="#基于对象的反向映射" class="headerlink" title="基于对象的反向映射"></a>基于对象的反向映射</h4><p>这种代价显然是不能容忍的, 于是, Dave McCracken提出了一个叫做<strong>基于对象的反向映射(object-based reverse mapping)</strong>的解决方案。他的观察是, 前面所述的代价来源于反向映射字段的引入, 而如果存在可以从<code>struct page</code>中获取映射到该页面的所有页表项, 这个字段就不需要了, 自然不需要付出这些代价。他确实找到了一种方法。</p>
-<p>Linux的用户态内存页大致分<strong>两种使用情况</strong>:</p>
-<ul>
-<li><p>其中一大部分叫做<strong>文件后备页(file-backed page)</strong>, 顾名思义, 这种内存页的内容关联着后备存储系统中的文件, 比如程序的代码, 比如普通的文本文件, 这种内存页使用时一般通过上述的<code>mmap</code>系统调用映射到地址空间中, 并且, 在内存紧张时, 可以简单地丢弃, 因为可以从后备文件中轻易的恢复。</p>
-</li>
-<li><p>一种叫<strong>匿名页(anonymous page)</strong>, 这是一种普通的内存页, 比如栈或堆内存就属于这种, 这种内存页没有后备文件, 这也是其称为<strong>匿名</strong>的缘故。</p>
-</li>
-</ul>
-<p>Dave的方案中的<strong>对象</strong>指的就是第一种内存页的<strong>后备文件</strong>。他通过<strong>后备文件对象</strong>, 以迂回的方式算出PTE,在本文中就不做过多的介绍。</p>
-<h4 id="匿名页的反向映射"><a href="#匿名页的反向映射" class="headerlink" title="匿名页的反向映射"></a>匿名页的反向映射</h4><p>Dave的方案只解决了第一种内存页的反向映射, 于是, Andrea Arcangeli顺着Dave的思路, 给出了匿名页的反向映射解决方案。</p>
-<p>如前所述, 匿名页没有所谓的<strong>后备文件</strong>, 但是, 匿名页有个特点, 就是它们都是私有的, 而非共享的(比如栈, 椎内存都是独立每个进程的, 非共享的)。这意味着, <strong>每一个匿名内存页, 只有一个PTE关联着它, 也就是只有一个vma关联着它</strong>。Andrea的方案是复用<code>struct page</code>的<code>mapping</code>字段, 因为对于匿名页, <code>mapping</code>为<code>null</code>, 不指向后备空间。复用方法是利用C语言的<code>union</code>, 在匿名页的情况下,<code>mapping</code>字段不是指向<code>struct address_space</code>的指针, 而是指向关联该内存页的唯一的<code>vma</code>。由此, 也可以方便地计算出PTE来。</p>
-<p>但是, 事情并不是如此简单。当进程被fork复制时, 前面已经说过, 由于COW的语义, 新进程只是复制父进程的页表, 这意味着现在<strong>一个匿名页有两个页表指向它了</strong>, 这样, 上面的简单复用<code>mapping</code>字段的做法不适用了, 因为一个指针, 如何表示两个vma呢。</p>
-<p>Andrea的做法就是<strong>多加一层</strong>。新创建一个<code>struct anon_vma</code>结构, 现在<code>mapping</code>字段是指向它了, 而<code>anon_vma</code>中, 不出意料的, 包含一个链表, 链接起所有的<code>vma</code>。每当进程fork一个子进程, 子进程由于COW机制会复制父进程的<code>vma</code>, 这个新<code>vma</code>就链接到父进程中的<code>anon_vma</code>中。这样, 每次unmap一个内存页时, 通过<code>mapping</code>字段指向的<code>anon_vma</code>, 就可以找到可能关联该页的<code>vma</code>链表, 遍历该链表, 就可以找到所有映射到该匿名页的PTE。</p>
-<p><img src="/images/2017/9/1.png" alt=""></p>
-<p>这也有代价, 那就是</p>
-<ul>
-<li>每个<code>struct vm_area_struct</code>结构多了一个<code>list_head</code>结构字段用以串起所有的<code>vma</code>。</li>
-<li>需要额外为<code>anon_vma</code>结构分配内存。</li>
-</ul>
-<p>但是, 这种方案所需要的内存远小于前面所提的在每个<code>struct page</code>中增加一个反向映射字段来得少, 因此是可以接受的。</p>
-<p>以上, 便介绍完了<code>anon_vma</code>结构的来由和作用。</p>
-<h3 id="anon-vma-chain"><a href="#anon-vma-chain" class="headerlink" title="anon_vma_chain"></a>anon_vma_chain</h3><p><code>anon_vma</code>结构的提出, 完善了反向映射机制, 一路看来, 无论是效率还是内存使用, 都有了提升, 应该说是很完美的一套解决方案。但现实不断提出难题。一开始提到的Rik van Riel就举了一种工作负载(workload)的<a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=5beb49305251e5669852ed541e8e2f2f7696c53e" target="_blank" rel="noopener">例子</a>来反驳说该方案有缺陷。</p>
-<p>前面的匿名页反向映射机制在解除一页映射时, 通过访问<code>anon_vma</code>访问<code>vma</code>链表, 遍历整个<code>vma</code>链表, 以查找可能映射到该页的PTE。但是, 这种方法忽略了一点: 当进程fork而复制产生的子进程中的<code>vma</code>如果发生了写访问, 将会分配新的匿名页, 把该<code>vma</code>指向这个新的匿名页, 这个<code>vma</code>就跟原来的那个匿名页没有关系了, 但原来的<code>vma</code>链表却没反映出这种变化, 从而导致了对该<code>vma</code>不必要的检查。 Rik举的例子正是对这种极端情况的描述。</p>
-<p>Rik采取的方案是又增加一层, 新增了一个结构叫<a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/rmap.h#L65" target="_blank" rel="noopener">anon_vma_chain</a>:</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The copy-on-write semantics of fork mean that an anon_vma</span></span><br><span class="line"><span class="comment"> * can become associated with multiple processes. Furthermore,</span></span><br><span class="line"><span class="comment"> * each child process will have its own anon_vma, where new</span></span><br><span class="line"><span class="comment"> * pages for that process are instantiated.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This structure allows us to find the anon_vmas associated</span></span><br><span class="line"><span class="comment"> * with a VMA, or the VMAs associated with an anon_vma.</span></span><br><span class="line"><span class="comment"> * The "same_vma" list contains the anon_vma_chains linking</span></span><br><span class="line"><span class="comment"> * all the anon_vmas associated with this VMA.</span></span><br><span class="line"><span class="comment"> * The "same_anon_vma" list contains the anon_vma_chains</span></span><br><span class="line"><span class="comment"> * which link all the VMAs associated with this anon_vma.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">anon_vma_chain</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">vma</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">anon_vma</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">same_vma</span>;</span>   <span class="comment">/* locked by mmap_sem &amp; page_table_lock */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">same_anon_vma</span>;</span>	<span class="comment">/* locked by anon_vma-&gt;lock */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>每个<code>anon_vma_chain</code>（AVC）维护两个链表</p>
-<ul>
-<li>same_vma：与给定<code>vma</code>相关联的所有<code>anon_vma</code></li>
-<li>same_anon_vma：与给定<code>anon_vma</code>相关联的所有<code>vma</code></li>
-</ul>
-<p> 最初，我们有一个进程与一个匿名<code>vma</code>：<br> <img src="/images/2017/9/2.png" alt=""></p>
-<p>这里，“AV”是<code>anon_vma</code>，“AVC”是上面看到的<code>anon_vma_chain</code>。 AVC直接通过指针链接到<code>anon_vma</code>和<code>vma</code>。 （蓝色）链表是same_anon_vma链表，而（红色）链表是same_vma链表。 </p>
-<p>想象一下，这个进程进行了fork操作，导致子进程复制了<code>vma</code>; 现在有了一个孤立的新<code>vma</code>：<br> <img src="/images/2017/9/3.png" alt=""></p>
-<p> 内核需要将此<code>vma</code>链接到父进程的<code>anon_vma</code>中; 这需要添加一个新的<code>anon_vma_chain</code>：<br>  <img src="/images/2017/9/4.png" alt=""></p>
-<p> 请注意，新的AVC已被添加到same_anon_vma链表中。 新的<code>vma</code>也需要自己的<code>anon_vma</code>：<br>   <img src="/images/2017/9/5.png" alt=""><br> 现在还有另一个<code>anon_vma_chain</code>链接在新的<code>anon_vma</code>中。 新的AVC已被添加到same_vma链表中。</p>
-<p> 此刻，根据上图，可以验证<code>anon_vma_chain</code>（AVC）中两个链表的作用。</p>
-<blockquote>
-<p>The “same_vma” list contains the anon_vma_chains linking all the anon_vmas associated with this VMA.<br> The “same_anon_vma” list contains the anon_vma_chains  which link all the VMAs associated with this anon_vma.</p>
-</blockquote>
-<p>当子进程写内存页时,发生COW, 子进程的<code>vma</code>将指向自己匿名页, 同时, 这个新的匿名页指向子进程的<code>anon_vma</code>(此时same_anon_vma链与same_vma链解除)。<br>   <img src="/images/2017/9/6.png" alt=""></p>
-<p>这样, 在解除一页映射时, 对于子进程自己的匿名页, 只要遍历子进程自己的<code>anon_vma</code>下的<code>vma</code>链表即可; 拥有大量子进程的父进程对于共享的页(未发生COW), 则按原来的方法遍历, 对于子进程自己的匿名页，父进程则不需要访问对应的<code>vma</code>，这样大大减少了父进程需要遍历的<code>vma</code>。</p>
-<p>再看<code>anon_vma_chain</code>这个名字, 它就像个粘合剂, 也像个链条, 把初始时父,子进程关联的<code>vma</code>和<code>anon_vma</code>链接起来, 当子进程通过COW拥有自己的匿名页后, 会发生解链, 以分冶策略各自管理, 从而使得在解除一页映射时, 减少了父进程遍历的<code>vma</code>数目, 也减少了相应的锁冲突, 因而提高了效率。</p>
-<hr>
-<p>参考资料：</p>
-<ol>
-<li><a href="http://larmbr.com/2013/12/08/the-relation-between-vma-anon_vma-and-anon_vma_chain/" target="_blank" rel="noopener">vma, anon_vma和anon_vma_chain的联系</a></li>
-<li><a href="https://lwn.net/Articles/383162/" target="_blank" rel="noopener">The case of the overly anonymous anon_vma</a></li>
-<li><a href="http://www.cnblogs.com/tolimit/p/5398552.html" target="_blank" rel="noopener">linux内存源码分析 - 内存回收(匿名页反向映射)</a></li>
-<li><a href="http://bbs.chinaunix.net/thread-4232791-1-1.html" target="_blank" rel="noopener">chinaunix</a></li>
-<li><a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/rmap.h#L65" target="_blank" rel="noopener">rmap.h</a></li>
-<li><a href="http://elixir.free-electrons.com/linux/v2.6.35.14/source/include/linux/mm_types.h#L130" target="_blank" rel="noopener">mm_types.h</a></li>
-<li><a href="http://www.it165.net/os/html/201411/9928.html" target="_blank" rel="noopener">Linux内核剖析之回收页框</a></li>
-</ol>
-
+          <h2 id="vma-anon-vma和anon-vma-chain的联系"><a href="#vma-anon-vma和anon-vma-chain的联系" class="headerlink" title="vma, anon_vma和anon_vma_chain的联系"></a>vma, anon_vma和anon_vma_chain的联系</h2><p>本文主要参考了<a href="http://larmbr.com/2013/12/08/the-relation-between-vma-anon_vma-and-anon_vma_chain/" target="_blank" rel="noopener">vma, anon_vma和anon_vma_chain的联系</a>这篇文章，结合相关资料，对该文进行了一些改进。<br>
+          <div class="read-more">
+            <a href="/2017/09/03/Linux中匿名页的反向映射/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -583,23 +406,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="Liblinear-benchmark"><a href="#Liblinear-benchmark" class="headerlink" title="Liblinear benchmark"></a>Liblinear benchmark</h2><p>本文只介绍liblinear benchmark的使用过程。</p>
-<h3 id="下载源码"><a href="#下载源码" class="headerlink" title="下载源码"></a>下载源码</h3><p>下载<a href="http://www.csie.ntu.edu.tw/~cjlin/cgi-bin/liblinear.cgi?+http://www.csie.ntu.edu.tw/~cjlin/liblinear+tar.gz" target="_blank" rel="noopener">liblinear-2.11.tar.gz</a>，然后解压。</p>
-<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p>Linux环境下，在liblinear-2.11中输入<code>make</code>即可构建<code>train</code> 和 <code>predict</code>程序。</p>
-<h3 id="train的介绍"><a href="#train的介绍" class="headerlink" title="train的介绍"></a><code>train</code>的介绍</h3><p><code>train</code>是训练程序。</p>
-<p>package中包含的样本分类数据是”heart_scale”，输入 <code>train heart_scale</code>,该程序将读取训练数据并输出模型文件”heart_scale.model”。</p>
-<p><code>train</code>的具体介绍参考<a href="https://github.com/cjlin1/liblinear" target="_blank" rel="noopener">这里</a>。<br><img src="/images/2017/8/25.png" alt=""></p>
-<h3 id="下载数据集"><a href="#下载数据集" class="headerlink" title="下载数据集"></a>下载数据集</h3><p><a href="https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/" target="_blank" rel="noopener">LIBSVM data sets</a>中数据集，在下面的demo中我们将使用<a href="https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html#url" target="_blank" rel="noopener">urlcombined dataset</a>。</p>
-<h3 id="demo"><a href="#demo" class="headerlink" title="demo"></a>demo</h3><p><img src="/images/2017/8/26.png" alt=""><br>从上图可以看到已经下载好训练集文件url_combined。<br>输入<code>time ./train -s 7 url_combined</code>即可。<br><img src="/images/2017/8/33.png" alt=""></p>
-<hr>
-<p>参考资料:</p>
-<ol>
-<li><a href="https://www.csie.ntu.edu.tw/~cjlin/liblinear/" target="_blank" rel="noopener">cjlin liblinear</a></li>
-<li><a href="https://github.com/cjlin1/liblinear" target="_blank" rel="noopener">github liblinear</a></li>
-</ol>
-
+          <h2 id="Liblinear-benchmark"><a href="#Liblinear-benchmark" class="headerlink" title="Liblinear benchmark"></a>Liblinear benchmark</h2><p>本文只介绍liblinear benchmark的使用过程。
+          <div class="read-more">
+            <a href="/2017/08/30/Liblinear-benchmark环境搭建/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -643,24 +457,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="An-Empirical-Study-on-Memory-Sharing-of-Virtual-Machines-for-Server-Consolidation"><a href="#An-Empirical-Study-on-Memory-Sharing-of-Virtual-Machines-for-Server-Consolidation" class="headerlink" title="An Empirical Study on Memory Sharing of Virtual Machines for Server Consolidation"></a>An Empirical Study on Memory Sharing of Virtual Machines for Server Consolidation</h2><p>本文主要是一份关于KSM的实验报告。</p>
-<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
-<li><a href="https://scholar.google.com/scholar?cites=4092737151614443280&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></li>
-</ul>
-<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>我们将内存去重分为两类：</p>
-<ul>
-<li>静态去重：在虚拟机开启之后，应用程序执行之前的去重过程</li>
-<li>动态去重：应用程序执行过程中的去重过程</li>
-</ul>
-<p>我们发现KSM为各种工作负载实现非常有效的静态去重。</p>
-<p>服务器整合提供了在虚拟机之间共享内存的许多机会。</p>
-<p><img src="/images/2017/8/23.png" alt=""></p>
-<h3 id="实验讨论"><a href="#实验讨论" class="headerlink" title="实验讨论"></a>实验讨论</h3><p><img src="/images/2017/8/24.png" alt=""></p>
-<h3 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h3><p>通过广泛的实验，我们将KSM对各种工作负载的有效性进行了实证研究。 所有应用都可以从KSM静态去重中受益。 对于CPU intensive应用程序，KSM对动态去重没有显著的影响，并且还会导致更高的运行开销。对混合CPU和I / O工作负载，KSM去重效果较好。I / O intensive应用程序（如MySQL和Apache）在运行时使用较少的内存，因此适用于高密度整合。 相比之下，MPI应用程序在执行过程中通常会消耗大量的内存， 因此，应该以更保守的方式进行合并，以避免在一个应用程序恢复执行时出现内存耗尽状况。</p>
-<p>此外，KSM在Windows中节省了比在Linux中更多的内存。</p>
-
+          <h2 id="An-Empirical-Study-on-Memory-Sharing-of-Virtual-Machines-for-Server-Consolidation"><a href="#An-Empirical-Study-on-Memory-Sharing-of-Virtual-Machines-for-Server-Consolidation" class="headerlink" title="An Empirical Study on Memory Sharing of Virtual Machines for Server Consolidation"></a>An Empirical Study on Memory Sharing of Virtual Machines for Server Consolidation</h2><p>本文主要是一份关于KSM的实验报告。<br>
+          <div class="read-more">
+            <a href="/2017/08/29/An-Empirical-Study-on-Memory-Sharing-of-Virtual-Machines-for-Server-Consolidation/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -704,35 +508,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="Large-Pages-and-Lightweight-Memory-Management-in-Virtualized-Environments"><a href="#Large-Pages-and-Lightweight-Memory-Management-in-Virtualized-Environments" class="headerlink" title="Large Pages and Lightweight Memory Management in Virtualized Environments"></a>Large Pages and Lightweight Memory Management in Virtualized Environments</h2><p>此论文是MICRO’15上的一篇文章，今天特意总结一下，希望对读者会有所帮助。</p>
-<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
-<li><p><a href="https://www.microarch.org/micro48/files/slides/BPC-1.pdf" target="_blank" rel="noopener">slides</a></p>
-</li>
-<li><p><a href="https://scholar.google.com/scholar?cites=113434625519826497&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></p>
-</li>
-</ul>
-<h3 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h3><p>我们利用硬件来解决大页与小页之间的冲突，使用猜测技术将连续对齐的小页分组翻译，以便它们接近大页地址转换的性能。 Generalized Large-page Utilization Enhancements (GLUE)允许hypervisor拆分大页进行敏捷内存管理，同时几乎保留大页的TLB性能。</p>
-<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><ul>
-<li>大页的优点<br><img src="/images/2017/8/19.png" alt=""></li>
-<li>大页的缺点<br><img src="/images/2017/8/20.png" alt=""></li>
-<li>大页vs小页<br><img src="/images/2017/8/21.png" alt=""></li>
-</ul>
-<h3 id="方法"><a href="#方法" class="headerlink" title="方法"></a>方法</h3><p>我们发现一个现象：通常拆分大页是为了实现更细粒度的内存管理，而不是从根本上改变虚拟或物理地址空间。 因此，绝大多数小页保留虚拟和物理地址空间中的原始邻接和对齐特性，从而允许它们被合并到大页中。</p>
-<p>下图说明了GLUE的操作：</p>
-<ul>
-<li>guest virtual pages (GVPs)</li>
-<li>guest physical pages (GPPs)</li>
-<li>system physical pages (SPPs)<br><img src="/images/2017/8/22.png" alt=""><br>我们假设四个连续的PTE成为一个大页，因此客户机page table可以将GVP 0-3的PTE组合成一个大页（与GVP 4-7的PTE相同）。</li>
-</ul>
-<h3 id="大页拆分的场景"><a href="#大页拆分的场景" class="headerlink" title="大页拆分的场景"></a>大页拆分的场景</h3><p>这部分内容总结的较好，讲述了在实际应用中拆分大页的场景，这些知识可以拓展自己的视野。</p>
-<h4 id="页面共享"><a href="#页面共享" class="headerlink" title="页面共享"></a>页面共享</h4><p>在内存去重时，我们往往会将大页进行拆分。</p>
-<h4 id="NUMA"><a href="#NUMA" class="headerlink" title="NUMA"></a>NUMA</h4><p>在NUMA系统中，大页会带来许多弊端，因此，需要拆分大页。</p>
-<h4 id="工作集取样"><a href="#工作集取样" class="headerlink" title="工作集取样"></a>工作集取样</h4><p>在hypervisor对工作集进行取样的时候，会拆分大页。</p>
-<h4 id="Live的VM迁移"><a href="#Live的VM迁移" class="headerlink" title="Live的VM迁移"></a>Live的VM迁移</h4><p>在不断开客户端的情况下进行VM的迁移时，会以小页为单位进行迁移。</p>
-<h4 id="有限的大页支持"><a href="#有限的大页支持" class="headerlink" title="有限的大页支持"></a>有限的大页支持</h4><h3 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h3><p>我们使用TLB猜测的硬件技术来解决大页与小页之间的冲突，从而同时获得大页与小页的优势。</p>
-
+          <h2 id="Large-Pages-and-Lightweight-Memory-Management-in-Virtualized-Environments"><a href="#Large-Pages-and-Lightweight-Memory-Management-in-Virtualized-Environments" class="headerlink" title="Large Pages and Lightweight Memory Management in Virtualized Environments"></a>Large Pages and Lightweight Memory Management in Virtualized Environments</h2><p>此论文是MICRO’15上的一篇文章，今天特意总结一下，希望对读者会有所帮助。
+          <div class="read-more">
+            <a href="/2017/08/28/Large-Pages-and-Lightweight-Memory-Management-in-Virtualized-Environments-Can-You-Have-it-Both-Ways/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -776,35 +559,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="CMD"><a href="#CMD" class="headerlink" title="CMD"></a>CMD</h2><p>此论文是VEE’14上的一篇文章，今天特意总结一下，希望对读者会有所帮助。</p>
-<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
-<li><p><a href="http://vee2014.cs.technion.ac.il/docs/VEE14-present33.pdf" target="_blank" rel="noopener">slides</a></p>
-</li>
-<li><p><a href="https://scholar.google.com/scholar?cites=13699938874189347953&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></p>
-</li>
-</ul>
-<h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>KSM需要对每个候选页在两个全局树中进行扫描，由于绝大多数页面都具有不同的内容，因此会导致大量无效的页面比较，从而导致沉重的开销。<br><img src="/images/2017/8/14.png" alt=""></p>
-<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>Futile Comparison指候选页在稳定树和不稳定树中未找到内容相同的页面。<br>本文的贡献点：</p>
-<ul>
-<li>我们详细分析了KSM，发现页面内容的比较贡献了整个KSM运行时间的一部分（约44％），其中Futile Comparison贡献了大部分页面比较开销（约83％）。</li>
-<li>为了减少Futile Comparison的开销，同时有效地检测页面共享机会，我们提出了基于分类的轻量级内存重删方法CMD(Classification-based Memory Deduplication)。 在CMD中，根据页面访问特征将页面分组到不同的分类中，大型全局比较树分为多个小树，每个页分类中都有专门的本地比较树。页面比较只是在相同的分类中执行，不同分类的页面从不被比较（因为它们可能导致Futile Comparison）。</li>
-<li>我们在真实系统中实现了CMD。 实验结果表明：与KSM相比，CMD可有效检测页面共享机会（超过98％），同时减少页面比较（约68.5％），Futile Comparison的比率也平均降低 了约12.15％。</li>
-</ul>
-<h3 id="设计"><a href="#设计" class="headerlink" title="设计"></a>设计</h3><h4 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h4><p>页面分类需要满足以下两个条件：</p>
-<ol>
-<li>相同内容概率较高的页面应分为相同的分类</li>
-<li>页面分类方法需要平衡，这意味着每个页面分类中的页面节点数量应该几乎相同<br><img src="/images/2017/8/15.png" alt=""></li>
-</ol>
-<h4 id="page-access-监视器"><a href="#page-access-监视器" class="headerlink" title="page access 监视器"></a>page access 监视器</h4><p>利用HMTT来更细粒度地检测页面的访问特征。</p>
-<h4 id="页分类"><a href="#页分类" class="headerlink" title="页分类"></a>页分类</h4><ul>
-<li><strong>CMD Address:</strong>页面按其物理地址进行静态分类<br><img src="/images/2017/8/16.png" alt=""></li>
-<li><strong>CMD PageCount:</strong>内存访问监视器在每个扫描周期期间捕获每个页面的写入次数，并且页面按照其写入次数简单地分区。<br><img src="/images/2017/8/17.png" alt=""></li>
-<li><strong>CMD Subpage Distribution:</strong>每个页面被分成多个子页面（例如4个1KB子页面），并且内存访问监视器维护所有子页面的写访问特性。 具有相同子页面访问分布的页面被分组到相同的分类中。<br><img src="/images/2017/8/18.png" alt=""></li>
-</ul>
-<h3 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h3><p>根据页面的访问特征，CMD将原先KSM的全局树分为几个独立的子树，这样节省了页面内容比较开销与Futile Comparison比率，同时保证了与KSM相近的重删效果。</p>
-
+          <h2 id="CMD"><a href="#CMD" class="headerlink" title="CMD"></a>CMD</h2><p>此论文是VEE’14上的一篇文章，今天特意总结一下，希望对读者会有所帮助。<br>
+          <div class="read-more">
+            <a href="/2017/08/27/CMD-Classification-based-Memory-Deduplication-through-Page-Access-Characteristics/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -848,48 +610,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="Accelerating-Two-Dimensional-Page-Walks-for-Virtualized-Systems"><a href="#Accelerating-Two-Dimensional-Page-Walks-for-Virtualized-Systems" class="headerlink" title="Accelerating Two-Dimensional Page Walks for Virtualized Systems"></a>Accelerating Two-Dimensional Page Walks for Virtualized Systems</h2><p>此论文是ASPLOS’08上的一篇文章，今天特意总结一下，希望对读者会有所帮助。</p>
-<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
-<li><p><a href="http://dl.acm.org/citation.cfm?id=1346286" target="_blank" rel="noopener">slides&amp;&amp;presentation</a></p>
-</li>
-<li><p>作者</p>
-</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">姓名</th>
-<th style="text-align:center">主页</th>
-<th style="text-align:right">dblp</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">Ravi Bhargava</td>
-<td style="text-align:center"><a href="https://www.linkedin.com/in/ravi-bhargava-420b285/" target="_blank" rel="noopener">Ravi Bhargava</a></td>
-<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/b/Bhargava:Ravi" target="_blank" rel="noopener">Ravi Bhargava</a></td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li><a href="https://scholar.google.com/scholar?cites=9384170580133847293&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></li>
-</ul>
-<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>本文介绍了在虚拟化环境中，AMD的2D page walk工作负载，以及如何利用page walk cache来降低负载。本文最大的亮点在于背景知识，详细清晰地讲述了虚拟化环境下地址的映射过程。<br>贡献点：</p>
-<ul>
-<li><p>这项工作是第一次讨论AMD皓龙page walk cache（PWC）。 PWC旨在通过将页面entry存储在小型快速缓存中来减少native页面访问的延迟，以避免内存层次结构访问。</p>
-</li>
-<li><p>将PWC扩展到nested paging上，同时，结合Nested TLB可以提高虚拟机的性能。</p>
-</li>
-<li><p>大页的引入可以降低2D page walk的开销。</p>
-</li>
-</ul>
-<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><h4 id="x86-Native-页面映射"><a href="#x86-Native-页面映射" class="headerlink" title="x86 Native 页面映射"></a>x86 Native 页面映射</h4><h4 id="虚拟化内存管理"><a href="#虚拟化内存管理" class="headerlink" title="虚拟化内存管理"></a>虚拟化内存管理</h4><h4 id="2D-page-table-walk"><a href="#2D-page-table-walk" class="headerlink" title="2D page table walk"></a>2D page table walk</h4><p>好好阅读！<br><img src="/images/2017/8/13.png" alt=""></p>
-<h4 id="大页"><a href="#大页" class="headerlink" title="大页"></a>大页</h4><p>the TLB must consider the page size for a given translation to be the smaller of the nested and guest page sizes</p>
-<h3 id="page-walk加速"><a href="#page-walk加速" class="headerlink" title="page walk加速"></a>page walk加速</h3><h4 id="Native-page-walk-PWC"><a href="#Native-page-walk-PWC" class="headerlink" title="Native page walk PWC"></a>Native page walk PWC</h4><h4 id="2-D-page-walk-PWC"><a href="#2-D-page-walk-PWC" class="headerlink" title="2-D page walk PWC"></a>2-D page walk PWC</h4><p><img src="/images/2017/8/11.png" alt=""></p>
-<h5 id="One-Dimensional-PWC"><a href="#One-Dimensional-PWC" class="headerlink" title="One-Dimensional PWC"></a>One-Dimensional PWC</h5><h5 id="Two-Dimensional-PWC"><a href="#Two-Dimensional-PWC" class="headerlink" title="Two-Dimensional PWC"></a>Two-Dimensional PWC</h5><h5 id="Two-Dimensional-PWC-with-Nested-Translations"><a href="#Two-Dimensional-PWC-with-Nested-Translations" class="headerlink" title="Two-Dimensional PWC with Nested Translations"></a>Two-Dimensional PWC with Nested Translations</h5><p>NTLB是映射客户机物理地址到主机物理地址的entry，它和TLB是独立的。<br><img src="/images/2017/8/12.png" alt=""></p>
-
+          <h2 id="Accelerating-Two-Dimensional-Page-Walks-for-Virtualized-Systems"><a href="#Accelerating-Two-Dimensional-Page-Walks-for-Virtualized-Systems" class="headerlink" title="Accelerating Two-Dimensional Page Walks for Virtualized Systems"></a>Accelerating Two-Dimensional Page Walks for Virtualized Systems</h2><p>此论文是ASPLOS’08上的一篇文章，今天特意总结一下，希望对读者会有所帮助。<br>
+          <div class="read-more">
+            <a href="/2017/08/26/Accelerating-Two-Dimensional-Page-Walks-for-Virtualized-Systems/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -927,47 +655,15 @@
       
         
         
+          
+        
 
         
           <h2 id="Performance-Implications-of-Extended-Page-Tables-on-Virtualized-x86-Processors"><a href="#Performance-Implications-of-Extended-Page-Tables-on-Virtualized-x86-Processors" class="headerlink" title="Performance Implications of Extended Page Tables on Virtualized x86 Processors"></a>Performance Implications of Extended Page Tables on Virtualized x86 Processors</h2><h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
-<li><p><a href="http://conf.researchr.org/getImage/vee-2016/orig/VEE2016_Merrifield_Taheri.ppt" target="_blank" rel="noopener">slides</a></p>
-</li>
-<li><p>作者</p>
-</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">姓名</th>
-<th style="text-align:center">主页</th>
-<th style="text-align:right">谷歌学术</th>
-<th style="text-align:right">dblp</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">Timothy Merrifield</td>
-<td style="text-align:center"><a href="https://www.cs.uic.edu/Bits/TimothyMerrifield" target="_blank" rel="noopener">Timothy Merrifield</a></td>
-<td style="text-align:right"><a href="https://scholar.google.com/citations?user=DE5bo7gAAAAJ&amp;hl=en" target="_blank" rel="noopener">Timothy Merrifield</a></td>
-<td style="text-align:right"><a href="http://dblp.uni-trier.de/pers/hd/m/Merrifield:Timothy" target="_blank" rel="noopener">Timothy Merrifield</a></td>
-</tr>
-<tr>
-<td style="text-align:left">H. Reza Taheri</td>
-<td style="text-align:center"><a href="https://www.linkedin.com/in/reza-taheri-a233471/" target="_blank" rel="noopener">H. Reza Taheri</a></td>
-<td style="text-align:right"></td>
-<td style="text-align:right"><a href="http://dblp2.uni-trier.de/pers/hd/t/Taheri:H=_Reza" target="_blank" rel="noopener">H. Reza Taheri</a></td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li><a href="https://scholar.google.com/scholar?cites=7841912601035251994&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></li>
-</ul>
-<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>本文的主要贡献是表明：如果使用最新的硬件和软件栈（paging structure caches and the L1/L2 data caches），虚拟化环境下TLB miss处理开销实际上是整体TLB miss处理开销的一小部分。</p>
-<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>本文的背景知识需要好好阅读，可以学到好多知识。</p>
-<h4 id="Native地址映射"><a href="#Native地址映射" class="headerlink" title="Native地址映射"></a>Native地址映射</h4><p>利用page structure caches，页寻址过程如下图。<br><img src="/images/2017/8/9.png" alt=""></p>
-<h4 id="虚拟化环境下的地址映射"><a href="#虚拟化环境下的地址映射" class="headerlink" title="虚拟化环境下的地址映射"></a>虚拟化环境下的地址映射</h4><h4 id="TLB-缓存与页面大小"><a href="#TLB-缓存与页面大小" class="headerlink" title="TLB 缓存与页面大小"></a>TLB 缓存与页面大小</h4><p>使用大页映射时，可以减少TLB miss，在虚拟化环境中，客户机和主机必须将页面映射到2MB，以允许处理器使用2MB TLB entry。下图显示了这种效果; 页0和页1在客户机中使用小页，页1024在客户机中使用大页。在主机中，客户机占用的内存局域都使用大页。页0和页1显然不能使用2MB的TLB entry，因为页0和页1在物理主机上并不连续。而页1024可以使用2MB TLB entry，因为页1024在gPA和hPA上都使用了大页。<br><img src="/images/2017/8/10.png" alt=""></p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>虚拟化对TLB miss的性能影响并不如人们想象的那么严重， 虽然通过EPT最坏的情况看起来过高，但在有较多TLB entry和paging structure caches的现代处理器情况下，Native和EPT的TLB miss 造成的性能损失大大降低。</p>
-
+<li><p><a href="http://conf.researchr.org/getImage/vee-2016/orig/VEE2016_Merrifield_Taheri.ppt" target="_blank" rel="noopener">slides</a>
+          <div class="read-more">
+            <a href="/2017/08/25/Performance-Implications-of-Extended-Page-Tables-on-Virtualized-x86-Processors/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -1011,25 +707,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="SmartMD"><a href="#SmartMD" class="headerlink" title="SmartMD"></a>SmartMD</h2><p>此论文是我们实验室的工作，发表在ATC’17上，今天特意总结一下，希望对读者会有所帮助。</p>
-<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><ul>
-<li><p><a href="https://www.usenix.org/sites/default/files/conference/protected-files/atc17_slides_guo_0.pdf" target="_blank" rel="noopener">slides</a></p>
-</li>
-<li><p><a href="https://scholar.google.com/scholar?cites=13332556407512147155&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></p>
-</li>
-</ul>
-<h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>大页可以带来系统性能的提升，但是内存去重效果较差；而Linux KSM为了去重效果好，拆分大页，牺牲了大页的优势。如何获取大页带来的性能优势，同时又保持较好的去重效果，这正是SmartMD所要解决的问题。</p>
-<h3 id="设计"><a href="#设计" class="headerlink" title="设计"></a>设计</h3><p>SmartMD的主要思想是拆分高重复率的冷大页以节省内存空间，拆分完的大页在变热的时候，将小页重新合并为大页以提高系统的性能。</p>
-<h4 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h4><p>SmartMD有三个单元构成：监视单元、选择单元、转换单元。<br><img src="/images/2017/8/7.png" alt=""></p>
-<h4 id="监视单元"><a href="#监视单元" class="headerlink" title="监视单元"></a>监视单元</h4><p>监视单元使用线程定期扫描页面以测量页面访问频率和重复率，下图展示了监视单元的工作流程。<br><img src="/images/2017/8/8.png" alt=""></p>
-<h4 id="选择单元"><a href="#选择单元" class="headerlink" title="选择单元"></a>选择单元</h4><p>为了提高内存访问性能，选择单元根据两个度量（即访问频率和重复率）选择候选大页进行拆分。</p>
-<p>选择单元判定大页是冷的还是热的，判定大页的重复率，它的工作流程是：<br>扫描大页时，选择单元首先读取其访问频率， 如果此页面被指定为冷的，则选择单元将进一步确定其重复率是否大于设定的阈值， 如果是的话，就拆分该页面。 另一方面，当选择已拆分大页进行合并时，选择单元只选择热页作为候选对象。</p>
-<h4 id="转换单元"><a href="#转换单元" class="headerlink" title="转换单元"></a>转换单元</h4><p>转换单元负责大页和小页之间的转换，包括大页的拆分和拆分页面的合并。</p>
-<p>为了降低大页和小页之间的转换成本，我们提出了一种自适应转换方案，以根据内存空间利用率来提高SmartMD的性能。 这个想法是：如果系统有足够的可用内存空间，我们只使用大页来提高系统性能；如果内存空间不足，我们则将大页分解为小页，以提高重删效率。</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>这项工作提出了SmartMD（一种自适应和高效的方案）来管理具有不同大小页面的内存。 SmartMD的主要思想是拆分高重复率的冷大页以节省内存空间，拆分完的大页在变热的时候，将小页重新合并为大页以提高系统的性能。因此SmartMD可以获得大页带来的系统性能提升，并同时获得较好的去重效果。</p>
-
+          <h2 id="SmartMD"><a href="#SmartMD" class="headerlink" title="SmartMD"></a>SmartMD</h2><p>此论文是我们实验室的工作，发表在ATC’17上，今天特意总结一下，希望对读者会有所帮助。
+          <div class="read-more">
+            <a href="/2017/08/24/SmartMD-A-High-Performance-Deduplication-Engine-with-Mixed-Pages/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>

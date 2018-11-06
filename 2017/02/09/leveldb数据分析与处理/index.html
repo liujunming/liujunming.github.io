@@ -256,7 +256,7 @@
 
     <div class="post-content">
       
-        <p>在介绍完leveldb的整体架构之后，本章将介绍leveldb中写入与删除记录，读取记录，Compaction，BloomFilter原理等内容。</p>
+        <p>在介绍完leveldb的整体架构之后，本章将介绍leveldb中写入与删除记录，读取记录，Compaction，BloomFilter原理等内容。<a id="more"></a></p>
 <h2 id="leveldb数据分析与处理"><a href="#leveldb数据分析与处理" class="headerlink" title="leveldb数据分析与处理"></a>leveldb数据分析与处理</h2><h3 id="写入与删除记录"><a href="#写入与删除记录" class="headerlink" title="写入与删除记录"></a>写入与删除记录</h3><p>本节介绍levelDb的记录更新操作，即插入一条KV记录或者删除一条KV记录。levelDb的更新操作速度是非常快的，源于其内部机制决定了这种更新操作的简单性。</p>
 <h4 id="写操作"><a href="#写操作" class="headerlink" title="写操作"></a>写操作</h4><p><img src="/images/2017/2/9/2.png" alt=""></p>
 <p>上图是levelDb如何更新KV数据的示意图，从图中可以看出，对于一个插入操作Put(Key,Value)来说，完成插入操作包含两个具体步骤：首先是将这条KV记录以顺序写的方式追加到之前介绍过的log文件末尾，因为尽管这是一个磁盘读写操作，但是文件的顺序追加写入效率是很高的，所以并不会导致写入速度的降低；第二个步骤是:如果写入log文件成功，那么将这条KV记录插入内存中的 <em>Memtable</em> 中，前面介绍过，Memtable只是一层封装，其内部其实是一个Key有序的SkipList列表，插入一条新记录的过程也很简单，即先查找合适的插入位置，然后修改相应的链接指针将新记录插入即可。完成这一步，写入记录就算完成了，所以一个插入记录操作涉及一次磁盘文件追加写和内存SkipList插入操作，这是为何levelDb写入速度如此高效的根本原因。</p>

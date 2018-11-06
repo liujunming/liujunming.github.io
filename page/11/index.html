@@ -253,11 +253,14 @@
       
         
         
+          
+        
 
         
-          <p>在并发编程的过程中，遇到了各种锁机制，本博客主要是记录这些锁机制以做总结。</p>
-<h2 id="同步锁"><a href="#同步锁" class="headerlink" title="同步锁"></a>同步锁</h2><h3 id="双重检查锁（double-checked-locking）"><a href="#双重检查锁（double-checked-locking）" class="headerlink" title="双重检查锁（double-checked locking）"></a>双重检查锁（double-checked locking）</h3><p>双重检查锁定模式是一种软件设计模式用来减少并发系统中竞争和同步的开销。双重检查锁定模式首先验证锁定条件(第一次检查)，只有通过锁定条件验证才真正的进行加锁逻辑并再次验证条件(第二次检查)。</p>
-
+          <p>在并发编程的过程中，遇到了各种锁机制，本博客主要是记录这些锁机制以做总结。<br>
+          <div class="read-more">
+            <a href="/2017/03/06/并发编程中的锁机制/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -301,50 +304,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="单例模式"><a href="#单例模式" class="headerlink" title="单例模式"></a>单例模式</h2><p>单例模式（Singleton Pattern）是 Java 中最简单的设计模式之一。这种类型的设计模式属于创建型模式，它提供了一种创建对象的最佳方式。</p>
-<p>这种模式涉及到一个单一的类，该类负责创建自己的对象，同时确保只有单个对象被创建。这个类提供了一种访问其唯一的对象的方式，可以直接访问，不需要实例化该类的对象。</p>
-<p><em>注意：</em></p>
-<ol>
-<li>单例类只能有一个实例。</li>
-<li>单例类必须自己创建自己的唯一实例。</li>
-<li>单例类必须给所有其他对象提供这一实例。</li>
-</ol>
-<h3 id="懒汉式，线程不安全"><a href="#懒汉式，线程不安全" class="headerlink" title="懒汉式，线程不安全"></a>懒汉式，线程不安全</h3><p>当被问到要实现一个单例模式时，很多人的第一反应是写出如下的代码，包括教科书上也是这样教我们的。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Singleton</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Singleton instance;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span> <span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">     <span class="keyword">if</span> (instance == <span class="keyword">null</span>) &#123;</span><br><span class="line">         instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">     &#125;</span><br><span class="line">     <span class="keyword">return</span> instance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这段代码简单明了，而且使用了懒加载模式，但是却存在致命的问题。当有多个线程并行调用 getInstance() 的时候，就会创建多个实例。也就是说在多线程下不能正常工作。</p>
-<h3 id="懒汉式，线程安全"><a href="#懒汉式，线程安全" class="headerlink" title="懒汉式，线程安全"></a>懒汉式，线程安全</h3><p>为了解决上面的问题，最简单的方法是将整个 getInstance() 方法设为同步（synchronized）。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> Singleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (instance == <span class="keyword">null</span>) &#123;</span><br><span class="line">        instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> instance;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>虽然做到了线程安全，并且解决了多实例的问题，但是它并不高效。因为在任何时候只能有一个线程调用 getInstance() 方法。但是同步操作只需要在第一次调用时才被需要，即第一次创建单例实例对象时。这就引出了双重检验锁。</p>
-<h3 id="双重检验锁"><a href="#双重检验锁" class="headerlink" title="双重检验锁"></a>双重检验锁</h3><p>双重检验锁模式（double checked locking pattern），是一种使用同步块加锁的方法。程序员称其为双重检查锁，因为会有两次检查 <code>instance == null</code>，一次是在同步块外，一次是在同步块内。为什么在同步块内还要再检验一次？因为可能会有多个线程一起进入同步块外的 if，如果在同步块内不进行二次检验的话就会生成多个实例了。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title">getSingleton</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (instance == <span class="keyword">null</span>) &#123;                         <span class="comment">//Single Checked</span></span><br><span class="line">        <span class="keyword">synchronized</span> (Singleton.class) &#123;</span><br><span class="line">            <span class="keyword">if</span> (instance == <span class="keyword">null</span>) &#123;                 <span class="comment">//Double Checked</span></span><br><span class="line">                instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> instance ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这段代码看起来很完美，很可惜，它是有问题。主要在于<code>instance = new Singleton()</code>这句，这并非是一个原子操作，事实上在 JVM 中这句话大概做了下面 3 件事情。</p>
-<ol>
-<li>给 instance 分配内存</li>
-<li>调用 Singleton 的构造函数来初始化成员变量</li>
-<li>将instance对象指向分配的内存空间（执行完这步 instance 就为非 null 了）</li>
-</ol>
-<p>但是在 JVM 的即时编译器中存在指令重排序的优化。也就是说上面的第二步和第三步的顺序是不能保证的，最终的执行顺序可能是 1-2-3 也可能是 1-3-2。如果是后者，则在 3 执行完毕、2 未执行之前，被线程二抢占了，这时 instance 已经是非 null 了（但却没有初始化），所以线程二会直接返回 instance，然后使用，然后顺理成章地报错。</p>
-<p>我们只需要将 instance 变量声明成 volatile 就可以了。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Singleton</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">static</span> Singleton instance; <span class="comment">//声明成 volatile</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span> <span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title">getSingleton</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (instance == <span class="keyword">null</span>) &#123;                         </span><br><span class="line">            <span class="keyword">synchronized</span> (Singleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (instance == <span class="keyword">null</span>) &#123;       </span><br><span class="line">                    instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> instance;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>有些人认为使用 volatile 的原因是可见性，也就是可以保证线程在本地不会存有 instance 的副本，每次都是去主内存中读取。但其实是不对的。使用 volatile 的主要原因是其另一个特性：禁止指令重排序优化。也就是说，在 volatile 变量的赋值操作后面会有一个内存屏障（生成的汇编代码上），读操作不会被重排序到内存屏障之前。比如上面的例子，取操作必须在执行完 1-2-3 之后或者 1-3-2 之后，不存在执行到 1-3 然后取到值的情况。从「先行发生原则」的角度理解的话，就是对于一个 volatile 变量的写操作都先行发生于后面对这个变量的读操作（这里的“后面”是时间上的先后顺序）。</p>
-<p>但是特别注意在 Java 5 以前的版本使用了 volatile 的双检锁还是有问题的。其原因是 Java 5 以前的 JMM （Java 内存模型）是存在缺陷的，即时将变量声明成 volatile 也不能完全避免重排序，主要是 volatile 变量前后的代码仍然存在重排序问题。这个 volatile 屏蔽重排序的问题在 Java 5 中才得以修复，所以在这之后才可以放心使用 volatile。</p>
-<p>相信你不会喜欢这种复杂又隐含问题的方式，当然我们有更好的实现线程安全的单例模式的办法。</p>
-<h3 id="饿汉式-static-final-field"><a href="#饿汉式-static-final-field" class="headerlink" title="饿汉式 static final field"></a>饿汉式 static final field</h3><p>这种方法非常简单，因为单例的实例被声明成 static 和 final 变量了，在第一次加载类到内存中时就会初始化，所以创建实例本身是线程安全的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Singleton</span></span>&#123;</span><br><span class="line">    <span class="comment">//类加载时就初始化</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Singleton instance = <span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title">getInstance</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> instance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这种写法如果完美的话，就没必要在啰嗦那么多双检锁的问题了。缺点是它不是一种懒加载模式（lazy initialization），单例会在加载类后一开始就被初始化，即使客户端没有调用 getInstance()方法。饿汉式的创建方式在一些场景中将无法使用：譬如 Singleton 实例的创建是依赖参数或者配置文件的，在 getInstance() 之前必须调用某个方法设置参数给它，那样这种单例写法就无法使用了。</p>
-<h3 id="静态内部类-static-nested-class"><a href="#静态内部类-static-nested-class" class="headerlink" title="静态内部类 static nested class"></a>静态内部类 static nested class</h3><p>我比较倾向于使用静态内部类的方法，这种方法也是《Effective Java》上所推荐的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Singleton</span> </span>&#123;  </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">SingletonHolder</span> </span>&#123;  </span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Singleton INSTANCE = <span class="keyword">new</span> Singleton();  </span><br><span class="line">    &#125;  </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span> <span class="params">()</span></span>&#123;&#125;  </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> Singleton <span class="title">getInstance</span><span class="params">()</span> </span>&#123;  </span><br><span class="line">        <span class="keyword">return</span> SingletonHolder.INSTANCE;</span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这种写法仍然使用JVM本身机制保证了线程安全问题；由于 SingletonHolder 是私有的，除了 getInstance() 之外没有办法访问它，因此它是懒汉式的；同时读取实例的时候不会进行同步，没有性能缺陷；也不依赖 JDK 版本。</p>
-<h3 id="枚举-Enum"><a href="#枚举-Enum" class="headerlink" title="枚举 Enum"></a>枚举 Enum</h3><p>用枚举写单例实在太简单了！这也是它最大的优点。下面这段代码就是声明枚举实例的通常做法。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">enum</span> EasySingleton&#123;</span><br><span class="line">    INSTANCE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>我们可以通过EasySingleton.INSTANCE来访问实例，这比调用getInstance()方法简单多了。创建枚举默认就是线程安全的，所以不需要担心double checked locking，而且还能防止反序列化导致重新创建新的对象。但是还是很少看到有人这样写，可能是因为不太熟悉吧。</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>一般来说，单例模式有五种写法：懒汉、饿汉、双重检验锁、静态内部类、枚举。上述所说都是线程安全的实现，文章开头给出的第一种方法（懒汉式，线程不安全）不算正确的写法。</p>
-<p>就我个人而言，一般情况下直接使用饿汉式就好了，如果明确要求要懒加载（lazy initialization）会倾向于使用静态内部类，如果涉及到反序列化创建对象时会试着使用枚举的方式来实现单例。</p>
-<hr>
-<p>参考资料：</p>
-<ol>
-<li><a href="http://wuchong.me/blog/2014/08/28/how-to-correctly-write-singleton-pattern/" target="_blank" rel="noopener">wuchong.me</a></li>
-<li><a href="http://www.runoob.com/design-pattern/singleton-pattern.html" target="_blank" rel="noopener">菜鸟教程</a></li>
-</ol>
-
+          <h2 id="单例模式"><a href="#单例模式" class="headerlink" title="单例模式"></a>单例模式</h2><p>单例模式（Singleton Pattern）是 Java 中最简单的设计模式之一。这种类型的设计模式属于创建型模式，它提供了一种创建对象的最佳方式。<br>
+          <div class="read-more">
+            <a href="/2017/03/06/设计模式：单例模式/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -388,54 +355,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p>xv6环境的搭建可参考<a href="https://pdos.csail.mit.edu/6.828/2014/tools.html" target="_blank" rel="noopener">lab tool</a>,但是在搭建的过程中遇到了许多的问题，故记录下来。</p>
-<h3 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h3><p>我是在windows10主机上利用vmware，安装了ubuntu-14.04.5-desktop-i386虚拟机</p>
-<p>这门课采用软件模拟的方式来调试整个操作系统，也就是说让xv6操作系统运行在一个用软件仿真出来的x86计算机上。这个仿真软件就是QEMU，这个仿真器有一个非常好的优点，就是它能和调试器GDB共同配合使用，这样的话我们就可以一条指令一条指令的调试运行在QEMU里面的xv6操作系统了。</p>
-<p>在按照lab tool配置环境的过程中，安装qemu时出现了种种问题，下面列举出安装过程。</p>
-<h3 id="QEMU-Emulator-安装"><a href="#QEMU-Emulator-安装" class="headerlink" title="QEMU Emulator 安装"></a>QEMU Emulator 安装</h3><ul>
-<li><code>git clone  git://git.qemu-project.org/qemu.git</code></li>
-<li><code>./configure --disable-kvm</code><ul>
-<li>ERROR: zlib check failed<br>Make sure to have the zlib libs and headers installed.<br><code>sudo apt-get install zlib1g-dev</code></li>
-<li>ERROR: glib-2.22 gthread-2.0 is required to compile QEMU<br><code>sudo apt-get install libglib2.0-dev zlib1g-dev</code></li>
-<li>ERROR: pixman &gt;= 0.21.8 not present. Your options:<pre><code>(1) Preferred: Install the pixman devel package (any recent
-    distro should have packages as Xorg needs pixman too).
-(2) Fetch the pixman submodule, using:
-    git submodule update --init pixman
-</code></pre><code>git submodule update --init pixman</code></li>
-<li>ERROR: DTC (libfdt) version &gt;= 1.4.0 not present. Your options:<pre><code>(1) Preferred: Install the DTC (libfdt) devel package
-(2) Fetch the DTC submodule, using:
-    git submodule update --init dtc
-</code></pre><code>git submodule update --init dtc</code></li>
-</ul>
-</li>
-<li><code>make &amp;&amp; make install</code><ul>
-<li>(cd /home/ljm/qemu/pixman; autoreconf -v –install)<br>/bin/sh: 1: autoreconf: not found<br>make: *** [/home/ljm/qemu/pixman/configure] Error 127<br><code>sudo apt-get install dh-autoreconf</code></li>
-</ul>
-</li>
-</ul>
-<h3 id="利用QEMU来运行xv6操作系统"><a href="#利用QEMU来运行xv6操作系统" class="headerlink" title="利用QEMU来运行xv6操作系统"></a>利用QEMU来运行xv6操作系统</h3><p>安装好QEMU之后，我们就可以用它来运行我们的操作系统啦~</p>
-<p>　　当然第一步就是把操作系统的源代码拷贝下来</p>
-<p>　　首先打开一个terminal，然后任意cd到一个目录下，比如我都是在~/Documents这个目录下工作的。</p>
-<p>　　然后输入 git clone  <a href="https://github.com/fatsheepzzq/6.828mit.git" target="_blank" rel="noopener">https://github.com/fatsheepzzq/6.828mit.git</a> 即可</p>
-<p>　　这样你就会在你的当前目录下面看到一个文件夹6.828mit，这个文件夹下面有一个子文件夹lab，这里面存放的就是所有操作系统源码</p>
-<p>　　然后我们就要先编译这个操作系统源码，来生成能够运行在Qemu上的操作系统映像文件，我们只需要在lab目录下输入命令</p>
-<p>　　<code>make</code></p>
-<p>　　这样计算机会为我们自动编译整个xv6操作系统，如果你的屏幕上显示下列信息，代表你已经编译成功</p>
-<p><img src="http://images2015.cnblogs.com/blog/809277/201512/809277-20151222224008781-396041230.png" alt=""></p>
-<p>　　我们可以看一下它生成的最后一个信息 mk obj/kern/kernel.img，这个kernel.img就是内核映像文件，另外obj目录在make之前是没有的，它是make指令生成的，它里面将会有许多的文件我们之后会重点观察。</p>
-<p>　　编译完内核源码，我们就可以把它运行在QEMU上！</p>
-<p>　　首先还要是在lab目录下面，输入  make qemu，此时qemu就开始自动加载我们的操作系统内核映像文件了，如果你的屏幕上打印如下信息，就代表你终于运行成功了！</p>
-<p>　　<img src="http://images2015.cnblogs.com/blog/809277/201512/809277-20151222222808562-157986736.png" alt=""></p>
-<p>　　从6828 decimal.. 那句话开始之后的信息都是由xv6操作系统内核显示出来的~</p>
-<p>　　到目前为止，你已经完成了在ubuntu上仿真x86计算机，并且运行xv6操作系统内核了！！</p>
-<hr>
-<p>参考资料：</p>
-<ol>
-<li><a href="http://www.cnblogs.com/fatsheep9146/p/5068353.html" target="_blank" rel="noopener">cnblogs fatsheep9146 </a></li>
-</ol>
-
+          <h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><p>xv6环境的搭建可参考<a href="https://pdos.csail.mit.edu/6.828/2014/tools.html" target="_blank" rel="noopener">lab tool</a>,但是在搭建的过程中遇到了许多的问题，故记录下来。
+          <div class="read-more">
+            <a href="/2017/02/18/xv6实验环境搭建与指导/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -479,43 +406,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="学习资料"><a href="#学习资料" class="headerlink" title="学习资料"></a>学习资料</h2><p>这学期准备学习下mit xv6课程以更好的理解操作系统，下面先列举下学习资料：</p>
-<ol>
-<li><a href="https://pdos.csail.mit.edu/6.828/2014/xv6.html" target="_blank" rel="noopener">xv6主页</a></li>
-<li><a href="https://pdos.csail.mit.edu/6.828/2014/xv6/xv6-rev8.pdf" target="_blank" rel="noopener">xv6-rev8.pdf</a></li>
-<li><a href="https://pdos.csail.mit.edu/6.828/2014/xv6/book-rev8.pdf" target="_blank" rel="noopener">book-rev8.pdf</a></li>
-<li><a href="http://guleilab.com/2015/12/30/FirstMeetXv6/" target="_blank" rel="noopener">guleilab.com</a></li>
-<li><a href="http://blog.csdn.net/column/details/mit-jos.html" target="_blank" rel="noopener">csdn cinmyheart </a></li>
-<li><a href="http://www.cnblogs.com/fatsheep9146/category/769143.html" target="_blank" rel="noopener">cnblogs fatsheep9146</a></li>
-</ol>
-<h2 id="shell"><a href="#shell" class="headerlink" title="shell"></a>shell</h2><p><a href="https://pdos.csail.mit.edu/6.828/2014/homework/xv6-shell.html" target="_blank" rel="noopener">homework</a>的作业是在<a href="https://pdos.csail.mit.edu/6.828/2014/homework/sh.c" target="_blank" rel="noopener">源代码</a>的基础上进行修改，以实现了基础的三类命令</p>
-<ul>
-<li>可执行的程序命令</li>
-<li>重定向命令</li>
-<li>管道命令</li>
-</ul>
-<p>下面给出代码片段：</p>
-<h3 id="可执行的程序命令"><a href="#可执行的程序命令" class="headerlink" title="可执行的程序命令"></a>可执行的程序命令</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(execv(ecmd-&gt;argv[<span class="number">0</span>] , ecmd-&gt;argv) == <span class="number">-1</span>)&#123;</span><br><span class="line">      <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"execv %s fails\n"</span>, ecmd-&gt;argv[<span class="number">0</span>]);</span><br><span class="line">      <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<h3 id="重定向命令"><a href="#重定向命令" class="headerlink" title="重定向命令"></a>重定向命令</h3><p>在这里自己先写了一个版本，如下：</p>
-<p><img src="/images/2017/2/17/1.png" alt="这里写图片描述"></p>
-<p>后来发现源代码中已经写好了一些函数，直接调用即可！</p>
-<p><img src="/images/2017/2/17/2.png" alt="这里写图片描述"></p>
-<h3 id="管道命令"><a href="#管道命令" class="headerlink" title="管道命令"></a>管道命令</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(fork1() == <span class="number">0</span>)&#123;</span><br><span class="line">    close(<span class="number">1</span>);</span><br><span class="line">    dup(p[<span class="number">1</span>]);</span><br><span class="line">    close(p[<span class="number">0</span>]);</span><br><span class="line">    close(p[<span class="number">1</span>]);</span><br><span class="line">    runcmd(pcmd-&gt;left);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span>(fork1() == <span class="number">0</span>)&#123;</span><br><span class="line">    close(<span class="number">0</span>);</span><br><span class="line">    dup(p[<span class="number">0</span>]);</span><br><span class="line">    close(p[<span class="number">0</span>]);</span><br><span class="line">    close(p[<span class="number">1</span>]);</span><br><span class="line">    runcmd(pcmd-&gt;right);</span><br><span class="line">  &#125;</span><br><span class="line">  close(p[<span class="number">0</span>]);</span><br><span class="line">  close(p[<span class="number">1</span>]);</span><br><span class="line">  wait();</span><br><span class="line">  wait();</span><br></pre></td></tr></table></figure>
-<p>分析：<br>第一次调用fork1()，产生 child process 1， 该进程用于运行 pcmd-&gt;left 指向的进程</p>
-<p>第二次调用fork1()，产生 child process 2 ，该进程用于运行 pcmd-&gt;right 指向的进程</p>
-<p>child process 1 由于先 close(1)那么文件描述符1就被空余出来了, 调用dup(p[1])把 child process 1的标准输出(文件描述符默认的是1)和管道的输出关联起来。</p>
-<p>child process 2的伎俩差不多，只是把进程的标准输入关闭了，把从管道的输入作为进程的标准输入来用．</p>
-<p>这里必须两个wait()，因为这里有两个子进程，parent process必须等这两个进程都挂了之后再结束．</p>
-<h3 id="源代码"><a href="#源代码" class="headerlink" title="源代码"></a>源代码</h3><p><a href="https://github.com/liujunming/mit_xv6/blob/master/LEC1/sh.c" target="_blank" rel="noopener">完整代码</a></p>
-<hr>
-<p>参考资料：</p>
-<ol>
-<li><a href="http://blog.csdn.net/cinmyheart/article/details/45122619" target="_blank" rel="noopener">csdn  cinmyheart</a></li>
-<li><a href="https://pdos.csail.mit.edu/6.828/2014/homework/xv6-shell.html" target="_blank" rel="noopener">6.828</a></li>
-</ol>
-
+          <h2 id="学习资料"><a href="#学习资料" class="headerlink" title="学习资料"></a>学习资料</h2><p>这学期准备学习下mit xv6课程以更好的理解操作系统，下面先列举下学习资料：
+          <div class="read-more">
+            <a href="/2017/02/18/xv6-shell编程/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -559,50 +457,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="纠删码（erasure-coding）"><a href="#纠删码（erasure-coding）" class="headerlink" title="纠删码（erasure coding）"></a>纠删码（erasure coding）</h2><h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>纠删码（erasure coding，EC）是一种数据保护方法，它将数据分割成片段，把冗余数据块扩展、编码，并将其存储在不同的位置，比如磁盘、存储节点或者其它地理位置。</p>
-<p>纠删码会创建一个数学函数来描述一组数字，这样就可以检查它们的准确性，而且一旦其中一个数字丢失，还可以恢复。多项式插值（polynomial interpolation）或过采样（oversampling）就是纠删码所使用的关键技术。</p>
-<p>从数据函数角度来说，纠删码提供的保护可以用下面这个简单的公式来表示：n = k + m。变量“k”代表原始数据或符号的值。变量“m”代表故障后添加的提供保护的额外或冗余符号的值。变量“n”代表纠删码过程后创建的符号的总值。</p>
-<p>举个例子来说，在一个EC 10/16的配置中，会有6个额外的符号（变量m）被添加到10个原始符号（变量k）中。这16个数据片段（变量n）会遍布16个驱动器、节点或地理位置中。而原始文件可以从10个验证片段中重建。</p>
-<p>纠删码，也称为前向纠错（FEC）编码，早在50年前就已出现。随后产生了不同类型。其中一个最早也是最常见的类型就是RS（Reed-Solomon），这种类型的数据可以使用任何k符号的组合或数据块来重建，即使m符号丢失或不可用。比如，在EC 10/16中，即使有6个驱动器、节点或者地理位置丢失或不可用，而原始文件还是可以恢复。</p>
-<p>纠删码可以用于有大量数据和任何需要容错的应用程序或系统中，比如磁盘阵列系统、数据网格、分布式存储应用程序、对象存储或归档存储。目前，纠删码的一个常见的使用案例是基于对象的云存储。</p>
-<h3 id="相关概念介绍"><a href="#相关概念介绍" class="headerlink" title="相关概念介绍"></a>相关概念介绍</h3><p>众所周知，早年的计算机存储数据现在磁带上，然后发展到了磁盘，然而仅仅是单个盘，速度和性能都不是很好，然是，要知道人类的聪明才智是连ET都想不到的，前辈们不断的猜想，实验来提高计算机的性能，于是磁盘阵列问世了。由于磁盘阵列(Redundant Arrays of Independent Disks，RAID)的出现，使磁盘的存储性能和安全性等诸多方面有了飞速的提升，随着科技的进步，存储材质也在不断的优化，早期的磁带到磁盘，以及现在的SSD,甚至未来的比SSD性能更好的PCM(phase-change memory)都在极力的提高存储性能。</p>
-<p>以raid5为例，介绍下基本概念</p>
-<h4 id="stripe"><a href="#stripe" class="headerlink" title="stripe"></a>stripe</h4><p>RAID5的读写操作采用的是stripe的基本结构，即以stripe为读写的基本单位，假设一个3+1的RAID5，即3个数据盘+1个校验盘，那么一个stripe就包含3个数据块和一个校验块。我们结合图示来仔细看下RAID5的架构。</p>
-<p><img src="/images/2017/2/14/1.png" alt=""></p>
-<p>如图所示，这是一个3+1的RAID5，图中的每一个方块表示一个stripe的一个基本单元，又称为chunk；相同颜色的方块组成一个stripe，即每个stripe由3个数据chunk(A,B,C)+1个校验chunk(P)组成。关于校验块的生成方法以及数据恢复原理如下：</p>
-<pre><code>校验块P的生成方法为P=A⊕B⊕C 。(⊕表示异或运算)
-加入1号盘坏了，此时有读请求读B0块的数据，那么可以通过B0=A0⊕C0⊕P0 的方法 来进行恢复。
-</code></pre><p>可以观察到上图中的校验块不是单独的全部存在一个盘上，这是为了实现RAID中磁盘的磨损平衡，防止某个盘寿命太短而先损坏。 内核中有很多这种平衡校验块的算法，上图中用到的是ALGORITHM_LEFT_SYMMETRIC。</p>
-<p><em>内核中默认的stripe大小</em></p>
-<p>基本上所有的OS都认可的page大小是4KB，由于内核中是按sector为基本大小单位，1 sector = 512B，所以有如下公式：</p>
-<pre><code>1 page = 8*sector = 4KB
-1 chunk = 128*page = 512KB
-1 stripe = 4*chunk = 2048KB
-1 stripe的data size =3*chunk =1536KB
-</code></pre><h4 id="stripe-head"><a href="#stripe-head" class="headerlink" title="stripe_head"></a>stripe_head</h4><p>虽然说直观上看RAID5的基本处理单元是stripe，但是一个chunk的大小是512KB，这与OS一次处理的page大小相差太多，所以为了处理的一致性，内核将一个chunk分成128个page，由一个stripe的每个chunk出一个对应的page组成内核中的RAID5处理的基本单元：stripe_head。</p>
-<p>我们用图来详细了解下stripe_head与stripe的区别</p>
-<p><img src="/images/2017/2/14/2.png" alt=""></p>
-<p>这是第一幅图中的stripe 0 的细化，stripe 0 由A0、B0、C0和P0组成，这幅图中，将每个chunk细化，由于一个chunk的大小是128个page的大小，所以一个chunk中含有128个page，每个page的大小是4KB，所以在每一个chunk中具有相同偏移量的page组成一个stripe_head，即图中每个颜色相同的方块组成一个stripe_head。</p>
-<pre><code>1 stripe_head = 4*page = 16KB
-1 stripe = 128 * stripe_head =2048KB
-</code></pre><p>所以说：我们经常说的RAID5的处理单元stripe，实际上是内核中的处理单元stripe_head的结合体</p>
-<h3 id="推荐论文"><a href="#推荐论文" class="headerlink" title="推荐论文"></a>推荐论文</h3><ol>
-<li><a href="https://www.usenix.org/system/files/login/articles/10_plank-online.pdf" target="_blank" rel="noopener">usenix</a></li>
-<li><a href="http://web.eecs.utk.edu/~plank/plank/papers/FAST-2013-Tutorial.html" target="_blank" rel="noopener">Tutorial: Erasure Coding for Storage Applications</a></li>
-<li><a href="http://ai2-s2-pdfs.s3.amazonaws.com/82c0/d142c975e1cf224af674129d69647ef4d892.pdf" target="_blank" rel="noopener">FastScale: Accelerate RAID Scaling by Minimizing Data Migration</a></li>
-<li><a href="http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6552201" target="_blank" rel="noopener">Rethinking RAID-5 Data Layout for Better Scalability</a></li>
-<li><a href="http://www.cs.newpaltz.edu/~lik/publications/Guangyan-Zhang-IEEE-TC-2015.pdf" target="_blank" rel="noopener">Accelerate RDP RAID-6 Scaling by Reducing Disk I/Os and XOR Operations</a></li>
-<li><a href="http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7347422" target="_blank" rel="noopener">I/O-Efficient Scaling Schemes for Distributed Storage Systems with CRS Codes</a></li>
-</ol>
-<hr>
-<p>参考资料：</p>
-<ol>
-<li><a href="http://www.searchstorage.com.cn/whatis/word_6080.htm" target="_blank" rel="noopener">searchstorage</a></li>
-<li><a href="http://blog.csdn.net/chenyouxu/article/details/47005999" target="_blank" rel="noopener">csdn chenyouxu</a></li>
-</ol>
-
+          <h2 id="纠删码（erasure-coding）"><a href="#纠删码（erasure-coding）" class="headerlink" title="纠删码（erasure coding）"></a>纠删码（erasure coding）</h2><h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>纠删码（erasure coding，EC）是一种数据保护方法，它将数据分割成片段，把冗余数据块扩展、编码，并将其存储在不同的位置，比如磁盘、存储节点或者其它地理位置。<br>
+          <div class="read-more">
+            <a href="/2017/02/14/erasure-coding（纠删码-的介绍/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -646,97 +508,14 @@
       
         
         
+          
+        
 
         
-          <p>在介绍完leveldb的整体架构之后，本章将介绍leveldb中写入与删除记录，读取记录，Compaction，BloomFilter原理等内容。</p>
-<h2 id="leveldb数据分析与处理"><a href="#leveldb数据分析与处理" class="headerlink" title="leveldb数据分析与处理"></a>leveldb数据分析与处理</h2><h3 id="写入与删除记录"><a href="#写入与删除记录" class="headerlink" title="写入与删除记录"></a>写入与删除记录</h3><p>本节介绍levelDb的记录更新操作，即插入一条KV记录或者删除一条KV记录。levelDb的更新操作速度是非常快的，源于其内部机制决定了这种更新操作的简单性。</p>
-<h4 id="写操作"><a href="#写操作" class="headerlink" title="写操作"></a>写操作</h4><p><img src="/images/2017/2/9/2.png" alt=""></p>
-<p>上图是levelDb如何更新KV数据的示意图，从图中可以看出，对于一个插入操作Put(Key,Value)来说，完成插入操作包含两个具体步骤：首先是将这条KV记录以顺序写的方式追加到之前介绍过的log文件末尾，因为尽管这是一个磁盘读写操作，但是文件的顺序追加写入效率是很高的，所以并不会导致写入速度的降低；第二个步骤是:如果写入log文件成功，那么将这条KV记录插入内存中的 <em>Memtable</em> 中，前面介绍过，Memtable只是一层封装，其内部其实是一个Key有序的SkipList列表，插入一条新记录的过程也很简单，即先查找合适的插入位置，然后修改相应的链接指针将新记录插入即可。完成这一步，写入记录就算完成了，所以一个插入记录操作涉及一次磁盘文件追加写和内存SkipList插入操作，这是为何levelDb写入速度如此高效的根本原因。</p>
-<h4 id="Make-room-for-write"><a href="#Make-room-for-write" class="headerlink" title="Make room for write"></a>Make room for write</h4><ul>
-<li>Memtable中还有足够的空间可以写</li>
-<li>memtable full<ul>
-<li>Mem -&gt; immem</li>
-<li>Compact immemtable (a sort of compaction in source code)</li>
-<li>Level0,level1 or level2(if there is no overlap)</li>
-</ul>
-</li>
-</ul>
-<p>如果Memtable写满了(Memtable默认大小:4MB)</p>
-<ul>
-<li>关闭旧log,创建新log</li>
-<li>Memtable-&gt;immetable</li>
-<li>New memtable</li>
-<li>调用后台线程把immetable转换成SSTABLE</li>
-<li>转换完成后删除旧log</li>
-</ul>
-<p>一旦 memtable 满了之后，LevelDB 会生成新的 memtable 和日志文件来处理用户接下来的请求。在后台，之前的 memtable 被转换成 immutable memtable，顾名思义，就是说这个 memtable 的内容是不可更改的，只能读不能写入或者删除，一个合并的线程会将它里面的内容刷新到磁盘上，产生一个大约 2M 大小的 SSTable 文件，并将其放在 level 0 层（如果在level0，level1,level2中key的范围没有重叠，则可以放入任意一层）。同时，以前的日志文件将会被丢弃。</p>
-<h4 id="删除操作"><a href="#删除操作" class="headerlink" title="删除操作"></a>删除操作</h4><p>从上面的介绍过程中也可以看出：log文件内是key无序的，而Memtable中是key有序的。那么如果是删除一条KV记录呢？对于levelDb来说，并不存在立即删除的操作，而是与插入操作相同的，区别是，插入操作插入的是Key:Value 值，而删除操作插入的是“Key:删除标记”，并不真正去删除记录，而是后台Compaction的时候才去做真正的删除操作。</p>
-<p>levelDb的写入操作就是如此简单。真正的麻烦在后面将要介绍的读取操作中。</p>
-<h3 id="读取记录"><a href="#读取记录" class="headerlink" title="读取记录"></a>读取记录</h3><p>LevelDb是针对大规模Key/Value数据的单机存储库，从应用的角度来看，LevelDb就是一个存储工具。而作为称职的存储工具，常见的调用接口无非是新增KV，删除KV，读取KV，更新Key对应的Value值这么几种操作。LevelDb的接口没有直接支持更新操作的接口，如果需要更新某个Key的Value,你可以选择直接生猛地插入新的KV，保持Key相同，这样系统内的key对应的value就会被更新；或者你可以先删除旧的KV， 之后再插入新的KV，这样比较委婉地完成KV的更新操作。</p>
-<p>假设应用提交一个Key值，下面我们看看LevelDb是如何从存储的数据中读出其对应的Value值的。下图是LevelDb读取过程的整体示意图。</p>
-<p><img src="/images/2017/2/9/1.png" alt=""></p>
-<p>LevelDb首先会去查看内存中的Memtable，如果Memtable中包含key及其对应的value，则返回value值即可；如果在Memtable没有读到key，则接下来到同样处于内存中的Immutable Memtable中去读取，类似地，如果读到就返回，若是没有读到,那么只能万般无奈下从磁盘中的大量SSTable文件中查找。因为SSTable数量较多，而且分成多个Level，所以在SSTable中读数据是相当曲折的一个过程。总的读取原则是这样的：首先从属于level 0的文件中查找，如果找到则返回对应的value值，如果没有找到那么到level 1中的文件中去找，如此循环往复，直到在某层SSTable文件中找到这个key对应的value为止（或者查到最高level，查找失败，说明整个系统中不存在这个Key)。</p>
-<p> 　　那么为什么是从Memtable到Immutable Memtable，再从Immutable Memtable到文件，而文件中为何是从低level到高level这么一个查询路径呢？之所以选择这么个查询路径，是因为从信息的更新时间来说，很明显Memtable存储的是最新鲜的KV对；Immutable Memtable中存储的KV数据对的新鲜程度次之；而所有SSTable文件中的KV数据新鲜程度一定不如内存中的Memtable和Immutable Memtable的。对于SSTable文件来说，如果同时在level L和Level L+1找到同一个key，level L的信息一定比level L+1的要新。也就是说，上面列出的查找路径就是按照数据新鲜程度排列出来的，越新鲜的越先查找。</p>
-<p> 　　为啥要优先查找新鲜的数据呢？这个道理不言而喻，举个例子。比如我们先往levelDb里面插入一条数据 {key=”<a href="http://www.samecity.com&quot;" target="_blank" rel="noopener">www.samecity.com&quot;</a>  value=”我们”},过了几天，samecity网站改名为：69同城，此时我们插入数据{key=”<a href="http://www.samecity.com&quot;" target="_blank" rel="noopener">www.samecity.com&quot;</a>  value=”69同城”}，同样的key,不同的value；逻辑上理解好像levelDb中只有一个存储记录，即第二个记录，但是在levelDb中很可能存在两条记录，即上面的两个记录都在levelDb中存储了，此时如果用户查询key=”<a href="http://www.samecity.com&quot;,我们当然希望找到最新的更新记录，也就是第二个记录返回，这就是为何要优先查找新鲜数据的原因。" target="_blank" rel="noopener">www.samecity.com&quot;,我们当然希望找到最新的更新记录，也就是第二个记录返回，这就是为何要优先查找新鲜数据的原因。</a></p>
-<p>　　前文有讲：对于SSTable文件来说，如果同时在level L和Level L+1找到同一个key，level L的信息一定比level L+1的要新。这是一个结论，理论上需要一个证明过程，否则会招致如下的问题：为什么呢？因为Level L+1的数据是从Level L 经过Compaction后得到的，也就是说，您看到的现在的Level L+1层的SSTable数据是从原来的Level L中来的，现在的Level L比原来的Level L数据要新鲜，所以可证，现在的Level L比现在的Level L+1的数据要新鲜。</p>
-<p>　　SSTable文件很多，如何快速地找到key对应的value值？在LevelDb中，level 0一直很特殊，在level 0和其它level中查找某个key的过程是不一样的。因为level 0下的不同文件可能key的范围有重叠，某个要查询的key有可能多个文件都包含，这样的话LevelDb的策略是先找出level 0中哪些文件包含这个key（manifest文件中记载了level和对应的文件及文件里key的范围信息，LevelDb在内存中保留这种映射表）， 之后按照文件的新鲜程度排序，新的文件排在前面，之后依次查找，读出key对应的value。而如果是非level 0的话，因为这个level的文件之间key是不重叠的，所以只从一个文件就可以找到key对应的value。</p>
-<p>　　最后一个问题,如果给定一个要查询的key和某个key range包含这个key的SSTable文件，那么levelDb是如何进行具体查找过程的呢？levelDb一般会先在内存中的Cache中查找是否包含这个文件的缓存记录，如果包含，则从缓存中读取；如果不包含，则打开SSTable文件，同时将这个文件的索引部分加载到内存中并放入Cache中。 这样Cache里面就有了这个SSTable的缓存项，但是只有索引部分在内存中，之后levelDb根据索引可以定位到哪个内容Block会包含这条key，从文件中读出这个Block的内容，在根据记录一一比较，如果找到则返回结果，如果没有找到，那么说明这个level的SSTable文件并不包含这个key，所以到下一级别的SSTable中去查找。</p>
-<p>　　从之前介绍的LevelDb的写操作和这里介绍的读操作可以看出，相对写操作，读操作处理起来要复杂很多，所以写的速度必然要远远高于读数据的速度，也就是说，LevelDb比较适合写操作多于读操作的应用场合。而如果应用是很多读操作类型的，那么顺序读取效率会比较高，因为这样大部分内容都会在缓存中找到，尽可能避免大量的随机读取操作。</p>
-<h3 id="BloomFilter原理"><a href="#BloomFilter原理" class="headerlink" title="BloomFilter原理"></a>BloomFilter原理</h3><ul>
-<li>随机化算法 (BloomFilter)</li>
-<li>解决的根本问题：<ul>
-<li>判断一组key是否在集合中</li>
-<li>答案只有两种：可能存在 or 不存在</li>
-<li>每个键值消耗10bit，理论上可以保证可能存在出错的概率&lt;1%</li>
-</ul>
-</li>
-<li><p>特点</p>
-<ul>
-<li>随机化</li>
-<li>空间换时间</li>
-<li>过滤不必要的查询</li>
-</ul>
-<p><img src="/images/2017/2/9/3.png" alt=""></p>
-<p>An example of a Bloom filter, representing the set {x, y, z}. The colored arrows show the positions in the bit array that each set element is mapped to. The element w is not in the set {x, y, z}, because it hashes to one bit-array position containing 0.</p>
-</li>
-</ul>
-<p>LevelDB中加入bloom filter的支持。目前针对一次查询，LevelDB可能需要在每个level上进行一次磁盘随机访问。通过使用bloom filter可以大大减少所需要的磁盘I/O操作。比如，假设调用者正在查找一个值为”Foo”的key，LevelDB会从每个level下选择相应的SSTable文件(那些range包含了该key的文件)，之后会在这些SSTable文件上进行随机读。如果每个SSTable都有一个对应的bloom filter，那么查找时就可以很容易地通过检查bloom filter跳过那些不包含该key的SSTable文件。</p>
-<h3 id="Compaction"><a href="#Compaction" class="headerlink" title="Compaction"></a>Compaction</h3><p>前文有述，对于LevelDb来说，写入记录操作很简单，删除记录仅仅写入一个删除标记就算完事，但是读取记录比较复杂，需要在内存以及各个层级文件中依照新鲜程度依次查找，代价很高。为了加快读取速度，levelDb采取了compaction的方式来对已有的记录进行整理压缩，通过这种方式，来删除掉一些不再有效的KV数据，减小数据规模，减少文件数量等。</p>
-<p>levelDb的compaction机制和过程与Bigtable所讲述的是基本一致的，Bigtable中讲到三种类型的compaction: minor ，major和full。所谓minor Compaction，就是把memtable中的数据导出到SSTable文件中；major compaction就是合并不同层级的SSTable文件，而full compaction就是将所有SSTable进行合并。</p>
-<p>LevelDb包含其中两种，minor和major。</p>
-<p>我们将为大家详细叙述其机理。</p>
-<h4 id="minor-Compaction"><a href="#minor-Compaction" class="headerlink" title="minor Compaction"></a>minor Compaction</h4><p>先来看看minor Compaction的过程。Minor compaction 的目的是当内存中的memtable大小到了一定值时，将内容保存到磁盘文件中，下图是其机理示意图。</p>
-<p> <img src="/images/2017/2/9/4.png" alt=""></p>
-<p> 从上图可以看出，当memtable数量到了一定程度会转换为immutable memtable，此时不能往其中写入记录，只能从中读取KV内容。之前介绍过，immutable memtable其实是一个多层级队列SkipList，其中的记录是根据key有序排列的。所以这个minor compaction实现起来也很简单，就是按照immutable memtable中记录由小到大遍历，并依次写入一个level 0 的新建SSTable文件中，写完后建立文件的index 数据，这样就完成了一次minor compaction。从图中也可以看出，对于被删除的记录，在minor compaction过程中并不真正删除这个记录，原因也很简单，这里只知道要删掉key记录，但是这个KV数据在哪里?那需要复杂的查找，所以在minor compaction的时候并不做删除，只是将这个key作为一个记录写入文件中，至于真正的删除操作，在以后更高层级的compaction中会去做。</p>
-<h4 id="Minor-Compaction优化"><a href="#Minor-Compaction优化" class="headerlink" title="Minor Compaction优化"></a>Minor Compaction优化</h4><p>PickLevelForMemTableOutput</p>
-<ul>
-<li>宗旨：把Memtable放入到尽量深的Level上</li>
-<li>条件<ul>
-<li>Memtable与Level-0无交集；（排除Memtable放Level-1造成Level-1层的SST之间有交集）</li>
-<li>Memtable与Level-(i+1)有交集，则放在i层</li>
-<li>Memtable与Level-(i+2)层交集数据量超过25*2M，则放i层</li>
-</ul>
-</li>
-</ul>
-<p>目的： <em> 将Memtable尽量放到下层上，可以减少低层向下层Compaction的次数 </em></p>
-<h4 id="major-compaction"><a href="#major-compaction" class="headerlink" title="major compaction"></a>major compaction</h4><p>当某个level下的SSTable文件数目超过一定设置值后，levelDb会从这个level的SSTable中选择一个文件（level&gt;0），将其和高一层级的level+1的SSTable文件合并，这就是major compaction。</p>
-<p>我们知道在大于0的层级中，每个SSTable文件内的Key都是由小到大有序存储的，而且不同文件之间的key范围（文件内最小key和最大key之间）不会有任何重叠。Level 0的SSTable文件有些特殊，尽管每个文件也是根据Key由小到大排列，但是因为level 0的文件是通过minor compaction直接生成的，所以任意两个level 0下的两个sstable文件可能再key范围上有重叠。所以在做major compaction的时候，对于大于level 0的层级，选择其中一个文件就行，但是对于level 0来说，指定某个文件后，本level中很可能有其他SSTable文件的key范围和这个文件有重叠，这种情况下，要找出所有有重叠的文件和level 1的文件进行合并，即level 0在进行文件选择的时候，可能会有多个文件参与major compaction。</p>
-<p>levelDb在选定某个level进行compaction后，还要选择是具体哪个文件要进行compaction，levelDb在这里有个小技巧， 就是说轮流来，比如这次是文件A进行compaction，那么下次就是在key range上紧挨着文件A的文件B进行compaction，这样每个文件都会有机会轮流和高层的level 文件进行合并。</p>
-<p>如果选好了level L的文件A和level L+1层的文件进行合并，那么问题又来了，应该选择level L+1哪些文件进行合并？levelDb选择L+1层中和文件A在key range上有重叠的所有文件来和文件A进行合并。</p>
-<p> 也就是说，选定了level L的文件A,之后在level L+1中找到了所有需要合并的文件B,C,D…..等等。剩下的问题就是具体是如何进行major 合并的？就是说给定了一系列文件，每个文件内部是key有序的，如何对这些文件进行合并，使得新生成的文件仍然Key有序，同时抛掉哪些不再有价值的KV 数据。</p>
-<p>下图说明了这一过程。</p>
-<p> <img src="/images/2017/2/9/5.png" alt=""></p>
-<p> Major compaction的过程如下：对多个文件采用多路归并排序的方式，依次找出其中最小的Key记录，也就是对多个文件中的所有记录重新进行排序。之后采取一定的标准判断这个Key是否还需要保存，如果判断没有保存价值，那么直接抛掉，如果觉得还需要继续保存，那么就将其写入level L+1层中新生成的一个SSTable文件中。就这样对KV数据一一处理，形成了一系列新的L+1层数据文件，之前的L层文件和L+1层参与compaction 的文件数据此时已经没有意义了，所以全部删除。这样就完成了L层和L+1层文件记录的合并过程。</p>
-<p>那么在major compaction过程中，判断一个KV记录是否抛弃的标准是什么呢？其中一个标准是:对于某个key来说，如果在小于L层中存在这个Key，那么这个KV在major compaction过程中可以抛掉。因为我们前面分析过，对于层级低于L的文件中如果存在同一Key的记录，那么说明对于Key来说，有更新鲜的Value存在，那么过去的Value就等于没有意义了，所以可以删除。</p>
-<hr>
-<p>参考资料:</p>
-<ol>
-<li><a href="http://www.cnblogs.com/haippy/archive/2011/12/04/2276064.html" target="_blank" rel="noopener">cnblogs haippy</a></li>
-<li><a href="http://openinx.github.io/ppt/leveldb-lsm-tree.pdf" target="_blank" rel="noopener">openinx</a></li>
-<li><a href="http://www.cnblogs.com/loujiayu/p/3821108.html" target="_blank" rel="noopener">cnblogs loujiayu</a></li>
-<li><a href="https://www.wikiwand.com/en/Bloom_filter" target="_blank" rel="noopener">wikiwand Bloom_filter</a></li>
-</ol>
-
+          <p>在介绍完leveldb的整体架构之后，本章将介绍leveldb中写入与删除记录，读取记录，Compaction，BloomFilter原理等内容。
+          <div class="read-more">
+            <a href="/2017/02/09/leveldb数据分析与处理/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -780,90 +559,14 @@
       
         
         
+          
+        
 
         
-          <p>leveldb is an open source on-disk key-value store written by Google fellows Jeffrey Dean and Sanjay Ghemawat.</p>
-<h2 id="leveldb的特点和限制"><a href="#leveldb的特点和限制" class="headerlink" title="leveldb的特点和限制"></a>leveldb的特点和限制</h2><h3 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h3><ul>
-<li>key和value都是任意长度的字节数组</li>
-<li>Kev-value Pair默认是 <em>按照key的字典顺序存储</em> ，当然开发者也可以重载这个排序函数</li>
-<li>提供的基本操作接口：Put()、Delete()、Get()、Batch()</li>
-<li>支持批量操作以原子操作进行(Batch操作)</li>
-<li><em>可以创建数据全景的snapshot(快照)，并允许在快照中查找数据</em></li>
-<li>可以通过前向（或后向）迭代器遍历数据</li>
-<li>自动使用Snappy(Snappyis a fast data compression and decompression library written in C++ by Google based on ideas from LZ77 and open-sourced in 2011)压缩数据</li>
-<li>可移植性(使用的是c语言提供的库，而不是linux提供的库，如read,write等函数库)</li>
-</ul>
-<h3 id="限制"><a href="#限制" class="headerlink" title="限制"></a>限制</h3><ul>
-<li>非关系型数据模型（NoSQL），不支持sql语句，也不支持索引</li>
-<li>一次只允许一个进程(多线程)访问一个特定的数据库</li>
-<li>没有内置的C/S架构，但开发者可以使用LevelDB库自己封装一个server</li>
-</ul>
-<h2 id="leveldb的框架"><a href="#leveldb的框架" class="headerlink" title="leveldb的框架"></a>leveldb的框架</h2><p><img src="/images/2017/2/8/1.png" alt=""></p>
-<p> 从图中可以看出，构成LevelDb静态结构的包括六个主要部分：内存中的MemTable和Immutable MemTable以及磁盘上的几种主要文件：Current文件，Manifest文件，log文件以及SSTable文件。当然，LevelDb除了这六个主要部分还有一些辅助的文件，但是以上六个文件和数据结构是LevelDb的主体构成元素。</p>
-<p> 从图中可以看出，构成LevelDb静态结构的包括六个主要部分：内存中的MemTable和Immutable MemTable以及磁盘上的几种主要文件：Current文件，Manifest文件，log文件以及SSTable文件。当然，LevelDb除了这六个主要部分还有一些辅助的文件，但是以上六个文件和数据结构是LevelDb的主体构成元素。</p>
-<p>LevelDb的Log文件和Memtable与Bigtable论文中介绍的是一致的，当应用写入一条Key:Value记录的时候，LevelDb会先往log文件里写入，成功后将记录插进Memtable中，这样基本就算完成了写入操作，因为一次写入操作只涉及一次磁盘顺序写和一次内存写入，所以这是为何说LevelDb写入速度极快的主要原因。</p>
-<p>Log文件在系统中的作用主要是用于系统崩溃恢复而不丢失数据，假如没有Log文件，因为写入的记录刚开始是保存在内存中的，此时如果系统崩溃，内存中的数据还没有来得及Dump到磁盘，所以会丢失数据（Redis就存在这个问题）。为了避免这种情况，LevelDb在写入内存前先将操作记录到Log文件中，然后再记入内存中，这样即使系统崩溃，也可以从Log文件中恢复内存中的Memtable，不会造成数据的丢失。</p>
-<p>当Memtable插入的数据占用内存到了一个界限后，需要将内存的记录导出到外存文件中，LevleDb会生成新的Log文件和Memtable，原先的Memtable就成为Immutable Memtable，顾名思义，就是说这个Memtable的内容是不可更改的，只能读不能写入或者删除。新到来的数据被记入新的Log文件和Memtable，LevelDb后台调度会将Immutable Memtable的数据导出到磁盘，形成一个新的SSTable文件。SSTable就是由内存中的数据不断导出并进行Compaction操作后形成的，而且SSTable的所有文件是一种层级结构，第一层为Level 0，第二层为Level 1，依次类推，层级逐渐增高，这也是为何称之为LevelDb的原因。</p>
-<p>SSTable中的文件是Key有序的，就是说在文件中小key记录排在大Key记录之前，各个Level的SSTable都是如此，但是这里需要注意的一点是：Level 0的SSTable文件（后缀为.sst）和其它Level的文件相比有特殊性：这个层级内的.sst文件，两个文件可能存在key重叠，比如有两个level 0的sst文件，文件A和文件B，文件A的key范围是：{bar, car}，文件B的Key范围是{blue,samecity}，那么很可能两个文件都存在key=”blood”的记录。对于其它Level的SSTable文件来说，则不会出现同一层级内.sst文件的key重叠现象，就是说Level L中任意两个.sst文件，那么可以保证它们的key值是不会重叠的。这点需要特别注意，后面您会看到很多操作的差异都是由于这个原因造成的。</p>
-<p>SSTable中的某个文件属于特定层级，而且其存储的记录是key有序的，那么必然有文件中的最小key和最大key，这是非常重要的信息，LevelDb应该记下这些信息。Manifest就是干这个的，它记载了SSTable各个文件的管理信息，比如属于哪个Level，文件名称叫啥，最小key和最大key各自是多少。下图是Manifest所存储内容的示意：</p>
-<p><img src="/images/2017/2/8/11.png" alt=""></p>
-<p>图中只显示了两个文件（manifest会记载所有SSTable文件的这些信息），即Level 0的test.sst1和test.sst2文件，同时记载了这些文件各自对应的key范围，比如test.sstt1的key范围是“an”到 “banana”，而文件test.sst2的key范围是“baby”到“samecity”，可以看出两者的key范围是有重叠的。</p>
-<p>Current文件是干什么的呢？这个文件的内容只有一个信息，就是记载当前的manifest文件名。因为在LevleDb的运行过程中，随着Compaction的进行，SSTable文件会发生变化，会有新的文件产生，老的文件被废弃，Manifest也会跟着反映这种变化，此时往往会新生成Manifest文件来记载这种变化，而Current则用来指出哪个Manifest文件才是我们关心的那个Manifest文件。</p>
-<h2 id="log文件"><a href="#log文件" class="headerlink" title="log文件"></a>log文件</h2><p>上节内容讲到log文件在LevelDb中的主要作用是系统故障恢复时，能够保证不会丢失数据。因为在将记录写入内存的Memtable之前，会先写入Log文件，这样即使系统发生故障，Memtable中的数据没有来得及Dump到磁盘的SSTable文件，LevelDB也可以根据log文件恢复内存的Memtable数据结构内容，不会造成系统丢失数据，在这点上LevelDb和Bigtable是一致的。</p>
-<p>下面我们带大家看看log文件的具体物理和逻辑布局是怎样的，LevelDb对于一个log文件，会把它切割成以32K为单位的物理Block，每次读取的单位以一个Block作为基本读取单位，下图展示的log文件由3个Block构成，所以从物理布局来讲，一个log文件就是由连续的32K大小Block构成的。</p>
-<p><img src="/images/2017/2/8/3.png" alt=""></p>
-<p>在应用的视野里是看不到这些Block的，应用看到的是一系列的Key:Value对，在LevelDb内部，会将一个Key:Value对看做一条记录的数据，另外在这个数据前增加一个记录头，用来记载一些管理信息，以方便内部处理，下图显示了一个记录在LevelDb内部是如何表示的。</p>
-<p><img src="/images/2017/2/8/4.png" alt=""></p>
-<p>记录头包含三个字段，ChechSum是对“类型”和“数据”字段的校验码，为了避免处理不完整或者是被破坏的数据，当LevelDb读取记录数据时候会对数据进行校验，如果发现和存储的CheckSum相同，说明数据完整无破坏，可以继续后续流程。“记录长度”记载了数据的大小，“数据”则是上面讲的Key:Value数值对，“类型”字段则指出了每条记录的逻辑结构和log文件物理分块结构之间的关系，具体而言，主要有以下四种类型：FULL/FIRST/MIDDLE/LAST。</p>
-<p>如果记录类型是FULL，代表了当前记录内容完整地存储在一个物理Block里，没有被不同的物理Block切割开；如果记录被相邻的物理Block切割开，则类型会是其他三种类型中的一种。我们以本节第一张图所示的例子来具体说明。</p>
-<p>假设目前存在三条记录，Record A，Record B和Record C，其中Record A大小为10K，Record B 大小为80K，Record C大小为12K，那么其在log文件中的逻辑布局会如本节第一张图所示。Record A是图中蓝色区域所示，因为大小为10K&lt;32K，能够放在一个物理Block中，所以其类型为FULL；Record B 大小为80K，而Block 1因为放入了Record A，所以还剩下22K，不足以放下Record B，所以在Block 1的剩余部分放入Record B的开头一部分，类型标识为FIRST，代表了是一个记录的起始部分；Record B还有58K没有存储，这些只能依次放在后续的物理Block里面，因为Block 2大小只有32K，仍然放不下Record B的剩余部分，所以Block 2全部用来放Record B，且标识类型为MIDDLE，意思是这是Record B中间一段数据；Record B剩下的部分可以完全放在Block 3中，类型标识为LAST，代表了这是Record B的末尾数据；图中黄色的Record C因为大小为12K，Block 3剩下的空间足以全部放下它，所以其类型标识为FULL。</p>
-<p>从这个小例子可以看出逻辑记录和物理Block之间的关系，LevelDb一次物理读取为一个Block，然后根据类型情况拼接出逻辑记录，供后续流程处理。</p>
-<h2 id="SSTable文件"><a href="#SSTable文件" class="headerlink" title="SSTable文件"></a>SSTable文件</h2><p>SSTable是Bigtable中至关重要的一块，对于LevelDb来说也是如此，对LevelDb的SSTable实现细节的了解也有助于了解Bigtable中一些实现细节。</p>
-<p>本节内容主要讲述SSTable的静态布局结构，SSTable文件形成了不同Level的层级结构。本节主要介绍SSTable某个文件的物理布局和逻辑布局结构，这对了解LevelDb的运行过程很有帮助。</p>
-<h3 id="sst文件的分块结构"><a href="#sst文件的分块结构" class="headerlink" title="sst文件的分块结构"></a>sst文件的分块结构</h3><p>LevelDb不同层级有很多SSTable文件（以后缀.sst为特征），所有.sst文件内部布局都是一样的。上节介绍Log文件是物理分块的，SSTable也一样会将文件划分为固定大小的物理存储块，但是两者逻辑布局大不相同，根本原因是：Log文件中的记录是Key无序的，即先后记录的key大小没有明确大小关系，而.sst文件内部则是根据记录的Key由小到大排列的，从下面介绍的SSTable布局可以体会到Key有序是为何如此设计.sst文件结构的关键。</p>
-<p><img src="/images/2017/2/8/7.png" alt=""><br>上图展示了一个.sst文件的物理划分结构，同Log文件一样，也是划分为固定大小的存储块，每个Block分为三个部分，红色部分是数据存储区， 蓝色的Type区用于标识数据存储区是否采用了数据压缩算法（Snappy压缩或者无压缩两种），CRC部分则是数据校验码，用于判别数据是否在生成和传输中出错。</p>
-<h3 id="sst文件的逻辑布局"><a href="#sst文件的逻辑布局" class="headerlink" title="sst文件的逻辑布局"></a>sst文件的逻辑布局</h3><p>以上是.sst的物理布局，下面介绍.sst文件的逻辑布局，所谓逻辑布局，就是说尽管大家都是物理块，但是每一块存储什么内容，内部又有什么结构等。下图展示了.sst文件的内部逻辑解释。</p>
-<p><img src="/images/2017/2/8/8.png" alt=""></p>
-<p>从上可以看出，从大的方面，可以将.sst文件划分为数据存储区和数据管理区，数据存储区存放实际的Key:Value数据，数据管理区则提供一些索引指针等管理数据，目的是更快速便捷的查找相应的记录。两个区域都是在上述的分块基础上的，就是说文件的前面若干块实际存储KV数据，后面数据管理区存储管理数据。管理数据又分为四种不同类型：紫色的Meta Block，红色的MetaBlock 索引和蓝色的数据索引块以及一个文件尾部块。</p>
-<h3 id="数据索引区"><a href="#数据索引区" class="headerlink" title="数据索引区"></a>数据索引区</h3><p>Meta Block涉及到bloomfilter，本节不做介绍，下面我们看看数据索引区和文件尾部Footer的内部结构。</p>
-<p><img src="/images/2017/2/8/9.png" alt=""></p>
-<p>上图是数据索引的内部结构示意图。再次强调一下，Data Block内的KV记录是按照Key由小到大排列的，数据索引区的每条记录是对某个Data Block建立的索引信息，每条索引信息包含三个内容，以上图所示的数据块i的索引Index i来说：红色部分的第一个字段记载大于等于数据块i中最大的Key值的那个Key，第二个字段指出数据块i在.sst文件中的起始位置，第三个字段指出Data Block i的大小（有时候是有数据压缩的）。后面两个字段好理解，是用于定位数据块在文件中的位置的，第一个字段需要详细解释一下，在索引里保存的这个Key值未必一定是某条记录的Key,以上图的例子来说，假设数据块i 的最小Key=“samecity”，最大Key=“the best”;数据块i+1的最小Key=“the fox”,最大Key=“zoo”,那么对于数据块i的索引Index i来说，其第一个字段记载大于等于数据块i的最大Key(“the best”)同时要小于数据块i+1的最小Key(“the fox”)，所以例子中Index i的第一个字段是：“the c”，这个是满足要求的；而Index i+1的第一个字段则是“zoo”，即数据块i+1的最大Key。</p>
-<h3 id="文件尾部Footer"><a href="#文件尾部Footer" class="headerlink" title="文件尾部Footer"></a>文件尾部Footer</h3><p>文件末尾Footer块的内部结构见下图，metaindex_handle指出了metaindex block的起始位置和大小；inex_handle指出了index Block的起始地址和大小；这两个字段可以理解为索引的索引，是为了正确读出索引值而设立的，后面跟着一个填充区和魔数。</p>
-<p><img src="/images/2017/2/8/5.png" alt=""></p>
-<h3 id="数据Block内部结构"><a href="#数据Block内部结构" class="headerlink" title="数据Block内部结构"></a>数据Block内部结构</h3><p>上面主要介绍的是数据管理区的内部结构，下面我们看看数据区的一个Block的数据部分内部是如何布局的，下图是其内部布局示意图。</p>
-<p><img src="/images/2017/2/8/10.png" alt=""></p>
-<p>从图中可以看出，其内部也分为两个部分，前面是一个个KV记录，其顺序是根据Key值由小到大排列的，在Block尾部则是一些“重启点”（Restart Point）,其实是一些指针，指出Block内容中的一些记录位置。</p>
-<ul>
-<li>压缩规则<ul>
-<li>一个restart-point对应一个前缀压缩组</li>
-<li>一个key和上一个key公共前缀长度&gt;0，则key放入相同前缀压缩组</li>
-<li>一个key和上一个key公共前缀长度=0，则新建一个前缀压缩组</li>
-</ul>
-</li>
-<li>查找规则<ul>
-<li>多个前缀压缩组之间二分查找</li>
-<li>前缀压缩组内线性查找</li>
-</ul>
-</li>
-</ul>
-<p>“重启点”是干什么的呢？我们一再强调，Block内容里的KV记录是按照Key大小有序的，这样的话，相邻的两条记录很可能Key部分存在重叠，比如key i=“the Car”，Key i+1=“the color”,那么两者存在重叠部分“the c”，为了减少Key的存储量，Key i+1可以只存储和上一条Key不同的部分“olor”，两者的共同部分从Key i中可以获得。记录的Key在Block内容部分就是这么存储的，主要目的是减少存储开销。“重启点”的意思是：在这条记录开始，不再采取只记载不同的Key部分，而是重新点记录所有的Key值，假设Key i+1是一个重启点，那么Key里面会完整存储“the color”，而不是采用简略的“olor”方式。Block尾部就是指出哪些记录是这些重启点的。</p>
-<p><img src="/images/2017/2/8/6.png" alt=""></p>
-<p>在Block内容区，每个KV记录的内部结构是怎样的？上图给出了其详细结构，每个记录包含5个字段：key共享长度，比如上面的“olor”记录， 其key和上一条记录共享的Key部分长度是“the c”的长度，即5；key非共享长度，对于“olor”来说，是4；value长度指出Key:Value中Value的长度，在后面的Value内容字段中存储实际的Value值；而key非共享内容则实际存储“olor”这个Key字符串。</p>
-<h2 id="MemTable详解"><a href="#MemTable详解" class="headerlink" title="MemTable详解"></a>MemTable详解</h2><p>本小节讲述内存中的数据结构Memtable，Memtable在整个体系中的重要地位也不言而喻。总体而言，所有KV数据都是存储在Memtable，Immutable Memtable和SSTable中的，Immutable Memtable从结构上讲和Memtable是完全一样的，区别仅仅在于其是只读的，不允许写入操作，而Memtable则是允许写入和读取的。当Memtable写入的数据占用内存到达指定数量，则自动转换为Immutable Memtable，等待Dump到磁盘中，系统会自动生成新的Memtable供写操作写入新数据，理解了Memtable，那么Immutable Memtable自然不在话下。</p>
-<p> LevelDb的MemTable提供了将KV数据写入，删除以及读取KV记录的操作接口，但是事实上Memtable并不存在真正的删除操作,删除某个Key的Value在Memtable内是作为插入一条记录实施的，但是会打上一个Key的删除标记，真正的删除操作是Lazy的，会在以后的Compaction过程中去掉这个KV。</p>
-<p> 需要注意的是，LevelDb的Memtable中KV对是根据Key大小有序存储的，在系统插入新的KV时，LevelDb要把这个KV插到合适的位置上以保持这种Key有序性。其实，LevelDb的Memtable类只是一个接口类，真正的操作是通过背后的<a href="https://github.com/liujunming/Data-Structure/tree/master/%E8%B7%B3%E8%B7%83%E8%A1%A8" target="_blank" rel="noopener">SkipList</a>来做的，包括插入操作和读取操作等，所以Memtable的核心数据结构是一个SkipList。</p>
-<p>SkipList不仅是维护有序数据的一个简单实现，而且相比较平衡树来说，在插入数据的时候可以避免频繁的树节点调整操作，所以写入效率是很高的，LevelDb整体而言是个高写入系统，SkipList在其中应该也起到了很重要的作用。Redis为了加快插入操作，也使用了SkipList来作为内部实现数据结构。</p>
-<hr>
-<p>参考资料:</p>
-<ol>
-<li><a href="http://blog.csdn.net/sparkliang/article/category/1342001" target="_blank" rel="noopener">sparkliang leveldb</a></li>
-<li><a href="http://blog.csdn.net/sparkliang/article/details/8604416" target="_blank" rel="noopener">sparkliang 8604416</a></li>
-<li><a href="https://dirtysalt.github.io/leveldb.html" target="_blank" rel="noopener">dirtysalt</a></li>
-<li><a href="http://blog.marchtea.com/archives/tag/leveldb" target="_blank" rel="noopener">marchtea</a></li>
-<li><a href="http://openinx.github.io/ppt/leveldb-lsm-tree.pdf" target="_blank" rel="noopener">openinx</a></li>
-<li><a href="http://www.cnblogs.com/haippy/archive/2011/12/04/2276064.html" target="_blank" rel="noopener">cnblogs haippy</a></li>
-</ol>
-
+          <p>leveldb is an open source on-disk key-value store written by Google fellows Jeffrey Dean and Sanjay Ghemawat.
+          <div class="read-more">
+            <a href="/2017/02/08/leveldb整体框架/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -907,90 +610,14 @@
       
         
         
+          
+        
 
         
-          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>管道是UNIX环境中历史最悠久的进程间通信方式。本文主要说明在Linux环境上如何使用管道。阅读本文可以帮你解决以下问题：</p>
-<ol>
-<li>什么是管道和为什么要有管道？</li>
-<li>管道怎么分类？</li>
-<li>管道的实现是什么样的？</li>
-<li>管道有多大？</li>
-<li>管道的大小是不是可以调整？如何调整？</li>
-</ol>
-<h3 id="什么是管道？"><a href="#什么是管道？" class="headerlink" title="什么是管道？"></a>什么是管道？</h3><p>管道，英文为pipe。这是一个我们在学习Linux命令行的时候就会引入的一个很重要的概念。它的发明人是道格拉斯.麦克罗伊，这位也是UNIX上早期shell的发明人。他在发明了shell之后，发现系统操作执行命令的时候，经常有需求要将一个程序的输出交给另一个程序进行处理，这种操作可以使用输入输出重定向加文件搞定，比如：</p>
-<p><code>ls  -l /etc/ &gt; etc.txt</code></p>
-<p><code>wc -l etc.txt</code></p>
-<p><img src="/images/2016/12/7/1.png" alt=""></p>
-<p>但是这样未免显得太麻烦了。所以，管道的概念应运而生。目前在任何一个shell中，都可以使用“|”连接两个命令，shell会将前后两个进程的输入输出用一个管道相连，以便达到进程间通信的目的：</p>
-<p><code>ls -l /etc/ | wc -l</code></p>
-<p><img src="/images/2016/12/7/2.png" alt=""></p>
-<p>对比以上两种方法，我们也可以理解为，管道本质上就是一个文件，前面的进程以写方式打开文件，后面的进程以读方式打开。这样前面写完后面读，于是就实现了通信。实际上管道的设计也是遵循UNIX的“一切皆文件”设计原则的，它本质上就是一个文件。Linux系统直接把管道实现成了一种文件系统，借助VFS给应用程序提供操作接口。</p>
-<p>虽然实现形态上是文件，但是管道本身并不占用磁盘或者其他外部存储的空间。在Linux的实现上，它占用的是内存空间。所以，Linux上的管道就是一个操作方式为文件的内存缓冲区。</p>
-<h3 id="管道的分类和使用"><a href="#管道的分类和使用" class="headerlink" title="管道的分类和使用"></a>管道的分类和使用</h3><p>Linux上的管道分两种类型：</p>
-<ol>
-<li>匿名管道</li>
-<li>命名管道</li>
-</ol>
-<p>这两种管道也叫做有名或无名管道。匿名管道最常见的形态就是我们在shell操作中最常用的”|”。它的特点是只能在父子进程中使用，父进程在产生子进程前必须打开一个管道文件，然后fork产生子进程，这样子进程通过拷贝父进程的进程地址空间获得同一个管道文件的描述符，以达到使用同一个管道通信的目的。此时除了父子进程外，没人知道这个管道文件的描述符，所以通过这个管道中的信息无法传递给其他进程。这保证了传输数据的安全性，当然也降低了管道了通用性，于是系统还提供了命名管道。</p>
-<p>我们可以使用mkfifo或mknod命令来创建一个命名管道，这跟创建一个文件没有什么区别：</p>
-<p><code>mkfifo pipe</code></p>
-<p><code>ls -l pipe</code></p>
-<p><img src="/images/2016/12/7/3.png" alt=""></p>
-<p>可以看到创建出来的文件类型比较特殊，是p类型。表示这是一个管道文件。有了这个管道文件，系统中就有了对一个管道的全局名称，于是任何两个不相关的进程都可以通过这个管道文件进行通信了。比如我们现在让一个进程写这个管道文件：</p>
-<p><code>echo xxxxxxxxxxxxxx &gt; pipe</code></p>
-<p>此时这个写操作会阻塞，因为管道另一端没有人读。这是内核对管道文件定义的默认行为。此时如果有进程读这个管道，那么这个写操作的阻塞才会解除：</p>
-<p><code>cat pipe</code></p>
-<p>大家可以观察到，当我们cat完这个文件之后，另一端的echo命令也返回了。这就是命名管道。</p>
-<p><img src="/images/2016/12/7/4.png" alt=""></p>
-<p>Linux系统无论对于命名管道和匿名管道，底层都用的是同一种文件系统的操作行为，这种文件系统叫pipefs。大家可以在/etc/proc/filesystems文件中找到你的系统是不是支持这种文件系统：</p>
-<p><code>cat /proc/filesystems |grep pipefs</code></p>
-<p><img src="/images/2016/12/7/5.png" alt=""></p>
-<p>观察完了如何在命令行中使用管道之后，我们再来看看如何在系统编程中使用管道。</p>
-<h3 id="PIPE"><a href="#PIPE" class="headerlink" title="PIPE"></a>PIPE</h3><p>我们可以把匿名管道和命名管道分别叫做PIPE和FIFO。这主要因为在系统编程中，创建匿名管道的系统调用是pipe()，而创建命名管道的函数是mkfifo()。使用mknod()系统调用并指定文件类型为为S_IFIFO也可以创建一个FIFO。</p>
-<p>使用pipe()系统调用可以创建一个匿名管道，这个系统调用的原型为：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">pipe</span><span class="params">(<span class="keyword">int</span> pipefd[<span class="number">2</span>])</span></span>;</span><br></pre></td></tr></table></figure>
-<p>这个方法将会创建出两个文件描述符，可以使用pipefd这个数组来引用这两个描述符进行文件操作。pipefd[0]是读方式打开，作为管道的读描述符。pipefd[1]是写方式打开，作为管道的写描述符。从管道写端写入的数据会被内核缓存直到有人从另一端读取为止。我们来看一下如何在一个进程中使用管道，虽然这个例子并没有什么意义：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> STRING <span class="meta-string">"hello world!"</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> pipefd[<span class="number">2</span>];</span><br><span class="line">    <span class="keyword">char</span> buf[BUFSIZ];</span><br><span class="line">    <span class="keyword">if</span> (pipe(pipefd) == <span class="number">-1</span>) &#123;</span><br><span class="line">        perror(<span class="string">"pipe()"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (write(pipefd[<span class="number">1</span>], STRING, <span class="built_in">strlen</span>(STRING)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        perror(<span class="string">"write()"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (read(pipefd[<span class="number">0</span>], buf, BUFSIZ) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        perror(<span class="string">"write()"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%s\n"</span>, buf);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这个程序创建了一个管道，并且对管道写了一个字符串之后从管道读取，并打印在标准输出上。用一个图来说明这个程序的状态就是这样的：</p>
-<p><img src="/images/2016/12/7/6.png" alt=""></p>
-<p>一个进程自己给自己发送消息这当然不叫进程间通信，所以实际情况中我们不会在单个进程中使用管道。进程在pipe创建完管道之后，往往都要fork产生子进程，成为如下图表示的样子：</p>
-<p><img src="/images/2016/12/7/7.png" alt=""></p>
-<p>如图中描述，fork产生的子进程会继承父进程对应的文件描述符。利用这个特性，父进程先pipe创建管道之后，子进程也会得到同一个管道的读写文件描述符。从而实现了父子两个进程使用一个管道可以完成半双工通信。此时，父进程可以通过fd[1]给子进程发消息，子进程通过fd[0]读。子进程也可以通过fd[1]给父进程发消息，父进程用fd[0]读。程序实例如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> STRING <span class="meta-string">"hello world!"</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> pipefd[<span class="number">2</span>];</span><br><span class="line">    <span class="keyword">pid_t</span> pid;</span><br><span class="line">    <span class="keyword">char</span> buf[BUFSIZ];</span><br><span class="line">    <span class="keyword">if</span> (pipe(pipefd) == <span class="number">-1</span>) &#123;</span><br><span class="line">        perror(<span class="string">"pipe()"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    pid = fork();</span><br><span class="line">    <span class="keyword">if</span> (pid == <span class="number">-1</span>) &#123;</span><br><span class="line">        perror(<span class="string">"fork()"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (pid == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">/* this is child. */</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Child pid is: %d\n"</span>, getpid());</span><br><span class="line">        <span class="keyword">if</span> (read(pipefd[<span class="number">0</span>], buf, BUFSIZ) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">"write()"</span>);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%s\n"</span>, buf);</span><br><span class="line">        bzero(buf, BUFSIZ);</span><br><span class="line">        <span class="built_in">snprintf</span>(buf, BUFSIZ, <span class="string">"Message from child: My pid is: %d"</span>, getpid());</span><br><span class="line">        <span class="keyword">if</span> (write(pipefd[<span class="number">1</span>], buf, <span class="built_in">strlen</span>(buf)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">"write()"</span>);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* this is parent */</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Parent pid is: %d\n"</span>, getpid());</span><br><span class="line">        <span class="built_in">snprintf</span>(buf, BUFSIZ, <span class="string">"Message from parent: My pid is: %d"</span>, getpid());</span><br><span class="line">        <span class="keyword">if</span> (write(pipefd[<span class="number">1</span>], buf, <span class="built_in">strlen</span>(buf)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">"write()"</span>);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        sleep(<span class="number">1</span>);</span><br><span class="line">        bzero(buf, BUFSIZ);</span><br><span class="line">        <span class="keyword">if</span> (read(pipefd[<span class="number">0</span>], buf, BUFSIZ) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">"write()"</span>);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%s\n"</span>, buf);</span><br><span class="line">        wait(<span class="literal">NULL</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>父进程先给子进程发一个消息，子进程接收到之后打印消息，之后再给父进程发消息，父进程再打印从子进程接收到的消息。</p>
-<p>从这个程序中我们可以看到，管道实际上可以实现一个半双工通信的机制。使用同一个管道的父子进程可以分时给对方发送消息。我们也可以看到对管道读写的一些特点，即：</p>
-<p>在管道中没有数据的情况下，对管道的读操作会阻塞，直到管道内有数据为止。当一次写的数据量不超过管道容量的时候，对管道的写操作一般不会阻塞，直接将要写的数据写入管道缓冲区即可。</p>
-<p>当然写操作也不会在所有情况下都不阻塞。这里我们要先来了解一下管道的内核实现。上文说过，管道实际上就是内核控制的一个内存缓冲区，既然是缓冲区，就有容量上限。我们把管道一次最多可以缓存的数据量大小叫做PIPESIZE。内核在处理管道数据的时候，底层也要调用类似read和write这样的方法进行数据拷贝，这种内核操作每次可以操作的数据量也是有限的，一般的操作长度为一个page，即默认为4k字节。我们把每次可以操作的数据量长度叫做PIPEBUF。POSIX标准中，对PIPEBUF有长度限制，要求其最小长度不得低于512字节。PIPEBUF的作用是，内核在处理管道的时候，如果每次读写操作的数据长度不大于PIPEBUF时，保证其操作是原子的。而PIPESIZE的影响是，大于其长度的写操作会被阻塞，直到当前管道中的数据被读取为止。</p>
-<p>在Linux 2.6.11之前，PIPESIZE和PIPEBUF实际上是一样的。在这之后，Linux重新实现了一个管道缓存，并将它与写操作的PIPEBUF实现成了不同的概念，形成了一个默认长度为65536字节的PIPESIZE，而PIPEBUF只影响相关读写操作的原子性。从Linux 2.6.35之后，在fcntl系统调用方法中实现了F_GETPIPE_SZ和F_SETPIPE_SZ操作，来分别查看当前管道容量和设置管道容量。管道容量容量上限可以在/proc/sys/fs/pipe-max-size进行设置。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFSIZE 65536</span></span><br><span class="line">......</span><br><span class="line">ret = fcntl(pipefd[<span class="number">1</span>], F_GETPIPE_SZ);</span><br><span class="line"><span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">    perror(<span class="string">"fcntl()"</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">"PIPESIZE: %d\n"</span>, ret);</span><br><span class="line">ret = fcntl(pipefd[<span class="number">1</span>], F_SETPIPE_SZ, BUFSIZE);</span><br><span class="line"><span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">    perror(<span class="string">"fcntl()"</span>);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
-<p>PIPEBUF和PIPESIZE对管道操作的影响会因为管道描述符是否被设置为非阻塞方式而有行为变化，n为要写入的数据量时具体为：</p>
-<ul>
-<li>O_NONBLOCK关闭，n &lt;= PIPE_BUF：</li>
-</ul>
-<p>n个字节的写入操作是原子操作，write系统调用可能会因为管道容量(PIPESIZE)没有足够的空间存放n字节长度而阻塞。</p>
-<ul>
-<li>O_NONBLOCK打开，n &lt;= PIPE_BUF：</li>
-</ul>
-<p>如果有足够的空间存放n字节长度，write调用会立即返回成功，并且对数据进行写操作。空间不够则立即报错返回，并且errno被设置为EAGAIN。</p>
-<ul>
-<li>O_NONBLOCK关闭，n &gt; PIPE_BUF：</li>
-</ul>
-<p>对n字节的写入操作不保证是原子的，就是说这次写入操作的数据可能会跟其他进程写这个管道的数据进行交叉。当管道容量长度低于要写的数据长度的时候write操作会被阻塞。</p>
-<ul>
-<li>O_NONBLOCK打开，n &gt; PIPE_BUF：</li>
-</ul>
-<p>如果管道空间已满。write调用报错返回并且errno被设置为EAGAIN。如果没满，则可能会写入从1到n个字节长度，这取决于当前管道的剩余空间长度，并且这些数据可能跟别的进程的数据有交叉。</p>
-<p>以上是在使用半双工管道的时候要注意的事情，因为在这种情况下，管道的两端都可能有多个进程进行读写处理。如果再加上线程，则事情可能变得更复杂。实际上，我们在使用管道的时候，并不推荐这样来用。管道推荐的使用方法是其单工模式：即只有两个进程通信，一个进程只写管道，另一个进程只读管道。实现为:</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> STRING <span class="meta-string">"hello world!"</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> pipefd[<span class="number">2</span>];</span><br><span class="line">    <span class="keyword">pid_t</span> pid;</span><br><span class="line">    <span class="keyword">char</span> buf[BUFSIZ];</span><br><span class="line">    <span class="keyword">if</span> (pipe(pipefd) == <span class="number">-1</span>) &#123;</span><br><span class="line">        perror(<span class="string">"pipe()"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    pid = fork();</span><br><span class="line">    <span class="keyword">if</span> (pid == <span class="number">-1</span>) &#123;</span><br><span class="line">        perror(<span class="string">"fork()"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (pid == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">/* this is child. */</span></span><br><span class="line">        close(pipefd[<span class="number">1</span>]);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Child pid is: %d\n"</span>, getpid());</span><br><span class="line">        <span class="keyword">if</span> (read(pipefd[<span class="number">0</span>], buf, BUFSIZ) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">"write()"</span>);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%s\n"</span>, buf);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* this is parent */</span></span><br><span class="line">        close(pipefd[<span class="number">0</span>]);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Parent pid is: %d\n"</span>, getpid());</span><br><span class="line">        <span class="built_in">snprintf</span>(buf, BUFSIZ, <span class="string">"Message from parent: My pid is: %d"</span>, getpid());</span><br><span class="line">        <span class="keyword">if</span> (write(pipefd[<span class="number">1</span>], buf, <span class="built_in">strlen</span>(buf)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">"write()"</span>);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        wait(<span class="literal">NULL</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这个程序实际上比上一个要简单，父进程关闭管道的读端，只写管道。子进程关闭管道的写端，只读管道。整个管道的打开效果最后成为下图所示：</p>
-<p><img src="/images/2016/12/7/8.png" alt=""></p>
-<p>此时两个进程就只用管道实现了一个单工通信，并且这种状态下不用考虑多个进程同时对管道写产生的数据交叉的问题，这是最经典的管道打开方式，也是我们推荐的管道使用方式。另外，作为一个程序员，即使我们了解了Linux管道的实现，我们的代码也不能依赖其特性，所以处理管道时该越界判断还是要判断，该错误检查还是要检查，这样代码才能更健壮。</p>
-<h3 id="FIFO"><a href="#FIFO" class="headerlink" title="FIFO"></a>FIFO</h3><p>命名管道在底层的实现跟匿名管道完全一致，区别只是命名管道会有一个全局可见的文件名以供别人open打开使用。再程序中创建一个命名管道文件的方法有两种，一种是使用mkfifo函数。另一种是使用mknod系统调用，例子如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/stat.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (argc != <span class="number">2</span>) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Argument error!\n"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">    if (mkfifo(argv[1], 0600) &lt; 0) &#123;</span></span><br><span class="line"><span class="comment">        perror("mkfifo()");</span></span><br><span class="line"><span class="comment">        exit(1);</span></span><br><span class="line"><span class="comment">    &#125;</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line">    <span class="keyword">if</span> (mknod(argv[<span class="number">1</span>], <span class="number">0600</span>|S_IFIFO, <span class="number">0</span>) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        perror(<span class="string">"mknod()"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>我们使用第一个参数作为创建的文件路径。创建完之后，其他进程就可以使用open()、read()、write()标准文件操作等方法进行使用了。其余所有的操作跟匿名管道使用类似。需要注意的是，无论命名还是匿名管道，它的文件描述都没有偏移量的概念，所以不能用lseek进行偏移量调整。</p>
-<p>关于管道的其它议题，比如popen、pclose的使用等话题，《UNIX环境高级编程》中的相关章节已经讲的很清楚了。如果想学习补充这些知识，请参见此书。</p>
-<p>转载：</p>
-<hr>
-<p><a href="http://liwei.life/2016/07/18/pipe/" target="_blank" rel="noopener">liwei.life</a></p>
-
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>管道是UNIX环境中历史最悠久的进程间通信方式。本文主要说明在Linux环境上如何使用管道。阅读本文可以帮你解决以下问题：<br>
+          <div class="read-more">
+            <a href="/2016/12/07/Linux的进程间通信——管道-转/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -1034,39 +661,14 @@
       
         
         
+          
+        
 
         
-          <p>八皇后问题一直是回溯算法的经典问题。最近在上概率算法，涉及到八皇后问题与Las Vegas算法的结合，花了两天时间写代码，调bug，故特此写下这篇博客以做总结。</p>
-<h2 id="传统的回溯法"><a href="#传统的回溯法" class="headerlink" title="传统的回溯法"></a>传统的回溯法</h2><p><img src="/images/2016/10/29/1.png" alt=""></p>
-<ul>
-<li>伪代码</li>
-</ul>
-<p><img src="/images/2016/10/29/2.png" alt=""></p>
-<ul>
-<li>代码</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stack&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> QueenNumber 8</span></span><br><span class="line"><span class="function"><span class="keyword">bool</span> <span class="title">isPositionOpen</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; col,</span></span></span><br><span class="line"><span class="function"><span class="params">   <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag45, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag135)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> tem;</span><br><span class="line">	<span class="comment">//判断列号</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; col.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(col[tem] == y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//判断45度对角线   45度对角线利用x - y  x为行号，y为列号</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; diag45.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(diag45[tem] == x-y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//判断135度对角线</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; diag135.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(diag135[tem] == x+y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">backtrace</span> <span class="params">(<span class="keyword">int</span> k, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; col, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag45,</span></span></span><br><span class="line"><span class="function"><span class="params">  <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag135, <span class="keyword">bool</span> &amp;success)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">stack</span>&lt;<span class="keyword">int</span>&gt; colStack;</span><br><span class="line">	<span class="keyword">int</span> i = k, j = <span class="number">1</span>, tem;</span><br><span class="line">	<span class="keyword">bool</span> isOpenFind;</span><br><span class="line">	<span class="keyword">while</span>(i &lt;= QueenNumber)&#123;</span><br><span class="line">		isOpenFind = <span class="literal">false</span>;</span><br><span class="line">		<span class="comment">//检查当前行i:从当前列j起向后逐列试探，寻找安全序号</span></span><br><span class="line">		<span class="keyword">while</span>(j &lt;= QueenNumber)&#123;</span><br><span class="line">			<span class="keyword">if</span>(isPositionOpen(i, j, col, diag45, diag135))&#123;</span><br><span class="line">				isOpenFind = <span class="literal">true</span>;</span><br><span class="line">				col.push_back(j);</span><br><span class="line">				diag45.push_back(i-j);</span><br><span class="line">				diag135.push_back(i+j);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			j++;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//找到安全列号</span></span><br><span class="line">		<span class="keyword">if</span>(isOpenFind)&#123;</span><br><span class="line">			colStack.push(j);</span><br><span class="line">			i++;</span><br><span class="line">			j = <span class="number">1</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//未找到安全列号</span></span><br><span class="line">		<span class="keyword">else</span>&#123;</span><br><span class="line">			<span class="keyword">if</span>(colStack.empty())&#123;</span><br><span class="line">				success = <span class="literal">false</span>;</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			j = colStack.top();</span><br><span class="line">			colStack.pop();</span><br><span class="line">			i--;</span><br><span class="line">			<span class="keyword">for</span> (<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;::iterator iter = col.begin(); iter != col.end(); ++iter)&#123;</span><br><span class="line">				<span class="keyword">if</span>(*iter == j)&#123;</span><br><span class="line">					col.erase(iter);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">for</span> (<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;::iterator iter = diag45.begin(); iter != diag45.end(); ++iter)&#123;</span><br><span class="line">				<span class="keyword">if</span>(*iter == i-j)&#123;</span><br><span class="line">					diag45.erase(iter);</span><br><span class="line">					<span class="keyword">break</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">for</span> (<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;::iterator iter = diag135.begin(); iter != diag135.end(); ++iter)&#123;</span><br><span class="line">				<span class="keyword">if</span>(*iter == i+j)&#123;</span><br><span class="line">					diag135.erase(iter);</span><br><span class="line">					<span class="keyword">break</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			j++;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	success = <span class="literal">true</span>;</span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">1</span>; tem &lt;= QueenNumber; tem++)&#123;</span><br><span class="line">		<span class="built_in">cout</span>&lt;&lt;colStack.top()&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">		colStack.pop();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; col, diag45, diag135;</span><br><span class="line">	<span class="keyword">bool</span> success;</span><br><span class="line">	backtrace(<span class="number">1</span>, col, diag45, diag135, success);</span><br><span class="line">	getchar();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="Las-Vegas算法"><a href="#Las-Vegas算法" class="headerlink" title="Las Vegas算法"></a>Las Vegas算法</h2><ul>
-<li>Las Vegas算法介绍</li>
-</ul>
-<p><img src="/images/2016/10/29/3.png" alt=""></p>
-<p><img src="/images/2016/10/29/4.png" alt=""></p>
-<ul>
-<li>伪代码</li>
-</ul>
-<p><img src="/images/2016/10/29/5.png" alt=""></p>
-<p><img src="/images/2016/10/29/6.png" alt=""></p>
-<ul>
-<li>代码</li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;random&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> QueenNumber 8</span></span><br><span class="line"><span class="keyword">int</span> trycol[<span class="number">100</span>];</span><br><span class="line"><span class="function"><span class="keyword">bool</span> <span class="title">isPositionOpen</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; col, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag45, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag135)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> tem;</span><br><span class="line">	<span class="comment">//判断列号</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; col.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(col[tem] == y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//判断45度对角线   45度对角线利用x - y  x为行号，y为列号</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; diag45.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(diag45[tem] == x-y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//判断135度对角线</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; diag135.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(diag135[tem] == x+y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">QueenLV</span><span class="params">(<span class="keyword">bool</span> &amp;success)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; col, diag45, diag135;</span><br><span class="line">	col.clear();</span><br><span class="line">	diag45.clear();</span><br><span class="line">	diag135.clear();</span><br><span class="line">	<span class="keyword">int</span> k = <span class="number">0</span>, nb, i, j;</span><br><span class="line">	random_device rd;</span><br><span class="line">	mt19937 gen(rd());</span><br><span class="line">	<span class="keyword">do</span>&#123;</span><br><span class="line">		nb = <span class="number">0</span>;</span><br><span class="line">		<span class="keyword">for</span>(i = <span class="number">1</span>; i &lt;= QueenNumber; i++)&#123;</span><br><span class="line">			<span class="keyword">if</span>(isPositionOpen(k+<span class="number">1</span>, i, col, diag45, diag135))&#123;</span><br><span class="line">				nb++;</span><br><span class="line">				uniform_int_distribution&lt;&gt; dis(<span class="number">1</span>, nb);</span><br><span class="line">				<span class="keyword">if</span>(dis(gen) == <span class="number">1</span>)&#123;</span><br><span class="line">					j = i;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span>(nb &gt; <span class="number">0</span>)&#123;</span><br><span class="line">			k++;</span><br><span class="line">			trycol[k] = j;</span><br><span class="line">			col.push_back(j);</span><br><span class="line">			diag45.push_back(k-j);</span><br><span class="line">			diag135.push_back(k+j);</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;<span class="keyword">while</span>(nb !=<span class="number">0</span> &amp;&amp; k != QueenNumber);</span><br><span class="line">	success = nb &gt; <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">bool</span> success;</span><br><span class="line">	<span class="keyword">do</span>&#123;</span><br><span class="line">		QueenLV(success);</span><br><span class="line">	&#125;<span class="keyword">while</span>(!success);</span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">1</span>; i&lt;= QueenNumber; i++)&#123;</span><br><span class="line">		<span class="built_in">cout</span>&lt;&lt;trycol[i]&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	getchar();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="问题及改进"><a href="#问题及改进" class="headerlink" title="问题及改进"></a>问题及改进</h2><ul>
-<li>概况<br><img src="/images/2016/10/29/7.png" alt=""><br><img src="/images/2016/10/29/8.png" alt=""></li>
-<li>代码:<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stack&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;random&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> QueenNumber 8</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> stepVegas  2</span></span><br><span class="line"><span class="keyword">int</span> trycol[<span class="number">100</span>];</span><br><span class="line"><span class="function"><span class="keyword">bool</span> <span class="title">isPositionOpen</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; col, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag45, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag135)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> tem;</span><br><span class="line">	<span class="comment">//判断列号</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; col.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(col[tem] == y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//判断45度对角线   45度对角线利用x - y  x为行号，y为列号</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; diag45.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(diag45[tem] == x-y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//判断135度对角线</span></span><br><span class="line">	<span class="keyword">for</span>(tem = <span class="number">0</span>; tem &lt; diag135.size(); tem++)&#123;</span><br><span class="line">		<span class="keyword">if</span>(diag135[tem] == x+y)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">backtrace</span> <span class="params">(<span class="keyword">int</span> k, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; col, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag45, <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; diag135, <span class="keyword">bool</span> &amp;success)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">stack</span>&lt;<span class="keyword">int</span>&gt; colStack;</span><br><span class="line">	<span class="keyword">int</span> i = k, j = <span class="number">1</span>, tem;</span><br><span class="line">	<span class="keyword">bool</span> isOpenFind;</span><br><span class="line">	<span class="keyword">while</span>(i &lt;= QueenNumber)&#123;</span><br><span class="line">		isOpenFind = <span class="literal">false</span>;</span><br><span class="line">		<span class="comment">//检查当前行i:从当前列j起向后逐列试探，寻找安全序号</span></span><br><span class="line">		<span class="keyword">while</span>(j &lt;= QueenNumber)&#123;</span><br><span class="line">			<span class="keyword">if</span>(isPositionOpen(i, j, col, diag45, diag135))&#123;</span><br><span class="line">				isOpenFind = <span class="literal">true</span>;</span><br><span class="line">				col.push_back(j);</span><br><span class="line">				diag45.push_back(i-j);</span><br><span class="line">				diag135.push_back(i+j);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			j++;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//找到安全列号</span></span><br><span class="line">		<span class="keyword">if</span>(isOpenFind)&#123;</span><br><span class="line">			colStack.push(j);</span><br><span class="line">			i++;</span><br><span class="line">			j = <span class="number">1</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//未找到安全列号</span></span><br><span class="line">		<span class="keyword">else</span>&#123;</span><br><span class="line">			<span class="keyword">if</span>(colStack.empty())&#123;</span><br><span class="line">				success = <span class="literal">false</span>;</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			j = colStack.top();</span><br><span class="line">			colStack.pop();</span><br><span class="line">			i--;</span><br><span class="line">			<span class="keyword">for</span> (<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;::iterator iter = col.begin(); iter != col.end(); ++iter)&#123;</span><br><span class="line">				<span class="keyword">if</span>(*iter == j)&#123;</span><br><span class="line">					col.erase(iter);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">for</span> (<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;::iterator iter = diag45.begin(); iter != diag45.end(); ++iter)&#123;</span><br><span class="line">				<span class="keyword">if</span>(*iter == i-j)&#123;</span><br><span class="line">					diag45.erase(iter);</span><br><span class="line">					<span class="keyword">break</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">for</span> (<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;::iterator iter = diag135.begin(); iter != diag135.end(); ++iter)&#123;</span><br><span class="line">				<span class="keyword">if</span>(*iter == i+j)&#123;</span><br><span class="line">					diag135.erase(iter);</span><br><span class="line">					<span class="keyword">break</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			j++;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	success = <span class="literal">true</span>;</span><br><span class="line">	<span class="keyword">for</span>(tem=QueenNumber; tem&gt;=k; tem--)&#123;</span><br><span class="line">		trycol[tem] = colStack.top();</span><br><span class="line">		colStack.pop();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">QueenLV</span><span class="params">(<span class="keyword">bool</span> &amp;success)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; col, diag45, diag135;</span><br><span class="line">	col.clear();</span><br><span class="line">	diag45.clear();</span><br><span class="line">	diag135.clear();</span><br><span class="line">	<span class="keyword">int</span> k = <span class="number">0</span>, nb, i, j;</span><br><span class="line">	random_device rd;</span><br><span class="line">	mt19937 gen(rd());</span><br><span class="line">	<span class="keyword">do</span>&#123;</span><br><span class="line">	nb = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">for</span>(i = <span class="number">1</span>; i &lt;= QueenNumber; i++)&#123;</span><br><span class="line">	　<span class="keyword">if</span>(isPositionOpen(k+<span class="number">1</span>, i, col, diag45, diag135))&#123;</span><br><span class="line">	　　nb++;</span><br><span class="line">	　　uniform_int_distribution&lt;&gt; dis(<span class="number">1</span>, nb);</span><br><span class="line">				<span class="keyword">if</span>(dis(gen) == <span class="number">1</span>)&#123;</span><br><span class="line">					j = i;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span>(nb &gt; <span class="number">0</span>)&#123;</span><br><span class="line">			k++;</span><br><span class="line">			trycol[k] = j;</span><br><span class="line">			col.push_back(j);</span><br><span class="line">			diag45.push_back(k-j);</span><br><span class="line">			diag135.push_back(k+j);</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;<span class="keyword">while</span>(nb !=<span class="number">0</span> &amp;&amp; k != stepVegas);</span><br><span class="line">	<span class="keyword">if</span>(nb == <span class="number">0</span>)&#123;</span><br><span class="line">		success = <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span>&#123;</span><br><span class="line">		backtrace(stepVegas+<span class="number">1</span>, col, diag45, diag135, success);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">bool</span> success;</span><br><span class="line">	<span class="keyword">do</span>&#123;</span><br><span class="line">		QueenLV(success);</span><br><span class="line">	&#125;<span class="keyword">while</span>(!success);</span><br><span class="line">	<span class="keyword">if</span>(success)&#123;</span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">1</span>; i&lt;= QueenNumber; i++)&#123;</span><br><span class="line">			<span class="built_in">cout</span>&lt;&lt;trycol[i]&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span>&#123;</span><br><span class="line">		<span class="built_in">cout</span>&lt;&lt;<span class="string">"hello world!\n"</span>&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	getchar();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Las Vegas算法与回溯法的结合往往能够提高程序的运行效率。Las Vegas算法虽然为随机算法，但是相较于确定性算法，却提高了程序的效率，这是一个值得借鉴的地方。以前接触的往往都是确定性算法，在以后的编码过程中，可以考虑加入随机算法，也许会获得意想不到的结果。</p>
-
+          <p>八皇后问题一直是回溯算法的经典问题。最近在上概率算法，涉及到八皇后问题与Las Vegas算法的结合，花了两天时间写代码，调bug，故特此写下这篇博客以做总结。<br>
+          <div class="read-more">
+            <a href="/2016/10/29/八皇后问题与Las-Vegas算法的结合/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>
@@ -1110,15 +712,14 @@
       
         
         
+          
+        
 
         
-          <p>本科阶段，算法学习的不多，在研究生阶段有深刻的体会。所以趁着研究生阶段，把算法好好补补，下面将列出算法的学习资料，这篇博客将持续更新。</p>
-<ol>
-<li><a href="http://www.geeksforgeeks.org/fundamentals-of-algorithms/" target="_blank" rel="noopener">geeksforgeeks算法学习</a></li>
-<li><a href="http://www.geeksforgeeks.org/data-structures/" target="_blank" rel="noopener">geeksforgeeks数据结构</a></li>
-<li><a href="https://www.cs.berkeley.edu/~vazirani/algorithms/chap6.pdf" target="_blank" rel="noopener">加州大学伯克利分校讲义</a>(chap0-chap10)</li>
-</ol>
-
+          <p>本科阶段，算法学习的不多，在研究生阶段有深刻的体会。所以趁着研究生阶段，把算法好好补补，下面将列出算法的学习资料，这篇博客将持续更新。<br>
+          <div class="read-more">
+            <a href="/2016/09/03/算法学习资料/" class="read-more-link">阅读更多</a>
+          </div>
         
       
     </div>

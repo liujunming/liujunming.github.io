@@ -257,8 +257,7 @@
     <div class="post-content">
       
         <p><a href="https://www.zybuluo.com/ljm/note/1125361" target="_blank" rel="noopener">通过perf测试进程的内存带宽</a></p>
-<h2 id="perf的基本原理"><a href="#perf的基本原理" class="headerlink" title="perf的基本原理"></a>perf的基本原理</h2><p>Perf 是内置于 Linux 内核源码树中的性能剖析（profiling）工具。它基于事件采样原理，以性能事件为基础，支持针对处理器相关性能指标与操作系统相关性能指标的性能剖析，可用于性能瓶颈的查找与热点代码的定位。</p>
-<p>以监测“cycles”事件为例，perf的工作过程如下：<br>首先，perf 会通过系统调用sys_perf_event_open在内核中注册一个监测“cycles”事件的性能计数器。内核根据perf提供的信息在PMU(Performance Monitoring Unit)上初始化一个硬件性能计数器（PMC:Performance Monitoring Counter）。PMC随着CPU周期的增加而自动累加。在PMC溢出时，PMU触发一个PMI（Performance Monitoring Interrupt）中断。内核在PMI中断的处理函数中保存PMC的计数值，触发中断时的指令地址（Register IP：Instruction Pointer），当前时间戳以及当前进程的PID，TID，comm等信息。我们把这些信息统称为一个采样（sample）。内核会将收集到的sample放入用于跟用户空间通信的Ring Buffer。用户空间里的perf分析程序采用mmap机制从Ring Buffer中读入采样，并对其解析。perf根据pid，comm等信息可以找到对应的进程。根据IP与ELF文件中的符号表可以查到触发PMI中断的指令所在的函数。</p>
+<h2 id="perf的基本原理"><a href="#perf的基本原理" class="headerlink" title="perf的基本原理"></a>perf的基本原理</h2><p>Perf 是内置于 Linux 内核源码树中的性能剖析（profiling）工具。它基于事件采样原理，以性能事件为基础，支持针对处理器相关性能指标与操作系统相关性能指标的性能剖析，可用于性能瓶颈的查找与热点代码的定位。<br><a id="more"></a><br>以监测“cycles”事件为例，perf的工作过程如下：<br>首先，perf 会通过系统调用sys_perf_event_open在内核中注册一个监测“cycles”事件的性能计数器。内核根据perf提供的信息在PMU(Performance Monitoring Unit)上初始化一个硬件性能计数器（PMC:Performance Monitoring Counter）。PMC随着CPU周期的增加而自动累加。在PMC溢出时，PMU触发一个PMI（Performance Monitoring Interrupt）中断。内核在PMI中断的处理函数中保存PMC的计数值，触发中断时的指令地址（Register IP：Instruction Pointer），当前时间戳以及当前进程的PID，TID，comm等信息。我们把这些信息统称为一个采样（sample）。内核会将收集到的sample放入用于跟用户空间通信的Ring Buffer。用户空间里的perf分析程序采用mmap机制从Ring Buffer中读入采样，并对其解析。perf根据pid，comm等信息可以找到对应的进程。根据IP与ELF文件中的符号表可以查到触发PMI中断的指令所在的函数。</p>
 <p>根据上述的perf采样原理可以得知，perf假设两次采样之间，即两次相邻的PMI中断之间系统执行的是同一个进程的同一个函数。这种假设会带来一定的误差，当读者感觉perf给出的结果不准时，不妨提高采样频率，perf会给出更加精确的结果。</p>
 <h2 id="perf-list简介"><a href="#perf-list简介" class="headerlink" title="perf list简介"></a>perf list简介</h2><p>事件可以分为三种：</p>
 <ol>
