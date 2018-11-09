@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog."/>
+  <meta name="description" content="内核中遍历所有的page"/>
 
 
 
+
+  <meta name="keywords" content="Kernel, L" />
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2017/07/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/11/09/内核中遍历所有的page/"/>
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> 内核中遍历所有的page - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -222,239 +220,110 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          内核中遍历所有的page
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 132 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2018-11-09
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+
+
+    <div class="post-content">
+      
+        <p>遇到一个需求，需要在内核模块中统计page cache页面的数量。<br><a id="more"></a><br>此刻，需要遍历所有的page，下面是相关代码：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsigned</span> scan_pfn=<span class="number">0</span>;</span><br><span class="line"><span class="keyword">for</span>(;scan_pfn &lt; max_pfn; scan_pfn++)&#123;</span><br><span class="line">    <span class="keyword">if</span>(pfn_valid(scan_pfn))&#123;</span><br><span class="line">        page = pfn_to_page(scan_pfn);</span><br><span class="line">        <span class="keyword">if</span>(page)&#123;</span><br><span class="line">            ......</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>从上述代码可以看出，通过<code>max_pfn</code>即可获取最大的page frame号。</p>
+<p>判断page是否为page cache可使用下面的函数:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">inline</span> <span class="keyword">bool</span> <span class="title">is_file_page</span><span class="params">(struct page* pg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">bool</span> ret = <span class="literal">false</span>;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">address_space</span> *<span class="title">mapping</span> = <span class="title">NULL</span>;</span></span><br><span class="line">    <span class="keyword">if</span>(pg &amp;&amp; !PageAnon(pg) &amp;&amp; !PageSwapCache(pg)) &#123;</span><br><span class="line">        mapping = page_file_mapping(pg);</span><br><span class="line">        <span class="keyword">if</span> (mapping) &#123;</span><br><span class="line">            BUG_ON(!mapping-&gt;host);</span><br><span class="line">        &#125;</span><br><span class="line">        ret = mapping;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    
+      
+      
+
+  <div class="post-copyright">
+    <p class="copyright-item">
+      <span>原文作者: </span>
+      <a href="http://liujunming.github.io">liujunming</a>
+    </p>
+    <p class="copyright-item">
+      <span>原文链接: </span>
+      <a href="http://liujunming.github.io/2018/11/09/内核中遍历所有的page/">http://liujunming.github.io/2018/11/09/内核中遍历所有的page/</a>
+    </p>
+    <p class="copyright-item">
+      <span>许可协议: </span>
+      
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+    </p>
+  </div>
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2017</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-18
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/18/Linux内核线程详解/" class="archive-post-link">
-            Linux内核线程详解
-          </a>
-        </span>
-      </div>
+        
+        
+  <nav class="post-nav">
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-17
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/17/Linux内核模块间函数调用/" class="archive-post-link">
-            Linux内核模块间函数调用
-          </a>
-        </span>
-      </div>
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-15
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/15/makefile入门教程/" class="archive-post-link">
-            makefile入门教程
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-08
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/08/KVM-struct-kvm-mmu结构体详解/" class="archive-post-link">
-            KVM struct kvm_mmu结构体详解
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-03
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/03/kmalloc、vmalloc、malloc的区别与联系/" class="archive-post-link">
-            kmalloc、vmalloc、malloc的区别与联系
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-03
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/03/Linux内存管理内核函数/" class="archive-post-link">
-            Linux内存管理内核函数
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-03
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/03/get-user-pages函数详解/" class="archive-post-link">
-            get_user_pages函数详解
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-02
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/02/Linux用户虚拟地址和内核虚拟地址的关系/" class="archive-post-link">
-            Linux用户虚拟地址和内核虚拟地址的关系
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-02
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/02/Git的Patch功能/" class="archive-post-link">
-            Git的Patch功能
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2017/07/01/内核开发经验/" class="archive-post-link">
-            内核开发经验
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
+      <a class="next" href="/2018/11/08/Linux内核中使用文件/">
+        <span class="next-text nav-default">Linux内核中使用文件</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -538,6 +407,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/11/09/内核中遍历所有的page/';
+        this.page.identifier = '2018/11/09/内核中遍历所有的page/';
+        this.page.title = '内核中遍历所有的page';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
