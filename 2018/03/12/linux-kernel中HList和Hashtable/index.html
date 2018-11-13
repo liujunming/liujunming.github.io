@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="linux kernel中HList和Hashtable"/>
+
+
+
+
+  <meta name="keywords" content="Kernel, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2018/03/12/linux-kernel中HList和Hashtable/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> linux kernel中HList和Hashtable - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          linux kernel中HList和Hashtable
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2018-03-12
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#HList"><span class="toc-text">HList</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-普通链表"><span class="toc-text">1.1 普通链表</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-哈希链表"><span class="toc-text">1.2 哈希链表</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-相关操作"><span class="toc-text">1.3 相关操作</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Hashtable"><span class="toc-text">Hashtable</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-定义"><span class="toc-text">2.1 定义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-相关操作"><span class="toc-text">2.2 相关操作</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-hash-function"><span class="toc-text">2.3 hash function</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-Hashtable-example"><span class="toc-text">2.4 Hashtable example</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <h2 id="HList"><a href="#HList" class="headerlink" title="HList"></a>HList</h2><p>先来直观的比较下普通链表和哈希链表(HList)：<br><img src="/images/2018/3/5.png" alt=""><br><a id="more"></a></p>
+<h3 id="1-1-普通链表"><a href="#1-1-普通链表" class="headerlink" title="1.1 普通链表"></a>1.1 普通链表</h3><p>普通链表的表头和节点相同<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> &#123;</span>  </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> *<span class="title">next</span>, *<span class="title">prev</span>;</span>  </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>详情请参考<a href="http://liujunming.top/2018/11/13/linux-kernel%E4%B8%AD%E9%93%BE%E8%A1%A8%E7%9A%84%E8%A7%A3%E6%9E%90/" target="_blank" rel="noopener">内核数据结构之链表</a>。</p>
+<h3 id="1-2-哈希链表"><a href="#1-2-哈希链表" class="headerlink" title="1.2 哈希链表"></a>1.2 哈希链表</h3><p>HList的资料结构定义在 <a href="https://elixir.bootlin.com/linux/v4.1/source/include/linux/types.h#L181" target="_blank" rel="noopener">include/linux/types.h</a> 之中:</p>
+<p>哈希链表头<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">hlist_head</span> &#123;</span>  </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">hlist_node</span> *<span class="title">first</span>;</span>  </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>哈希链表节点<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">hlist_node</span> &#123;</span>  </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">hlist_node</span> *<span class="title">next</span>, **<span class="title">pprev</span>;</span>  </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>hlist_head 和 hlist_node 用于 hash table 中 bucket 的实际操作，具有相同 hash value 的节点会放在同一条 hlist 中。 为了节省空间，hlist_head 只使用一个 first 指针指向 hlist_node，没有指向尾节点的指针。</p>
+<p>hlist_node 有两个指针，但是需要注意的是 <code>pprev</code> 是指向指针的指针，它指向的是前一个节点的 next指针。<br>因为这时候表头(hlist_head)和节点(hlist_node)的数据结构不同。如果使用struct hlist_node *prev，只适用于前一个为节点的情况，而不适用于前一个为表头的情况。如果每次操作都要考虑指针类型转换，会是一件麻烦的事情。所以，我们需要一种统一的操作，而不用考虑前一个元素是节点还是表头。pprev指向前一个元素的next指针，不用管前一个元素是节点还是表头。当我们需要操作前一个元素(节点或表头)，可以统一使用<code>*(node-&gt;pprev)</code>来访问和修改前一元素的next(或first)指针。</p>
+<p>原理图如下：<br><img src="/images/2018/3/6" alt=""></p>
+<h3 id="1-3-相关操作"><a href="#1-3-相关操作" class="headerlink" title="1.3 相关操作"></a>1.3 相关操作</h3><p>HList 的操作与 List 一样定义在: <a href="https://elixir.bootlin.com/linux/v4.1/source/include/linux/list.h" target="_blank" rel="noopener">include/linux/list.h</a> ，以 hlist_ 开头</p>
+<h2 id="Hashtable"><a href="#Hashtable" class="headerlink" title="Hashtable"></a>Hashtable</h2><h3 id="2-1-定义"><a href="#2-1-定义" class="headerlink" title="2.1 定义"></a>2.1 定义</h3><p>在 Linux kernel 3.7 之后采用由Sasha Levin设计的通用型 hash table (<a href="https://lwn.net/Articles/510202/" target="_blank" rel="noopener">LWN: A generic hash table</a>)，使用 <code>DEFINE_HASHTABLE(name, bits)</code>的macro来宣告 hash table:</p>
+<ul>
+<li>name: the name of the hash table</li>
+<li>bits: the number of bits of hash values</li>
+</ul>
+<p>第二的参数 bits 比较特别，它代表的是 hash value 的有效位元数。若 bits = 3，hash value 的范围会是 0~7，若 bits = 10，hash value 的范围会是 0 ~ 1023。前者需要准备 8 个 buckets，后者则需要 1024 个 buckets，bits 参数会决定 hash table 的 buckets 的数量 (=2^bits)。hashtable实际上会以 hlist_head array 的方式来配置。</p>
+<p>举例来说， <code>DEFINE_HASHTABLE(htable, 3)</code>会展开成:<br><code>struct hlist_head htable[8] = { [0 ... 7] = HLIST_HEAD_INIT };</code><br>这是一个有 8 个 buckets 的 hash table。<br>经由 hash function 将值映射到这 8 个 buckets 中，当冲突发生时，直接加到 hlist_head 后的串列中。</p>
+<h3 id="2-2-相关操作"><a href="#2-2-相关操作" class="headerlink" title="2.2 相关操作"></a>2.2 相关操作</h3><p>hash table 相关的操作定义在 <a href="https://elixir.bootlin.com/linux/v4.1/source/include/linux/hashtable.h" target="_blank" rel="noopener">include/linux/hashtable.h</a></p>
+<ul>
+<li><code>hash_init</code> - initialize a hash table</li>
+<li><code>hash_empty</code> - check whether a hashtable is empty</li>
+<li><code>hash_add</code> - add an object to a hashtable</li>
+<li><code>hash_del</code> - remove an object from a hashtable</li>
+<li><code>hash_for_each</code> - iterate over a hashtable</li>
+<li><code>hash_for_each_possible</code> - iterate over all possible objects hashing to the same bucket</li>
+</ul>
+<h3 id="2-3-hash-function"><a href="#2-3-hash-function" class="headerlink" title="2.3 hash function"></a>2.3 hash function</h3><p>hashtable 预设的 hash function 定义在 <a href="https://elixir.bootlin.com/linux/v4.1/source/include/linux/hash.h" target="_blank" rel="noopener">include/linux/hash.h</a> ，有 32 和 64 两个版本，如下:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 2^31 + 2^29 - 2^25 + 2^22 - 2^19 - 2^16 + 1 */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> GOLDEN_RATIO_PRIME_32 0x9e370001UL</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> u32 <span class="title">hash_32</span><span class="params">(u32 val, <span class="keyword">unsigned</span> <span class="keyword">int</span> bits)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/* On some cpus multiply is faster, on others gcc will do shifts */</span></span><br><span class="line">    u32 hash = val * GOLDEN_RATIO_PRIME_32;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* High bits are more random, so use them. */</span></span><br><span class="line">    <span class="keyword">return</span> hash &gt;&gt; (<span class="number">32</span> - bits);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*  2^63 + 2^61 - 2^57 + 2^54 - 2^51 - 2^18 + 1 */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001UL</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> __<span class="function">always_inline u64 <span class="title">hash_64</span><span class="params">(u64 val, <span class="keyword">unsigned</span> <span class="keyword">int</span> bits)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    u64 hash = val;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_ARCH_HAS_FAST_MULTIPLIER) &amp;&amp; BITS_PER_LONG == 64</span></span><br><span class="line">    hash = hash * GOLDEN_RATIO_PRIME_64;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">    <span class="comment">/*  Sigh, gcc can't optimise this alone like it does for 32 bits. */</span></span><br><span class="line">    u64 n = hash;</span><br><span class="line">    n &lt;&lt;= <span class="number">18</span>;</span><br><span class="line">    hash -= n;</span><br><span class="line">    n &lt;&lt;= <span class="number">33</span>;</span><br><span class="line">    hash -= n;</span><br><span class="line">    n &lt;&lt;= <span class="number">3</span>;</span><br><span class="line">    hash += n;</span><br><span class="line">    n &lt;&lt;= <span class="number">3</span>;</span><br><span class="line">    hash -= n;</span><br><span class="line">    n &lt;&lt;= <span class="number">4</span>;</span><br><span class="line">    hash += n;</span><br><span class="line">    n &lt;&lt;= <span class="number">2</span>;</span><br><span class="line">    hash += n;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* High bits are more random, so use them. */</span></span><br><span class="line">    <span class="keyword">return</span> hash &gt;&gt; (<span class="number">64</span> - bits);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-4-Hashtable-example"><a href="#2-4-Hashtable-example" class="headerlink" title="2.4 Hashtable example"></a>2.4 Hashtable example</h3><p>下面用例子来说明 hashtable 的使用:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">object</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">int</span> id;</span><br><span class="line">    <span class="keyword">char</span> name[<span class="number">16</span>];</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">hlist_node</span> <span class="title">node</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">hashtable_example</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// define a hash table with 2^3(=8) buckets</span></span><br><span class="line">    DEFINE_HASHTABLE(htable, <span class="number">3</span>);</span><br><span class="line">    <span class="comment">// =&gt; struct hlist_head htable[8] = &#123; [0 ... 7] = HLIST_HEAD_INIT &#125;;</span></span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">object</span> <span class="title">obj1</span> = &#123;</span></span><br><span class="line">        .id = <span class="number">1</span>,</span><br><span class="line">        .name = <span class="string">"obj1"</span>,</span><br><span class="line">    &#125;;</span><br><span class="line">    hash_add(htable, &amp;obj1.node, obj1.id);</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">object</span> <span class="title">obj2</span> = &#123;</span></span><br><span class="line">        .id = <span class="number">2</span>,</span><br><span class="line">        .name = <span class="string">"obj2"</span>,</span><br><span class="line">    &#125;;</span><br><span class="line">    hash_add(htable, &amp;obj2.node, obj2.id);</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">object</span> <span class="title">obj3</span> = &#123;</span></span><br><span class="line">        .id = <span class="number">3</span>,</span><br><span class="line">        .name = <span class="string">"obj3"</span>,</span><br><span class="line">    &#125;;</span><br><span class="line">    hash_add(htable, &amp;obj3.node, obj3.id);</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">object</span> <span class="title">obj9</span> = &#123;</span></span><br><span class="line">        .id = <span class="number">9</span>,</span><br><span class="line">        .name = <span class="string">"obj9"</span>,</span><br><span class="line">    &#125;;</span><br><span class="line">    hash_add(htable, &amp;obj9.node, obj9.id);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>经过上面的操作之后，hash table 呈现如下:<br>obj1 和 obj9 的 hash value 冲突，放入同一个 bucket 的串列中<br><img src="/images/2018/11/4.png" alt=""><br>以 <code>hash_for_each_possible()</code>寻访 bucket 内所有的节点(hlist_node)，因为 hash value 可能会有冲突的关系，同一个 bucket 内可能会有不同 key value 的节点，所以需要检查是不是要查找的 key value。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> key = <span class="number">1</span>;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">object</span>* <span class="title">obj</span>;</span></span><br><span class="line">hash_for_each_possible(htable, obj, node, key) &#123;</span><br><span class="line">    <span class="keyword">if</span>(obj-&gt;id == key) &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"key=%d =&gt; %s\n"</span>, key, obj-&gt;name);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>函数的详细使用方法可以参考<a href="https://github.com/danielmaker/linux_study/blob/master/list_example/hashtable_example.c" target="_blank" rel="noopener">hashtable_example.c</a></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="http://blog.csdn.net/zhangskd/article/details/11225301" target="_blank" rel="noopener">哈希链表及其变种</a></li>
+<li><a href="https://danielmaker.github.io/blog/linux/list_hlist_hashtable.html" target="_blank" rel="noopener">List, HList, and Hash Table</a></li>
+<li><a href="http://cxd2014.github.io/2015/10/26/KernelList/" target="_blank" rel="noopener">Linux内核链表</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+  <div class="post-copyright">
+    <p class="copyright-item">
+      <span>原文作者: </span>
+      <a href="http://liujunming.github.io">liujunming</a>
+    </p>
+    <p class="copyright-item">
+      <span>原文链接: </span>
+      <a href="http://liujunming.github.io/2018/03/12/linux-kernel中HList和Hashtable/">http://liujunming.github.io/2018/03/12/linux-kernel中HList和Hashtable/</a>
+    </p>
+    <p class="copyright-item">
+      <span>许可协议: </span>
+      
+      <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>
+    </p>
+  </div>
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2018/03/20/数据结构-树的归纳总结/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">数据结构:树的归纳总结</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2018/03/06/系统性能分析工具/">
+        <span class="next-text nav-default">系统性能分析工具</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/03/12/linux-kernel中HList和Hashtable/';
+        this.page.identifier = '2018/03/12/linux-kernel中HList和Hashtable/';
+        this.page.title = 'linux kernel中HList和Hashtable';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
