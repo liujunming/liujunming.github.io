@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="分段机制解析"/>
+
+
+
+
+  <meta name="keywords" content="Kernel, 计算机系统, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2018/11/16/分段机制解析/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 分段机制解析 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          分段机制解析
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2018-11-16
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机系统/">计算机系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#硬件中的分段"><span class="toc-text">硬件中的分段</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-段选择符和段寄存器"><span class="toc-text">1.1 段选择符和段寄存器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-段描述符"><span class="toc-text">1.2 段描述符</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-快速访问段描述符"><span class="toc-text">1.3 快速访问段描述符</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-分段单元"><span class="toc-text">1.4 分段单元</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux中的分段"><span class="toc-text">Linux中的分段</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-Linux-GDT"><span class="toc-text">2.1 Linux GDT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-The-Linux-LDTs"><span class="toc-text">2.2 The Linux LDTs</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <h2 id="硬件中的分段"><a href="#硬件中的分段" class="headerlink" title="硬件中的分段"></a>硬件中的分段</h2><h3 id="1-1-段选择符和段寄存器"><a href="#1-1-段选择符和段寄存器" class="headerlink" title="1.1 段选择符和段寄存器"></a>1.1 段选择符和段寄存器</h3><p>分段是一种朴素的内存管理机制，它将内存划分成以起始地址(Base)和长度(Limit)描述的块，这些内存块就被称为“段”。<a id="more"></a>一个逻辑地址由两部分组成：一个段选择符和段内偏移量。段选择符是一个16位长的字段，格式如下图所示：<br><img src="/images/2018/11/6.png" alt=""><br>为了快速方便地找到段选择符，处理器提供段寄存器，段寄存器的唯一目的就是存放段选择符。这些寄存器称为cs，ss，ds，es，fs和gs。</p>
+<h3 id="1-2-段描述符"><a href="#1-2-段描述符" class="headerlink" title="1.2 段描述符"></a>1.2 段描述符</h3><p>段描述符描述某个段的基地址、长度以及各种属性。段描述符放在全局描述符表(Global Descriptor Table,GDT)或局部描述符表(Local Descriptor Table,LDT)中。</p>
+<p>系统中至少有一个GDT可以被所有进程共享。相对的，系统中可以有一个或多个LDT,可以被某个进程私有，也可以被多个进程共享。GDT仅仅是内存中的一个数据结构，可以把它看成一个数组，每个元素由基地址(Base)和长度(Limit)描述。LDT则是一个段，它需要一个段描述符来描述它。LDT的的段描述符存放在GDT中，当系统中有多个LDT时，GDT中就必须有对应数量的段描述符。</p>
+<p>GDT在主存中的地址和大小存放在gdtr寄存器中，当前正在被使用的LDT的地址和大小放在ldtr寄存器中。</p>
+<p>通过段选择符索引GDT/LDT的过程如下图：<br><img src="/images/2018/11/7.png" alt=""></p>
+<h3 id="1-3-快速访问段描述符"><a href="#1-3-快速访问段描述符" class="headerlink" title="1.3 快速访问段描述符"></a>1.3 快速访问段描述符</h3><p>段寄存器仅仅存放段选择符。为了加速逻辑地址到线性地址的转换，80x86处理器提供一种非编程的寄存器，供6个可编程的段寄存器使用。每一个非编程的寄存器含有8个字节的段描述符，由相应的段寄存器中的段选择符来指定。每当一个段选择符被装入段寄存器时，相应的段描述符就由内存装入到对应的非编程CPU寄存器。从那时起，针对那个段的逻辑地址转换就可以不访问主存中的GDT或LDT，处理器只需要直接引用存放段描述符的CPU寄存器即可。仅当段寄存器的内容改变时，才有必要访问GDT或LDT，过程如下图：<br><img src="/images/2018/11/5.png" alt=""></p>
+<h3 id="1-4-分段单元"><a href="#1-4-分段单元" class="headerlink" title="1.4 分段单元"></a>1.4 分段单元</h3><p><img src="/images/2018/11/8.png" alt=""></p>
+<h2 id="Linux中的分段"><a href="#Linux中的分段" class="headerlink" title="Linux中的分段"></a>Linux中的分段</h2><p>四个主要的Linux段的段描述符字段的值如下：<br><img src="/images/2018/11/9.png" alt=""></p>
+<h3 id="2-1-Linux-GDT"><a href="#2-1-Linux-GDT" class="headerlink" title="2.1 Linux GDT"></a>2.1 Linux GDT</h3><p>在单处理器系统中只有一个GDT，而在多处理器系统中每个CPU对应一个GDT。</p>
+<p>下图是GDT的布局示意图：<br><img src="/images/2018/11/10.png" alt=""></p>
+<h3 id="2-2-The-Linux-LDTs"><a href="#2-2-The-Linux-LDTs" class="headerlink" title="2.2 The Linux LDTs"></a>2.2 The Linux LDTs</h3><p>大多数用户态下的Linux程序不使用局部描述符表，这样内核就定义了一个缺省的LDT供大多数进程共享。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li>《深入理解linux内核》</li>
+<li>《系统虚拟化：原理与实现》</li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/计算机系统/">计算机系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2018/11/14/内核中统计mysql进程匿名页的访问热度/">
+        <span class="next-text nav-default">内核中统计mysql进程匿名页的访问热度</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/11/16/分段机制解析/';
+        this.page.identifier = '2018/11/16/分段机制解析/';
+        this.page.title = '分段机制解析';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
