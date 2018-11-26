@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog."/>
+  <meta name="description" content="进程切换switch_to宏第三个参数分析"/>
 
 
 
+
+  <meta name="keywords" content="Kernel, L" />
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/page/14/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/11/20/进程切换switch-to宏第三个参数分析/"/>
 
 
 
@@ -88,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> L </title>
+    <title> 进程切换switch_to宏第三个参数分析 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -218,123 +220,17 @@
           <div id="content" class="content">
             
   
-  <section id="posts" class="posts">
-    
-      
-        
   <article class="post">
     <header class="post-header">
       <h1 class="post-title">
         
-          <a class="post-link" href="/2016/04/29/深入理解计算机系统之重要概念/">深入理解计算机系统之重要概念</a>
+          进程切换switch_to宏第三个参数分析
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2016-04-29
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/计算机系统/">计算机系统</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <h2 id="重要主题"><a href="#重要主题" class="headerlink" title="重要主题"></a>重要主题</h2>
-          <div class="read-more">
-            <a href="/2016/04/29/深入理解计算机系统之重要概念/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2016/04/28/深入理解计算机系统之系统概论/">深入理解计算机系统之系统概论</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2016-04-28
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/计算机系统/">计算机系统</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <p>开始看《深入理解计算机系统》（<a href="https://book.douban.com/subject/1230413/" target="_blank" rel="noopener">豆瓣</a>）这本书，才看了一点，顿时感觉收获颇多，所以记录下读书笔记，方便以后复习。<br>
-          <div class="read-more">
-            <a href="/2016/04/28/深入理解计算机系统之系统概论/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2016/04/28/linux-内核编译/">linux 内核编译</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2016-04-28
+          2018-11-20
         </span>
         
           <span class="post-category">
@@ -353,197 +249,73 @@
 
     <div class="post-content">
       
-        
-        
-          
-        
+        <p>switch_to宏的<a href="https://elixir.bootlin.com/linux/v4.19.4/source/arch/x86/include/asm/switch_to.h#L70" target="_blank" rel="noopener">代码</a>如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> switch_to(prev, next, last)                 \</span></span><br><span class="line"><span class="keyword">do</span> &#123;                                    \</span><br><span class="line">    prepare_switch_to(next);                    \</span><br><span class="line">                                    \</span><br><span class="line">    ((last) = __switch_to_asm((prev), (next)));         \</span><br><span class="line">&#125; <span class="keyword">while</span> (<span class="number">0</span>)</span><br></pre></td></tr></table></figure></p>
+<a id="more"></a>
+<p>上下文切换不仅涉及两个进程，而是三个进程。该情形如下图所示：<br><img src="/images/2018/11/11.png" alt=""></p>
+<p>假定3个进程A、B和C在系统上运行。在某个时间点，内核决定从进程A切换到进程B，然后从进程B切换到进程C，接下来再从进程C切换回进程A。在每个switch_to调用之前，next和prev指针位于各进程的内核栈上，prev指向当前运行的进程，而next指向将要运行的下一个进程。为执行从prev到next的切换，switch_to的前两个参数足够了。对进程A来说，prev指向进程A而next指向进程B。</p>
+<p>在进程A被选中再次执行时，会出现一个问题，控制权返回至switch_to之后的点，如果栈准确地恢复到切换之前的状态，那么prev和next仍然指向切换之前的值，即next=B，而prev=A。在这种情况下，内核无法知道实际上在进程A之前运行的进程是C。</p>
+<p>在新进程被选中时，底层的进程切换例程必须将此前执行的进程提供给context_switch。该宏是效果是，仿佛switch_to是带有两个参数的函数，而且返回了一个指向此前运行进程的指针。switch_to宏实际上执行的代码如下：<br><code>prev = switch_to(prev, next)</code><br>其中返回的prev值并不是用作参数的prev值，而是上一个执行的进程。在上述例子中，进程A提供给switch_to是参数是A和B，但恢复执行后得到的返回值是prev = C。内核实现该行为特性的方式依赖于底层的体系结构。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li>《Professional Linux Kernel Architecture》 p104</li>
+</ol>
 
-        
-          <p>在第一次编译内核的时候，我尝试去youtube上看视频，查询技术博客，但是，直到看到实验室师兄的博客，那叫一个简单啊<a href="http://blog.csdn.net/chenyouxu/article/details/46985909" target="_blank" rel="noopener">点击查看博客</a>，下面我将其内容搬到自己博客中来，方便以后查看。
-          <div class="read-more">
-            <a href="/2016/04/28/linux-内核编译/" class="read-more-link">阅读更多</a>
-          </div>
-        
       
     </div>
 
     
+      
+      
 
-    
 
-  </article>
 
       
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2016/04/26/KSM源码解析之大页函数/">KSM源码解析之大页函数</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2016-04-26
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/Kernel/">Kernel</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
       
-        
-        
-          
-        
+    
 
+    
+      <footer class="post-footer">
         
-          <p>最近需要修改linux内核代码中ksm部分，所以记录下遇到的一些重要函数，方便以后查阅与理解。<br>
-          <div class="read-more">
-            <a href="/2016/04/26/KSM源码解析之大页函数/" class="read-more-link">阅读更多</a>
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
           </div>
         
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2016/04/22/linux-kernel-模块化编程入门/">linux kernel 模块化编程入门</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2016-04-22
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/Kernel/">Kernel</a>
-            
-          </span>
         
         
-      </div>
-    </header>
-
+  <nav class="post-nav">
     
     
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <p>相信hello world是所有编程语言的demo吧，linux kernel也不例外，昨天搜集了相关资料，终于完成linux 模块化编程的hello world！特此写下这个博客，记录下步骤。
-          <div class="read-more">
-            <a href="/2016/04/22/linux-kernel-模块化编程入门/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2016/04/20/python 操作excel/">python 操作excel</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2016-04-20
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/python/">python</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <p>在统计数据的时候，发现需要写个脚本去操作excel，于是找到了python，python大法好啊，哈哈，下面记录下过程。<br>
-          <div class="read-more">
-            <a href="/2016/04/20/python 操作excel/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-      
-  <nav class="pagination">
-    
-      <a class="prev" href="/page/13/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text">上一页</span>
+      <a class="next" href="/2018/11/16/分段机制解析/">
+        <span class="next-text nav-default">分段机制解析</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
       </a>
-    
     
   </nav>
 
 
+      </footer>
     
-  </section>
+
+  </article>
+
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -627,6 +399,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/11/20/进程切换switch-to宏第三个参数分析/';
+        this.page.identifier = '2018/11/20/进程切换switch-to宏第三个参数分析/';
+        this.page.title = '进程切换switch_to宏第三个参数分析';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
