@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog."/>
+  <meta name="description" content="内核页表和进程页表"/>
 
 
 
+
+  <meta name="keywords" content="内存管理, Kernel, L" />
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/11/27/内核页表和进程页表/"/>
 
 
 
@@ -88,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> L </title>
+    <title> 内核页表和进程页表 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -218,15 +220,11 @@
           <div id="content" class="content">
             
   
-  <section id="posts" class="posts">
-    
-      
-        
   <article class="post">
     <header class="post-header">
       <h1 class="post-title">
         
-          <a class="post-link" href="/2018/11/27/内核页表和进程页表/">内核页表和进程页表</a>
+          内核页表和进程页表
         
       </h1>
 
@@ -251,11 +249,7 @@
 
     <div class="post-content">
       
-        
-        
-
-        
-          <p>本文转载自：<a href="http://blog.chinaunix.net/uid-14528823-id-4334619.html" target="_blank" rel="noopener">chinaunix</a></p>
+        <p>本文转载自：<a href="http://blog.chinaunix.net/uid-14528823-id-4334619.html" target="_blank" rel="noopener">chinaunix</a></p>
 <p>初学内核时，经常被“内核页表”和“进程页表”搞晕，不知道这到底是个啥东东，跟我们平时理解的页表有和关系。</p>
 <ul>
 <li><p>内核页表：即书上说的<strong>主内核页表</strong>，在内核中其实就是一段内存，存放在主内核页全局目录init_mm.pgd(swapper_pg_dir)中，硬件并不直接使用。</p>
@@ -277,496 +271,63 @@
 <p>其中，线性映射区即通过<code>TASK_SIZE</code>偏移进行映射的区域，对32系统来说就是0-896M这部分区域，映射对应的虚拟地址区域为<code>TASK_SIZE~TASK_SIZE+896M</code>。这部分区域在内核初始化时就已经完成映射，并创建好相应的页表，即这部分虚拟内存区域不会发生page fault。</p>
 <p>vmalloc区，为<code>896M~896M+128M</code>，这部分区域用于映射高端内存，有三种映射方式：vmalloc、固定、临时，这里就不详述了。。<br>以vmalloc为例(最常使用)，这部分区域对应的线性地址在内核使用vmalloc分配内存时，其实就已经分配了相应的物理内存，并做了相应的映射，建立了相应的页表项，但相关页表项仅写入了“内核页表”，并没有实时更新到“进程页表中”，内核在这里使用了“延迟更新”的策略，将“进程页表”真正更新推迟到第一次访问相关线性地址，发生page fault时，此时在<a href="https://elixir.bootlin.com/linux/v4.19.4/source/arch/x86/mm/fault.c#L1244" target="_blank" rel="noopener">page fault</a>的处理流程中进行“进程页表”的更新：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 缺页地址位于内核空间。并不代表异常发生于内核空间，有可能是用户</span></span><br><span class="line"><span class="comment"> * 态访问了内核空间的地址。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (unlikely(fault_in_kernel_space(address))) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!(error_code &amp; (PF_RSVD | PF_USER | PF_PROT))) &#123;</span><br><span class="line">        <span class="comment">//检查发生缺页的地址是否在vmalloc区，是则进行相应的处理</span></span><br><span class="line">        <span class="keyword">if</span> (vmalloc_fault(address) &gt;= <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span>;</span><br></pre></td></tr></table></figure></p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">  * 对于发生缺页异常的指针位于vmalloc区情况的处理，主要是将</span></span><br><span class="line"><span class="comment">  * 主内核页表向当前进程的内核页表同步。</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line"><span class="keyword">static</span> noinline __<span class="function">kprobes <span class="keyword">int</span> <span class="title">vmalloc_fault</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> address)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> pgd_paddr;</span><br><span class="line">    <span class="keyword">pmd_t</span> *pmd_k;</span><br><span class="line">    <span class="keyword">pte_t</span> *pte_k;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Make sure we are in vmalloc area: */</span></span><br><span class="line">    <span class="comment">/* 区域检查 */</span></span><br><span class="line">    <span class="keyword">if</span> (!(address &gt;= VMALLOC_START &amp;&amp; address &lt; VMALLOC_END))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">    WARN_ON_ONCE(in_nmi());</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Synchronize this task's top level page-table</span></span><br><span class="line"><span class="comment">     * with the 'reference' page table.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * Do _not_ use "current" here. We might be inside</span></span><br><span class="line"><span class="comment">     * an interrupt in the middle of a task switch..</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">     <span class="comment">/*获取pgd(最顶级页目录)地址，直接从CR3寄存器中读取。</span></span><br><span class="line"><span class="comment">     *不要通过current获取，因为缺页异常可能在上下文切换的过程中发生，</span></span><br><span class="line"><span class="comment">     *此时如果通过current获取，则可能会出问题*/</span></span><br><span class="line">    pgd_paddr = read_cr3();</span><br><span class="line">    <span class="comment">//从主内核页表中，同步vmalloc区发生缺页异常地址对应的页表</span></span><br><span class="line">    pmd_k = vmalloc_sync_one(__va(pgd_paddr), address);</span><br><span class="line">    <span class="keyword">if</span> (!pmd_k)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="comment">//如果同步后，相应的PTE还不存在，则说明该地址有问题了</span></span><br><span class="line">    pte_k = pte_offset_kernel(pmd_k, address);</span><br><span class="line">    <span class="keyword">if</span> (!pte_present(*pte_k))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-        
       
     </div>
 
     
+      
+      
 
-    
 
-  </article>
 
       
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/11/27/Understanding-the-Linux-Kernel-读书笔记-Memory-Addressing/">Understanding the Linux Kernel 读书笔记 -Memory Addressing</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-11-27
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/Kernel/">Kernel</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
       
-        
-        
-          
-        
+    
 
+    
+      <footer class="post-footer">
         
-          <h2 id="Memory-Addresses"><a href="#Memory-Addresses" class="headerlink" title="Memory Addresses"></a>Memory Addresses</h2><p><strong>Logical address</strong></p>
-<ul>
-<li>Included in the machine language instructions to specify the address of an operand or of an instruction. Each logical address consists of a segment and an offset that denotes the distance from the start of the segment to the actual address.
-          <div class="read-more">
-            <a href="/2018/11/27/Understanding-the-Linux-Kernel-读书笔记-Memory-Addressing/" class="read-more-link">阅读更多</a>
+          <div class="post-tags">
+            
+              <a href="/tags/内存管理/">内存管理</a>
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
           </div>
         
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/11/26/Understanding-the-Linux-Kernel-读书笔记-Process/">Understanding the Linux Kernel 读书笔记 -Process</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-11-26
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/Kernel/">Kernel</a>
-            
-          </span>
         
         
-      </div>
-    </header>
-
+  <nav class="post-nav">
     
     
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <h2 id="Processes-Lightweight-Processes-and-Threads"><a href="#Processes-Lightweight-Processes-and-Threads" class="headerlink" title="Processes, Lightweight Processes, and Threads"></a>Processes, Lightweight Processes, and Threads</h2><p>A process is an instance of a program in execution. You might think of it as the collection of data structures that fully describes how far the execution of the program has progressed. The purpose of a process is to act as an entity to which system resources (CPU time, memory, etc.) are allocated.<br>
-          <div class="read-more">
-            <a href="/2018/11/26/Understanding-the-Linux-Kernel-读书笔记-Process/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/11/20/进程切换switch-to宏第三个参数分析/">进程切换switch_to宏第三个参数分析</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-11-20
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/Kernel/">Kernel</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <p>switch_to宏的<a href="https://elixir.bootlin.com/linux/v4.19.4/source/arch/x86/include/asm/switch_to.h#L70" target="_blank" rel="noopener">代码</a>如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> switch_to(prev, next, last)                 \</span></span><br><span class="line"><span class="keyword">do</span> &#123;                                    \</span><br><span class="line">    prepare_switch_to(next);                    \</span><br><span class="line">                                    \</span><br><span class="line">    ((last) = __switch_to_asm((prev), (next)));         \</span><br><span class="line">&#125; <span class="keyword">while</span> (<span class="number">0</span>)</span><br></pre></td></tr></table></figure></p>
-          <div class="read-more">
-            <a href="/2018/11/20/进程切换switch-to宏第三个参数分析/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/11/16/分段机制解析/">分段机制解析</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-11-16
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/计算机系统/">计算机系统</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <h2 id="硬件中的分段"><a href="#硬件中的分段" class="headerlink" title="硬件中的分段"></a>硬件中的分段</h2><h3 id="1-1-段选择符和段寄存器"><a href="#1-1-段选择符和段寄存器" class="headerlink" title="1.1 段选择符和段寄存器"></a>1.1 段选择符和段寄存器</h3><p>分段是一种朴素的内存管理机制，它将内存划分成以起始地址(Base)和长度(Limit)描述的块，这些内存块就被称为“段”。
-          <div class="read-more">
-            <a href="/2018/11/16/分段机制解析/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/11/14/内核中统计mysql进程匿名页的访问热度/">内核中统计mysql进程匿名页的访问热度</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-11-14
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/Kernel/">Kernel</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <p>遇到一个需求，需要在内核中统计mysql进程匿名页的访问热度。<br>
-          <div class="read-more">
-            <a href="/2018/11/14/内核中统计mysql进程匿名页的访问热度/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/11/09/内核中遍历所有的page/">内核中遍历所有的page</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-11-09
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/Kernel/">Kernel</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <p>遇到一个需求，需要在内核模块中统计page cache页面的数量。<br>
-          <div class="read-more">
-            <a href="/2018/11/09/内核中遍历所有的page/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/11/08/Linux内核中使用文件/">Linux内核中使用文件</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-11-08
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/Kernel/">Kernel</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <p>在Linux内核中，printk函数可以打印相关信息，并在/var/log/syslog中查看到对应的输出。但是，当需要在内核中统计一些信息的时候，由于数据较多，此刻，在syslog中会发生大量的信息丢失，因而，我们需要在内核中使用文件来存储统计信息。<br>
-          <div class="read-more">
-            <a href="/2018/11/08/Linux内核中使用文件/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/10/07/Designing-Data-Intensive-Applications-读书笔记-Consistency-and-Consensus/">Designing Data-Intensive Applications 读书笔记 -Consistency and Consensus</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-10-07
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/分布式系统/">分布式系统</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <p><em>consensus</em>: that is, getting all of the nodes to agree on something. </p>
-<p>If two nodes both believe that they are the leader, that situation is called split brain, and it often leads to data loss. Correct implementations of consensus help avoid such problems.<br>
-          <div class="read-more">
-            <a href="/2018/10/07/Designing-Data-Intensive-Applications-读书笔记-Consistency-and-Consensus/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-        
-  <article class="post">
-    <header class="post-header">
-      <h1 class="post-title">
-        
-          <a class="post-link" href="/2018/09/25/Designing-Data-Intensive-Applications-读书笔记-The-Trouble-with-Distributed-Systems/">Designing Data-Intensive Applications 读书笔记 -The Trouble with Distributed Systems</a>
-        
-      </h1>
-
-      <div class="post-meta">
-        <span class="post-time">
-          2018-09-25
-        </span>
-        
-          <span class="post-category">
-            
-              <a href="/categories/分布式系统/">分布式系统</a>
-            
-          </span>
-        
-        
-      </div>
-    </header>
-
-    
-    
-
-
-    <div class="post-content">
-      
-        
-        
-          
-        
-
-        
-          <h2 id="Unreliable-Networks"><a href="#Unreliable-Networks" class="headerlink" title="Unreliable Networks"></a>Unreliable Networks</h2><p><img src="/images/2018/9/41.png" alt=""><br>The usual way of handling this issue is a <em>timeout</em>: after some time you give up waiting and assume that the response is not going to arrive. However, when a timeout occurs, you still don’t know whether the remote node got your request or not.<br>
-          <div class="read-more">
-            <a href="/2018/09/25/Designing-Data-Intensive-Applications-读书笔记-The-Trouble-with-Distributed-Systems/" class="read-more-link">阅读更多</a>
-          </div>
-        
-      
-    </div>
-
-    
-
-    
-
-  </article>
-
-      
-      
-  <nav class="pagination">
-    
-    
-      <a class="next" href="/page/2/">
-        <span class="next-text">下一页</span>
+      <a class="next" href="/2018/11/27/Understanding-the-Linux-Kernel-读书笔记-Memory-Addressing/">
+        <span class="next-text nav-default">Understanding the Linux Kernel 读书笔记 -Memory Addressing</span>
+        <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
     
   </nav>
 
 
+      </footer>
     
-  </section>
+
+  </article>
+
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -850,6 +411,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/11/27/内核页表和进程页表/';
+        this.page.identifier = '2018/11/27/内核页表和进程页表/';
+        this.page.title = '内核页表和进程页表';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
