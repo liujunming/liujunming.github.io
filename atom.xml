@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2018-11-27T09:01:16.481Z</updated>
+  <updated>2018-11-27T12:54:18.242Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Understanding the Linux Kernel 读书笔记 -Memory Addressing</title>
+    <link href="http://liujunming.github.io/2018/11/27/Understanding-the-Linux-Kernel-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-Memory-Addressing/"/>
+    <id>http://liujunming.github.io/2018/11/27/Understanding-the-Linux-Kernel-读书笔记-Memory-Addressing/</id>
+    <published>2018-11-27T11:24:42.000Z</published>
+    <updated>2018-11-27T12:54:18.242Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="Memory-Addresses"><a href="#Memory-Addresses" class="headerlink" title="Memory Addresses"></a>Memory Addresses</h2><p><strong>Logical address</strong></p><ul><li>Included in the machine language instructions to specify the address of an operand or of an instruction. Each logical address consists of a segment and an offset that denotes the distance from the start of the segment to the actual address.<a id="more"></a></li></ul><p><strong>Linear address (also known as virtual address)</strong></p><ul><li>A single 32-bit unsigned integer that can be used to address up to 4 GB. Linear addresses are usually represented in hexadecimal notation; their values range from 0x00000000 to 0xffffffff.</li></ul><p><strong>Physical address</strong></p><ul><li>Used to address memory cells in memory chips. Physical addresses are represented as 32-bit or 36-bit unsigned integers.</li></ul><p>The Memory Management Unit (MMU) transforms a logical address into a linear address by means of a hardware circuit called a segmentation unit; subsequently, a second hardware circuit called a paging unit transforms the linear address into a physical address.<br><img src="/images/2018/11/15.png" alt=""></p><h2 id="Segmentation-in-Hardware"><a href="#Segmentation-in-Hardware" class="headerlink" title="Segmentation in Hardware"></a>Segmentation in Hardware</h2><p>Starting with the 80286 model, Intel microprocessors perform address translation in two different ways called <em>real mode</em> and <em>protected mode</em>. Real mode exists mostly to maintain processor compatibility with older models and to allow the operating system to bootstrap.<br>详情参见<a href="http://liujunming.top/2018/11/16/%E5%88%86%E6%AE%B5%E6%9C%BA%E5%88%B6%E8%A7%A3%E6%9E%90/" target="_blank" rel="noopener">分段机制解析</a></p><h2 id="Paging-in-Hardware"><a href="#Paging-in-Hardware" class="headerlink" title="Paging in Hardware"></a>Paging in Hardware</h2><p>The paging unit thinks of all RAM as partitioned into fixed-length <em>page frames</em>(sometimes referred to as <em>physical pages</em>). Each page frame contains a page — that is, the length of a page frame coincides with that of a page. A page frame is a constituent of main memory, and hence it is a storage area. It is important to distinguish a page from a page frame; the former is just a block of data, which may be stored in any page frame or on disk.</p><p>The data structures that map linear to physical addresses are called <em>page tables</em>; they are stored in main memory and must be properly initialized by the kernel before enabling the paging unit.</p><h3 id="3-1-Regular-Paging"><a href="#3-1-Regular-Paging" class="headerlink" title="3.1 Regular Paging"></a>3.1 Regular Paging</h3><p><img src="/images/2018/11/16.png" alt=""></p><h3 id="3-2-Hardware-Protection-Scheme"><a href="#3-2-Hardware-Protection-Scheme" class="headerlink" title="3.2 Hardware Protection Scheme"></a>3.2 Hardware Protection Scheme</h3><p>While 80×86 processors allow four possible privilege levels to a segment, only two privilege levels are associated with pages and Page Tables.</p><p><strong>User/Supervisor flag</strong></p><ul><li>0, can be addressed only when the CPL is less than 3 (Kernel Mode)</li><li>1, can always be addressed</li></ul><p><strong>Read/Write flag</strong></p><ul><li>0, read-only</li><li>1, can be read and written</li></ul><h3 id="3-3-The-Physical-Address-Extension-PAE-Paging-Mechanism"><a href="#3-3-The-Physical-Address-Extension-PAE-Paging-Mechanism" class="headerlink" title="3.3 The Physical Address Extension (PAE) Paging Mechanism"></a>3.3 The Physical Address Extension (PAE) Paging Mechanism</h3><h3 id="3-4-Hardware-Cache"><a href="#3-4-Hardware-Cache" class="headerlink" title="3.4 Hardware Cache"></a>3.4 Hardware Cache</h3><p>Hardware cache memories were introduced to reduce the speed mismatch between CPU and RAM. They are based on the well-known <em>locality</em> principle, which holds both for programs and data structures.</p><h3 id="3-5-Translation-Lookaside-Buffers-TLB"><a href="#3-5-Translation-Lookaside-Buffers-TLB" class="headerlink" title="3.5 Translation Lookaside Buffers (TLB)"></a>3.5 Translation Lookaside Buffers (TLB)</h3><p>Besides general-purpose hardware caches, 80x86 processors include another cache called <em>Translation Lookaside Buffers</em> (TLB) to speed up linear address translation. When a linear address is used for the first time, the corresponding physical address is computed through slow accesses to the Page Tables in RAM. The physical address is then stored in a TLB entry so that further references to the same linear address can be quickly translated.</p><p>In a multiprocessor system, each CPU has its own TLB, called the <em>local TLB</em> of the CPU. When the <em>cr3</em> control register of a CPU is modified, the hardware automatically invalidates all entries of the local TLB, because a new set of page tables is in use and the TLBs are pointing to old data.</p><h2 id="Paging-in-Linux"><a href="#Paging-in-Linux" class="headerlink" title="Paging in Linux"></a>Paging in Linux</h2><p>Linux adopts a common paging model that fits both 32-bit and 64-bit architectures. Starting with version 2.6.11, a four-level paging model has been adopted:</p><ul><li>Page Global Directory</li><li>Page Upper Directory</li><li>Page Middle Directory</li><li>Page Table</li></ul><p><img src="/images/2018/11/17.png" alt=""></p><p>Each process has its own Page Global Directory and its own set of Page Tables. When a process switch occurs, Linux saves the cr3 control register in the descriptor of the process previously in execution and then loads cr3 with the value stored in the descriptor of the process to be executed next. Thus, when the new process resumes its execution on the CPU, the paging unit refers to the correct set of Page Tables.</p><h3 id="4-1-Page-Table-Handling"><a href="#4-1-Page-Table-Handling" class="headerlink" title="4.1 Page Table Handling"></a>4.1 Page Table Handling</h3><h3 id="4-2-Physical-Memory-Layout"><a href="#4-2-Physical-Memory-Layout" class="headerlink" title="4.2 Physical Memory Layout"></a>4.2 Physical Memory Layout</h3><p>As a general rule, the Linux kernel is installed in RAM starting from the physical address 0x00100000 — i.e., from the second megabyte. The reason that kernel isn’t loaded starting with the first availalbe megabyte of RAM includes:</p><ul><li>Page frame 0 is used by BIOS to store the system hardware configuration detected during the Power-On Self-Test (POST); the BIOS of many laptops, moreover, writes data on this page frame even after the system is initialized.</li><li>Physical addresses ranging from 0x000a0000 to 0x000fffff are usually reserved to BIOS routines and to map the internal memory of ISA graphics cards.</li><li>Additional page frames within the first megabyte may be reserved by specific computer models.</li></ul><h3 id="4-3-Process-Page-Tables"><a href="#4-3-Process-Page-Tables" class="headerlink" title="4.3 Process Page Tables"></a>4.3 Process Page Tables</h3><p>The linear address space of a process is divided into two parts:</p><ul><li>Linear addresses from <code>0x00000000</code> to <code>0xbfffffff</code> can be addressed when the process runs in either User or Kernel Mode.</li><li>Linear addresses from <code>0xc0000000</code> to <code>0xffffffff</code> can be addressed only when the process runs in Kernel Mode.</li></ul><p>The <code>PAGE_OFFSET</code> macro yields the value 0xc0000000; this is the offset in the linear address space of a process where the kernel lives.</p><h3 id="4-4-Handling-the-Hardware-Cache-and-the-TLB"><a href="#4-4-Handling-the-Hardware-Cache-and-the-TLB" class="headerlink" title="4.4 Handling the Hardware Cache and the TLB"></a>4.4 Handling the Hardware Cache and the TLB</h3><hr><p>参考资料：</p><ol><li><a href="https://medium.com/hungys-blog/linux-kernel-memory-addressing-a0d304283af3" target="_blank" rel="noopener">Linux Kernel: Memory Addressing</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;Memory-Addresses&quot;&gt;&lt;a href=&quot;#Memory-Addresses&quot; class=&quot;headerlink&quot; title=&quot;Memory Addresses&quot;&gt;&lt;/a&gt;Memory Addresses&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Logical address&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Included in the machine language instructions to specify the address of an operand or of an instruction. Each logical address consists of a segment and an offset that denotes the distance from the start of the segment to the actual address.
+    
+    </summary>
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+      <category term="读书笔记" scheme="http://liujunming.github.io/tags/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/"/>
+    
+  </entry>
   
   <entry>
     <title>Understanding the Linux Kernel 读书笔记 -Process</title>
@@ -447,20 +473,6 @@
     
     
       <category term="数据结构" scheme="http://liujunming.github.io/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>计算机系统中需要记住的数字</title>
-    <link href="http://liujunming.github.io/2018/07/02/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E4%B8%AD%E9%9C%80%E8%A6%81%E8%AE%B0%E4%BD%8F%E7%9A%84%E6%95%B0%E5%AD%97/"/>
-    <id>http://liujunming.github.io/2018/07/02/计算机系统中需要记住的数字/</id>
-    <published>2018-07-02T01:54:58.000Z</published>
-    <updated>2018-07-02T01:54:58.407Z</updated>
-    
-    <summary type="html">
-    
-    </summary>
-    
     
   </entry>
   
