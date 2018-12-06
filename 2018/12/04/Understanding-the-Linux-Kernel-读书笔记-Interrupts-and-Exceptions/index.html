@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记 -Interrupts and Exceptions"/>
+
+
+
+
+  <meta name="keywords" content="Kernel, 读书笔记, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2018/12/04/Understanding-the-Linux-Kernel-读书笔记-Interrupts-and-Exceptions/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Understanding the Linux Kernel 读书笔记 -Interrupts and Exceptions - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Understanding the Linux Kernel 读书笔记 -Interrupts and Exceptions
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2018-12-04
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-The-Role-of-Interrupt-Signals"><span class="toc-text">1 The Role of Interrupt Signals</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Interrupts-and-Exceptions"><span class="toc-text">2 Interrupts and Exceptions</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-IRQs-and-Interrupts"><span class="toc-text">2.1 IRQs and Interrupts</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-Exceptions"><span class="toc-text">2.2 Exceptions</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-Interrupt-Descriptor-Table"><span class="toc-text">2.3 Interrupt Descriptor Table</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-Hardware-Handling-of-Interrupts-and-Exceptions"><span class="toc-text">2.4 Hardware Handling of Interrupts and Exceptions</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Nested-Execution-of-Exception-and-Interrupt-Handlers"><span class="toc-text">3 Nested Execution of Exception and Interrupt Handlers</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Initializing-the-Interrupt-Descriptor-Table"><span class="toc-text">4 Initializing the Interrupt Descriptor Table</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-Exception-Handling"><span class="toc-text">5 Exception Handling</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-Saving-the-Registers-for-the-Exception-Handler"><span class="toc-text">5.1 Saving the Registers for the Exception Handler</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-Entering-and-Leaving-the-Exception-Handler"><span class="toc-text">5.2 Entering and Leaving the Exception Handler</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-Interrupt-Handling"><span class="toc-text">6 Interrupt Handling</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-I-O-Interrupt-Handling"><span class="toc-text">6.1 I/O Interrupt Handling</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-Softirqs-and-Tasklets"><span class="toc-text">7 Softirqs and Tasklets</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-Work-Queues"><span class="toc-text">8 Work Queues</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>An <em>interrupt</em> is usually defined as an event that alters the sequence of instructions executed by a processor.</p>
+<p>Intel microprocessor manuals designate synchronous and asynchronous interrupts as <em>exceptions</em> and <em>interrupts</em>.<a id="more"></a> We’ll occasionally use the term “interrupt signal” to designate both types together (synchronous as well as asynchronous).</p>
+<p>Interrupts are issued by interval timers and I/O devices.</p>
+<p>Exceptions, on the other hand, are caused either by programming errors or by anomalous conditions that must be handled by the kernel.</p>
+<h2 id="1-The-Role-of-Interrupt-Signals"><a href="#1-The-Role-of-Interrupt-Signals" class="headerlink" title="1 The Role of Interrupt Signals"></a>1 The Role of Interrupt Signals</h2><p>When an interrupt signal arrives, the CPU must stop what it’s currently doing and switch to a new activity; it does this by saving the current value of the program counter (i.e., the content of the <code>eip</code> and <code>cs</code> registers) in the Kernel Mode stack and by placing an address related to the interrupt type into the program counter.</p>
+<p>There is a key difference between interrupt handling and process switching: the code executed by an interrupt or by an exception handler is not a process. Rather, it is a kernel control path that runs at the expense of the same process that was running when the interrupt occurred. As a kernel control path, the interrupt handler is lighter than a process (it has less context and requires less time to set up or tear down).</p>
+<h2 id="2-Interrupts-and-Exceptions"><a href="#2-Interrupts-and-Exceptions" class="headerlink" title="2 Interrupts and Exceptions"></a>2 Interrupts and Exceptions</h2><ul>
+<li>Interrupts</li>
+<li>Exceptions<ul>
+<li>Processor-detected exceptions<ul>
+<li>Faults</li>
+<li>Traps</li>
+<li>Aborts</li>
+</ul>
+</li>
+<li>Programmed exceptions</li>
+</ul>
+</li>
+</ul>
+<p><strong>Processor-detected exceptions:</strong> These are further divided into three groups, depending on the value of the eip register that is saved on the Kernel Mode stack when the CPU control unit raises the exception.</p>
+<p><strong>Traps:</strong>The saved value of eip is the address of the instruction that should be executed after the one that caused the trap.</p>
+<p><strong>Aborts:</strong>A serious error occurred; the control unit is in trouble, and it may be unable to store in the eip register the precise location of the instruction causing the exception. Aborts are used to report severe errors, such as hardware failures and invalid or inconsistent values in system tables.</p>
+<p><strong>Programmed exceptions:</strong>Occur at the request of the programmer. Programmed exceptions are handled by the control unit as traps; they are often called <code>software interrupts</code>. Such exceptions have two common uses: to implement system calls and to notify a debugger of a specific event.</p>
+<p>Each interrupt or exception is identified by a number ranging from 0 to 255; Intel calls this 8-bit unsigned number a <em>vector</em>. The vectors of nonmaskable interrupts and exceptions are fixed, while those of maskable interrupts can be altered by programming the Interrupt Controller.</p>
+<h3 id="2-1-IRQs-and-Interrupts"><a href="#2-1-IRQs-and-Interrupts" class="headerlink" title="2.1 IRQs and Interrupts"></a>2.1 IRQs and Interrupts</h3><p>Each hardware device controller capable of issuing interrupt requests usually has a single output line designated as the <code>Interrupt ReQuest (IRQ)</code> line.All existing IRQ lines are connected to the input pins of a hardware circuit called the <code>Programmable Interrupt Controller(PIC)</code>.</p>
+<center><img src="/images/2018/12/1.JPG" alt=""></center>
+
+<p><strong>The Advanced Programmable Interrupt Controller (APIC)</strong><br> However, if the system includes two or more CPUs, this approach is no longer valid and more sophisticated PICs are needed.<br> <center><img src="/images/2018/12/2.png" alt=""></center></p>
+<p> Besides distributing interrupts among processors, the multi-APIC system allows CPUs to generate <code>interprocessor interrupts(IPI)</code>. </p>
+<h3 id="2-2-Exceptions"><a href="#2-2-Exceptions" class="headerlink" title="2.2 Exceptions"></a>2.2 Exceptions</h3><p>Each exception is handled by a specific exception handler, which usually sends a Unix signal to the process that caused the exception.</p>
+<h3 id="2-3-Interrupt-Descriptor-Table"><a href="#2-3-Interrupt-Descriptor-Table" class="headerlink" title="2.3 Interrupt Descriptor Table"></a>2.3 Interrupt Descriptor Table</h3><p>A system table called <code>Interrupt Descriptor Table (IDT)</code> associates each interrupt or exception vector with the address of the corresponding interrupt or exception handler. </p>
+<p>The IDT may include three types of descriptors;<br> <center><img src="/images/2018/12/3.png" alt=""></center><br>Linux uses interrupt gates to handle interrupts and trap gates to handle exceptions.</p>
+<h3 id="2-4-Hardware-Handling-of-Interrupts-and-Exceptions"><a href="#2-4-Hardware-Handling-of-Interrupts-and-Exceptions" class="headerlink" title="2.4 Hardware Handling of Interrupts and Exceptions"></a>2.4 Hardware Handling of Interrupts and Exceptions</h3><p>After the interrupt or exception is processed, the corresponding handler must relinquish control to the interrupted process.</p>
+<h2 id="3-Nested-Execution-of-Exception-and-Interrupt-Handlers"><a href="#3-Nested-Execution-of-Exception-and-Interrupt-Handlers" class="headerlink" title="3 Nested Execution of Exception and Interrupt Handlers"></a>3 Nested Execution of Exception and Interrupt Handlers</h2><p>Every interrupt or exception gives rise to a kernel control path or separate sequence of instructions that execute in Kernel Mode on behalf of the current process.<br> <center><img src="/images/2018/12/4.png" alt=""></center><br>The price to pay for allowing nested kernel control paths is that an interrupt handler must never block, that is, 中断处理程序运行期间不能发生进程切换.</p>
+<p>An interrupt handler may preempt both other interrupt handlers and exception handlers. Conversely, an exception handler never preempts an interrupt handler. Interrupt handlers never perform operations that can induce page faults, and thus, potentially, a process switch.</p>
+<p>On multiprocessor systems, several kernel control paths may execute concurrently. Moreover, a kernel control path associated with an exception may start executing on a CPU and, due to a process switch, migrate to another CPU.</p>
+<h2 id="4-Initializing-the-Interrupt-Descriptor-Table"><a href="#4-Initializing-the-Interrupt-Descriptor-Table" class="headerlink" title="4 Initializing the Interrupt Descriptor Table"></a>4 Initializing the Interrupt Descriptor Table</h2><h2 id="5-Exception-Handling"><a href="#5-Exception-Handling" class="headerlink" title="5 Exception Handling"></a>5 Exception Handling</h2><p>When one of them occurs, the kernel sends a signal to the process that caused the exception to notify it of an anomalous condition. </p>
+<p>Exception handlers have a standard structure consisting of three steps:</p>
+<ol>
+<li>Save the contents of most registers in the Kernel Mode stack (this part is coded in assembly language).</li>
+<li>Handle the exception by means of a high-level C function.</li>
+<li>Exit from the handler by means of the <code>ret_from_exception()</code> function.</li>
+</ol>
+<h3 id="5-1-Saving-the-Registers-for-the-Exception-Handler"><a href="#5-1-Saving-the-Registers-for-the-Exception-Handler" class="headerlink" title="5.1 Saving the Registers for the Exception Handler"></a>5.1 Saving the Registers for the Exception Handler</h3><h3 id="5-2-Entering-and-Leaving-the-Exception-Handler"><a href="#5-2-Entering-and-Leaving-the-Exception-Handler" class="headerlink" title="5.2 Entering and Leaving the Exception Handler"></a>5.2 Entering and Leaving the Exception Handler</h3><p>Store the hardware error code and the exception vector in the process descriptor of current, and then send a suitable signal to that process:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">current-&gt;thread.error_code = error_code;</span><br><span class="line">current-&gt;thread.trap_no = <span class="built_in">vector</span>;</span><br><span class="line">force_sig(sig_number, current);</span><br></pre></td></tr></table></figure></p>
+<p>The current process takes care of the signal right after the termination of the exception handler. The signal will be handled either in User Mode by the process’s own signal handler (if it exists) or in Kernel Mode. In the latter case, the kernel usually kills the process.</p>
+<h2 id="6-Interrupt-Handling"><a href="#6-Interrupt-Handling" class="headerlink" title="6 Interrupt Handling"></a>6 Interrupt Handling</h2><p>Most exceptions are handled simply by sending a Unix signal to the process that caused the exception. The action to be taken is thus deferred until the process receives the signal; as a result, the kernel is able to process the exception quickly.</p>
+<p>Interrupt handling depends on the type of interrupt. </p>
+<ul>
+<li>I/O interrupts</li>
+<li>Timer interrupts</li>
+<li>Interprocessor interrupts</li>
+</ul>
+<h3 id="6-1-I-O-Interrupt-Handling"><a href="#6-1-I-O-Interrupt-Handling" class="headerlink" title="6.1 I/O Interrupt Handling"></a>6.1 I/O Interrupt Handling</h3><p>In the PCI bus architecture, for instance, several devices may share the same IRQ line. This means that the interrupt vector alone does not tell the whole story. </p>
+<ul>
+<li>IRQ sharing</li>
+<li>IRQ dynamic allocation</li>
+</ul>
+<p>The interrupt handler executes several <code>interrupt service routines (ISRs)</code>.</p>
+<p>Not all actions to be performed when an interrupt occurs have the same urgency.Long noncritical operations should be deferred, because while an interrupt handler is running, the signals on the corresponding IRQ line are temporarily ignored. Most important, the process on behalf of which an interrupt handler is executed must always stay in the TASK_RUNNING state, or a system freeze can occur.Therefore, interrupt handlers cannot perform any blocking procedure such as an I/O disk operation. Linux divides the actions to be performed following an interrupt into three classes:</p>
+<ul>
+<li>Critical</li>
+<li>Noncritical</li>
+<li>Noncritical deferrable</li>
+</ul>
+<p>Regardless of the kind of circuit that caused the interrupt, all I/O interrupt handlers perform the same four basic actions:</p>
+<ol>
+<li>Save the IRQ value and the register’s contents on the Kernel Mode stack.</li>
+<li>Send an acknowledgment to the PIC that is servicing the IRQ line, thus allowing it to issue further interrupts.</li>
+<li>Execute the interrupt service routines (ISRs) associated with all the devices that share the IRQ.</li>
+<li>Terminate by jumping to the <code>ret_from_intr()</code> address.</li>
+</ol>
+<center><img src="/images/2018/12/5.png" alt=""></center>
+
+<h2 id="7-Softirqs-and-Tasklets"><a href="#7-Softirqs-and-Tasklets" class="headerlink" title="7 Softirqs and Tasklets"></a>7 Softirqs and Tasklets</h2><p>We mentioned earlier in the section “Interrupt Handling” that several tasks among those executed by the kernel are not critical: they can be deferred for a long period of time, if necessary.</p>
+<p>The deferrable tasks can execute with all interrupts enabled. Taking them out of the interrupt handler helps keep kernel response time small. This is a very important property for many time-critical applications that expect their interrupt requests to be serviced in a few milliseconds.</p>
+<p>Linux 2.6 answers such a challenge by using two kinds of non-urgent interruptible kernel functions: the so-called deferrable functions (softirqs and tasklets), and those executed by means of some work queues.</p>
+<p>Softirqs and tasklets are strictly correlated, because tasklets are implemented on top of softirqs. As a matter of fact, the term “softirq,” which appears in the kernel source code, often denotes both kinds of deferrable functions.</p>
+<h2 id="8-Work-Queues"><a href="#8-Work-Queues" class="headerlink" title="8 Work Queues"></a>8 Work Queues</h2><p>The <em>work queues</em> allow kernel functions to be activated (much like deferrable functions) and later executed by special kernel threads called <em>worker threads</em>.</p>
+<p>Despite their similarities, deferrable functions and work queues are quite different. The main difference is that deferrable functions run in interrupt context while functions in work queues run in process context. Running in process context is the only way to execute functions that can block. No process switch can take place in interrupt context. A function in a work queue is executed by a kernel thread,</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="http://home.ustc.edu.cn/~boj/courses/linux_kernel/2_int.html" target="_blank" rel="noopener">Linux源代码阅读——中断</a></li>
+<li><a href="http://www.wowotech.net/irq_subsystem/interrupt_subsystem_architecture.html" target="_blank" rel="noopener">Linux kernel的中断子系统</a></li>
+<li><a href="https://www.ibm.com/developerworks/cn/linux/l-cn-linuxkernelint/index.html" target="_blank" rel="noopener">Linux 内核中断内幕</a></li>
+<li><a href="https://my.oschina.net/fileoptions/blog/918164" target="_blank" rel="noopener">linux内核之中断实现原理</a></li>
+<li><a href="https://www.tldp.org/LDP/lkmpg/2.6/html/x1256.html" target="_blank" rel="noopener">Interrupt Handlers</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/读书笔记/">读书笔记</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2018/11/28/Fix-Mapped-Linear-Addresses/">
+        <span class="next-text nav-default">Fix-Mapped Linear Addresses</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/12/04/Understanding-the-Linux-Kernel-读书笔记-Interrupts-and-Exceptions/';
+        this.page.identifier = '2018/12/04/Understanding-the-Linux-Kernel-读书笔记-Interrupts-and-Exceptions/';
+        this.page.title = 'Understanding the Linux Kernel 读书笔记 -Interrupts and Exceptions';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
