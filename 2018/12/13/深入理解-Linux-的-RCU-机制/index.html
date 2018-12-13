@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="links"/>
+  <meta name="description" content="深入理解 Linux 的 RCU 机制"/>
 
 
 
+
+  <meta name="keywords" content="Kernel, Concurrency, L" />
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/links/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/12/13/深入理解-Linux-的-RCU-机制/"/>
 
 
 
@@ -88,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> links - L </title>
+    <title> 深入理解 Linux 的 RCU 机制 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -217,20 +219,105 @@
         <div class="content-wrapper">
           <div id="content" class="content">
             
+  
   <article class="post">
-    <div class="post-content">
-      <ul>
-<li><p>博客链接<br><a href="http://liujunming.top/junming/" target="_blank" rel="noopener">Junming Liu</a><br><a href="https://dremy.cn/" target="_blank" rel="noopener">Dremy</a><br><a href="http://www.ruanyifeng.com/blog/" target="_blank" rel="noopener">阮一峰</a><br><a href="http://ilinuxkernel.com/" target="_blank" rel="noopener">阿里正一</a><br><a href="http://oenhan.com/" target="_blank" rel="noopener">Huaitong Han</a><br><a href="http://www.rdrop.com/~paulmck/" target="_blank" rel="noopener">Paul McKenney</a><br><a href="http://web.cecs.pdx.edu/~walpole/" target="_blank" rel="noopener">Jonathan Walpole</a></p>
-</li>
-<li><p>文档资料</p>
-<ul>
-<li>内核<br><a href="https://www.linux-kvm.org/images/9/9e/2010-forum-thp.pdf" target="_blank" rel="noopener">Transparent Hugepage Support</a> </li>
-</ul>
-</li>
-</ul>
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          深入理解 Linux 的 RCU 机制
+        
+      </h1>
 
+      <div class="post-meta">
+        <span class="post-time">
+          2018-12-13
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Concurrency/">Concurrency</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Introduction"><span class="toc-text">1 Introduction</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Publish-Subscribe-Mechanism"><span class="toc-text">1.1 Publish-Subscribe Mechanism</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-Wait-For-Pre-Existing-RCU-Readers-to-Complete"><span class="toc-text">1.2 Wait For Pre-Existing RCU Readers to Complete</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-Maintain-Multiple-Versions-of-Recently-Updated-Objects"><span class="toc-text">1.3 Maintain Multiple Versions of Recently Updated Objects</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Usage"><span class="toc-text">2 Usage</span></a></li></ol>
     </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <h2 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1 Introduction"></a>1 Introduction</h2><p>Read-copy update (RCU) is a synchronization mechanism. RCU achieves scalability improvements by allowing reads to occur concurrently with updates. In contrast with conventional locking primitives that ensure mutual exclusion among concurrent threads regardless of whether they be readers or updaters, or with reader-writer locks that allow concurrent reads but not in the presence of updates, <strong>RCU supports concurrency between a single updater and multiple readers</strong>. <a id="more"></a>RCU ensures that reads are coherent by maintaining multiple versions of objects and ensuring that they are not freed up until all pre-existing read-side critical sections complete. RCU defines and uses efficient and scalable mechanisms for publishing and reading new versions of an object, and also for deferring the collection of old versions. These mechanisms distribute the work among read and update paths in such a way as to make read paths extremely fast.</p>
+<p>RCU is made up of three fundamental mechanisms, the first being used for insertion, the second being used for deletion, and the third being used to allow readers to tolerate concurrent insertions and deletions. These mechanisms are described in the following sections, which focus on applying RCU to linked lists:</p>
+<ol>
+<li>Publish-Subscribe Mechanism (for insertion)</li>
+<li>Wait For Pre-Existing RCU Readers to Complete (for deletion)</li>
+<li>Maintain Multiple Versions of Recently Updated Objects (for readers)</li>
+</ol>
+<h3 id="1-1-Publish-Subscribe-Mechanism"><a href="#1-1-Publish-Subscribe-Mechanism" class="headerlink" title="1.1 Publish-Subscribe Mechanism"></a>1.1 Publish-Subscribe Mechanism</h3><h3 id="1-2-Wait-For-Pre-Existing-RCU-Readers-to-Complete"><a href="#1-2-Wait-For-Pre-Existing-RCU-Readers-to-Complete" class="headerlink" title="1.2 Wait For Pre-Existing RCU Readers to Complete"></a>1.2 Wait For Pre-Existing RCU Readers to Complete</h3><h3 id="1-3-Maintain-Multiple-Versions-of-Recently-Updated-Objects"><a href="#1-3-Maintain-Multiple-Versions-of-Recently-Updated-Objects" class="headerlink" title="1.3 Maintain Multiple Versions of Recently Updated Objects"></a>1.3 Maintain Multiple Versions of Recently Updated Objects</h3><h2 id="2-Usage"><a href="#2-Usage" class="headerlink" title="2 Usage"></a>2 Usage</h2><p><a href="http://lwn.net/Articles/263130/" target="_blank" rel="noopener">What is RCU? Part 2: Usage</a><br><a href="https://lwn.net/Articles/609973/" target="_blank" rel="noopener">The RCU API tables</a><br><a href="https://github.com/jinb-park/rcu_example/blob/master/list_rcu_example.c" target="_blank" rel="noopener">list_rcu_example</a>是一个具体实例，可以仔细研究下代码。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.kernel.org/doc/Documentation/RCU/whatisRCU.txt" target="_blank" rel="noopener">whatisRCU</a></li>
+<li><a href="https://www.wikiwand.com/en/Read-copy-update" target="_blank" rel="noopener">wikiwand Read-copy-update</a></li>
+<li><a href="https://lwn.net/Articles/262464/" target="_blank" rel="noopener">What is RCU, Fundamentally?</a></li>
+<li><a href="https://pdos.csail.mit.edu/6.828/2018/readings/rcu-decade-later.pdf" target="_blank" rel="noopener">RCU Usage In the Linux Kernel: One Decade Later</a></li>
+<li><a href="https://github.com/jinb-park/rcu_example" target="_blank" rel="noopener">rcu_example</a></li>
+<li><a href="https://www.cnblogs.com/qcloud1001/p/7755331.html" target="_blank" rel="noopener">深入理解 Linux 的 RCU 机制</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/Concurrency/">Concurrency</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2018/12/04/Understanding-the-Linux-Kernel-读书笔记-Interrupts-and-Exceptions/">
+        <span class="next-text nav-default">Understanding the Linux Kernel 读书笔记 -Interrupts and Exceptions</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
   </article>
+
 
           </div>
           
@@ -331,9 +418,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/links/index.html';
-        this.page.identifier = 'links/index.html';
-        this.page.title = 'links';
+        this.page.url = 'http://liujunming.github.io/2018/12/13/深入理解-Linux-的-RCU-机制/';
+        this.page.identifier = '2018/12/13/深入理解-Linux-的-RCU-机制/';
+        this.page.title = '深入理解 Linux 的 RCU 机制';
     };
     (function() {
     var d = document, s = d.createElement('script');
