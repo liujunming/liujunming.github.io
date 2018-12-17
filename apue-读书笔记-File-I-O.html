@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="apue 读书笔记-File I/O"/>
+
+
+
+
+  <meta name="keywords" content=", , L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/apue-读书笔记-File-I-O.html"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> apue 读书笔记-File I/O - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  <article class="post">
+    <div class="post-content">
+      <p>The functions described in this chapter are often referred to as <em>unbuffered I/O</em>.The term <em>unbuffered</em> means that each <code>read</code> or <code>write</code> invokes a system call in the kernel.<a id="more"></a> </p>
+<h2 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1 Introduction"></a>1 Introduction</h2><h3 id="1-1-File-Descriptors"><a href="#1-1-File-Descriptors" class="headerlink" title="1.1 File Descriptors"></a>1.1 File Descriptors</h3><p>To the kernel, all open files are referred to by file descriptors. A file descriptor is a non-negative integer. When we open an existing file or create a new file, the kernel returns a file descriptor to the process.</p>
+<p>By convention, UNIX System shells associate file descriptor 0 with the standard input of a process, file descriptor 1 with the standard output, and file descriptor 2 with the standard error.</p>
+<p>Although their values are standardized by POSIX.1, the magic numbers 0, 1, and 2 should be replaced in POSIX-compliant applications with the symbolic constants <code>STDIN_FILENO</code>, <code>STDOUT_FILENO</code>, and <code>STDERR_FILENO</code> to improve readability.</p>
+<h3 id="1-2-open-and-openat-Functions"><a href="#1-2-open-and-openat-Functions" class="headerlink" title="1.2 open and openat Functions"></a>1.2 <code>open</code> and <code>openat</code> Functions</h3><p>A file is opened or created by calling either the <code>open</code> function or the <code>openat</code> function.</p>
+<h3 id="1-3-creat-Function"><a href="#1-3-creat-Function" class="headerlink" title="1.3 creat Function"></a>1.3 creat Function</h3><p>A new file can also be created by calling the <code>creat</code> function.</p>
+<h3 id="1-4-close-Function"><a href="#1-4-close-Function" class="headerlink" title="1.4 close Function"></a>1.4 close Function</h3><p>An open file is closed by calling the close function.<br>When a process terminates, all of its open files are closed automatically by the kernel. Many programs take advantage of this fact and don’t explicitly close open files.</p>
+<h3 id="1-5-lseek-Function"><a href="#1-5-lseek-Function" class="headerlink" title="1.5 lseek Function"></a>1.5 <code>lseek</code> Function</h3><p>Every open file has an associated <strong>current file offset</strong>, normally a non-negative integer that measures the number of bytes from the beginning of the file.<br>An open file’s offset can be set explicitly by calling <code>lseek</code>.</p>
+<p><code>lseek</code> only records the current file offset within the kernel — it does not cause any I/O to take place. This offset is then used by the next read or write operation.<br>The file’s offset can be greater than the file’s current size, in which case the next write to the file will extend the file. This is referred to as creating a <em>hole</em> in a file and is allowed. Any bytes in a file that have not been written are read back as 0. A hole in a file isn’t required to have storage backing it on disk.</p>
+<p>We use the <code>od</code> command to look at the contents of the file.</p>
+<h3 id="1-6-read-Function"><a href="#1-6-read-Function" class="headerlink" title="1.6 read Function"></a>1.6 <code>read</code> Function</h3><p>Data is read from an open file with the <code>read</code> function.</p>
+<h3 id="1-7-write-Function"><a href="#1-7-write-Function" class="headerlink" title="1.7 write Function"></a>1.7 <code>write</code> Function</h3><p>Data is written to an open file with the <code>write</code> function.</p>
+<h2 id="2-I-O-Efficiency"><a href="#2-I-O-Efficiency" class="headerlink" title="2 I/O Efficiency"></a>2 I/O Efficiency</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"apue.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFSIZE 4096</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n;</span><br><span class="line">    <span class="keyword">char</span> buf[BUFFSIZE];</span><br><span class="line">    <span class="keyword">while</span> ((n = read(STDIN_FILENO, buf, BUFFSIZE)) &gt; <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">if</span> (write(STDOUT_FILENO, buf, n) != n)</span><br><span class="line">            err_sys(<span class="string">"write error"</span>);</span><br><span class="line">        <span class="keyword">if</span> (n &lt; <span class="number">0</span>)</span><br><span class="line">            err_sys(<span class="string">"read error"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">0</span>); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Figure 3.6 shows the results for reading a 516,581,760-byte file, using 20 different buffer sizes.</p>
+<center><img src="/images/2018/12/25.png" alt=""></center>
+
+<p>This accounts for the minimum in the system time occurring at the few timing measurements starting around a BUFFSIZE of 4,096. Increasing the buffer size beyond this limit has little positive effect.</p>
+<p>Most file systems support some kind of read-ahead to improve performance. When sequential reads are detected, the system tries to read in more data than an application requests, assuming that the application will read it shortly. The effect of read-ahead can be seen in Figure 3.6, where the elapsed time for buffer sizes as small as 32 bytes is as good as the elapsed time for larger buffer sizes.</p>
+<h2 id="3-File-Sharing"><a href="#3-File-Sharing" class="headerlink" title="3 File Sharing"></a>3 File Sharing</h2><p>The UNIX System supports the sharing of open files among different processes.</p>
+<ol>
+<li>Every process has an entry in the process table. Within each process table entry is a table of open file descriptors, which we can think of as a vector, with one entry per descriptor. Associated with each file descriptor are:</li>
+</ol>
+<ul>
+<li>The file descriptor flags </li>
+<li>A pointer to a file table entry</li>
+</ul>
+<ol start="2">
+<li>The kernel maintains a file table for all open files. Each file table entry contains:</li>
+</ol>
+<ul>
+<li>The file status flags for the file, such as read, write, append, sync, and nonblocking</li>
+<li>The current file offset</li>
+<li>A pointer to the v-node table entry for the file</li>
+</ul>
+<ol start="3">
+<li>Each open file (or device) has a v-node structure that contains information about the type of file and pointers to functions that operate on the file. For most files, the v-node also contains the i-node for the file. This information is read from disk when the file is opened, so that all the pertinent information about the file is readily available. For example, the i-node contains the owner of the file, the size of the file, pointers to where the actual data blocks for the file are located on disk, and so on.</li>
+</ol>
+<p><em>Linux has no v-node. Instead, a generic i-node structure is used</em>.</p>
+<p>Figure 3.7 shows a pictorial arrangement of these three tables for a single process that has two different files open: one file is open on standard input (file descriptor 0), and the other is open on standard output (file descriptor 1).</p>
+<center><img src="/images/2018/12/26.png" alt=""></center>
+
+<p>If two independent processes have the same file open, we could have the arrangement shown in Figure 3.8.</p>
+<center><img src="/images/2018/12/27.png" alt=""></center><br>We assume here that the first process has the file open on descriptor 3 and that the second process has that same file open on descriptor 4. Each process that opens the file gets its own file table entry, but only a single v-node table entry is required for a given file. One reason each process gets its own file table entry is so that each process has its own current offset for the file.<br><br>## 4 Atomic Operations<br>### 4.1 Appending to a File<br>Consider a single process that wants to append to the end of a file.This works fine for a single process, but problems arise if multiple processes use this technique to append to the same file. (This scenario can arise if multiple instances of the same program are appending messages to a log file, for example.)<br><br>Assume that two independent processes, A and B, are appending to the same file. Each has opened the file but without the O_APPEND flag. This gives us the same picture as Figure 3.8. Each process has its own file table entry, but they share a single v-node table entry. Assume that process A does the lseek and that this sets the current offset for the file for process A to byte offset 1,500 (the current end of file). Then the kernel switches processes, and B continues running. Process B then does the lseek, which sets the current offset for the file for process B to byte offset 1,500 also (the current end of file). Then B calls write, which increments B’s current file offset for the file to 1,600. Because the file’s size has been extended, the kernel also updates the current file size in the v-node to 1,600. Then the kernel switches processes and A resumes. When A calls write, the data is written starting at the current file offset for A, which is byte offset 1,500. This overwrites the data that B wrote to the file.<br><br>The problem here is that our logical operation of ‘‘position to the end of file and write’’ requires two separate function calls (as we’ve shown it). The solution is to have the positioning to the current end of file and the write be an atomic operation with regard to other processes. Any operation that requires more than one function call cannot be atomic, as there is always the possibility that the kernel might temporarily suspend the process between the two function calls (as we assumed previously).<br><br>The UNIX System provides an atomic way to do this operation if we set the O_APPEND flag when a file is opened. As we described in the previous section, this causes the kernel to position the file to its current end of file before each write. We no longer have to call lseek before each write.<br><br>### 4.2 <code>pread</code> and <code>pwrite</code> Functions<br>Calling <code>pread</code> is equivalent to calling <code>lseek</code> followed by a call to <code>read</code>, with the following exceptions.<br>- There is no way to interrupt the two operations that occur when we call <code>pread</code>.<br>- The current file offset is not updated.<br><br>### 4.3 Creating a File<br><br>When <code>O_CREAT</code> and <code>O_EXCL</code> options for the open function are specified, the open will fail if the file already exists. We also said that the check for the existence of the file and the creation of the file was performed as an atomic operation. If we didn’t have this atomic operation, we might try:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">if</span> ((fd = open(path, O_WRONLY)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (errno == ENOENT) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((fd = creat(path, mode)) &lt; <span class="number">0</span>)</span><br><span class="line">            err_sys(<span class="string">"creat error"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        err_sys(<span class="string">"open error"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br><br>The problem occurs if the file is created by another process between the <code>open</code> and the <code>creat</code>. If the file is created by another process between these two function calls, and if that other process writes something to the file, that data is erased when this <code>creat</code> is executed. Combining the test for existence and the creation into a single atomic operation avoids this problem.<br><br>In general, the term <em>atomic operation</em> refers to an operation that might be composed of multiple steps. If the operation is performed atomically, either all the steps are performed (on success) or none are performed (on failure). It must not be possible for only a subset of the steps to be performed.<br><br>## 5 <code>dup</code> and <code>dup2</code> Functions<br><br>An existing file descriptor is duplicated by either of the following functions:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">dup</span><span class="params">(<span class="keyword">int</span> fd)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">dup2</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">int</span> fd2)</span></span>;</span><br></pre></td></tr></table></figure><br><br>The new file descriptor returned by <code>dup</code> is guaranteed to be the lowest-numbered available file descriptor.<br><br>The new file descriptor that is returned as the value of the functions shares the same file table entry as the <code>fd</code> argument. We show this in Figure 3.9.<br><center><img src="/images/2018/12/28.png" alt=""></center>
+
+<p>Each descriptor has its own set of file descriptor flags.</p>
+
+    </div>
+  </article>
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/apue-读书笔记-File-I-O.html';
+        this.page.identifier = 'apue-读书笔记-File-I-O.html';
+        this.page.title = 'apue 读书笔记-File I/O';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
