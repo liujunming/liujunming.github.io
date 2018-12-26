@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2018-12-25T05:54:14.341Z</updated>
+  <updated>2018-12-26T02:29:57.869Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>IO - 同步，异步，阻塞，非阻塞</title>
+    <link href="http://liujunming.github.io/2018/12/26/IO-%E5%90%8C%E6%AD%A5%EF%BC%8C%E5%BC%82%E6%AD%A5%EF%BC%8C%E9%98%BB%E5%A1%9E%EF%BC%8C%E9%9D%9E%E9%98%BB%E5%A1%9E/"/>
+    <id>http://liujunming.github.io/2018/12/26/IO-同步，异步，阻塞，非阻塞/</id>
+    <published>2018-12-26T01:58:29.000Z</published>
+    <updated>2018-12-26T02:29:57.869Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文是对阻塞、非阻塞、同步、异步、I/O多路复用的总结。<a id="more"></a> </p><h2 id="1-阻塞-I-O（blocking-IO）"><a href="#1-阻塞-I-O（blocking-IO）" class="headerlink" title="1 阻塞 I/O（blocking IO）"></a>1 阻塞 I/O（blocking IO）</h2><p><img src="/images/2018/12/53.png" alt=""><br>blocking IO的特点就是在IO执行的两个阶段都被block了。</p><h2 id="2-非阻塞-I-O（nonblocking-IO）"><a href="#2-非阻塞-I-O（nonblocking-IO）" class="headerlink" title="2 非阻塞 I/O（nonblocking IO）"></a>2 非阻塞 I/O（nonblocking IO）</h2><p><img src="/images/2018/12/54.png" alt=""><br>nonblocking IO的特点是用户进程需要不断的主动询问kernel数据好了没有。</p><h2 id="3-I-O-多路复用（-I-O-multiplexing）"><a href="#3-I-O-多路复用（-I-O-multiplexing）" class="headerlink" title="3 I/O 多路复用（ I/O multiplexing）"></a>3 I/O 多路复用（ I/O multiplexing）</h2><p><img src="/images/2018/12/55.png" alt=""><br>I/O multiplexing本质上是多条I/O路径共用同一个线程。<br>详情可以参考<a href="https://jvns.ca/blog/2017/06/03/async-io-on-linux--select--poll--and-epoll/" target="_blank" rel="noopener">select, poll, and epoll</a></p><h2 id="4-异步-I-O（asynchronous-IO）"><a href="#4-异步-I-O（asynchronous-IO）" class="headerlink" title="4 异步 I/O（asynchronous IO）"></a>4 异步 I/O（asynchronous IO）</h2><p><img src="/images/2018/12/56.png" alt=""><br>异步I/O通知可以采取两种方式：</p><ol><li>使用信号进行异步通知，如上图所示，示例可以参考<a href="http://www.informit.com/articles/article.aspx?p=607373&amp;seqNum=4" target="_blank" rel="noopener">POSIX Asynchronous I/O</a></li><li>使用回调函数进行异步通知，示例可以参考<a href="https://blog.csdn.net/Shreck66/article/details/48765533" target="_blank" rel="noopener">linux下aio异步读写详解与实例</a>和<a href="https://stackoverflow.com/questions/5153972/unix-linux-signal-handling-sigev-thread" target="_blank" rel="noopener">UNIX/Linux signal handling: SIGEV_THREAD</a></li></ol><h2 id="5-总结"><a href="#5-总结" class="headerlink" title="5 总结"></a>5 总结</h2><h3 id="5-1-blocking和non-blocking的区别"><a href="#5-1-blocking和non-blocking的区别" class="headerlink" title="5.1 blocking和non-blocking的区别"></a>5.1 blocking和non-blocking的区别</h3><p>调用blocking IO会一直block住对应的进程，直到操作完成；而non-blocking IO在kernel还未准备好数据的情况下会立刻返回。</p><h3 id="5-2-synchronous-IO和asynchronous-IO的区别"><a href="#5-2-synchronous-IO和asynchronous-IO的区别" class="headerlink" title="5.2 synchronous IO和asynchronous IO的区别"></a>5.2 synchronous IO和asynchronous IO的区别</h3><p>在说明synchronous IO和asynchronous IO的区别之前，需要先给出两者的定义。POSIX的定义是这样子的：</p><ul><li>A synchronous I/O operation causes the requesting process to be blocked until that I/O operation completes;</li><li>An asynchronous I/O operation does not cause the requesting process to be blocked;</li></ul><p>两者的区别就在于synchronous IO做”IO operation”的时候会将process阻塞。按照这个定义，之前所述的blocking IO，non-blocking IO，IO multiplexing都属于synchronous IO。</p><p>有人会说，non-blocking IO并没有被block啊。这里有个非常“狡猾”的地方，定义中所指的”IO operation”是指真实的IO操作，就是例子中的<code>read</code>这个system call。non-blocking IO在执行<code>read</code>这个system call的时候，如果kernel的数据没有准备好，这时候不会block进程。但是，当kernel中数据准备好的时候，<code>read</code>会将数据从kernel拷贝到用户内存中，这个时候进程是被block了，在这段时间内，进程是被block的。</p><p>而asynchronous IO则不一样，当进程发起IO 操作之后，就直接返回再也不理睬了，直到kernel发送一个信号，告诉进程说IO完成。在这整个过程中，进程完全没有被block。</p><h3 id="5-3-各个IO-Model的比较"><a href="#5-3-各个IO-Model的比较" class="headerlink" title="5.3 各个IO Model的比较"></a>5.3 各个IO Model的比较</h3><p><img src="/images/2018/12/57.png" alt=""><br>通过上面的图片，可以发现non-blocking IO和asynchronous IO的区别还是很明显的。在non-blocking IO中，虽然进程大部分时间都不会被block，但是它仍然要求进程去主动的check，并且当数据准备完成以后，也需要进程主动的再次调用<code>read</code>来将数据拷贝到用户内存。而asynchronous IO则完全不同。它就像是用户进程将整个IO操作交给了他人（kernel）完成，然后他人做完后发信号通知或者调用回调函数。在此期间，用户进程不需要去检查IO操作的状态，也不需要主动的去拷贝数据。</p><hr><p>参考资料：</p><ol><li><a href="https://segmentfault.com/a/1190000003063859" target="_blank" rel="noopener">Linux IO模式及 select、poll、epoll详解</a></li><li><a href="https://jvns.ca/blog/2017/06/03/async-io-on-linux--select--poll--and-epoll/" target="_blank" rel="noopener">select, poll, and epoll</a></li><li><a href="http://davmac.org/davpage/linux/async-io.html" target="_blank" rel="noopener">Asynchronous I/O and event notification on linux</a></li><li><a href="https://fwheel.net/aio.html" target="_blank" rel="noopener">Asynchronous File I/O on Linux</a></li><li><a href="https://blog.csdn.net/Shreck66/article/details/48765533" target="_blank" rel="noopener">linux下aio异步读写详解与实例</a></li><li><a href="https://www.systutorials.com/docs/linux/man/7-aio/" target="_blank" rel="noopener">aio (7) - Linux Man Pages</a></li><li><a href="https://stackoverflow.com/questions/5153972/unix-linux-signal-handling-sigev-thread" target="_blank" rel="noopener">UNIX/Linux signal handling: SIGEV_THREAD</a></li><li><a href="http://www.informit.com/articles/article.aspx?p=607373&amp;seqNum=4" target="_blank" rel="noopener">POSIX Asynchronous I/O</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文是对阻塞、非阻塞、同步、异步、I/O多路复用的总结。
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>apue 读书笔记-Signals</title>
@@ -475,28 +497,6 @@
     <summary type="html">
     
       &lt;p&gt;遇到一个需求，需要在内核中统计mysql进程匿名页的访问热度。&lt;br&gt;
-    
-    </summary>
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>内核中遍历所有的page</title>
-    <link href="http://liujunming.github.io/2018/11/09/%E5%86%85%E6%A0%B8%E4%B8%AD%E9%81%8D%E5%8E%86%E6%89%80%E6%9C%89%E7%9A%84page/"/>
-    <id>http://liujunming.github.io/2018/11/09/内核中遍历所有的page/</id>
-    <published>2018-11-09T01:25:44.000Z</published>
-    <updated>2018-11-09T01:35:12.330Z</updated>
-    
-    <content type="html"><![CDATA[<p>遇到一个需求，需要在内核模块中统计page cache页面的数量。<br><a id="more"></a><br>此刻，需要遍历所有的page，下面是相关代码：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsigned</span> scan_pfn=<span class="number">0</span>;</span><br><span class="line"><span class="keyword">for</span>(;scan_pfn &lt; max_pfn; scan_pfn++)&#123;</span><br><span class="line">    <span class="keyword">if</span>(pfn_valid(scan_pfn))&#123;</span><br><span class="line">        page = pfn_to_page(scan_pfn);</span><br><span class="line">        <span class="keyword">if</span>(page)&#123;</span><br><span class="line">            ......</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p>从上述代码可以看出，通过<code>max_pfn</code>即可获取最大的page frame号。</p><p>判断page是否为page cache可使用下面的函数:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">inline</span> <span class="keyword">bool</span> <span class="title">is_file_page</span><span class="params">(struct page* pg)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">bool</span> ret = <span class="literal">false</span>;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">address_space</span> *<span class="title">mapping</span> = <span class="title">NULL</span>;</span></span><br><span class="line">    <span class="keyword">if</span>(pg &amp;&amp; !PageAnon(pg) &amp;&amp; !PageSwapCache(pg)) &#123;</span><br><span class="line">        mapping = page_file_mapping(pg);</span><br><span class="line">        <span class="keyword">if</span> (mapping) &#123;</span><br><span class="line">            BUG_ON(!mapping-&gt;host);</span><br><span class="line">        &#125;</span><br><span class="line">        ret = mapping;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;遇到一个需求，需要在内核模块中统计page cache页面的数量。&lt;br&gt;
     
     </summary>
     
