@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记-Memory Management"/>
+
+
+
+
+  <meta name="keywords" content="内存管理, Kernel, 读书笔记, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Memory-Management/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Understanding the Linux Kernel 读书笔记-Memory Management - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Understanding the Linux Kernel 读书笔记-Memory Management
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2018-12-28
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/内存管理/">内存管理</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Page-Frame-Management"><span class="toc-text">1 Page Frame Management</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Page-Descriptors"><span class="toc-text">1.1 Page Descriptors</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-Non-Uniform-Memory-Access-NUMA"><span class="toc-text">1.2 Non-Uniform Memory Access (NUMA)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-Memory-Zones"><span class="toc-text">1.3 Memory Zones</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-The-Pool-of-Reserved-Page-Frames"><span class="toc-text">1.4 The Pool of Reserved Page Frames</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-5-The-Zoned-Page-Frame-Allocator"><span class="toc-text">1.5 The Zoned Page Frame Allocator</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-5-1-The-Zone-Allocator"><span class="toc-text">1.5.1 The Zone Allocator</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-5-2-The-Buddy-System-Algorithm"><span class="toc-text">1.5.2 The Buddy System Algorithm</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-5-3-The-Per-CPU-Page-Frame-Cache"><span class="toc-text">1.5.3 The Per-CPU Page Frame Cache</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-6-Kernel-Mappings-of-High-Memory-Page-Frames"><span class="toc-text">1.6 Kernel Mappings of High-Memory Page Frames</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Memory-Area-Management"><span class="toc-text">2 Memory Area Management</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-The-Slab-Allocator"><span class="toc-text">2.1 The Slab Allocator</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-1-Local-Caches-of-Free-Slab-Objects"><span class="toc-text">2.1.1 Local Caches of Free Slab Objects</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-General-Purpose-Objects"><span class="toc-text">2.2 General Purpose Objects</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-Memory-Pools"><span class="toc-text">2.3 Memory Pools</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Noncontiguous-Memory-Area-Management"><span class="toc-text">3 Noncontiguous Memory Area Management</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>The sections “Page Frame Management” and “Memory Area Management” illustrate two different techniques for handling physically contiguous memory areas, while the section “Noncontiguous Memory Area Management” illustrates a third technique that handles noncontiguous memory areas. In these sections we’ll cover topics such as memory zones, kernel mappings, the buddy system, the slab cache, and memory pools.<a id="more"></a> </p>
+<p><img src="/images/2017/10/8.gif" alt=""></p>
+<h2 id="1-Page-Frame-Management"><a href="#1-Page-Frame-Management" class="headerlink" title="1 Page Frame Management"></a>1 Page Frame Management</h2><h3 id="1-1-Page-Descriptors"><a href="#1-1-Page-Descriptors" class="headerlink" title="1.1 Page Descriptors"></a>1.1 Page Descriptors</h3><p>State information of a page frame is kept in a page descriptor of type <code>page</code>.All page descriptors are stored in the <code>mem_map</code> array.</p>
+<h3 id="1-2-Non-Uniform-Memory-Access-NUMA"><a href="#1-2-Non-Uniform-Memory-Access-NUMA" class="headerlink" title="1.2 Non-Uniform Memory Access (NUMA)"></a>1.2 Non-Uniform Memory Access (NUMA)</h3><p>The physical memory of the system is partitioned in several <em>nodes</em>.The physical memory inside each node can be split into several zones, each node has a descriptor of type <code>pg_data_t</code>.</p>
+<h3 id="1-3-Memory-Zones"><a href="#1-3-Memory-Zones" class="headerlink" title="1.3 Memory Zones"></a>1.3 Memory Zones</h3><p>Each memory zone has its own descriptor of type <code>zone</code>.</p>
+<h3 id="1-4-The-Pool-of-Reserved-Page-Frames"><a href="#1-4-The-Pool-of-Reserved-Page-Frames" class="headerlink" title="1.4 The Pool of Reserved Page Frames"></a>1.4 The Pool of Reserved Page Frames</h3><p>Some kernel control paths cannot be blocked while requesting memory—this happens, for instance, when handling an interrupt or when executing code inside a critical region. In these cases, a kernel control path should issue <em>atomic memory allocation requests</em>.  An atomic request never blocks: if there are not enough free pages, the allocation simply fails. The kernel reserves a pool of page frames for atomic memory allocation requests to be used only on low-on-memory conditions.</p>
+<h3 id="1-5-The-Zoned-Page-Frame-Allocator"><a href="#1-5-The-Zoned-Page-Frame-Allocator" class="headerlink" title="1.5 The Zoned Page Frame Allocator"></a>1.5 The Zoned Page Frame Allocator</h3><p>The kernel subsystem that handles the memory allocation requests for groups of contiguous page frames is called the <em>zoned page frame allocator</em>. Its main components are shown in Figure 8-2.<br><img src="/images/2018/12/62.png" alt=""><br>The component named “zone allocator” receives the requests for allocation and deallocation of dynamic memory. In the case of allocation requests, the component searches a memory zone that includes a group of contiguous page frames that can satisfy the request. Inside each zone, page frames are handled by a component named “buddy system”. To get better system performance, a small number of page frames are kept in cache to quickly satisfy the allocation requests for single page frames.</p>
+<h4 id="1-5-1-The-Zone-Allocator"><a href="#1-5-1-The-Zone-Allocator" class="headerlink" title="1.5.1 The Zone Allocator"></a>1.5.1 The Zone Allocator</h4><p>The zone allocator is the frontend of the kernel page frame allocator. This component must locate a memory zone that includes a number of free page frames large enough to satisfy the memory request. </p>
+<h4 id="1-5-2-The-Buddy-System-Algorithm"><a href="#1-5-2-The-Buddy-System-Algorithm" class="headerlink" title="1.5.2 The Buddy System Algorithm"></a>1.5.2 The Buddy System Algorithm</h4><p>The kernel must establish a robust and efficient strategy for allocating groups of contiguous page frames. In doing so, it must deal with a well-known memory management problem called <em>external fragmentation</em>. The technique adopted by Linux to solve the external fragmentation problem is based on the well-known <em>buddy system</em> algorithm.</p>
+<h3 id="1-5-3-The-Per-CPU-Page-Frame-Cache"><a href="#1-5-3-The-Per-CPU-Page-Frame-Cache" class="headerlink" title="1.5.3 The Per-CPU Page Frame Cache"></a>1.5.3 The Per-CPU Page Frame Cache</h3><p>The kernel often requests and releases single page frames. To boost system performance, each memory zone defines a <em>per-CPU page frame cache</em>. Each per-CPU cache includes some pre-allocated page frames to be used for single memory requests issued by the local CPU.</p>
+<h3 id="1-6-Kernel-Mappings-of-High-Memory-Page-Frames"><a href="#1-6-Kernel-Mappings-of-High-Memory-Page-Frames" class="headerlink" title="1.6 Kernel Mappings of High-Memory Page Frames"></a>1.6 Kernel Mappings of High-Memory Page Frames</h3><p>见<a href="http://liujunming.top/2017/10/10/Linux%E5%86%85%E6%A0%B8%E9%AB%98%E7%AB%AF%E5%86%85%E5%AD%98/" target="_blank" rel="noopener">Linux内核高端内存</a></p>
+<h2 id="2-Memory-Area-Management"><a href="#2-Memory-Area-Management" class="headerlink" title="2 Memory Area Management"></a>2 Memory Area Management</h2><p><em>Memory areas</em> is with sequences of memory cells having contiguous physical addresses and an arbitrary length.</p>
+<h3 id="2-1-The-Slab-Allocator"><a href="#2-1-The-Slab-Allocator" class="headerlink" title="2.1 The Slab Allocator"></a>2.1 The Slab Allocator</h3><p>The buddy system algorithm adopts the page frame as the basic memory area. This is fine for dealing with relatively large memory requests, but how are we going to deal with requests for small memory areas, say a few tens or hundreds of bytes?</p>
+<p>The slab allocator groups objects into <code>caches</code>. Each cache is a “store” of objects of the same type.</p>
+<p>The area of main memory that contains a cache is divided into <code>slabs</code>; each slab consists of one or more contiguous page frames that contain both allocated and free objects.</p>
+<p><img src="/images/2018/12/63.png" alt=""></p>
+<p><img src="/images/2018/12/64.png" alt=""></p>
+<h4 id="2-1-1-Local-Caches-of-Free-Slab-Objects"><a href="#2-1-1-Local-Caches-of-Free-Slab-Objects" class="headerlink" title="2.1.1 Local Caches of Free Slab Objects"></a>2.1.1 Local Caches of Free Slab Objects</h4><p>To reduce spin lock contention among processors and to make better use of the hardware caches, each cache of the slab allocator includes a per-CPU data structure consisting of a small array of pointers to freed objects called the <em>slab local cache</em>.</p>
+<h3 id="2-2-General-Purpose-Objects"><a href="#2-2-General-Purpose-Objects" class="headerlink" title="2.2 General Purpose Objects"></a>2.2 General Purpose Objects</h3><p><code>kmalloc()</code></p>
+<h3 id="2-3-Memory-Pools"><a href="#2-3-Memory-Pools" class="headerlink" title="2.3 Memory Pools"></a>2.3 Memory Pools</h3><p>A memory pool allows a kernel component—such as the block device subsystem—to allocate some dynamic memory to be used only in low-on-memory emergencies.</p>
+<p>Memory pools should not be confused with the reserved page frames described in the earlier section “The Pool of Reserved Page Frames.” In fact, those page frames can be used only to satisfy atomic memory allocation requests issued by interrupt handlers or inside critical regions. Instead, a memory pool is a reserve of dynamic memory that can be used only by a specific kernel component.</p>
+<p>Often, a memory pool is stacked over the slab allocator—that is, it is used to keep a reserve of slab objects. Generally speaking, however, a memory pool can be used to allocate every kind of dynamic memory.</p>
+<h2 id="3-Noncontiguous-Memory-Area-Management"><a href="#3-Noncontiguous-Memory-Area-Management" class="headerlink" title="3 Noncontiguous Memory Area Management"></a>3 Noncontiguous Memory Area Management</h2><p><code>vmalloc()</code></p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/内存管理/">内存管理</a>
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/读书笔记/">读书笔记</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2018/12/27/Multiprocessor-architecture/">
+        <span class="next-text nav-default">Multiprocessor architecture</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Memory-Management/';
+        this.page.identifier = '2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Memory-Management/';
+        this.page.title = 'Understanding the Linux Kernel 读书笔记-Memory Management';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
