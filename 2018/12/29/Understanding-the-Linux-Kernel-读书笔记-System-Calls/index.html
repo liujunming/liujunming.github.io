@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记-System Calls"/>
+
+
+
+
+  <meta name="keywords" content="Kernel, 读书笔记, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-System-Calls/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Understanding the Linux Kernel 读书笔记-System Calls - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Understanding the Linux Kernel 读书笔记-System Calls
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2018-12-29
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-POSIX-APIs-and-System-Calls"><span class="toc-text">1 POSIX APIs and System Calls</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-System-Call-Handler-and-Service-Routines"><span class="toc-text">2 System Call Handler and Service Routines</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Entering-and-Exiting-a-System-Call"><span class="toc-text">3 Entering and Exiting a System Call</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Parameter-Passing"><span class="toc-text">4 Parameter Passing</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-Verifying-the-Parameters"><span class="toc-text">4.1 Verifying the Parameters</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-Accessing-the-Process-Address-Space"><span class="toc-text">4.2 Accessing the Process Address Space</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-Generating-the-Exception-Tables-and-the-Fixup-Code"><span class="toc-text">4.3 Generating the Exception Tables and the Fixup Code</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-Kernel-Wrapper-Routines"><span class="toc-text">5 Kernel Wrapper Routines</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Unix systems implement most interfaces between User Mode processes and hardware devices by means of system calls issued to the kernel.<a id="more"></a> </p>
+<h2 id="1-POSIX-APIs-and-System-Calls"><a href="#1-POSIX-APIs-and-System-Calls" class="headerlink" title="1 POSIX APIs and System Calls"></a>1 POSIX APIs and System Calls</h2><p>Let’s start by stressing the difference between an application programmer interface (API) and a system call. The former is a function definition that specifies how to obtain a given service, while the latter is an explicit request to the kernel made via a software interrupt.</p>
+<p>Unix systems include several libraries of functions that provide APIs to programmers. Some of the APIs defined by the <em>libc</em> standard C library refer to <em>wrapper routines</em>(routines whose only purpose is to issue a system call). Usually, each system call has a corresponding wrapper routine, which defines the API that application programs should employ.</p>
+<p>The converse is not true, by the way—an API does not necessarily correspond to a specific system call. First of all, the API could offer its services directly in User Mode. (For something abstract such as math functions, there may be no reason to make system calls.) Second, a single API function could make several system calls. Moreover,several API functions could make the same system call, but wrap extra functionality around it. For instance, in Linux, the <code>malloc()</code>, <code>calloc()</code>, and <code>free()</code> APIs are implemented in the <em>libc</em> library. The code in this library keeps track of the allocation and deallocation requests and uses the <code>brk()</code> system call to enlarge or shrink the process heap.</p>
+<p>The POSIX standard refers to APIs and not to system calls. </p>
+<h2 id="2-System-Call-Handler-and-Service-Routines"><a href="#2-System-Call-Handler-and-Service-Routines" class="headerlink" title="2 System Call Handler and Service Routines"></a>2 System Call Handler and Service Routines</h2><p>When a User Mode process invokes a system call, the CPU switches to Kernel Mode and starts the execution of a kernel function. In the 80 × 86 architecture a Linux system call can be invoked in two different ways. The net result of both methods, however, is a jump to an assembly language function called the <em>system call handler</em>.</p>
+<p>Because the kernel implements many different system calls, the User Mode process must pass a parameter called the <em>system call number</em> to identify the required system call; the eax register is used by Linux for this purpose. </p>
+<p>In the kernel, positive or 0 values denote a successful termination of the system call, while negative values denote an error condition.</p>
+<p>The system call handler, which has a structure similar to that of the other exception handlers, performs the following operations:</p>
+<ul>
+<li>Saves the contents of most registers in the Kernel Mode stack.</li>
+<li>Handles the system call by invoking a corresponding C function called the <em>system call service routine</em>.</li>
+<li>Exits from the handler: the registers are loaded with the values saved in the Kernel Mode stack, and the CPU is switched back from Kernel Mode to User Mode.</li>
+</ul>
+<p>The name of the service routine associated with the <code>xyz()</code> system call is usually <code>sys_ xyz()</code>; there are, however, a few exceptions to this rule.</p>
+<p>Figure 10-1 illustrates the relationships between the application program that invokes a system call, the corresponding wrapper routine, the system call handler, and the system call service routine.<br><img src="/images/2018/12/70.png" alt=""></p>
+<p>To associate each system call number with its corresponding service routine, the kernel uses a <em>system call dispatch table</em>.</p>
+<h2 id="3-Entering-and-Exiting-a-System-Call"><a href="#3-Entering-and-Exiting-a-System-Call" class="headerlink" title="3 Entering and Exiting a System Call"></a>3 Entering and Exiting a System Call</h2><p>Native applications can invoke a system call in two different ways:</p>
+<ul>
+<li>By executing the int <code>$0x80</code> assembly language instruction.</li>
+<li>By executing the <code>sysenter</code> assembly language instruction.</li>
+</ul>
+<p>Similarly, the kernel can exit from a system call—thus switching the CPU back to User Mode—in two ways:</p>
+<ul>
+<li>By executing the <code>iret</code> assembly language instruction.</li>
+<li>By executing the <code>sysexit</code> assembly language instruction.</li>
+</ul>
+<p>The <code>int</code> assembly language instruction is inherently slow because it performs several consistency and security checks. The <code>sysenter</code> instruction, dubbed in Intel documentation as “Fast System Call,” provides a faster way to switch from User Mode to Kernel Mode.</p>
+<h2 id="4-Parameter-Passing"><a href="#4-Parameter-Passing" class="headerlink" title="4 Parameter Passing"></a>4 Parameter Passing</h2><p>Like ordinary functions, system calls often require some input/output parameters, which may consist of actual values (i.e., numbers), addresses of variables in the address space of the User Mode process, or even addresses of data structures including pointers to User Mode functions.</p>
+<h3 id="4-1-Verifying-the-Parameters"><a href="#4-1-Verifying-the-Parameters" class="headerlink" title="4.1 Verifying the Parameters"></a>4.1 Verifying the Parameters</h3><p>All system call parameters must be carefully checked before the kernel attempts to satisfy a user request. </p>
+<h3 id="4-2-Accessing-the-Process-Address-Space"><a href="#4-2-Accessing-the-Process-Address-Space" class="headerlink" title="4.2 Accessing the Process Address Space"></a>4.2 Accessing the Process Address Space</h3><p>System call service routines often need to read or write data contained in the process’s address space.</p>
+<h3 id="4-3-Generating-the-Exception-Tables-and-the-Fixup-Code"><a href="#4-3-Generating-the-Exception-Tables-and-the-Fixup-Code" class="headerlink" title="4.3 Generating the Exception Tables and the Fixup Code"></a>4.3 Generating the Exception Tables and the Fixup Code</h3><h2 id="5-Kernel-Wrapper-Routines"><a href="#5-Kernel-Wrapper-Routines" class="headerlink" title="5 Kernel Wrapper Routines"></a>5 Kernel Wrapper Routines</h2><p>Although system calls are used mainly by User Mode processes, they can also be invoked by kernel threads, which cannot use library functions. To simplify the declarations of the corresponding wrapper routines, Linux defines a set of seven macros called <code>_syscall0</code> through <code>_syscall6</code>.</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/读书笔记/">读书笔记</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-Signals/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Understanding the Linux Kernel 读书笔记-Signals</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Process-Address-Space/">
+        <span class="next-text nav-default">Understanding the Linux Kernel 读书笔记-Process Address Space</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-System-Calls/';
+        this.page.identifier = '2018/12/29/Understanding-the-Linux-Kernel-读书笔记-System-Calls/';
+        this.page.title = 'Understanding the Linux Kernel 读书笔记-System Calls';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

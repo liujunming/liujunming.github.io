@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记-Signals"/>
+
+
+
+
+  <meta name="keywords" content="Kernel, 读书笔记, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-Signals/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Understanding the Linux Kernel 读书笔记-Signals - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Understanding the Linux Kernel 读书笔记-Signals
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2018-12-29
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-The-Role-of-Signals"><span class="toc-text">1 The Role of Signals</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Actions-Performed-upon-Delivering-a-Signal"><span class="toc-text">1.1 Actions Performed upon Delivering a Signal</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-POSIX-Signals-and-Multithreaded-Applications"><span class="toc-text">1.2 POSIX Signals and Multithreaded Applications</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-Data-Structures-Associated-with-Signals"><span class="toc-text">1.3 Data Structures Associated with Signals</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-Operations-on-Signal-Data-Structures"><span class="toc-text">1.4 Operations on Signal Data Structures</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Generating-a-Signal"><span class="toc-text">2 Generating a Signal</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Delivering-a-Signal"><span class="toc-text">3 Delivering a Signal</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-Executing-the-Default-Action-for-the-Signal"><span class="toc-text">3.1 Executing the Default Action for the Signal</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-Catching-the-Signal"><span class="toc-text">3.2 Catching the Signal</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-Reexecution-of-System-Calls"><span class="toc-text">3.3 Reexecution of System Calls</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-System-Calls-Related-to-Signal-Handling"><span class="toc-text">4 System Calls Related to Signal Handling</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Signals were introduced by the first Unix systems to allow interactions between User Mode processes; the kernel also uses them to notify processes of system events.<a id="more"></a> </p>
+<h2 id="1-The-Role-of-Signals"><a href="#1-The-Role-of-Signals" class="headerlink" title="1 The Role of Signals"></a>1 The Role of Signals</h2><p>A <em>signal</em> is a very short message that may be sent to a process or a group of processes. The only information given to the process is usually a number identifying the signal.</p>
+<p>A set of macros whose names start with the prefix <code>SIG</code> is used to identify signals.</p>
+<p>Signals serve two main purposes:</p>
+<ul>
+<li>To make a process aware that a specific event has occurred</li>
+<li>To cause a process to execute a signal handler function included in its code</li>
+</ul>
+<p><img src="/images/2018/12/71.png" alt=""></p>
+<p>Besides the <em>regular signals</em> described in this table, the POSIX standard has introduced a new class of signals denoted as <em>real-time signals</em>; their signal numbers range from 32 to 64 on Linux. They mainly differ from regular signals because they are always queued so that multiple signals sent will be received. On the other hand, regular signals of the same kind are not queued: if a regular signal is sent many times in a row, just one of them is delivered to the receiving process. Although the Linux kernel does not use real-time signals, it fully supports the POSIX standard by means of several specific system calls.</p>
+<p>A number of system calls allow programmers to send signals and determine how their processes respond to the signals they receive.<br><img src="/images/2018/12/72.png" alt=""></p>
+<p>An important characteristic of signals is that they may be sent at any time to a process whose state is usually unpredictable. Signals sent to a process that is not currently executing must be saved by the kernel until that process resumes execution. Blocking a signal requires that delivery of the signal be held off until it is later unblocked.</p>
+<p>Therefore, the kernel distinguishes two different phases related to signal transmission:</p>
+<ul>
+<li><em>Signal generation</em></li>
+</ul>
+<p>The kernel updates a data structure of the destination process to represent that a new signal has been sent.</p>
+<ul>
+<li><em>Signal delivery</em></li>
+</ul>
+<p>The kernel forces the destination process to react to the signal by changing its execution state, by starting the execution of a specified signal handler, or both.</p>
+<p>Signals that have been generated but not yet delivered are called <em>pending signals</em>. At any time, only one pending signal of a given type may exist for a process; additional pending signals of the same type to the same process are not queued but simply discarded. Real-time signals are different, though: there can be several pending signals of the same type.</p>
+<h3 id="1-1-Actions-Performed-upon-Delivering-a-Signal"><a href="#1-1-Actions-Performed-upon-Delivering-a-Signal" class="headerlink" title="1.1 Actions Performed upon Delivering a Signal"></a>1.1 Actions Performed upon Delivering a Signal</h3><p>There are three ways in which a process can respond to a signal:</p>
+<ol>
+<li>Explicitly ignore the signal.</li>
+<li>Execute the default action associated with the signal.</li>
+<li>Catch the signal by invoking a corresponding signal-handler function.</li>
+</ol>
+<p>The <code>SIGKILL</code> and <code>SIGSTOP</code> signals cannot be ignored, caught, or blocked, and their default actions must always be executed. </p>
+<h3 id="1-2-POSIX-Signals-and-Multithreaded-Applications"><a href="#1-2-POSIX-Signals-and-Multithreaded-Applications" class="headerlink" title="1.2 POSIX Signals and Multithreaded Applications"></a>1.2 POSIX Signals and Multithreaded Applications</h3><p>Furthermore, a pending signal is <em>private</em> if it has been sent to a specific process; it is <em>shared</em> if it has been sent to a whole thread group.</p>
+<h3 id="1-3-Data-Structures-Associated-with-Signals"><a href="#1-3-Data-Structures-Associated-with-Signals" class="headerlink" title="1.3 Data Structures Associated with Signals"></a>1.3 Data Structures Associated with Signals</h3><p>For each process in the system, the kernel must keep track of what signals are currently pending or masked; the kernel must also keep track of how every thread group is supposed to handle every signal.<br><img src="/images/2018/12/73.png" alt=""><br><img src="/images/2018/12/77.png" alt=""><br><strong>The signal descriptor and the signal handler descriptor</strong><br>The <code>signal</code> field of the process descriptor points to a <em>signal descriptor</em>, a <code>signal_struct</code> structure that keeps track of the shared pending signals. The signal descriptor is shared by all processes belonging to the same thread group.<br>Besides the signal descriptor, every process refers also to a <em>signal handler descriptor</em>, which is a <code>sighand_struct</code> structure describing how each signal must be handled by the thread group.</p>
+<p><strong>The sigaction data structure</strong></p>
+<p><strong>The pending signal queues</strong></p>
+<h3 id="1-4-Operations-on-Signal-Data-Structures"><a href="#1-4-Operations-on-Signal-Data-Structures" class="headerlink" title="1.4 Operations on Signal Data Structures"></a>1.4 Operations on Signal Data Structures</h3><h2 id="2-Generating-a-Signal"><a href="#2-Generating-a-Signal" class="headerlink" title="2 Generating a Signal"></a>2 Generating a Signal</h2><p>Many kernel functions generate signals: they accomplish the first phase of signal handling——by updating one or more process descriptors as needed. They do not directly perform the second phase of delivering the signal but, depending on the type of signal and the state of the destination processes, may wake up some processes and force them to receive the signal.</p>
+<ul>
+<li>When a signal is sent to a process, either from the kernel or from another process.</li>
+<li>When a signal is sent to a whole thread group, either from the kernel or from another process.</li>
+</ul>
+<h2 id="3-Delivering-a-Signal"><a href="#3-Delivering-a-Signal" class="headerlink" title="3 Delivering a Signal"></a>3 Delivering a Signal</h2><p>We assume that the kernel noticed the arrival of a signal and prepareD the process descriptor of the process that is supposed to receive the signal. But in case that process was not running on the CPU at that moment, the kernel deferred the task of delivering the signal. </p>
+<p>The kernel checks for the existence of pending signals every time it finishes handling an interrupt or an exception.</p>
+<h3 id="3-1-Executing-the-Default-Action-for-the-Signal"><a href="#3-1-Executing-the-Default-Action-for-the-Signal" class="headerlink" title="3.1 Executing the Default Action for the Signal"></a>3.1 Executing the Default Action for the Signal</h3><h3 id="3-2-Catching-the-Signal"><a href="#3-2-Catching-the-Signal" class="headerlink" title="3.2 Catching the Signal"></a>3.2 Catching the Signal</h3><p>Linux kernel每隔固定周期会发出timer interrupt。<br><img src="/images/2018/12/76.png" alt=""></p>
+<h3 id="3-3-Reexecution-of-System-Calls"><a href="#3-3-Reexecution-of-System-Calls" class="headerlink" title="3.3 Reexecution of System Calls"></a>3.3 Reexecution of System Calls</h3><p>The request associated with a system call cannot always be immediately satisfied by the kernel; when this happens, the process that issued the system call is put in a <code>TASK_INTERRUPTIBLE</code> or <code>TASK_UNINTERRUPTIBLE</code> state.</p>
+<p>If the process is put in a <code>TASK_INTERRUPTIBLE</code> state and some other process sends a signal to it, the kernel puts it in the <code>TASK_RUNNING</code> state without completing the system call.The signal is delivered to the process while switching back to User Mode. When this happens, the system call service routine does not complete its job, but returns an <code>EINTR</code>, <code>ERESTARTNOHAND</code>, <code>ERESTART_RESTARTBLOCK</code>, <code>ERESTARTSYS</code>, or <code>ERESTARTNOINTR</code> error code.</p>
+<p>In practice, the only error code a User Mode process can get in this situation is <code>EINTR</code>, which means that the system call has not been completed.The remaining error codes are used internally by the kernel to specify whether the system call may be reexecuted automatically after the signal handler termination.</p>
+<p><strong>Restarting a system call interrupted by a non-caught signal</strong></p>
+<p><strong>Restarting a system call for a caught signal</strong></p>
+<h2 id="4-System-Calls-Related-to-Signal-Handling"><a href="#4-System-Calls-Related-to-Signal-Handling" class="headerlink" title="4 System Calls Related to Signal Handling"></a>4 System Calls Related to Signal Handling</h2>
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/读书笔记/">读书笔记</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-System-Calls/">
+        <span class="next-text nav-default">Understanding the Linux Kernel 读书笔记-System Calls</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-Signals/';
+        this.page.identifier = '2018/12/29/Understanding-the-Linux-Kernel-读书笔记-Signals/';
+        this.page.title = 'Understanding the Linux Kernel 读书笔记-Signals';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

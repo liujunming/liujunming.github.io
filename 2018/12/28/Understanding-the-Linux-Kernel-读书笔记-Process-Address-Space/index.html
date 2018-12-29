@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记-Process Address Space"/>
+
+
+
+
+  <meta name="keywords" content="内存管理, Kernel, 读书笔记, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Process-Address-Space/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Understanding the Linux Kernel 读书笔记-Process Address Space - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Understanding the Linux Kernel 读书笔记-Process Address Space
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2018-12-28
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/内存管理/">内存管理</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-The-Process’s-Address-Space"><span class="toc-text">1 The Process’s Address Space</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-The-Memory-Descriptor"><span class="toc-text">2 The Memory Descriptor</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-Memory-Descriptor-of-Kernel-Threads"><span class="toc-text">2.1 Memory Descriptor of Kernel Threads</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Memory-Regions"><span class="toc-text">3 Memory Regions</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-Memory-Region-Data-Structures"><span class="toc-text">3.1 Memory Region Data Structures</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-Memory-Region-Access-Rights"><span class="toc-text">3.2 Memory Region Access Rights</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-Memory-Region-Handling"><span class="toc-text">3.3 Memory Region Handling</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-4-Allocating-a-Linear-Address-Interval"><span class="toc-text">3.4 Allocating a Linear Address Interval</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-5-Releasing-a-Linear-Address-Interval"><span class="toc-text">3.5 Releasing a Linear Address Interval</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Page-Fault-Exception-Handler"><span class="toc-text">4 Page Fault Exception Handler</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-Handling-a-Faulty-Address-Outside-the-Address-Space"><span class="toc-text">4.1 Handling a Faulty Address Outside the Address Space</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-Handling-a-Faulty-Address-Inside-the-Address-Space"><span class="toc-text">4.2 Handling a Faulty Address Inside the Address Space</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-Demand-Paging"><span class="toc-text">4.3 Demand Paging</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-4-Copy-On-Write"><span class="toc-text">4.4 Copy On Write</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-5-Handling-Noncontiguous-Memory-Area-Accesses"><span class="toc-text">4.5 Handling Noncontiguous Memory Area Accesses</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-Creating-and-Deleting-a-Process-Address-Space"><span class="toc-text">5 Creating and Deleting a Process Address Space</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-Creating-a-Process-Address-Space"><span class="toc-text">5.1 Creating a Process Address Space</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-Deleting-a-Process-Address-Space"><span class="toc-text">5.2 Deleting a Process Address Space</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-Managing-the-Heap"><span class="toc-text">6 Managing the Heap</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>A kernel function gets dynamic memory in a fairly straightforward manner by invoking one of a variety of functions: <code>__get_free_pages()</code> or <code>alloc_pages()</code> to get pages from the zoned page frame allocator, <code>kmem_cache_ alloc()</code> or <code>kmalloc()</code> to use the slab allocator for specialized or general-purpose objects, and <code>vmalloc()</code> or <code>vmalloc_32()</code> to get a noncontiguous memory area. If the request can be satisfied, each of these functions returns a page descriptor address or a linear address identifying the beginning of the allocated dynamic memory area.<a id="more"></a> </p>
+<p>These simple approaches work for two reasons:</p>
+<ul>
+<li>The kernel is the highest-priority component of the operating system.</li>
+<li>The kernel trusts itself.</li>
+</ul>
+<p>When allocating memory to User Mode processes, the situation is entirely different:</p>
+<ul>
+<li>Process requests for dynamic memory are considered non-urgent.</li>
+<li>Because user programs cannot be trusted, the kernel must be prepared to catch all addressing errors caused by processes in User Mode.</li>
+</ul>
+<p>The kernel succeeds in deferring the allocation of dynamic memory to processes by using a new kind of resource. When a User Mode process asks for dynamic memory, it doesn’t get additional page frames; instead, it gets the right to use a new range of linear addresses, which become part of its address space. This interval is called a “memory region.”</p>
+<h2 id="1-The-Process’s-Address-Space"><a href="#1-The-Process’s-Address-Space" class="headerlink" title="1 The Process’s Address Space"></a>1 The Process’s Address Space</h2><p>The <em>address space</em> of a process consists of all linear addresses that the process is allowed to use.</p>
+<p>The kernel represents intervals of linear addresses by means of resources called <em>memory regions</em>, which are characterized by an initial linear address, a length, and some access rights.</p>
+<p><img src="/images/2018/12/65.png" alt=""></p>
+<h2 id="2-The-Memory-Descriptor"><a href="#2-The-Memory-Descriptor" class="headerlink" title="2 The Memory Descriptor"></a>2 The Memory Descriptor</h2><p>All information related to the process address space is included in an object called the <em>memory descriptor</em> of type <code>mm_struct</code>. This object is referenced by the <code>mm</code> field of the process descriptor.</p>
+<h3 id="2-1-Memory-Descriptor-of-Kernel-Threads"><a href="#2-1-Memory-Descriptor-of-Kernel-Threads" class="headerlink" title="2.1 Memory Descriptor of Kernel Threads"></a>2.1 Memory Descriptor of Kernel Threads</h3><p>Contrary to regular processes, kernel threads do not use memory regions, therefore most of the fields of a memory descriptor are meaningless for them.</p>
+<h2 id="3-Memory-Regions"><a href="#3-Memory-Regions" class="headerlink" title="3 Memory Regions"></a>3 Memory Regions</h2><p>Linux implements a memory region by means of an object of type <code>vm_area_struct</code>.<br><img src="/images/2018/12/67.png" alt=""></p>
+<h3 id="3-1-Memory-Region-Data-Structures"><a href="#3-1-Memory-Region-Data-Structures" class="headerlink" title="3.1 Memory Region Data Structures"></a>3.1 Memory Region Data Structures</h3><h3 id="3-2-Memory-Region-Access-Rights"><a href="#3-2-Memory-Region-Access-Rights" class="headerlink" title="3.2 Memory Region Access Rights"></a>3.2 Memory Region Access Rights</h3><h3 id="3-3-Memory-Region-Handling"><a href="#3-3-Memory-Region-Handling" class="headerlink" title="3.3 Memory Region Handling"></a>3.3 Memory Region Handling</h3><ul>
+<li>Finding the closest region to a given address: <code>find_vma()</code></li>
+<li>Finding a region that overlaps a given interval: <code>find_vma_intersection()</code></li>
+<li>Finding a free interval: <code>get_unmapped_area()</code></li>
+<li>Inserting a region in the memory descriptor list: <code>insert_vm_struct()</code></li>
+</ul>
+<h3 id="3-4-Allocating-a-Linear-Address-Interval"><a href="#3-4-Allocating-a-Linear-Address-Interval" class="headerlink" title="3.4 Allocating a Linear Address Interval"></a>3.4 Allocating a Linear Address Interval</h3><h3 id="3-5-Releasing-a-Linear-Address-Interval"><a href="#3-5-Releasing-a-Linear-Address-Interval" class="headerlink" title="3.5 Releasing a Linear Address Interval"></a>3.5 Releasing a Linear Address Interval</h3><h2 id="4-Page-Fault-Exception-Handler"><a href="#4-Page-Fault-Exception-Handler" class="headerlink" title="4 Page Fault Exception Handler"></a>4 Page Fault Exception Handler</h2><p>The Linux Page Fault exception handler must distinguish exceptions caused by programming errors from those caused by a reference to a page that legitimately belongs to the process address space but simply hasn’t been allocated yet.</p>
+<p><img src="/images/2018/12/68.png" alt=""></p>
+<p><img src="/images/2018/12/69.png" alt=""></p>
+<h3 id="4-1-Handling-a-Faulty-Address-Outside-the-Address-Space"><a href="#4-1-Handling-a-Faulty-Address-Outside-the-Address-Space" class="headerlink" title="4.1 Handling a Faulty Address Outside the Address Space"></a>4.1 Handling a Faulty Address Outside the Address Space</h3><h3 id="4-2-Handling-a-Faulty-Address-Inside-the-Address-Space"><a href="#4-2-Handling-a-Faulty-Address-Inside-the-Address-Space" class="headerlink" title="4.2 Handling a Faulty Address Inside the Address Space"></a>4.2 Handling a Faulty Address Inside the Address Space</h3><h3 id="4-3-Demand-Paging"><a href="#4-3-Demand-Paging" class="headerlink" title="4.3 Demand Paging"></a>4.3 Demand Paging</h3><p>The term <em>demand paging</em> denotes a dynamic memory allocation technique that consists of deferring page frame allocation until the last possible moment—until the process attempts to address a page that is not present in RAM, thus causing a Page Fault exception.</p>
+<h3 id="4-4-Copy-On-Write"><a href="#4-4-Copy-On-Write" class="headerlink" title="4.4 Copy On Write"></a>4.4 Copy On Write</h3><h3 id="4-5-Handling-Noncontiguous-Memory-Area-Accesses"><a href="#4-5-Handling-Noncontiguous-Memory-Area-Accesses" class="headerlink" title="4.5 Handling Noncontiguous Memory Area Accesses"></a>4.5 Handling Noncontiguous Memory Area Accesses</h3><h2 id="5-Creating-and-Deleting-a-Process-Address-Space"><a href="#5-Creating-and-Deleting-a-Process-Address-Space" class="headerlink" title="5 Creating and Deleting a Process Address Space"></a>5 Creating and Deleting a Process Address Space</h2><h3 id="5-1-Creating-a-Process-Address-Space"><a href="#5-1-Creating-a-Process-Address-Space" class="headerlink" title="5.1 Creating a Process Address Space"></a>5.1 Creating a Process Address Space</h3><h3 id="5-2-Deleting-a-Process-Address-Space"><a href="#5-2-Deleting-a-Process-Address-Space" class="headerlink" title="5.2 Deleting a Process Address Space"></a>5.2 Deleting a Process Address Space</h3><h2 id="6-Managing-the-Heap"><a href="#6-Managing-the-Heap" class="headerlink" title="6 Managing the Heap"></a>6 Managing the Heap</h2>
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/内存管理/">内存管理</a>
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/读书笔记/">读书笔记</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-System-Calls/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Understanding the Linux Kernel 读书笔记-System Calls</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Memory-Management/">
+        <span class="next-text nav-default">Understanding the Linux Kernel 读书笔记-Memory Management</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2018
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Process-Address-Space/';
+        this.page.identifier = '2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Process-Address-Space/';
+        this.page.title = 'Understanding the Linux Kernel 读书笔记-Process Address Space';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
