@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记-The Virtual Filesystem"/>
+
+
+
+
+  <meta name="keywords" content="Kernel, 读书笔记, 文件系统, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/01/02/Understanding-the-Linux-Kernel-读书笔记-The-Virtual-Filesystem/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Understanding the Linux Kernel 读书笔记-The Virtual Filesystem - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Understanding the Linux Kernel 读书笔记-The Virtual Filesystem
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-01-02
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/文件系统/">文件系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-The-Role-of-the-Virtual-Filesystem-VFS"><span class="toc-text">1 The Role of the Virtual Filesystem (VFS)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-The-Common-File-Model"><span class="toc-text">1.1 The Common File Model</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-System-Calls-Handled-by-the-VFS"><span class="toc-text">1.2 System Calls Handled by the VFS</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-VFS-Data-Structures"><span class="toc-text">2 VFS Data Structures</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-Superblock-Objects"><span class="toc-text">2.1 Superblock Objects</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-Inode-Objects"><span class="toc-text">2.2 Inode Objects</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-File-Objects"><span class="toc-text">2.3 File Objects</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-dentry-Objects"><span class="toc-text">2.4 dentry Objects</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-5-The-dentry-Cache"><span class="toc-text">2.5 The dentry Cache</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-6-Files-Associated-with-a-Process"><span class="toc-text">2.6 Files Associated with a Process</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Filesystem-Types"><span class="toc-text">3 Filesystem Types</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-Special-Filesystems"><span class="toc-text">3.1 Special Filesystems</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-Filesystem-Type-Registration"><span class="toc-text">3.2 Filesystem Type Registration</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Filesystem-Handling"><span class="toc-text">4 Filesystem Handling</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-Namespaces"><span class="toc-text">4.1 Namespaces</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-Filesystem-Mounting"><span class="toc-text">4.2 Filesystem Mounting</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-Mounting-a-Generic-Filesystem"><span class="toc-text">4.3 Mounting a Generic Filesystem</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-4-Mounting-the-Root-Filesystem"><span class="toc-text">4.4 Mounting the Root Filesystem</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-5-Unmounting-a-Filesystem"><span class="toc-text">4.5 Unmounting a Filesystem</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-Pathname-Lookup"><span class="toc-text">5 Pathname Lookup</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-Standard-Pathname-Lookup"><span class="toc-text">5.1 Standard Pathname Lookup</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-Parent-Pathname-Lookup"><span class="toc-text">5.2 Parent Pathname Lookup</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-3-Lookup-of-Symbolic-Links"><span class="toc-text">5.3 Lookup of Symbolic Links</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-Implementations-of-VFS-System-Calls"><span class="toc-text">6 Implementations of VFS System Calls</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-The-open-System-Call"><span class="toc-text">6.1 The open() System Call</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-The-read-and-write-System-Calls"><span class="toc-text">6.2 The read() and write() System Calls</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-3-The-close-System-Call"><span class="toc-text">6.3 The close() System Call</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-File-Locking"><span class="toc-text">7 File Locking</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#7-1-Linux-File-Locking"><span class="toc-text">7.1 Linux File Locking</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-2-File-Locking-Data-Structures"><span class="toc-text">7.2 File-Locking Data Structures</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-3-FL-FLOCK-Locks"><span class="toc-text">7.3 FL_FLOCK Locks</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-4-FL-POSIX-Locks"><span class="toc-text">7.4 FL_POSIX Locks</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>The idea behind the Virtual Filesystem is to put a wide range of information in the kernel to represent many different types of filesystems.<br><a id="more"></a> </p>
+<h2 id="1-The-Role-of-the-Virtual-Filesystem-VFS"><a href="#1-The-Role-of-the-Virtual-Filesystem-VFS" class="headerlink" title="1 The Role of the Virtual Filesystem (VFS)"></a>1 The Role of the Virtual Filesystem (VFS)</h2><p>The Virtual Filesystem is a kernel software layer that handles all system calls related to a standard Unix filesystem. Its main strength is providing a common interface to several kinds of filesystems.</p>
+<p><img src="/images/2019/1/8.png" alt=""></p>
+<p>Filesystems supported by the VFS may be grouped into three main classes:</p>
+<ul>
+<li><em>Disk-based filesystems</em></li>
+</ul>
+<p>These manage storage space available in a local disk or in some other device that emulates a disk (such as a USB flash drive).</p>
+<ul>
+<li><em>Network filesystems</em></li>
+</ul>
+<p>These allow easy access to files included in filesystems belonging to other networked computers.</p>
+<ul>
+<li><em>Special filesystems</em></li>
+</ul>
+<p>These do not manage disk space, either locally or remotely.</p>
+<h3 id="1-1-The-Common-File-Model"><a href="#1-1-The-Common-File-Model" class="headerlink" title="1.1 The Common File Model"></a>1.1 The Common File Model</h3><p>The key idea behind the VFS consists of introducing a <em>common file model</em> capable of representing all supported filesystems.</p>
+<p>The common file model consists of the following object types:</p>
+<ul>
+<li><em>The superblock object</em></li>
+<li><em>The inode object</em></li>
+<li><em>The file object</em></li>
+<li><em>The dentry object</em></li>
+</ul>
+<p>Figure 12-2 illustrates with a simple example how processes interact with files. Three different processes have opened the same file, two of them using the same hard link. In this case, each of the three processes uses its own file object, while only two dentry objects are required—one for each hard link. Both dentry objects refer to the same inode object, which identifies the superblock object and, together with the latter, the common disk file.<br><img src="/images/2019/1/9.png" alt=""></p>
+<h3 id="1-2-System-Calls-Handled-by-the-VFS"><a href="#1-2-System-Calls-Handled-by-the-VFS" class="headerlink" title="1.2 System Calls Handled by the VFS"></a>1.2 System Calls Handled by the VFS</h3><h2 id="2-VFS-Data-Structures"><a href="#2-VFS-Data-Structures" class="headerlink" title="2 VFS Data Structures"></a>2 VFS Data Structures</h2><h3 id="2-1-Superblock-Objects"><a href="#2-1-Superblock-Objects" class="headerlink" title="2.1 Superblock Objects"></a>2.1 Superblock Objects</h3><p>A superblock object consists of a <a href="https://elixir.bootlin.com/linux/v2.6.11/source/include/linux/fs.h#L754" target="_blank" rel="noopener">super_block</a> structure.</p>
+<h3 id="2-2-Inode-Objects"><a href="#2-2-Inode-Objects" class="headerlink" title="2.2 Inode Objects"></a>2.2 Inode Objects</h3><h3 id="2-3-File-Objects"><a href="#2-3-File-Objects" class="headerlink" title="2.3 File Objects"></a>2.3 File Objects</h3><h3 id="2-4-dentry-Objects"><a href="#2-4-dentry-Objects" class="headerlink" title="2.4 dentry Objects"></a>2.4 dentry Objects</h3><h3 id="2-5-The-dentry-Cache"><a href="#2-5-The-dentry-Cache" class="headerlink" title="2.5 The dentry Cache"></a>2.5 The dentry Cache</h3><h3 id="2-6-Files-Associated-with-a-Process"><a href="#2-6-Files-Associated-with-a-Process" class="headerlink" title="2.6 Files Associated with a Process"></a>2.6 Files Associated with a Process</h3><p><img src="/images/2019/1/10.png" alt=""></p>
+<h2 id="3-Filesystem-Types"><a href="#3-Filesystem-Types" class="headerlink" title="3 Filesystem Types"></a>3 Filesystem Types</h2><h3 id="3-1-Special-Filesystems"><a href="#3-1-Special-Filesystems" class="headerlink" title="3.1 Special Filesystems"></a>3.1 Special Filesystems</h3><p>While network and disk-based filesystems enable the user to handle information stored outside the kernel, special filesystems may provide an easy way for system programs and administrators to manipulate the data structures of the kernel and to implement special features of the operating system. Table 12-8 lists the most common special filesystems used in Linux; for each of them, the table reports its suggested mount point and a short description.<br><img src="/images/2019/1/11.png" alt=""></p>
+<h3 id="3-2-Filesystem-Type-Registration"><a href="#3-2-Filesystem-Type-Registration" class="headerlink" title="3.2 Filesystem Type Registration"></a>3.2 Filesystem Type Registration</h3><h2 id="4-Filesystem-Handling"><a href="#4-Filesystem-Handling" class="headerlink" title="4 Filesystem Handling"></a>4 Filesystem Handling</h2><h3 id="4-1-Namespaces"><a href="#4-1-Namespaces" class="headerlink" title="4.1 Namespaces"></a>4.1 Namespaces</h3><p>Every process might have its own tree of mounted filesystems—the socalled <em>namespace</em> of the process.</p>
+<h3 id="4-2-Filesystem-Mounting"><a href="#4-2-Filesystem-Mounting" class="headerlink" title="4.2 Filesystem Mounting"></a>4.2 Filesystem Mounting</h3><h3 id="4-3-Mounting-a-Generic-Filesystem"><a href="#4-3-Mounting-a-Generic-Filesystem" class="headerlink" title="4.3 Mounting a Generic Filesystem"></a>4.3 Mounting a Generic Filesystem</h3><h3 id="4-4-Mounting-the-Root-Filesystem"><a href="#4-4-Mounting-the-Root-Filesystem" class="headerlink" title="4.4 Mounting the Root Filesystem"></a>4.4 Mounting the Root Filesystem</h3><h3 id="4-5-Unmounting-a-Filesystem"><a href="#4-5-Unmounting-a-Filesystem" class="headerlink" title="4.5 Unmounting a Filesystem"></a>4.5 Unmounting a Filesystem</h3><h2 id="5-Pathname-Lookup"><a href="#5-Pathname-Lookup" class="headerlink" title="5 Pathname Lookup"></a>5 Pathname Lookup</h2><h3 id="5-1-Standard-Pathname-Lookup"><a href="#5-1-Standard-Pathname-Lookup" class="headerlink" title="5.1 Standard Pathname Lookup"></a>5.1 Standard Pathname Lookup</h3><h3 id="5-2-Parent-Pathname-Lookup"><a href="#5-2-Parent-Pathname-Lookup" class="headerlink" title="5.2 Parent Pathname Lookup"></a>5.2 Parent Pathname Lookup</h3><h3 id="5-3-Lookup-of-Symbolic-Links"><a href="#5-3-Lookup-of-Symbolic-Links" class="headerlink" title="5.3 Lookup of Symbolic Links"></a>5.3 Lookup of Symbolic Links</h3><h2 id="6-Implementations-of-VFS-System-Calls"><a href="#6-Implementations-of-VFS-System-Calls" class="headerlink" title="6 Implementations of VFS System Calls"></a>6 Implementations of VFS System Calls</h2><h3 id="6-1-The-open-System-Call"><a href="#6-1-The-open-System-Call" class="headerlink" title="6.1 The open() System Call"></a>6.1 The open() System Call</h3><h3 id="6-2-The-read-and-write-System-Calls"><a href="#6-2-The-read-and-write-System-Calls" class="headerlink" title="6.2 The read() and write() System Calls"></a>6.2 The read() and write() System Calls</h3><h3 id="6-3-The-close-System-Call"><a href="#6-3-The-close-System-Call" class="headerlink" title="6.3 The close() System Call"></a>6.3 The close() System Call</h3><h2 id="7-File-Locking"><a href="#7-File-Locking" class="headerlink" title="7 File Locking"></a>7 File Locking</h2><p>The POSIX standard requires a file-locking mechanism based on the <code>fcntl()</code>system call. It is possible to lock an arbitrary region of a file (even a single byte) or to lock the whole file (including data appended in the future). Because a process can choose to lock only a part of a file, it can also hold multiple locks on different parts of the file.</p>
+<h3 id="7-1-Linux-File-Locking"><a href="#7-1-Linux-File-Locking" class="headerlink" title="7.1 Linux File Locking"></a>7.1 Linux File Locking</h3><h3 id="7-2-File-Locking-Data-Structures"><a href="#7-2-File-Locking-Data-Structures" class="headerlink" title="7.2 File-Locking Data Structures"></a>7.2 File-Locking Data Structures</h3><h3 id="7-3-FL-FLOCK-Locks"><a href="#7-3-FL-FLOCK-Locks" class="headerlink" title="7.3 FL_FLOCK Locks"></a>7.3 FL_FLOCK Locks</h3><h3 id="7-4-FL-POSIX-Locks"><a href="#7-4-FL-POSIX-Locks" class="headerlink" title="7.4 FL_POSIX Locks"></a>7.4 FL_POSIX Locks</h3>
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/读书笔记/">读书笔记</a>
+            
+              <a href="/tags/文件系统/">文件系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2019/01/02/文件系统概述/">
+        <span class="next-text nav-default">文件系统概述</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/01/02/Understanding-the-Linux-Kernel-读书笔记-The-Virtual-Filesystem/';
+        this.page.identifier = '2019/01/02/Understanding-the-Linux-Kernel-读书笔记-The-Virtual-Filesystem/';
+        this.page.title = 'Understanding the Linux Kernel 读书笔记-The Virtual Filesystem';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
