@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记-The Page Cache"/>
+
+
+
+
+  <meta name="keywords" content="Kernel, I/O系统, 读书笔记, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/01/04/Understanding-the-Linux-Kernel-读书笔记-The-Page-Cache/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Understanding the Linux Kernel 读书笔记-The Page Cache - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Understanding the Linux Kernel 读书笔记-The Page Cache
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-01-04
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/I-O系统/">I/O系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-The-Page-Cache"><span class="toc-text">1 The Page Cache</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-The-address-space-Object"><span class="toc-text">1.1 The address_space Object</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-The-Radix-Tree"><span class="toc-text">1.2 The Radix Tree</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-Page-Cache-Handling-Functions"><span class="toc-text">1.3 Page Cache Handling Functions</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-The-Tags-of-the-Radix-Tree"><span class="toc-text">1.4 The Tags of the Radix Tree</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Storing-Blocks-in-the-Page-Cache"><span class="toc-text">2 Storing Blocks in the Page Cache</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-Block-Buffers-and-Buffer-Heads"><span class="toc-text">2.1 Block Buffers and Buffer Heads</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-Managing-the-Buffer-Heads"><span class="toc-text">2.2 Managing the Buffer Heads</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-Buffer-Pages"><span class="toc-text">2.3 Buffer Pages</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Writing-Dirty-Pages-to-Disk"><span class="toc-text">3 Writing Dirty Pages to Disk</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>A disk cache is a software mechanism that allows the system to keep in RAM some data that is normally stored on a disk, so that further accesses to that data can be sat- isfied quickly without accessing the disk.<br><a id="more"></a><br>The dentry cache, which stores dentry objects representing filesystem pathnames, and the inode cache, which stores inode objects representing disk inodes. The <em>page cache</em>, which is a disk cache working on whole pages of data.</p>
+<h2 id="1-The-Page-Cache"><a href="#1-The-Page-Cache" class="headerlink" title="1 The Page Cache"></a>1 The Page Cache</h2><p>The <em>page cache</em> is the main disk cache used by the Linux kernel. In most cases, the kernel refers to the page cache when reading from or writing to disk. New pages are added to the page cache to satisfy User Mode processes’s read requests. If the page is not already in the cache, a new entry is added to the cache and filled with the data read from the disk.</p>
+<p>Kernel designers have implemented the page cache to fulfill two main requirements:</p>
+<ul>
+<li>Quickly locate a specific page containing data relative to a given owner. </li>
+<li>Keep track of how every page in the cache should be handled when reading or writing its content.</li>
+</ul>
+<p>A page does not necessarily contain physically adjacent disk blocks, so it cannot be identified by a device number and a block number. Instead, a page in the page cache is identified by an owner and by an index within the owner’s data—usually, an inode and an offset inside the corresponding file.</p>
+<h3 id="1-1-The-address-space-Object"><a href="#1-1-The-address-space-Object" class="headerlink" title="1.1 The address_space Object"></a>1.1 The address_space Object</h3><p><a href="http://liujunming.top/2017/06/25/address-space-%E9%A1%B5%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/" target="_blank" rel="noopener">address_space,页高速缓存</a><br>The core data structure of the page cache is the <code>address_space</code> object, a data structure embedded in the inode object that owns the page. Many pages in the cache may refer to the same owner, thus they may be linked to the same <code>address_space</code> object. This object also establishes a link between the owner’s pages and a set of methods that operate on these pages.</p>
+<h3 id="1-2-The-Radix-Tree"><a href="#1-2-The-Radix-Tree" class="headerlink" title="1.2 The Radix Tree"></a>1.2 The Radix Tree</h3><h3 id="1-3-Page-Cache-Handling-Functions"><a href="#1-3-Page-Cache-Handling-Functions" class="headerlink" title="1.3 Page Cache Handling Functions"></a>1.3 Page Cache Handling Functions</h3><h3 id="1-4-The-Tags-of-the-Radix-Tree"><a href="#1-4-The-Tags-of-the-Radix-Tree" class="headerlink" title="1.4 The Tags of the Radix Tree"></a>1.4 The Tags of the Radix Tree</h3><h2 id="2-Storing-Blocks-in-the-Page-Cache"><a href="#2-Storing-Blocks-in-the-Page-Cache" class="headerlink" title="2 Storing Blocks in the Page Cache"></a>2 Storing Blocks in the Page Cache</h2><p><em>page cache</em> vs <em>buffer cache</em>.</p>
+<p>Starting from stable version 2.4.10, the buffer cache does not really exist anymore. In fact, for reasons of efficiency, block buffers are no longer allocated individually; instead, they are stored in dedicated pages called “buffer pages,” which are kept in the page cache.</p>
+<p>A buffer page is a page of data associated with additional descriptors called “buffer heads,” whose main purpose is to quickly locate the disk address of each individual block in the page. In fact, the chunks of data stored in a page belonging to the page cache are not necessarily adjacent on disk.</p>
+<h3 id="2-1-Block-Buffers-and-Buffer-Heads"><a href="#2-1-Block-Buffers-and-Buffer-Heads" class="headerlink" title="2.1 Block Buffers and Buffer Heads"></a>2.1 Block Buffers and Buffer Heads</h3><h3 id="2-2-Managing-the-Buffer-Heads"><a href="#2-2-Managing-the-Buffer-Heads" class="headerlink" title="2.2 Managing the Buffer Heads"></a>2.2 Managing the Buffer Heads</h3><h3 id="2-3-Buffer-Pages"><a href="#2-3-Buffer-Pages" class="headerlink" title="2.3 Buffer Pages"></a>2.3 Buffer Pages</h3><p><img src="/images/2019/1/21.png" alt=""></p>
+<p><a href="http://sundayhut.is-programmer.com/posts/62477" target="_blank" rel="noopener">buffer_head理解、解析</a></p>
+<p>bio 相对 buffer_head 的好处有：bio 可以更方便的使用高端内存，因为它只与 page 打交道，并不直接使用地址。bio 可以表示 direct I/O。对向量形式的 I/O支持更好，防止 I/O 被打散。但是 buffer_head 还是需要的，它用于映射磁盘块到内存，因为 bio 中并没有包含 kernel 需要的 buffer 状态的成员以及一些其它信息。</p>
+<h2 id="3-Writing-Dirty-Pages-to-Disk"><a href="#3-Writing-Dirty-Pages-to-Disk" class="headerlink" title="3 Writing Dirty Pages to Disk"></a>3 Writing Dirty Pages to Disk</h2><hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="http://sundayhut.is-programmer.com/posts/62477" target="_blank" rel="noopener">buffer_head理解、解析</a></li>
+<li><a href="http://www.ilinuxkernel.com/files/Linux.Generic.Block.Layer.pdf" target="_blank" rel="noopener">Linux通用块设备层</a></li>
+<li><a href="https://zohead.com/archives/linux-kernel-learning-block-layer/" target="_blank" rel="noopener">Linux kernel学习-block层</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/I-O系统/">I/O系统</a>
+            
+              <a href="/tags/读书笔记/">读书笔记</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2019/01/03/Understanding-the-Linux-Kernel-读书笔记-Block-Device-Drivers/">
+        <span class="next-text nav-default">Understanding the Linux Kernel 读书笔记-Block Device Drivers</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/01/04/Understanding-the-Linux-Kernel-读书笔记-The-Page-Cache/';
+        this.page.identifier = '2019/01/04/Understanding-the-Linux-Kernel-读书笔记-The-Page-Cache/';
+        this.page.title = 'Understanding the Linux Kernel 读书笔记-The Page Cache';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

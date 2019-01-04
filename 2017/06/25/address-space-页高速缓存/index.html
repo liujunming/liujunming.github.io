@@ -22,7 +22,7 @@
 
 
 
-  <meta name="keywords" content="Kernel, 文件系统, L" />
+  <meta name="keywords" content="Kernel, I/O系统, L" />
 
 
 
@@ -271,7 +271,7 @@
         
           <span class="post-category">
             
-              <a href="/categories/文件系统/">文件系统</a>
+              <a href="/categories/I-O系统/">I/O系统</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1背景"><span class="toc-text">1背景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2页高速缓存介绍"><span class="toc-text">2页高速缓存介绍</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3address-space对象"><span class="toc-text">3address_space对象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4基树"><span class="toc-text">4基树</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-背景"><span class="toc-text">1 背景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-页高速缓存介绍"><span class="toc-text">2 页高速缓存介绍</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-address-space对象"><span class="toc-text">3 address_space对象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-基树"><span class="toc-text">4 基树</span></a></li></ol>
     </div>
   </div>
 
@@ -293,18 +293,18 @@
     <div class="post-content">
       
         <p><code>address_space</code>对象是文件系统中关于内存中页高速缓存的核心数据结构。这篇博客以address_space对象为切入点,分析文件系统的页高速缓存。<br><a id="more"></a></p>
-<h3 id="1背景"><a href="#1背景" class="headerlink" title="1背景"></a>1背景</h3><p>页高速缓存,它是一种对完整的数据页进行操作的磁盘高速缓存,即把磁盘的数据块缓存在页高速缓存中。而address_space对页高速缓存进行管理。</p>
-<h3 id="2页高速缓存介绍"><a href="#2页高速缓存介绍" class="headerlink" title="2页高速缓存介绍"></a>2页高速缓存介绍</h3><p>linux中几乎所有文件的读和写操作都依赖于页高速缓存。只有在O_DIRECT标志置为才会出现意外:此时,I/O数据的传送绕过了页高速缓存而使用了进程用户态地址空间的缓冲区;另外,少量的数据库软件为了采用自己的磁盘高速缓存算法而使用了O_DIRECT标志。</p>
+<h3 id="1-背景"><a href="#1-背景" class="headerlink" title="1 背景"></a>1 背景</h3><p>页高速缓存,它是一种对完整的数据页进行操作的磁盘高速缓存,即把磁盘的数据块缓存在页高速缓存中。而address_space对页高速缓存进行管理。</p>
+<h3 id="2-页高速缓存介绍"><a href="#2-页高速缓存介绍" class="headerlink" title="2 页高速缓存介绍"></a>2 页高速缓存介绍</h3><p>linux中几乎所有文件的读和写操作都依赖于页高速缓存。只有在O_DIRECT标志置为才会出现意外:此时,I/O数据的传送绕过了页高速缓存而使用了进程用户态地址空间的缓冲区;另外,少量的数据库软件为了采用自己的磁盘高速缓存算法而使用了O_DIRECT标志。</p>
 <p>why设计页高速缓存?</p>
 <ol>
 <li>快速定位所有者相关数据页的位置(基树)</li>
 <li>区分不同所有者页的不同读写操作,如普通文件、块设备文件、交换区文件读一个数据页必须使用不同的方式实现,故内核根据页的不同所有者进行不同的操作。</li>
 </ol>
-<h3 id="3address-space对象"><a href="#3address-space对象" class="headerlink" title="3address_space对象"></a>3address_space对象</h3><p>每一个所有者(可以理解为一个具体的文件,一个inode指向的文件)对应着一个address_space对象,页高速缓存的多个页可能属于一个所有者,从而可以链接到一个address_space对象。那么一个页(page)怎么和一个address_space产生关联的呢?</p>
+<h3 id="3-address-space对象"><a href="#3-address-space对象" class="headerlink" title="3 address_space对象"></a>3 address_space对象</h3><p>每一个所有者(可以理解为一个具体的文件,一个inode指向的文件)对应着一个address_space对象,页高速缓存的多个页可能属于一个所有者,从而可以链接到一个address_space对象。那么一个页(page)怎么和一个address_space产生关联的呢?</p>
 <p>每个页描述符都包括把页链接到页高速缓存的两个字段mapping和index。mapping指向拥有该页的索引节点的address_space对象(inode结构有一个i_mapping指向对应address_space对象),index字段表示在所有者的地址空间中以页大小为单位的偏移量,也就是在所有者的磁盘映像中页中数据的位置。</p>
 <p>address_space中有一个host字段,该字段指向其所属的inode,也就是address_space中的host字段 与 对应inode中的 i_data字段形成互相指向的关系。若为普通文件,那么inode结点和address_space结构的相应指针的指向关系如下图:</p>
 <p><img src="/images/2017/6/1.jpg" alt=""></p>
-<h3 id="4基树"><a href="#4基树" class="headerlink" title="4基树"></a>4基树</h3><p>linux支持TB级的文件,ext4甚至支持到了PB级文件,访问大文件时,高速缓存中存在着有关该文件太多的页,故设计了基树这个结构来加快查找。一个address_space对象对应一个基树。</p>
+<h3 id="4-基树"><a href="#4-基树" class="headerlink" title="4 基树"></a>4 基树</h3><p>linux支持TB级的文件,ext4甚至支持到了PB级文件,访问大文件时,高速缓存中存在着有关该文件太多的页,故设计了基树这个结构来加快查找。一个address_space对象对应一个基树。</p>
 <p>address_space中有一个字段(page_tree)指向是基树的根(radix_tree_root)。基树根中的rnode指向基树的最高层节点(radix_tree_node),基树节点都是radix_tree_node结构,节点中存放的都是指针,叶子节点的指针指向页描述符,上层节点指向存放其他节点的指针。一般一个radix_tree_node最多可以有64个指针,字段count表示该radix_tree_node已用节点数。</p>
 <p>怎么快速找到所需页在基树中的位置呢?</p>
 <p>回顾本科所学知识:分页系统如何利用页表实现线性地址到物理地址的转换?线性地址的最高20位分为两个10为的字段:第一个字段是页目录的偏移,第二个字段是页目录所指向也表的偏移。</p>
@@ -337,7 +337,7 @@
             
               <a href="/tags/Kernel/">Kernel</a>
             
-              <a href="/tags/文件系统/">文件系统</a>
+              <a href="/tags/I-O系统/">I/O系统</a>
             
           </div>
         
