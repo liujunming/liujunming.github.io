@@ -17,7 +17,7 @@
 
 
 
-  <meta name="description" content="Intel RDT特性详解"/>
+  <meta name="description" content="CPU cache"/>
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2018/04/11/Intel-RDT特性详解/"/>
+<link rel="canonical" href="http://liujunming.github.io/2019/04/20/CPU-cache/"/>
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Intel RDT特性详解 - L </title>
+    <title> CPU cache - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,13 +260,13 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Intel RDT特性详解
+          CPU cache
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2018-04-11
+          2019-04-20
         </span>
         
           <span class="post-category">
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前沿"><span class="toc-text">前沿</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#技术组成"><span class="toc-text">技术组成</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#为什么需要RDT"><span class="toc-text">为什么需要RDT</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#具体功能"><span class="toc-text">具体功能</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RMID"><span class="toc-text">RMID</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RDT的使用"><span class="toc-text">RDT的使用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#工具软件"><span class="toc-text">工具软件</span></a></li></ol></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-为什么要有CPU-Cache"><span class="toc-text">1. 为什么要有CPU Cache</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-为什么要有多级CPU-Cache"><span class="toc-text">2. 为什么要有多级CPU Cache</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-CPU-Cache-是如何存放数据的"><span class="toc-text">3. CPU Cache 是如何存放数据的</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-为什么Cache不能做成Direct-Mapped"><span class="toc-text">3.1 为什么Cache不能做成Direct Mapped</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-为什么Cache不能做成Fully-Associative"><span class="toc-text">3.2 为什么Cache不能做成Fully Associative</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-什么是N-Way-Set-Associative"><span class="toc-text">3.3 什么是N-Way Set Associative</span></a></li></ol></li></ol>
     </div>
   </div>
 
@@ -292,39 +292,34 @@
 
     <div class="post-content">
       
-        <h2 id="前沿"><a href="#前沿" class="headerlink" title="前沿"></a>前沿</h2><p>英特尔至强 E5-2600 v4在对外宣传时候号称“为云而生”的，除了其强大的性能和众多核心外，主要亮点就是Resource Director Technology（RDT）新技术的加入。使得其有理由宣称“为云而生”。<br><a id="more"></a><br>我们知道在一个虚拟化环境中，宿主机的资源（包括CPU cache和内存带宽）都是共享的。但是如果有一个消耗cache的应用快速消耗了L3缓存，或者一个应用消耗了系统大量内存带宽，那么如何保证其他虚拟机应用呢？如何限制这些“可恶”的邻居呢？<br>针对上诉问题，以前都是通过控制虚拟机逻辑资源来实现，但是调整的粒度实在太粗，针对处理器缓存这样敏感而稀缺的资源，几乎是无能为力的。为此英特尔推出了RDT技术，希望可以解决这个问题。<br>那么看下RDT到底是什么神奇技术。</p>
-<h2 id="技术组成"><a href="#技术组成" class="headerlink" title="技术组成"></a>技术组成</h2><p>RDT技术有其实有5个功能模块，分别是</p>
-<ul>
-<li>Cache Monitoring Technology (CMT)缓存监测技术</li>
-<li>Cache Allocation Technology (CAT)缓存分配技术</li>
-<li>Memory Bandwidth Monitoring (MBM)内存带宽监测技术</li>
-<li>Memory Bandwidth Allocation (MBA)内存带宽分配技术</li>
-<li>Code and Data Prioritization (CDP)代码和数据分区技术</li>
-</ul>
-<p>5个模块可以分为监控和控制两大类，CMT和MBM为监控技术，而CAT、MBA和CDP为控制技术。<br>RDT允许OS或VMM来监控线程，应用或VM使用的cache/内存带宽空间。通过分析cache/内存带宽使用率，OS或VMM可以优化调度策略提高效能，使得高级优化技术可以实现。</p>
-<h2 id="为什么需要RDT"><a href="#为什么需要RDT" class="headerlink" title="为什么需要RDT"></a>为什么需要RDT</h2><p>配合这几个技术，OS能够知道应用使用了多少CACHE空间，内存带宽，从而给虚拟机的虚拟处理器分配真实的CPU资源。结合CMT和CAT，缓存可做到实时监测和使用，能够让处理器的资源向虚拟机中最重要、最紧迫的任务分配。CDP可以限制数据在LLC中的存储，从而将空间节省出来给代码存储。</p>
-<h2 id="具体功能"><a href="#具体功能" class="headerlink" title="具体功能"></a>具体功能</h2><p>下面我们来看下RDT的一个具体功能。<br>以下方截图来说明，如下：<br><img src="/images/2018/4/8.png" alt=""><br>我们可以发现cores 0-5关联到了RMID 47-42,进 行了每个核监控,提供了CMT/MBM数据。</p>
-<h3 id="RMID"><a href="#RMID" class="headerlink" title="RMID"></a>RMID</h3><p>OS或VMM会给每个应用或虚拟机标记一个软件定义的ID，叫做RMID（Resource Monitoring ID），通过RMID可以同时监控运行在多处理器上相互独立的线程。</p>
-<h2 id="RDT的使用"><a href="#RDT的使用" class="headerlink" title="RDT的使用"></a>RDT的使用</h2><h3 id="工具软件"><a href="#工具软件" class="headerlink" title="工具软件"></a>工具软件</h3><p>使用Intel开源的工具来实现，不需要内核支持。通过这个软件包可以使用CAT,CMT,MBM,CDP功能。<br>工具软件<a href="https://github.com/intel/intel-cmt-cat" target="_blank" rel="noopener">下载链接</a><br>（注：下面的指令均在root下运行）</p>
-<ul>
-<li><code>make &amp;&amp; make install</code></li>
-</ul>
-<hr>
-<p>WARN: Error opening file ‘/dev/cpu/0/msr’!<br>ERROR: CDP detection error!<br>ERROR: Fatal error encounter in CAT discovery!<br>ERROR: discover_capabilities() error 1<br>Error initializing PQoS library!<br>出现上述错误，则执行如下指令：</p>
-<ul>
-<li><code>modprobe msr</code></li>
-</ul>
-<p>具体使用教程参考<a href="https://github.com/intel/intel-cmt-cat/wiki/Usage-Examples" target="_blank" rel="noopener">Usage Examples</a></p>
+        <h2 id="1-为什么要有CPU-Cache"><a href="#1-为什么要有CPU-Cache" class="headerlink" title="1. 为什么要有CPU Cache"></a>1. 为什么要有CPU Cache</h2><ol>
+<li>CPU的处理速度和内存的访问速度差距</li>
+<li>内存数据访问的局部性原理<a id="more"></a>
+<img src="/images/2019/4/8.png" alt=""><br><center>Cache Performance</center><h2 id="2-为什么要有多级CPU-Cache"><a href="#2-为什么要有多级CPU-Cache" class="headerlink" title="2. 为什么要有多级CPU Cache"></a>2. 为什么要有多级CPU Cache</h2><blockquote>
+<p>Soon after the introduction of the cache the system got more complicated. The speed difference between the cache and the main memory increased again, to a point that another level of cache was added, bigger and slower than the first-level cache. Only increasing the size of the first-level cache was not an option for economical reasons.</p>
+</blockquote>
+</li>
+</ol>
+<p>此外，又由于程序指令和程序数据的行为和热点分布差异很大，因此L1 Cache也被划分成L1i (i for instruction)和L1d (d for data)两种专门用途的缓存。</p>
+<h2 id="3-CPU-Cache-是如何存放数据的"><a href="#3-CPU-Cache-是如何存放数据的" class="headerlink" title="3. CPU Cache 是如何存放数据的"></a>3. CPU Cache 是如何存放数据的</h2><p>如果对这部分知识有些遗忘，可以看下<a href="https://courses.cs.washington.edu/courses/cse378/09wi/lectures/lec15.pdf" target="_blank" rel="noopener">cse378</a>即可。</p>
+<h3 id="3-1-为什么Cache不能做成Direct-Mapped"><a href="#3-1-为什么Cache不能做成Direct-Mapped" class="headerlink" title="3.1 为什么Cache不能做成Direct Mapped"></a>3.1 为什么Cache不能做成Direct Mapped</h3><p><img src="/images/2019/4/7.png" alt=""></p>
+<blockquote>
+<p>Direct-Mapped Cache is simplier (requires just one comparator and one multiplexer), as a result is cheaper and works faster. Given any address, it is easy to identify the single entry in cache, where it can be. A major drawback when using DM cache is called a conflict miss, when two different addresses correspond to one entry in the cache. Even if the cache is big and contains many stale entries, it can’t simply evict those, because the position within cache is predetermined by the address.</p>
+</blockquote>
+<h3 id="3-2-为什么Cache不能做成Fully-Associative"><a href="#3-2-为什么Cache不能做成Fully-Associative" class="headerlink" title="3.2 为什么Cache不能做成Fully Associative"></a>3.2 为什么Cache不能做成Fully Associative</h3><blockquote>
+<p>Full Associative Cache is much more complex, and it allows to store an address into any entry. There is a price for that. In order to check if a particular address is in the cache, it has to compare all current entries (the tags to be exact).</p>
+</blockquote>
+<p><img src="/images/2019/4/9.png" alt=""></p>
+<h3 id="3-3-什么是N-Way-Set-Associative"><a href="#3-3-什么是N-Way-Set-Associative" class="headerlink" title="3.3 什么是N-Way Set Associative"></a>3.3 什么是N-Way Set Associative</h3><p><img src="/images/2019/4/10.png" alt=""></p>
+<p>阅读<a href="http://igoro.com/archive/gallery-of-processor-cache-effects/" target="_blank" rel="noopener">Gallery of Processor Cache Effects</a>和<a href="https://coolshell.cn/articles/10249.html" target="_blank" rel="noopener">7个示例科普CPU CACHE</a>可以加深对N-Way Set Associative的理解。</p>
 <hr>
 <p>参考资料：</p>
 <ol>
-<li><a href="http://linuxperformance.top/index.php/archives/21/" target="_blank" rel="noopener">Intel RDT特性详解</a></li>
-<li><a href="http://www.litrin.net/2018/01/02/kernel-4-14%E7%9A%84rdt%E9%85%8D%E7%BD%AE/" target="_blank" rel="noopener">Kernel 4.14的RDT配置</a></li>
-<li><a href="http://www.litrin.net/2017/02/15/intel-rdt/" target="_blank" rel="noopener">Intel RDT</a></li>
-<li><a href="http://www.litrin.net/2017/02/21/linux-4-10%E4%B8%ADcat%E7%9A%84%E4%BD%BF%E7%94%A8/" target="_blank" rel="noopener">Linux 4.10中CAT的使用</a></li>
-<li><a href="https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt" target="_blank" rel="noopener">intel_rdt_ui.txt</a></li>
-<li><a href="https://github.com/intel/intel-cmt-cat" target="_blank" rel="noopener">intel-cmt-cat</a></li>
-<li><a href="https://github.com/intel/intel-cmt-cat/wiki" target="_blank" rel="noopener">intel-cmt-cat wiki</a></li>
+<li><a href="https://courses.cs.washington.edu/courses/cse378/09wi/lectures/lec15.pdf" target="_blank" rel="noopener">cse378</a></li>
+<li><a href="http://cenalulu.github.io/linux/all-about-cpu-cache/" target="_blank" rel="noopener">关于CPU Cache – 程序猿需要知道的那些事</a></li>
+<li><a href="http://igoro.com/archive/gallery-of-processor-cache-effects/" target="_blank" rel="noopener">Gallery of Processor Cache Effects</a></li>
+<li><a href="https://coolshell.cn/articles/10249.html" target="_blank" rel="noopener">7个示例科普CPU CACHE</a></li>
+<li><a href="https://stackoverflow.com/questions/30097648/difference-between-a-direct-mapped-cache-and-fully-associative-cache" target="_blank" rel="noopener">Difference Between a Direct-Mapped Cache and Fully Associative Cache</a></li>
 </ol>
 
       
@@ -353,15 +348,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2018/04/17/分布式系统资料/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">分布式系统资料</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2018/04/09/Jeff-Dean系统资料整理/">
-        <span class="next-text nav-default">Jeff Dean系统资料整理</span>
+      <a class="next" href="/2019/04/10/转-CPU-Cache-Line伪共享问题的总结和分析/">
+        <span class="next-text nav-default">(转)CPU Cache Line伪共享问题的总结和分析</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -474,9 +463,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2018/04/11/Intel-RDT特性详解/';
-        this.page.identifier = '2018/04/11/Intel-RDT特性详解/';
-        this.page.title = 'Intel RDT特性详解';
+        this.page.url = 'http://liujunming.github.io/2019/04/20/CPU-cache/';
+        this.page.identifier = '2019/04/20/CPU-cache/';
+        this.page.title = 'CPU cache';
     };
     (function() {
     var d = document, s = d.createElement('script');
