@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="CPU Cache一致性问题"/>
+
+
+
+
+  <meta name="keywords" content="体系结构, L" />
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/04/29/CPU-cache一致性问题/"/>
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> CPU Cache一致性问题 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          CPU Cache一致性问题
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-04-29
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/体系结构/">体系结构</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-为什么会有CPU-cache一致性问题？"><span class="toc-text">1. 为什么会有CPU cache一致性问题？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-CPU-cache一致性的定义"><span class="toc-text">2. CPU cache一致性的定义</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-CPU-Cache一致性问题的解决方案"><span class="toc-text">3. CPU Cache一致性问题的解决方案</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-Snooping-based-protocols"><span class="toc-text">3.1 Snooping based protocols</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-Directory-Based-Solutions"><span class="toc-text">3.2 Directory Based Solutions</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文首先介绍下产生CPU cache一致性问题的原因，然后给出CPU cache一致性的定义，最后给出解决CPU Cache一致性问题的解决方案。<a id="more"></a></p>
+<h2 id="1-为什么会有CPU-cache一致性问题？"><a href="#1-为什么会有CPU-cache一致性问题？" class="headerlink" title="1. 为什么会有CPU cache一致性问题？"></a>1. 为什么会有CPU cache一致性问题？</h2><p>在多处理器架构中，每个处理器都拥有自己的CPU Cache，同时这些处理器共享内存资源。这样会导致多个处理器的CPU cache缓存了相同的内存数据块(以Cache Line为粒度)，此时可能会出现cache不一致问题。为了直观地展示Cache不一致问题，下图给出了一个具体的例子：<br><img src="/images/2019/5/1.gif" alt=""><br>p1和p2代表两个不同的处理器，在内存中，x的值为5。p1和p2都需要读取x，因而会将x读取到各自的cache中，此时，在cache中，x的值都为5。p1执行x=x+3时，在p1的cache中，x=8。与此同时，p2执行x=x+5，在p2的cache中，x=10。之后，写回p1的cache数据，此时，在内存中，x的值为8。接着，写回p2的cache数据，此时，在内存中，x的值为10。此刻，就出现了cache不一致问题：p1 cache中的x值与p2 cache中的x值不同。</p>
+<p>下图展示了cache一致的结果：<br><img src="/images/2019/5/2.gif" alt=""></p>
+<blockquote>
+<p>In a shared memory multiprocessor system with a separate cache memory for each processor, it is possible to have many copies of shared data: one copy in the main memory and one in the local cache of each processor that requested it. When one of the copies of data is changed, the other copies must reflect that change. Cache coherence is the discipline which ensures that the changes in the values of shared operands(data) are propagated throughout the system in a timely fashion.</p>
+</blockquote>
+<p>The following are the requirements for cache coherence:</p>
+<ul>
+<li><p>Write Propagation<br>Changes to the data in any cache must be propagated to other copies (of that cache line) in the peer caches.</p>
+</li>
+<li><p>Transaction Serialization<br>Reads/Writes to a single memory location must be seen by all processors in the same order.</p>
+<h2 id="2-CPU-cache一致性的定义"><a href="#2-CPU-cache一致性的定义" class="headerlink" title="2. CPU cache一致性的定义"></a>2. CPU cache一致性的定义</h2></li>
+</ul>
+<p>Coherence defines the behavior of reads and writes to a single address location.</p>
+<p>In a multiprocessor system, consider that more than one processor has cached a copy of the memory location X. The following conditions are necessary to achieve cache coherence:</p>
+<ol>
+<li>In a read made by a processor P to a location X that follows a write by the same processor P to X, with no writes to X by another processor occurring between the write and the read instructions made by P, X must always return the value written by P.</li>
+<li>In a read made by a processor P1 to location X that follows a write by another processor P2 to X, with no other writes to X made by any processor occurring between the two accesses and with the read and write being sufficiently separated, X must always return the value written by P2. This condition defines the concept of coherent view of memory. Propagating the writes to the shared memory location ensures that all the caches have a coherent view of the memory. If processor P1 reads the old value of X, even after the write by P2, we can say that the memory is incoherent.</li>
+</ol>
+<p>The above conditions satisfy the Write Propagation criteria required for cache coherence. However, they are not sufficient as they do not satisfy the Transaction Serialization condition. To illustrate this better, consider the following example:</p>
+<p>A multi-processor system consists of four processors - P1, P2, P3 and P4, all containing cached copies of a shared variable S whose initial value is 0. Processor P1 changes the value of S (in its cached copy) to 10 following which processor P2 changes the value of S in its own cached copy to 20. If we ensure only write propagation, then P3 and P4 will certainly see the changes made to S by P1 and P2. However, P3 may see the change made by P1 after seeing the change made by P2 and hence return 10 on a read to S. P4 on the other hand may see changes made by P1 and P2 in the order in which they are made and hence return 20 on a read to S. The processors P3 and P4 now have an incoherent view of the memory.</p>
+<p>Therefore, in order to satisfy Transaction Serialization, and hence achieve Cache Coherence, the following condition along with the previous two mentioned in this section must be met:</p>
+<ul>
+<li>Writes to the same location must be sequenced. In other words, if location X received two different values A and B, in this order, from any two processors, the processors can never read location X as B and then read it as A. The location X must be seen with values A and B in that order.</li>
+</ul>
+<h2 id="3-CPU-Cache一致性问题的解决方案"><a href="#3-CPU-Cache一致性问题的解决方案" class="headerlink" title="3. CPU Cache一致性问题的解决方案"></a>3. CPU Cache一致性问题的解决方案</h2><p>for bus-based machines，通常采用Snooping based protocols方案。for NUMA machines using a scalable switch，通常采用Directory Based Solutions。</p>
+<blockquote>
+<p>Snooping based protocols tend to be faster, if enough bandwidth is available, since all transactions are a request/response seen by all processors. The drawback is that snooping isn’t scalable. Every request must be broadcast to all nodes in a system, meaning that as the system gets larger, the size of the (logical or physical) bus and the bandwidth it provides must grow. Directories, on the other hand, tend to have longer latencies (with a 3 hop request/forward/respond) but use much less bandwidth since messages are point to point and not broadcast. For this reason, many of the larger systems (&gt;64 processors) use this type of cache coherence.</p>
+</blockquote>
+<h3 id="3-1-Snooping-based-protocols"><a href="#3-1-Snooping-based-protocols" class="headerlink" title="3.1 Snooping based protocols"></a>3.1 Snooping based protocols</h3><p>Snooping is a process where the individual caches monitor address lines for accesses to memory locations that they have cached. </p>
+<p>Write propagation in snoopy protocols can be implemented by either of the following methods:</p>
+<ul>
+<li><p>Write Invalidate<br>When a processor writes into x, all copies of it in other processors are invalidated. These processors have to read a valid copy either from memory, or from the processor that modified the variable.</p>
+</li>
+<li><p>Write Broadcast<br>Instead of invalidating, why not broadcast the updated value to the other processors sharing that copy? </p>
+</li>
+</ul>
+<p>MSI、MESI等protocol是较为常见的Snooping based protocols。<a href="https://www.youtube.com/watch?v=-p9tfMMu1PE" target="_blank" rel="noopener">MESI Cache Coherence Protocol | Vasileios Trigonakis</a>很好了阐述了MESI protocol。</p>
+<p><img src="/images/2019/5/3.png" alt=""></p>
+<p><img src="/images/2019/5/4.png" alt=""></p>
+<p>概要地讲：在MESI协议中，每个cache line有四种状态，当遇到不同事件时，会改变cache line的状态，由此构成了一个有限自动机。</p>
+<h3 id="3-2-Directory-Based-Solutions"><a href="#3-2-Directory-Based-Solutions" class="headerlink" title="3.2 Directory Based Solutions"></a>3.2 Directory Based Solutions</h3><p>In a directory-based system, the data being shared is placed in a common directory that maintains the coherence between caches. </p>
+<p><a href="https://www.youtube.com/watch?v=6QZ_XiBEAF4" target="_blank" rel="noopener">Directory Entry</a>与<a href="https://www.youtube.com/watch?v=lZZYILcQ68Y" target="_blank" rel="noopener">Directory Example</a>给出了Directory的具体例子。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.wikiwand.com/en/Cache_coherence" target="_blank" rel="noopener">wikiwand Cache coherence</a></li>
+<li><a href="https://www.wikiwand.com/en/Bus_snooping" target="_blank" rel="noopener">wikiwand Bus snooping</a></li>
+<li><a href="https://www.wikiwand.com/en/Directory-based_coherence" target="_blank" rel="noopener">wikiwand Directory-based coherence</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/25876351" target="_blank" rel="noopener">缓存/内存Coherence模型</a></li>
+<li><a href="http://www.divms.uiowa.edu/~ghosh/4-20-06.pdf" target="_blank" rel="noopener">Multiprocessor Cache Coherence</a></li>
+<li><a href="https://www.youtube.com/watch?v=-p9tfMMu1PE" target="_blank" rel="noopener">MESI Cache Coherence Protocol | Vasileios Trigonakis</a></li>
+<li><a href="https://www.youtube.com/watch?v=lZZYILcQ68Y" target="_blank" rel="noopener">Directory Example - Georgia Tech - HPCA: Part 5</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/体系结构/">体系结构</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2019/05/09/Memory-barrier/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Memory barrier</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2019/04/20/CPU-cache/">
+        <span class="next-text nav-default">CPU Cache</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/04/29/CPU-cache一致性问题/';
+        this.page.identifier = '2019/04/29/CPU-cache一致性问题/';
+        this.page.title = 'CPU Cache一致性问题';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
