@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Linux内核高端内存"/>
+  <meta name="description" content="Linux内核高端内存">
 
 
 
 
-  <meta name="keywords" content="内存管理, Kernel, L" />
+  <meta name="keywords" content="内存管理, Kernel, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2017/10/10/Linux内核高端内存/"/>
+<link rel="canonical" href="http://liujunming.github.io/2017/10/10/Linux内核高端内存/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -292,8 +292,8 @@
 
     <div class="post-content">
       
-        <h2 id="Linux内核高端内存"><a href="#Linux内核高端内存" class="headerlink" title="Linux内核高端内存"></a>Linux内核高端内存</h2><p>本文内容主要来自<a href="http://ilinuxkernel.com/?p=1013" target="_blank" rel="noopener">ilinuxkernel.com</a>，并对该部分内容进行了扩充。<br><a id="more"></a><br>下图展示的部分内容包含了本文的知识点，值得细细分析。<br><img src="/images/2017/10/8.gif" alt=""></p>
-<h3 id="Linux内核地址空间划分"><a href="#Linux内核地址空间划分" class="headerlink" title="Linux内核地址空间划分"></a>Linux内核地址空间划分</h3><p>通常<strong>32位Linux进程地址空间</strong>划分0~3G为用户空间，3~4G为空间。注意这里是32位进程地址空间划分，64位进程地址空间划分是不同的。<br><img src="/images/2017/10/4.png" alt=""></p>
+        <h2 id="Linux内核高端内存"><a href="#Linux内核高端内存" class="headerlink" title="Linux内核高端内存"></a>Linux内核高端内存</h2><p>本文内容主要来自<a href="http://ilinuxkernel.com/?p=1013" target="_blank" rel="noopener">ilinuxkernel.com</a>，并对该部分内容进行了扩充。<br><a id="more"></a><br>下图展示的部分内容包含了本文的知识点，值得细细分析。<br><img src="/images/2017/10/8.gif" alt></p>
+<h3 id="Linux内核地址空间划分"><a href="#Linux内核地址空间划分" class="headerlink" title="Linux内核地址空间划分"></a>Linux内核地址空间划分</h3><p>通常<strong>32位Linux进程地址空间</strong>划分0~3G为用户空间，3~4G为空间。注意这里是32位进程地址空间划分，64位进程地址空间划分是不同的。<br><img src="/images/2017/10/4.png" alt></p>
 <h3 id="Linux内核高端内存的由来"><a href="#Linux内核高端内存的由来" class="headerlink" title="Linux内核高端内存的由来"></a>Linux内核高端内存的由来</h3><p>当内核模块代码或线程访问内存时，代码中的内存地址都为逻辑地址，而对应到真正的物理内存地址，需要地址<strong>一对一</strong>的映射，如逻辑地址0xc0000003对应的物理地址为0x3，0xc0000004对应的物理地址为0x4，… …，逻辑地址与物理地址对应的关系为:<br><code>物理地址 = 逻辑地址 – 0xC0000000</code></p>
 <p>假设按照上述简单的地址映射关系，那么内核逻辑地址空间访问为0xc0000000 ~ 0xffffffff，那么对应的物理内存范围就为0x0 ~ 0x40000000，即只能访问1G物理内存。若机器中安装8G物理内存，那么内核就只能访问前1G物理内存，后面7G物理内存将会无法访问，因为内核的地址空间已经全部映射到物理内存地址范围0x0 ~ 0x40000000。即使安装了8G物理内存，那么物理地址为0x40000001的内存，内核该怎么去访问呢？代码中必须要有内存逻辑地址的，0xc0000000 ~ 0xffffffff的地址空间已经被用完了，所以无法访问物理地址0x40000000以后的内存。</p>
 <p>显然不能将内核地址空间0xc0000000 ~ 0xfffffff全部用来简单的地址映射。x86架构中将物理地址空间划分三部分：ZONE_DMA、ZONE_NORMAL和ZONE_HIGHMEM。ZONE_HIGHMEM即为高端内存，这就是高端内存概念的由来。</p>
@@ -301,15 +301,15 @@
 <ul>
 <li><strong> ZONE_DMA</strong>        物理内存开始的16MB</li>
 <li><strong>ZONE_NORMAL</strong>       物理内存的16MB~896MB</li>
-<li><strong>ZONE_HIGHMEM</strong>       物理内存的896MB ~ 结束<br><img src="/images/2017/10/5.png" alt=""></li>
+<li><strong>ZONE_HIGHMEM</strong>       物理内存的896MB ~ 结束<br><img src="/images/2017/10/5.png" alt></li>
 </ul>
 <h3 id="Linux内核高端内存的理解"><a href="#Linux内核高端内存的理解" class="headerlink" title="Linux内核高端内存的理解"></a>Linux内核高端内存的理解</h3><p>前面我们解释了高端内存的由来。 Linux将物理地址空间划分为三部分ZONE_DMA、ZONE_NORMAL和ZONE_HIGHMEM，高端内存HIGH_MEM地址空间映射的内核线性地址范围为0xF8000000 ~ 0xFFFFFFFF（896MB～1024MB）。</p>
-<p>当内核想访问高于896MB物理地址内存时，从0xF8000000 ~ 0xFFFFFFFF地址空间范围内找一段相应大小空闲的逻辑地址空间，借用一会。借用这段逻辑地址空间，建立映射到想访问的那段物理内存（即填充内核页表），<strong>临时用一会，用完后归还</strong>。这样别人也可以借用这段地址空间访问其他物理内存，实现了使用有限的地址空间，访问所有所有物理内存。如下图:<br><img src="/images/2017/10/6.png" alt=""></p>
+<p>当内核想访问高于896MB物理地址内存时，从0xF8000000 ~ 0xFFFFFFFF地址空间范围内找一段相应大小空闲的逻辑地址空间，借用一会。借用这段逻辑地址空间，建立映射到想访问的那段物理内存（即填充内核页表），<strong>临时用一会，用完后归还</strong>。这样别人也可以借用这段地址空间访问其他物理内存，实现了使用有限的地址空间，访问所有所有物理内存。如下图:<br><img src="/images/2017/10/6.png" alt></p>
 <p>例如内核想访问2G开始的一段大小为1MB的物理内存，即物理地址范围为0x80000000 ~ 0x800FFFFF。访问之前先找到一段1MB大小的空闲地址空间，假设找到的空闲地址空间为0xF8700000 ~ 0xF87FFFFF，用这1MB的逻辑地址空间映射到物理地址空间0x80000000 ~ 0x800FFFFF的内存。</p>
 <p>当内核访问完0x80000000 ~ 0x800FFFFF物理内存后，就将0xF8700000 ~ 0xF87FFFFF内核线性空间释放。这样其他进程或代码也可以使用0xF8700000 ~ 0xF87FFFFF这段地址访问其他物理内存。</p>
 <p>从上面的描述，我们可以知道<strong>高端内存的最基本思想</strong>：借一段地址空间，建立临时地址映射，用完后释放，达到这段地址空间可以循环使用，访问所有物理内存。</p>
 <h3 id="高端内存的映射"><a href="#高端内存的映射" class="headerlink" title="高端内存的映射"></a>高端内存的映射</h3><p>0xF8000000 ~ 0xFFFFFFFF（896MB～1024MB)的128MB内核线性地址空间被划分为3部分：VMALLOC_START~VMALLOC_END、KMAP_BASE~FIXADDR_START和FIXADDR_START~4G。</p>
-<p><img src="/images/2017/10/7.png" alt=""></p>
+<p><img src="/images/2017/10/7.png" alt></p>
 <p>对于高端内存，可以通过 alloc_page() 或者其它函数获得对应的 page，但是要想访问实际物理内存，还得把 page 转为线性地址才行，也就是说，我们需要为高端内存对应的 page 找一个线性空间，这个过程称为高端内存映射。</p>
 <p>对应128MB内核线性地址空间的3部分，高端内存映射有三种方式：</p>
 <ul>

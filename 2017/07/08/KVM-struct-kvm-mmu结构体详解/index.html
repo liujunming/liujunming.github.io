@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="KVM struct kvm_mmu结构体详解"/>
+  <meta name="description" content="KVM struct kvm_mmu结构体详解">
 
 
 
 
-  <meta name="keywords" content="虚拟化, KVM, L" />
+  <meta name="keywords" content="虚拟化, KVM, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2017/07/08/KVM-struct-kvm-mmu结构体详解/"/>
+<link rel="canonical" href="http://liujunming.github.io/2017/07/08/KVM-struct-kvm-mmu结构体详解/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -286,10 +286,10 @@
     <div class="post-content">
       
         <p>本文展示的代码中,Linux内核版本为<a href="http://elixir.free-electrons.com/linux/v3.14.69/source" target="_blank" rel="noopener">3.14.69</a>。</p>
-<p>在看KVM源码的过程中，涉及EPT机制时，经常看到<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/include/asm/kvm_host.h#L262" target="_blank" rel="noopener">struct kvm_mmu</a>这一结构体。<a id="more"></a><br>下面，先看看这一结构体与其他结构体的关系。<br><img src="/images/2017/7/12.png" alt=""><br>从上图可以看到，struct kvm_mmu是struct kvm_vcpu_arch的一个字段。<br>kvm_mmu结构体具体内容如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * x86 supports 3 paging modes (4-level 64-bit, 3-level 64-bit, and 2-level</span></span><br><span class="line"><span class="comment"> * 32-bit).  The kvm_mmu structure abstracts the details of the current mmu</span></span><br><span class="line"><span class="comment"> * mode.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_mmu</span> &#123;</span></span><br><span class="line">	<span class="keyword">void</span> (*set_cr3)(struct kvm_vcpu *vcpu, <span class="keyword">unsigned</span> <span class="keyword">long</span> root);</span><br><span class="line">	<span class="function"><span class="keyword">unsigned</span> <span class="title">long</span> <span class="params">(*get_cr3)</span><span class="params">(struct kvm_vcpu *vcpu)</span></span>;</span><br><span class="line">	u64 (*get_pdptr)(struct kvm_vcpu *vcpu, <span class="keyword">int</span> index);</span><br><span class="line">	<span class="keyword">int</span> (*page_fault)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva, u32 err,</span><br><span class="line">			  <span class="keyword">bool</span> prefault);</span><br><span class="line">	<span class="keyword">void</span> (*inject_page_fault)(struct kvm_vcpu *vcpu,</span><br><span class="line">				  struct x86_exception *fault);</span><br><span class="line">	<span class="keyword">gpa_t</span> (*gva_to_gpa)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva, u32 access,</span><br><span class="line">			    struct x86_exception *exception);</span><br><span class="line">	<span class="keyword">gpa_t</span> (*translate_gpa)(struct kvm_vcpu *vcpu, <span class="keyword">gpa_t</span> gpa, u32 access);</span><br><span class="line">	<span class="keyword">int</span> (*sync_page)(struct kvm_vcpu *vcpu,</span><br><span class="line">			 struct kvm_mmu_page *sp);</span><br><span class="line">	<span class="keyword">void</span> (*invlpg)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva);</span><br><span class="line">	<span class="keyword">void</span> (*update_pte)(struct kvm_vcpu *vcpu, struct kvm_mmu_page *sp,</span><br><span class="line">			   u64 *spte, <span class="keyword">const</span> <span class="keyword">void</span> *pte);</span><br><span class="line">	<span class="keyword">hpa_t</span> root_hpa;</span><br><span class="line">	<span class="keyword">int</span> root_level;</span><br><span class="line">	<span class="keyword">int</span> shadow_root_level;</span><br><span class="line">	<span class="keyword">union</span> kvm_mmu_page_role base_role;</span><br><span class="line">	<span class="keyword">bool</span> direct_map;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Bitmap; bit set = permission fault</span></span><br><span class="line"><span class="comment">	 * Byte index: page fault error code [4:1]</span></span><br><span class="line"><span class="comment">	 * Bit index: pte permissions in ACC_* format</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	u8 permissions[<span class="number">16</span>];</span><br><span class="line">	u64 *pae_root;</span><br><span class="line">	u64 *lm_root;</span><br><span class="line">	u64 rsvd_bits_mask[<span class="number">2</span>][<span class="number">4</span>];</span><br><span class="line">	u64 bad_mt_xwr;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Bitmap: bit set = last pte in walk</span></span><br><span class="line"><span class="comment">	 * index[0:1]: level (zero-based)</span></span><br><span class="line"><span class="comment">	 * index[2]: pte.ps</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	u8 last_pte_bitmap;</span><br><span class="line">	<span class="keyword">bool</span> nx;</span><br><span class="line">	u64 pdptrs[<span class="number">4</span>]; <span class="comment">/* pae */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>在看KVM源码的过程中，涉及EPT机制时，经常看到<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/include/asm/kvm_host.h#L262" target="_blank" rel="noopener">struct kvm_mmu</a>这一结构体。<a id="more"></a><br>下面，先看看这一结构体与其他结构体的关系。<br><img src="/images/2017/7/12.png" alt><br>从上图可以看到，struct kvm_mmu是struct kvm_vcpu_arch的一个字段。<br>kvm_mmu结构体具体内容如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * x86 supports 3 paging modes (4-level 64-bit, 3-level 64-bit, and 2-level</span></span><br><span class="line"><span class="comment"> * 32-bit).  The kvm_mmu structure abstracts the details of the current mmu</span></span><br><span class="line"><span class="comment"> * mode.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_mmu</span> &#123;</span></span><br><span class="line">	<span class="keyword">void</span> (*set_cr3)(struct kvm_vcpu *vcpu, <span class="keyword">unsigned</span> <span class="keyword">long</span> root);</span><br><span class="line">	<span class="function"><span class="keyword">unsigned</span> <span class="title">long</span> <span class="params">(*get_cr3)</span><span class="params">(struct kvm_vcpu *vcpu)</span></span>;</span><br><span class="line">	u64 (*get_pdptr)(struct kvm_vcpu *vcpu, <span class="keyword">int</span> index);</span><br><span class="line">	<span class="keyword">int</span> (*page_fault)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva, u32 err,</span><br><span class="line">			  <span class="keyword">bool</span> prefault);</span><br><span class="line">	<span class="keyword">void</span> (*inject_page_fault)(struct kvm_vcpu *vcpu,</span><br><span class="line">				  struct x86_exception *fault);</span><br><span class="line">	<span class="keyword">gpa_t</span> (*gva_to_gpa)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva, u32 access,</span><br><span class="line">			    struct x86_exception *exception);</span><br><span class="line">	<span class="keyword">gpa_t</span> (*translate_gpa)(struct kvm_vcpu *vcpu, <span class="keyword">gpa_t</span> gpa, u32 access);</span><br><span class="line">	<span class="keyword">int</span> (*sync_page)(struct kvm_vcpu *vcpu,</span><br><span class="line">			 struct kvm_mmu_page *sp);</span><br><span class="line">	<span class="keyword">void</span> (*invlpg)(struct kvm_vcpu *vcpu, <span class="keyword">gva_t</span> gva);</span><br><span class="line">	<span class="keyword">void</span> (*update_pte)(struct kvm_vcpu *vcpu, struct kvm_mmu_page *sp,</span><br><span class="line">			   u64 *spte, <span class="keyword">const</span> <span class="keyword">void</span> *pte);</span><br><span class="line">	<span class="keyword">hpa_t</span> root_hpa;</span><br><span class="line">	<span class="keyword">int</span> root_level;</span><br><span class="line">	<span class="keyword">int</span> shadow_root_level;</span><br><span class="line">	<span class="keyword">union</span> kvm_mmu_page_role base_role;</span><br><span class="line">	<span class="keyword">bool</span> direct_map;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Bitmap; bit set = permission fault</span></span><br><span class="line"><span class="comment">	 * Byte index: page fault error code [4:1]</span></span><br><span class="line"><span class="comment">	 * Bit index: pte permissions in ACC_* format</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	u8 permissions[<span class="number">16</span>];</span><br><span class="line">	u64 *pae_root;</span><br><span class="line">	u64 *lm_root;</span><br><span class="line">	u64 rsvd_bits_mask[<span class="number">2</span>][<span class="number">4</span>];</span><br><span class="line">	u64 bad_mt_xwr;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Bitmap: bit set = last pte in walk</span></span><br><span class="line"><span class="comment">	 * index[0:1]: level (zero-based)</span></span><br><span class="line"><span class="comment">	 * index[2]: pte.ps</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	u8 last_pte_bitmap;</span><br><span class="line">	<span class="keyword">bool</span> nx;</span><br><span class="line">	u64 pdptrs[<span class="number">4</span>]; <span class="comment">/* pae */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
 <p>在这里看到函数指针时你可能会感到困惑，下面将解决这些困惑。</p>
 <ul>
-<li><p>通过<code>lsmod | grep kvm</code>指令，看是否加载了kvm及kvm_intel模块<br><img src="/images/2017/7/13.png" alt=""></p>
+<li><p>通过<code>lsmod | grep kvm</code>指令，看是否加载了kvm及kvm_intel模块<br><img src="/images/2017/7/13.png" alt></p>
 </li>
 <li><p>在<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/kvm/vmx.c#L8669" target="_blank" rel="noopener">vmx_init</a>执行初始化时，会执行<a href="http://elixir.free-electrons.com/linux/v3.14.69/source/arch/x86/kvm/vmx.c#L8783" target="_blank" rel="noopener">kvm_enable_tdp</a>，将tdp_enabled变量置为true。</p>
 </li>
@@ -297,7 +297,7 @@
 </li>
 </ul>
 <p>可以看到kvm_mmu中的函数指针最终指向的函数在init_kvm_tdp_mmu中被解析。</p>
-<p>也许读者不太清楚上述函数的使用环境，下面我将给出函数调用图方便大家了解。<br><img src="/images/2017/7/14.png" alt=""></p>
+<p>也许读者不太清楚上述函数的使用环境，下面我将给出函数调用图方便大家了解。<br><img src="/images/2017/7/14.png" alt></p>
 
       
     </div>

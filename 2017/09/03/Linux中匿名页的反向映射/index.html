@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Linux中匿名页的反向映射"/>
+  <meta name="description" content="Linux中匿名页的反向映射">
 
 
 
 
-  <meta name="keywords" content="内存管理, Kernel, L" />
+  <meta name="keywords" content="内存管理, Kernel, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2017/09/03/Linux中匿名页的反向映射/"/>
+<link rel="canonical" href="http://liujunming.github.io/2017/09/03/Linux中匿名页的反向映射/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -318,7 +318,7 @@
 <p>如前所述, 匿名页没有所谓的<strong>后备文件</strong>, 但是, 匿名页有个特点, 就是它们都是私有的, 而非共享的(比如栈, 椎内存都是独立每个进程的, 非共享的)。这意味着, <strong>每一个匿名内存页, 只有一个PTE关联着它, 也就是只有一个vma关联着它</strong>。Andrea的方案是复用<code>struct page</code>的<code>mapping</code>字段, 因为对于匿名页, <code>mapping</code>为<code>null</code>, 不指向后备空间。复用方法是利用C语言的<code>union</code>, 在匿名页的情况下,<code>mapping</code>字段不是指向<code>struct address_space</code>的指针, 而是指向关联该内存页的唯一的<code>vma</code>。由此, 也可以方便地计算出PTE来。</p>
 <p>但是, 事情并不是如此简单。当进程被fork复制时, 前面已经说过, 由于COW的语义, 新进程只是复制父进程的页表, 这意味着现在<strong>一个匿名页有两个页表指向它了</strong>, 这样, 上面的简单复用<code>mapping</code>字段的做法不适用了, 因为一个指针, 如何表示两个vma呢。</p>
 <p>Andrea的做法就是<strong>多加一层</strong>。新创建一个<code>struct anon_vma</code>结构, 现在<code>mapping</code>字段是指向它了, 而<code>anon_vma</code>中, 不出意料的, 包含一个链表, 链接起所有的<code>vma</code>。每当进程fork一个子进程, 子进程由于COW机制会复制父进程的<code>vma</code>, 这个新<code>vma</code>就链接到父进程中的<code>anon_vma</code>中。这样, 每次unmap一个内存页时, 通过<code>mapping</code>字段指向的<code>anon_vma</code>, 就可以找到可能关联该页的<code>vma</code>链表, 遍历该链表, 就可以找到所有映射到该匿名页的PTE。</p>
-<p><img src="/images/2017/9/1.png" alt=""></p>
+<p><img src="/images/2017/9/1.png" alt></p>
 <p>这也有代价, 那就是</p>
 <ul>
 <li>每个<code>struct vm_area_struct</code>结构多了一个<code>list_head</code>结构字段用以串起所有的<code>vma</code>。</li>
@@ -335,16 +335,16 @@
 <li>same_vma：与给定<code>vma</code>相关联的所有<code>anon_vma</code></li>
 <li>same_anon_vma：与给定<code>anon_vma</code>相关联的所有<code>vma</code></li>
 </ul>
-<p> 最初，我们有一个进程与一个匿名<code>vma</code>：<br> <img src="/images/2017/9/2.png" alt=""></p>
+<p> 最初，我们有一个进程与一个匿名<code>vma</code>：<br> <img src="/images/2017/9/2.png" alt></p>
 <p>这里，“AV”是<code>anon_vma</code>，“AVC”是上面看到的<code>anon_vma_chain</code>。 AVC直接通过指针链接到<code>anon_vma</code>和<code>vma</code>。 （蓝色）链表是same_anon_vma链表，而（红色）链表是same_vma链表。 </p>
-<p>想象一下，这个进程进行了fork操作，导致子进程复制了<code>vma</code>; 现在有了一个孤立的新<code>vma</code>：<br> <img src="/images/2017/9/3.png" alt=""></p>
-<p> 内核需要将此<code>vma</code>链接到父进程的<code>anon_vma</code>中; 这需要添加一个新的<code>anon_vma_chain</code>：<br>  <img src="/images/2017/9/4.png" alt=""></p>
-<p> 请注意，新的AVC已被添加到same_anon_vma链表中。 新的<code>vma</code>也需要自己的<code>anon_vma</code>：<br>   <img src="/images/2017/9/5.png" alt=""><br> 现在还有另一个<code>anon_vma_chain</code>链接在新的<code>anon_vma</code>中。 新的AVC已被添加到same_vma链表中。</p>
+<p>想象一下，这个进程进行了fork操作，导致子进程复制了<code>vma</code>; 现在有了一个孤立的新<code>vma</code>：<br> <img src="/images/2017/9/3.png" alt></p>
+<p> 内核需要将此<code>vma</code>链接到父进程的<code>anon_vma</code>中; 这需要添加一个新的<code>anon_vma_chain</code>：<br>  <img src="/images/2017/9/4.png" alt></p>
+<p> 请注意，新的AVC已被添加到same_anon_vma链表中。 新的<code>vma</code>也需要自己的<code>anon_vma</code>：<br>   <img src="/images/2017/9/5.png" alt><br> 现在还有另一个<code>anon_vma_chain</code>链接在新的<code>anon_vma</code>中。 新的AVC已被添加到same_vma链表中。</p>
 <p> 此刻，根据上图，可以验证<code>anon_vma_chain</code>（AVC）中两个链表的作用。</p>
 <blockquote>
 <p>The “same_vma” list contains the anon_vma_chains linking all the anon_vmas associated with this VMA.<br> The “same_anon_vma” list contains the anon_vma_chains  which link all the VMAs associated with this anon_vma.</p>
 </blockquote>
-<p>当子进程写内存页时,发生COW, 子进程的<code>vma</code>将指向自己匿名页, 同时, 这个新的匿名页指向子进程的<code>anon_vma</code>(此时same_anon_vma链与same_vma链解除)。<br>   <img src="/images/2017/9/6.png" alt=""></p>
+<p>当子进程写内存页时,发生COW, 子进程的<code>vma</code>将指向自己匿名页, 同时, 这个新的匿名页指向子进程的<code>anon_vma</code>(此时same_anon_vma链与same_vma链解除)。<br>   <img src="/images/2017/9/6.png" alt></p>
 <p>这样, 在解除一页映射时, 对于子进程自己的匿名页, 只要遍历子进程自己的<code>anon_vma</code>下的<code>vma</code>链表即可; 拥有大量子进程的父进程对于共享的页(未发生COW), 则按原来的方法遍历, 对于子进程自己的匿名页，父进程则不需要访问对应的<code>vma</code>，这样大大减少了父进程需要遍历的<code>vma</code>。</p>
 <p>再看<code>anon_vma_chain</code>这个名字, 它就像个粘合剂, 也像个链条, 把初始时父,子进程关联的<code>vma</code>和<code>anon_vma</code>链接起来, 当子进程通过COW拥有自己的匿名页后, 会发生解链, 以分冶策略各自管理, 从而使得在解除一页映射时, 减少了父进程遍历的<code>vma</code>数目, 也减少了相应的锁冲突, 因而提高了效率。</p>
 <hr>

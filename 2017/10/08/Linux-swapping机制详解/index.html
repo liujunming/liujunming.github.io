@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Linux swapping机制详解"/>
+  <meta name="description" content="Linux swapping机制详解">
 
 
 
 
-  <meta name="keywords" content="内存管理, Kernel, L" />
+  <meta name="keywords" content="内存管理, Kernel, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2017/10/08/Linux-swapping机制详解/"/>
+<link rel="canonical" href="http://liujunming.github.io/2017/10/08/Linux-swapping机制详解/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -315,8 +315,8 @@
 <h3 id="交换区描述符"><a href="#交换区描述符" class="headerlink" title="交换区描述符"></a>交换区描述符</h3><p>每个活动的交换区在内存中都有自己的<a href="http://elixir.free-electrons.com/linux/v2.6.11/source/include/linux/swap.h#L121" target="_blank" rel="noopener">swap_info_struct</a>描述符，其结构如下所示：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The in-memory structure used to track swap areas.</span></span><br><span class="line"><span class="comment"> * extent_list.prev points at the lowest-index extent.  That list is</span></span><br><span class="line"><span class="comment"> * sorted.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">swap_info_struct</span> &#123;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> flags; <span class="comment">//交换区标志</span></span><br><span class="line">	<span class="keyword">spinlock_t</span> sdev_lock;<span class="comment">//保护交换区的自旋锁</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file</span> *<span class="title">swap_file</span>;</span><span class="comment">//指针，指向存放交换区的普通文件或者设备文件的文件对象</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">block_device</span> *<span class="title">bdev</span>;</span><span class="comment">//存放交换区的块设备描述符</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">extent_list</span>;</span><span class="comment">//组成交换区的子区链表的头部</span></span><br><span class="line">	<span class="keyword">int</span> nr_extents;<span class="comment">//组成交换区的子区数量</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">swap_extent</span> *<span class="title">curr_swap_extent</span>;</span></span><br><span class="line">	<span class="keyword">unsigned</span> old_block_size;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">short</span> * swap_map;<span class="comment">//指向计数器数组的指针，交换区的每个页槽对应一个数组元素</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> lowest_bit;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> highest_bit;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> cluster_next;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> cluster_nr;</span><br><span class="line">	<span class="keyword">int</span> prio;<span class="comment">// 交换区优先级</span></span><br><span class="line">	<span class="keyword">int</span> pages;<span class="comment">//可用页槽的个数</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> max;<span class="comment">//交换区的大小，以页为单位</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> inuse_pages;<span class="comment">//交换区内已用页槽数</span></span><br><span class="line">	<span class="keyword">int</span> next;<span class="comment">// 指向下一个交换区描述符的指针</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
 <p><code>swap_map</code>字段指向一个计数器数组，交换区的每个页槽对应一个元素。如果计数器值等于０，那么这个页槽就是空闲的；如果计数器为正数，那么换出页就填充了这个页槽，实际上，页槽计数器的值就表示共享换出页的进程数；如果计数器的值是<br>SWAP_MAP_BAD(等于32768)，那么就认为这个页槽是有缺陷的，也就是不可用的。<br><code>swap_info</code>数组包括<code>MAX_SWAPFILES</code>个交换区描述符。</p>
 <p>下图说明了<code>swap_info</code>数组、一个交换区和相应的计数器数组的情况。</p>
-<p><img src="/images/2017/10/1.png" alt=""></p>
-<h3 id="换出页标识符"><a href="#换出页标识符" class="headerlink" title="换出页标识符"></a>换出页标识符</h3><p>可以很简单地而又唯一地标志一个换出页，这是通过<code>swap_info</code>数组中指定交换区的索引和在交换区内指定页槽的索引实现的。由于交换区的第一个页(索引为0)用来存放有关交换区的信息，第一个可用页槽的索引就为1。换出页标识符的格式如下图所示:<br><img src="/images/2017/10/2.png" alt=""></p>
+<p><img src="/images/2017/10/1.png" alt></p>
+<h3 id="换出页标识符"><a href="#换出页标识符" class="headerlink" title="换出页标识符"></a>换出页标识符</h3><p>可以很简单地而又唯一地标志一个换出页，这是通过<code>swap_info</code>数组中指定交换区的索引和在交换区内指定页槽的索引实现的。由于交换区的第一个页(索引为0)用来存放有关交换区的信息，第一个可用页槽的索引就为1。换出页标识符的格式如下图所示:<br><img src="/images/2017/10/2.png" alt></p>
 <p>当页被换出时，其换出标识符就作为page entry插入页表中，这样在需要时就可以再找到这个页。要注意这中标志符的最低位与<code>Present</code>标志对应，通常被清除来说明该页目前不在RAM中。但是，剩余31位中至少有一个被置位，因为没有页存放在交换区0的页槽0中。这样就可以从一个页表项中区分三种不同的情况:</p>
 <ul>
 <li>空项:该页相应的页框还没有分配给进程</li>
@@ -332,7 +332,7 @@
 </ul>
 <p>swap cache的引入就是为了解决这类同步问题。关键的原则是，没有检查swap cache是否已包括了所涉及的页，就不能进行换入或者换出操作。有了swap cache,涉及同一页的并发交换操作总是作用于同一个页框的。因此，内核可以安全地依赖页描述符的<code>PG_locked</code>标志，以避免任何竞争。</p>
 <p>考虑一下共享同一换出页的两个进程这种情形。当第一个进程试图访问页时，内核开始换入页操作，第一步就是检查页框是否在swap cache中，我们假定页框不在swap cache中，那么内核就分配一个新页框并把它插入到swap cache，然后开始I/O操作，从交换区读入页的数据；同时，第二个进程访问该共享匿名页，与上面相同，内核开始换入操作，检查涉及的页框是否在swap cache中。现在页框是在swap cache，因此内核只是访问页框描述符，在PG_locked标志清0之前（即I/O数据传输完毕之前），让当前进程睡眠。</p>
-<p>当换入换出操作同时出现时，swap cache起着至关重要的作用。<code>shrink_list()</code>函数要开始换出一个匿名页，就必须当<code>try_to_unmap()</code>从进程（所有拥有该页的进程）的用户态页表中成功删除了该页后才可以。但是当换出的页写操作还在执行的时候，这些进程中可能有某个进程要访问该页，而产生换入操作。<br>在写入磁盘前，待换出的页由<code>shrink_list()</code>存放在swap cache。考虑页由两个进程（A和B）共享的情况，如下图(a)所示。最初，两个进程的页表项都引用该页框，该页有两个拥有者。当PFRA选择回收页时，<code>shrink_list()</code>把页框插入swap cache，如下图(b)所示。然后PFRA调用<code>try_to_unmap()</code>从这两个进程的页表项中删除对该页框的引用。一旦这个函数结束，该页框就只有swap cache引用它，而引用页槽的有这两个进程和swap cache，如下图(c)所示。假如正当页中的数据写入磁盘时，进程B又访问该页，即它要用该页内部的线性地址访问它，那么缺页异常处理程序会发现页框正在swap cache中，并把物理地址放回进程B的页表项，如下图(d)所示。如果上面并发的换入操作没发生，换出操作结束，则<code>shrink_list()</code>会从swap cache删除该页框并把它释放到伙伴系统，如下图(e)所示。<br><img src="/images/2017/10/3.png" alt=""></p>
+<p>当换入换出操作同时出现时，swap cache起着至关重要的作用。<code>shrink_list()</code>函数要开始换出一个匿名页，就必须当<code>try_to_unmap()</code>从进程（所有拥有该页的进程）的用户态页表中成功删除了该页后才可以。但是当换出的页写操作还在执行的时候，这些进程中可能有某个进程要访问该页，而产生换入操作。<br>在写入磁盘前，待换出的页由<code>shrink_list()</code>存放在swap cache。考虑页由两个进程（A和B）共享的情况，如下图(a)所示。最初，两个进程的页表项都引用该页框，该页有两个拥有者。当PFRA选择回收页时，<code>shrink_list()</code>把页框插入swap cache，如下图(b)所示。然后PFRA调用<code>try_to_unmap()</code>从这两个进程的页表项中删除对该页框的引用。一旦这个函数结束，该页框就只有swap cache引用它，而引用页槽的有这两个进程和swap cache，如下图(c)所示。假如正当页中的数据写入磁盘时，进程B又访问该页，即它要用该页内部的线性地址访问它，那么缺页异常处理程序会发现页框正在swap cache中，并把物理地址放回进程B的页表项，如下图(d)所示。如果上面并发的换入操作没发生，换出操作结束，则<code>shrink_list()</code>会从swap cache删除该页框并把它释放到伙伴系统，如下图(e)所示。<br><img src="/images/2017/10/3.png" alt></p>
 <p>可以认为swap cache是一个临时区域，该区域存有正在被换入或换出的匿名页描述符。当换入或换出结束时（对于共享匿名页，换入换出操作必须对共享该页的所有进程进行），匿名页描述符就可以从swap cache删除。</p>
 <h3 id="换出页"><a href="#换出页" class="headerlink" title="换出页"></a>换出页</h3><ol>
 <li>向swap cache插入页框</li>

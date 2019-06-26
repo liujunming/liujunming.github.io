@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Git的Patch功能"/>
+  <meta name="description" content="Git的Patch功能">
 
 
 
 
-  <meta name="keywords" content="工具, L" />
+  <meta name="keywords" content="工具, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2017/07/02/Git的Patch功能/"/>
+<link rel="canonical" href="http://liujunming.github.io/2017/07/02/Git的Patch功能/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -296,17 +296,17 @@
 <p>不过在git中，我们没有必要直接使用diff和patch来做补丁，这样做既危险又麻烦。git提供了两种简单的patch方案。一是用git diff生成的标准patch，二是git format-patch生成的Git专用Patch。</p>
 <h3 id="git-diff生成的标准patch"><a href="#git-diff生成的标准patch" class="headerlink" title="git diff生成的标准patch"></a>git diff生成的标准patch</h3><p>我们可以首先用git diff制作一个patch。<br>本文示例的工作目录里最初有一个文件readme.txt，内容是“Git is a distributed version control system.”，放置在master分支中。为了修改代码，我们一般的做法是建立一个新分支：</p>
 <p><code>git branch Fix</code><br><code>git checkout Fix</code></p>
-<p><img src="/images/2017/7/1.png" alt=""></p>
-<p>接下来我们在readme.txt文件里面追加一行，然后执行git diff。<br><code>echo &#39;Fix!!!&#39;&gt;&gt;readme.txt</code><br><code>git diff</code><br><img src="/images/2017/7/2.png" alt=""></p>
-<p>我们看到了Git diff的输出，这是一个非常典型的Patch式diff。这样我们可以直接把这个输出变为一个Patch：<br><code>git commit -a -m &quot;Fix&quot;</code><br><code>git diff master &gt; patch</code><br><code>git checkout master</code><br><img src="/images/2017/7/3.png" alt=""></p>
-<p>我们现在有一个patch文件，并且切换到了master，接下来我们可以使用git apply来应用这个patch。一般情况下，为了保护master，我们会建立一个专门处理新交来的patch的分支：<br><code>git branch PATCH</code><br><code>git checkout PATCH</code><br><code>git apply patch</code><br><code>git commit -a -m &quot;Patch Apply&quot;</code><br><img src="/images/2017/7/4.png" alt=""></p>
+<p><img src="/images/2017/7/1.png" alt></p>
+<p>接下来我们在readme.txt文件里面追加一行，然后执行git diff。<br><code>echo &#39;Fix!!!&#39;&gt;&gt;readme.txt</code><br><code>git diff</code><br><img src="/images/2017/7/2.png" alt></p>
+<p>我们看到了Git diff的输出，这是一个非常典型的Patch式diff。这样我们可以直接把这个输出变为一个Patch：<br><code>git commit -a -m &quot;Fix&quot;</code><br><code>git diff master &gt; patch</code><br><code>git checkout master</code><br><img src="/images/2017/7/3.png" alt></p>
+<p>我们现在有一个patch文件，并且切换到了master，接下来我们可以使用git apply来应用这个patch。一般情况下，为了保护master，我们会建立一个专门处理新交来的patch的分支：<br><code>git branch PATCH</code><br><code>git checkout PATCH</code><br><code>git apply patch</code><br><code>git commit -a -m &quot;Patch Apply&quot;</code><br><img src="/images/2017/7/4.png" alt></p>
 <p>看，现在我们在PATCH分支中应用了这个补丁，我们可以把PATCH分支和Fix比对一下，结果肯定是什么也没有，说明PATCH分支和Fix分支完全一样。patch应用成功。即使有多个文件git diff 也能生成一个patch。</p>
 <h3 id="git-format-patch生成的git专用补丁"><a href="#git-format-patch生成的git专用补丁" class="headerlink" title="git format-patch生成的git专用补丁"></a>git format-patch生成的git专用补丁</h3><p>我们同样用上面那个例子的工作目录，这次，我们在Fix分支中的a添加了新行之后，用git format-patch生成一个patch。<br><code>git checkout Fix</code><br><code>echo &#39;Fix!!!&#39;&gt;&gt;readme.txt</code><br><code>git commit -a -m &quot;Fix1&quot;</code><br><code>git format-patch -M master</code></p>
-<p><img src="/images/2017/7/5.png" alt=""></p>
-<p>git format-patch的-M选项表示这个patch要和那个分支比对。现在它生成了一个patch文件，我们看看那是什么：<br><code>cat 0001-Fix1.patch</code><br><img src="/images/2017/7/6.png" alt=""></p>
+<p><img src="/images/2017/7/5.png" alt></p>
+<p>git format-patch的-M选项表示这个patch要和那个分支比对。现在它生成了一个patch文件，我们看看那是什么：<br><code>cat 0001-Fix1.patch</code><br><img src="/images/2017/7/6.png" alt></p>
 <p>看，这次多了好多东西，不仅有diff的信息，还有提交者，时间等等，仔细一看你会发现，这是个E-mail的文件，你可以直接发送它！这种patch，我们要用<code>git am</code>来应用。</p>
-<p><code>git checkout master</code><br><code>git branch PATCH</code><br><code>git checkout PATCH</code><br><code>git am 0001-Fix1.patch</code><br><code>git commit -a -m &quot;PATCH apply&quot;</code><br><img src="/images/2017/7/7.png" alt=""><br>在提交了补丁之后，我们可以再看看目前文件readme.txt的情况：</p>
-<p><code>cat readme.txt</code><br><img src="/images/2017/7/8.png" alt=""></p>
+<p><code>git checkout master</code><br><code>git branch PATCH</code><br><code>git checkout PATCH</code><br><code>git am 0001-Fix1.patch</code><br><code>git commit -a -m &quot;PATCH apply&quot;</code><br><img src="/images/2017/7/7.png" alt><br>在提交了补丁之后，我们可以再看看目前文件readme.txt的情况：</p>
+<p><code>cat readme.txt</code><br><img src="/images/2017/7/8.png" alt></p>
 <p>果然，多了一个Fix!!!</p>
 <p>不过要注意的是，如果master与Fix分支中间有多次提交，它会针对每次提交生成一个patch。</p>
 <h3 id="两种patch的比较"><a href="#两种patch的比较" class="headerlink" title="两种patch的比较"></a>两种patch的比较</h3><ul>

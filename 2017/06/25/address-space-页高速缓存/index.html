@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="address_space,页高速缓存"/>
+  <meta name="description" content="address_space,页高速缓存">
 
 
 
 
-  <meta name="keywords" content="Kernel, I/O系统, L" />
+  <meta name="keywords" content="Kernel, I/O系统, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2017/06/25/address-space-页高速缓存/"/>
+<link rel="canonical" href="http://liujunming.github.io/2017/06/25/address-space-页高速缓存/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -303,13 +303,13 @@
 <h3 id="3-address-space对象"><a href="#3-address-space对象" class="headerlink" title="3 address_space对象"></a>3 address_space对象</h3><p>每一个所有者(可以理解为一个具体的文件,一个inode指向的文件)对应着一个address_space对象,页高速缓存的多个页可能属于一个所有者,从而可以链接到一个address_space对象。那么一个页(page)怎么和一个address_space产生关联的呢?</p>
 <p>每个页描述符都包括把页链接到页高速缓存的两个字段mapping和index。mapping指向拥有该页的索引节点的address_space对象(inode结构有一个i_mapping指向对应address_space对象),index字段表示在所有者的地址空间中以页大小为单位的偏移量,也就是在所有者的磁盘映像中页中数据的位置。</p>
 <p>address_space中有一个host字段,该字段指向其所属的inode,也就是address_space中的host字段 与 对应inode中的 i_data字段形成互相指向的关系。若为普通文件,那么inode结点和address_space结构的相应指针的指向关系如下图:</p>
-<p><img src="/images/2017/6/1.jpg" alt=""></p>
+<p><img src="/images/2017/6/1.jpg" alt></p>
 <h3 id="4-基树"><a href="#4-基树" class="headerlink" title="4 基树"></a>4 基树</h3><p>linux支持TB级的文件,ext4甚至支持到了PB级文件,访问大文件时,高速缓存中存在着有关该文件太多的页,故设计了基树这个结构来加快查找。一个address_space对象对应一个基树。</p>
 <p>address_space中有一个字段(page_tree)指向是基树的根(radix_tree_root)。基树根中的rnode指向基树的最高层节点(radix_tree_node),基树节点都是radix_tree_node结构,节点中存放的都是指针,叶子节点的指针指向页描述符,上层节点指向存放其他节点的指针。一般一个radix_tree_node最多可以有64个指针,字段count表示该radix_tree_node已用节点数。</p>
 <p>怎么快速找到所需页在基树中的位置呢?</p>
 <p>回顾本科所学知识:分页系统如何利用页表实现线性地址到物理地址的转换?线性地址的最高20位分为两个10为的字段:第一个字段是页目录的偏移,第二个字段是页目录所指向也表的偏移。</p>
 <p>基树中使用类似的方法。页索引相当于线性地址,不过页索引中要考虑的字段的数量依赖于基树的深度。如果基树的深度为1,就只能表示从0~63范围的索引,因此页索引的低6位被解释为slots数组的下标,每个下标对应第一层的一个节点。如果基树的深度为2,就可以表示从0~4095范围的索引,页索引的低12位分成两个6位的字段,高位的字段用于表示第一层节点数组的下标,而低位的字段用于表示第二层数组的下标。</p>
-<p><img src="/images/2017/6/2.jpg" alt=""></p>
+<p><img src="/images/2017/6/2.jpg" alt></p>
 <hr>
 <p>参考资料：</p>
 <ol>

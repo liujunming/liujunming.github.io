@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Understanding the Linux Kernel 读书笔记 -Kernel Synchronization"/>
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记 -Kernel Synchronization">
 
 
 
 
-  <meta name="keywords" content="Kernel, Concurrency, 读书笔记, L" />
+  <meta name="keywords" content="Kernel, Concurrency, 读书笔记, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2018/12/14/Understanding-the-Linux-Kernel-读书笔记-Kernel-Synchronization/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/12/14/Understanding-the-Linux-Kernel-读书笔记-Kernel-Synchronization/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -298,7 +298,7 @@
 <p>The main motivation for making a kernel preemptive is to reduce the dispatch latency of the User Mode processes, that is, the delay between the time they become runnable and the time they actually begin running. </p>
 <p>The kernel can be preempted only when it is executing an exception handler (in particular a system call) and the kernel preemption has not been explicitly disabled. The local CPU must have local interrupts enabled, otherwise kernel preemption is not performed.</p>
 <p>Kernel preemption may happen either when a kernel control path (usually, an interrupt handler) is terminated, or when an exception handler reenables kernel preemption by means of <code>preempt_enable()</code>.</p>
-<h2 id="2-Synchronization-Primitives"><a href="#2-Synchronization-Primitives" class="headerlink" title="2 Synchronization Primitives"></a>2 Synchronization Primitives</h2><center><img src="/images/2018/12/21.png" alt=""></center>
+<h2 id="2-Synchronization-Primitives"><a href="#2-Synchronization-Primitives" class="headerlink" title="2 Synchronization Primitives"></a>2 Synchronization Primitives</h2><center><img src="/images/2018/12/21.png" alt></center>
 
 <h3 id="2-1-Per-CPU-Variables"><a href="#2-1-Per-CPU-Variables" class="headerlink" title="2.1 Per-CPU Variables"></a>2.1 Per-CPU Variables</h3><p>The simplest and most efficient synchronization technique consists of declaring kernel variables as <em>per-CPU variables</em>. Basically, a per-CPU variable is an array of data structures, one element per each CPU in the system. However, that the per-CPU variables can be used only in particular cases—basically, when it makes sense to logically split the data across the CPUs of the system.</p>
 <p>Furthermore, per-CPU variables are prone to race conditions caused by kernel preemption, both in uniprocessor and multiprocessor systems. As a general rule, a kernel control path should access a per-CPU variable with kernel preemption disabled.</p>
@@ -308,11 +308,11 @@
 <p>When dealing with synchronization, however, reordering instructions must be avoided. Things would quickly become hairy if an instruction placed after a synchronization primitive is executed before the synchronization primitive itself. Therefore, all synchronization primitives act as optimization and memory barriers.</p>
 <p>An <em>optimization barrier</em> primitive ensures that the assembly language instructions corresponding to C statements placed before the primitive are not mixed by the compiler with assembly language instructions corresponding to C statements placed after the primitive. In Linux the <code>barrier()</code> macro acts as an optimization barrier.</p>
 <p>A <em>memory barrier</em> primitive ensures that the operations placed before the primitive are finished before starting the operations placed after the primitive. </p>
-<p><img src="/images/2018/12/22.png" alt=""></p>
+<p><img src="/images/2018/12/22.png" alt></p>
 <p>Notice that in multiprocessor systems, all atomic operations described in the earlier section “Atomic Operations” act as memory barriers.</p>
 <h3 id="2-4-Spin-Locks"><a href="#2-4-Spin-Locks" class="headerlink" title="2.4 Spin Locks"></a>2.4 Spin Locks</h3><p><em>Spin locks</em> are a special kind of lock designed to work in a multiprocessor environment. If the kernel control path finds the spin lock “open,” it acquires the lock and continues its execution. Conversely, if the kernel control path finds the lock “closed” by a kernel control path running on another CPU, it “spins” around, repeatedly executing a tight instruction loop, until the lock is released.</p>
 <p>The instruction loop of spin locks represents a “busy wait.” The waiting kernel control path keeps running on the CPU, even if it has nothing to do besides waste time. Nevertheless, spin locks are usually convenient, because many kernel resources are locked for a fraction of a millisecond only; therefore, it would be far more time-consuming to release the CPU and reacquire it later.</p>
-<p>As a general rule, <strong>kernel preemption is disabled in every critical region protected by spin locks</strong>. In the case of a uniprocessor system, the locks themselves are useless, and the spin lock primitives just disable or enable the kernel preemption. Please notice that kernel preemption is still enabled during the busy wait phase, thus a process waiting for a spin lock to be released could be replaced by a higher priority process.<br><img src="/images/2018/12/23.png" alt=""></p>
+<p>As a general rule, <strong>kernel preemption is disabled in every critical region protected by spin locks</strong>. In the case of a uniprocessor system, the locks themselves are useless, and the spin lock primitives just disable or enable the kernel preemption. Please notice that kernel preemption is still enabled during the busy wait phase, thus a process waiting for a spin lock to be released could be replaced by a higher priority process.<br><img src="/images/2018/12/23.png" alt></p>
 <h3 id="2-5-Read-Write-Spin-Locks"><a href="#2-5-Read-Write-Spin-Locks" class="headerlink" title="2.5 Read/Write Spin Locks"></a>2.5 Read/Write Spin Locks</h3><p><em>Read/write spin locks</em> have been introduced to increase the amount of concurrency inside the kernel. They allow several kernel control paths to simultaneously read the same data structure, as long as no kernel control path modifies it. If a kernel control path wishes to write to the structure, it must acquire the write version of the read/write lock, which grants exclusive access to the resource. Of course, allowing concurrent reads on data structures improves system performance.</p>
 <p><strong>Getting and releasing a lock for reading</strong></p>
 <ul>
@@ -362,7 +362,7 @@
 </ul>
 <p>To maximize I/O throughput, interrupts should be disabled for very short periods of time. To use CPUs efficiently, synchronization primitives based on spin locks should be avoided whenever possible.</p>
 <h3 id="3-1-Choosing-Among-Spin-Locks-Semaphores-and-Interrupt-Disabling"><a href="#3-1-Choosing-Among-Spin-Locks-Semaphores-and-Interrupt-Disabling" class="headerlink" title="3.1 Choosing Among Spin Locks, Semaphores, and Interrupt Disabling"></a>3.1 Choosing Among Spin Locks, Semaphores, and Interrupt Disabling</h3><p>Generally speaking, choosing the synchronization primitives depends on what kinds of kernel control paths access the data structure, as shown in Table 5-8. Remember that whenever a kernel control path acquires a spin lock (as well as a read/write lock, a seqlock, or a RCU “read lock”), disables the local interrupts, or disables the local softirqs, kernel preemption is automatically disabled.</p>
-<p><img src="/images/2018/12/24.png" alt=""></p>
+<p><img src="/images/2018/12/24.png" alt></p>
 
       
     </div>

@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Designing Data-Intensive Applications 读书笔记 -Transactions"/>
+  <meta name="description" content="Designing Data-Intensive Applications 读书笔记 -Transactions">
 
 
 
 
-  <meta name="keywords" content="分布式系统, L" />
+  <meta name="keywords" content="分布式系统, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2018/09/23/Designing-Data-Intensive-Applications-读书笔记-Transactions/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/09/23/Designing-Data-Intensive-Applications-读书笔记-Transactions/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -308,9 +308,9 @@
 <h3 id="Single-Object-and-Multi-Object-Operations"><a href="#Single-Object-and-Multi-Object-Operations" class="headerlink" title="Single-Object and Multi-Object Operations"></a>Single-Object and Multi-Object Operations</h3><p>图7-2展示了一个来自邮件应用的例子。执行以下查询来显示用户未读邮件数量：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">COUNT</span>(*) <span class="keyword">FROM</span> emails <span class="keyword">WHERE</span> recipient_id = <span class="number">2</span> <span class="keyword">AND</span> unread_flag = <span class="literal">true</span></span><br></pre></td></tr></table></figure></p>
 <p>但如果邮件太多，你可能会觉得这个查询太慢，并决定用单独的字段存储未读邮件的数量。现在每当一个新消息写入时，也必须增长未读计数器，每当一个消息被标记为已读时，也必须减少未读计数器。</p>
 <p>在图7-2中，用户2 遇到异常情况：邮件列表里显示有未读消息，但计数器显示为零未读消息，因为计数器增长还没有发生。隔离性可以避免这个问题：通过确保用户2要么同时看到新邮件和增长后的计数器，要么都看不到，反正不会看到执行到一半的中间结果。</p>
-<p><img src="/images/2018/9/28.png" alt=""></p>
+<p><img src="/images/2018/9/28.png" alt></p>
 <p>图7-3说明了对原子性的需求：如果在事务过程中发生错误，邮箱和未读计数器的内容可能会失去同步。在原子事务中，如果对计数器的更新失败，事务将被中止，并且插入的电子邮件将被回滚。</p>
-<p><img src="/images/2018/9/29.png" alt=""></p>
+<p><img src="/images/2018/9/29.png" alt></p>
 <p>A transaction is usually understood as a mechanism for grouping multiple operations on multiple objects into one unit of execution.</p>
 <h2 id="Weak-Isolation-Levels"><a href="#Weak-Isolation-Levels" class="headerlink" title="Weak Isolation Levels"></a>Weak Isolation Levels</h2><p>如果两个事务不触及相同的数据，它们可以安全地并行（parallel） 运行，因为两者都不依赖于另一个。当一个事务读取由另一个事务同时修改的数据时，或者当两个事务试图同时修改相同的数据时，并发问题（竞争条件）才会出现。</p>
 <h3 id="Read-Committed"><a href="#Read-Committed" class="headerlink" title="Read Committed"></a>Read Committed</h3><p>The most basic level of transaction isolation is read committed.It makes two guarantees:</p>
@@ -319,38 +319,38 @@
 <li>When writing to the database, you will only overwrite data that has been committed (no dirty writes).</li>
 </ol>
 <h4 id="No-dirty-reads"><a href="#No-dirty-reads" class="headerlink" title="No dirty reads"></a>No dirty reads</h4><p>Imagine a transaction has written some data to the database, but the transaction has not yet committed or aborted. Can another transaction see that uncommitted data? If yes, that is called a <em>dirty read</em>.</p>
-<p><img src="/images/2018/9/31.png" alt=""></p>
+<p><img src="/images/2018/9/31.png" alt></p>
 <h4 id="No-dirty-writes"><a href="#No-dirty-writes" class="headerlink" title="No dirty writes"></a>No dirty writes</h4><p>What happens if two transactions concurrently try to update the same object in a database? We don’t know in which order the writes will happen, but we normally assume that the later write overwrites the earlier write.</p>
 <p>However, what happens if the earlier write is part of a transaction that has not yet committed, so the later write overwrites an uncommitted value? This is called a <em>dirty write</em>. Transactions running at the read committed isolation level must prevent dirty writes, usually by delaying the second write until the first write’s transaction has committed or aborted.</p>
-<p><img src="/images/2018/9/32.png" alt=""></p>
+<p><img src="/images/2018/9/32.png" alt></p>
 <h4 id="Implementing-read-committed"><a href="#Implementing-read-committed" class="headerlink" title="Implementing read committed"></a>Implementing read committed</h4><p>Most commonly, databases prevent dirty writes by using row-level locks.</p>
 <p>Most databases prevent dirty reads using the approach illustrated in Figure 7-4: for every object that is written, the database remembers both the old committed value and the new value set by the transaction that currently holds the write lock. </p>
 <h3 id="Snapshot-Isolation"><a href="#Snapshot-Isolation" class="headerlink" title="Snapshot Isolation"></a>Snapshot Isolation</h3><p>在PostgreSQL and MySQL中，Snapshot Isolation即为Repeatable Read。</p>
-<p>图7-6说明了read committed可能发生的问题。<br><img src="/images/2018/9/33.png" alt=""></p>
+<p>图7-6说明了read committed可能发生的问题。<br><img src="/images/2018/9/33.png" alt></p>
 <p>这种异常被称为不可重复读（nonrepeatable read）或读取偏差（read skew）。</p>
 <p><em>Snapshot isolation</em>能解决read skew问题。The idea is that each transaction reads from a <em>consistent snapshot</em> of the database—that is, the transaction sees all the data that was committed in the database at the start of the transaction. Even if the data is subsequently changed by another transaction, each transaction sees only the old data from that particular point in time.</p>
 <h4 id="Implementing-snapshot-isolation"><a href="#Implementing-snapshot-isolation" class="headerlink" title="Implementing snapshot isolation"></a>Implementing snapshot isolation</h4><p>A key principle of snapshot isolation is <em>readers never block writers, and writers never block readers</em>.</p>
 <p>The database must potentially keep several different committed versions of an object, because various in-progress transactions may need to see the state of the database at different points in time. Because it maintains several versions of an object side by side, this technique is known as <em>multi-version concurrency control</em>(MVCC).</p>
 <p>图7-7说明了如何在PostgreSQL中实现基于MVCC的快照隔离。当一个事务开始时，它被赋予一个唯一的事务ID。每当事务向数据库写入任何内容时，它所写入的数据都会被标记上写入者的事务ID。</p>
-<p><img src="/images/2018/9/34.png" alt=""></p>
+<p><img src="/images/2018/9/34.png" alt></p>
 <h4 id="Visibility-rules-for-observing-a-consistent-snapshot"><a href="#Visibility-rules-for-observing-a-consistent-snapshot" class="headerlink" title="Visibility rules for observing a consistent snapshot"></a>Visibility rules for observing a consistent snapshot</h4><p>When a transaction reads from the database, transaction IDs are used to decide which objects it can see and which are invisible. By carefully defining visibility rules,the database can present a consistent snapshot of the database to the application. </p>
-<h4 id="Indexes-and-snapshot-isolation"><a href="#Indexes-and-snapshot-isolation" class="headerlink" title="Indexes and snapshot isolation"></a>Indexes and snapshot isolation</h4><p><img src="/images/2018/9/30.png" alt=""></p>
+<h4 id="Indexes-and-snapshot-isolation"><a href="#Indexes-and-snapshot-isolation" class="headerlink" title="Indexes and snapshot isolation"></a>Indexes and snapshot isolation</h4><p><img src="/images/2018/9/30.png" alt></p>
 <h3 id="Preventing-Lost-Updates"><a href="#Preventing-Lost-Updates" class="headerlink" title="Preventing Lost Updates"></a>Preventing Lost Updates</h3><p>到目前为止已经讨论的read committed和snapshot isolation级别，主要保证了只读事务在并发写入时可以看到什么。却忽略了两个事务并发写入的问题——我们只讨论了脏写。</p>
 <p>并发的写入事务之间还有其他几种有趣的冲突。其中最着名的是丢失更新（lost update） 问题，如下图所示，以两个并发计数器增量为例。</p>
-<p><img src="/images/2018/9/35.png" alt=""></p>
+<p><img src="/images/2018/9/35.png" alt></p>
 <p>The lost update problem can occur if an application reads some value from the database, modifies it, and writes back the modified value (a <em>read-modify-write cycle</em>). If two transactions do this concurrently, one of the modifications can be lost, because the second write does not include the first modification.</p>
 <p>Because this is such a common problem, a variety of solutions have been developed.</p>
 <h4 id="Atomic-write-operations"><a href="#Atomic-write-operations" class="headerlink" title="Atomic write operations"></a>Atomic write operations</h4><p>Many databases provide atomic update operations, which remove the need to implement read-modify-write cycles in application code.</p>
 <h4 id="Explicit-locking"><a href="#Explicit-locking" class="headerlink" title="Explicit locking"></a>Explicit locking</h4><p>Another option for preventing lost updates, if the database’s built-in atomic operations don’t provide the necessary functionality, is for the application to explicitly lock objects that are going to be updated.</p>
-<p><img src="/images/2018/9/36.png" alt=""></p>
+<p><img src="/images/2018/9/36.png" alt></p>
 <h4 id="Automatically-detecting-lost-updates"><a href="#Automatically-detecting-lost-updates" class="headerlink" title="Automatically detecting lost updates"></a>Automatically detecting lost updates</h4><p>Atomic operations and locks are ways of preventing lost updates by forcing the read-modify-write cycles to happen sequentially. An alternative is to allow them to execute in parallel and, if the transaction manager detects a lost update, abort the transaction and force it to retry its read-modify-write cycle.</p>
 <h4 id="Compare-and-set-CAS"><a href="#Compare-and-set-CAS" class="headerlink" title="Compare-and-set(CAS)"></a>Compare-and-set(CAS)</h4><p>In databases that don’t provide transactions, you sometimes find an <strong>atomic</strong> compare-and-set operation. The purpose of this operation is to avoid lost updates by allowing an update to happen only if the value has not changed since you last read it. If the current value does not match what you previously read, the update has no effect, and the read-modify-write cycle must be retried.</p>
 <p>For example, to prevent two users concurrently updating the same wiki page, you might try something like this, expecting the update to occur only if the content of the page hasn’t changed since the user started editing it:</p>
-<p><img src="/images/2018/9/37.png" alt=""></p>
+<p><img src="/images/2018/9/37.png" alt></p>
 <h4 id="Conflict-resolution-and-replication"><a href="#Conflict-resolution-and-replication" class="headerlink" title="Conflict resolution and replication"></a>Conflict resolution and replication</h4><p>Locks and compare-and-set operations assume that there is a single up-to-date copy of the data. However, databases with multi-leader or leaderless replication usually allow several writes to happen concurrently and replicate them asynchronously, so they cannot guarantee that there is a single up-to-date copy of the data. Thus, techniques based on locks or CAS do not apply in this context.</p>
 <h3 id="Write-Skew-and-Phantoms"><a href="#Write-Skew-and-Phantoms" class="headerlink" title="Write Skew and Phantoms"></a>Write Skew and Phantoms</h3><p>phantoms在本文中的含义是幻读。</p>
 <p>想象一下这个例子：你正在为医院写一个医生轮班管理程序。医院通常会同时要求几位医生值班，但底线是至少有一位医生在值班。医生可以放弃他们的班次（例如，如果他们自己生病了），只要至少有一个同事在这一班中继续工作。<br>现在想象一下，Alice和Bob是两位值班医生。两人都感到不适，所以他们都决定请假。不幸的是，他们恰好在同一时间点击按钮下班。图7-8说明了接下来的事情。</p>
-<p><img src="/images/2018/9/38.png" alt=""></p>
+<p><img src="/images/2018/9/38.png" alt></p>
 <p>在两个事务中，应用首先检查是否有两个或以上的医生正在值班；如果是的话，它就假定一名医生可以安全地休班。由于数据库使用Snapshot Isolation，两次检查都返回 2 ，所以两个事务都进入下一个阶段。Alice更新自己的记录休班了，而Bob也做了一样的事情。两个事务都成功提交了，现在没有医生值班了。违反了至少有一名医生在值班的要求。</p>
 <h4 id="Characterizing-write-skew"><a href="#Characterizing-write-skew" class="headerlink" title="Characterizing write skew"></a>Characterizing write skew</h4><p>这种异常称为 <em>write skew</em>.</p>
 <p> Write skew can occur if two transactions read the same objects, and then update some of those objects (different transactions may update different objects). In the special case where different transactions update the same object, you get a dirty write or lost update anomaly (depending on the timing).</p>
@@ -366,8 +366,8 @@
 <li>Detecting reads of a stale MVCC object version (uncommitted write occurred before the read)</li>
 <li>Detecting writes that affect prior reads (the write occurs after the read)</li>
 </ul>
-<h4 id="Detecting-stale-MVCC-reads"><a href="#Detecting-stale-MVCC-reads" class="headerlink" title="Detecting stale MVCC reads"></a>Detecting stale MVCC reads</h4><p><img src="/images/2018/9/39.png" alt=""></p>
-<h4 id="Detecting-writes-that-affect-prior-reads"><a href="#Detecting-writes-that-affect-prior-reads" class="headerlink" title="Detecting writes that affect prior reads"></a>Detecting writes that affect prior reads</h4><p><img src="/images/2018/9/40.png" alt=""></p>
+<h4 id="Detecting-stale-MVCC-reads"><a href="#Detecting-stale-MVCC-reads" class="headerlink" title="Detecting stale MVCC reads"></a>Detecting stale MVCC reads</h4><p><img src="/images/2018/9/39.png" alt></p>
+<h4 id="Detecting-writes-that-affect-prior-reads"><a href="#Detecting-writes-that-affect-prior-reads" class="headerlink" title="Detecting writes that affect prior reads"></a>Detecting writes that affect prior reads</h4><p><img src="/images/2018/9/40.png" alt></p>
 <hr>
 <p>参考资料：</p>
 <ol>

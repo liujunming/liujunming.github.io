@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Understanding the Linux Kernel 读书笔记-I/O Architecture and Device Drivers"/>
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记-I/O Architecture and Device Drivers">
 
 
 
 
-  <meta name="keywords" content="Kernel, I/O系统, 读书笔记, L" />
+  <meta name="keywords" content="Kernel, I/O系统, 读书笔记, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2019/01/03/Understanding-the-Linux-Kernel-读书笔记-I-O-Architecture-and-Device-Drivers/"/>
+<link rel="canonical" href="http://liujunming.github.io/2019/01/03/Understanding-the-Linux-Kernel-读书笔记-I-O-Architecture-and-Device-Drivers/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -293,10 +293,10 @@
     <div class="post-content">
       
         <p>In the section “I/O Architecture,” we give a brief survey of the 80×86 I/O architecture. In the section “The Device Driver Model,” we introduce the Linux device driver model.<a id="more"></a>  Next, in the section “Device Files,” we show how the VFS associates a special file called “device file” with each different hardware device, so that application programs can use all kinds of devices in the same way. We then introduce in the section “Device Drivers” some common characteristics of device drivers. Finally, in the section “Character Device Drivers,” we illustrate the overall organization of character device drivers in Linux.</p>
-<h2 id="1-I-O-Architecture"><a href="#1-I-O-Architecture" class="headerlink" title="1 I/O Architecture"></a>1 I/O Architecture</h2><p>The data path that connects a CPU to an I/O device is generically called an <em>I/O bus</em>. The 80 × 86 microprocessors use 16 of their address pins to address I/O devices and 8, 16, or 32 of their data pins to transfer data. The I/O bus, in turn, is connected to each I/O device by means of a hierarchy of hardware components including up to three elements: I/O ports, interfaces, and device controllers. Figure 13-1 shows the components of the I/O architecture.<br><img src="/images/2019/1/12.png" alt=""></p>
+<h2 id="1-I-O-Architecture"><a href="#1-I-O-Architecture" class="headerlink" title="1 I/O Architecture"></a>1 I/O Architecture</h2><p>The data path that connects a CPU to an I/O device is generically called an <em>I/O bus</em>. The 80 × 86 microprocessors use 16 of their address pins to address I/O devices and 8, 16, or 32 of their data pins to transfer data. The I/O bus, in turn, is connected to each I/O device by means of a hierarchy of hardware components including up to three elements: I/O ports, interfaces, and device controllers. Figure 13-1 shows the components of the I/O architecture.<br><img src="/images/2019/1/12.png" alt></p>
 <h3 id="1-1-I-O-Ports"><a href="#1-1-I-O-Ports" class="headerlink" title="1.1 I/O Ports"></a>1.1 I/O Ports</h3><p>Each device connected to the I/O bus has its own set of I/O addresses, which are usually called <em>I/O ports</em>.  Four special assembly language instructions called <code>in</code>, <code>ins</code>, <code>out</code>, and <code>outs</code> allow the CPU to read from and write into an I/O port.</p>
 <p>I/O ports may also be mapped into addresses of the physical address space. </p>
-<p>The I/O ports of each device are structured into a set of specialized registers, as shown in Figure 13-2.<br><img src="/images/2019/1/13.png" alt=""></p>
+<p>The I/O ports of each device are structured into a set of specialized registers, as shown in Figure 13-2.<br><img src="/images/2019/1/13.png" alt></p>
 <h4 id="1-1-1-Accessing-I-O-ports"><a href="#1-1-1-Accessing-I-O-ports" class="headerlink" title="1.1.1 Accessing I/O ports"></a>1.1.1 Accessing I/O ports</h4><p>The <code>in</code>, <code>out</code>, <code>ins</code>, and <code>outs</code> assembly language instructions access I/O ports. </p>
 <p>While accessing I/O ports is simple, detecting which I/O ports have been assigned to I/O devices may not be easy, in particular, for systems based on an ISA bus. Often a device driver must blindly write into some I/O port to probe the hardware device; if, however, this I/O port is already used by some other hardware device, a system crash could occur. To prevent such situations, the kernel keeps track of I/O ports assigned to each hardware device by means of “resources.”</p>
 <h3 id="1-2-I-O-Interfaces"><a href="#1-2-I-O-Interfaces" class="headerlink" title="1.2 I/O Interfaces"></a>1.2 I/O Interfaces</h3><p>An <em>I/O interface</em> is a hardware circuit inserted between a group of I/O ports and the corresponding device controller. It acts as an interpreter that translates the values in the I/O ports into commands and data for the device. In the opposite direction, it detects changes in the device state and correspondingly updates the I/O port that plays the role of status register. This circuit can also be connected through an IRQ line to a Programmable Interrupt Controller, so that it issues interrupt requests on behalf of the device.</p>
@@ -340,14 +340,14 @@
 </ul>
 <p>A device file is usually a real file stored in a filesystem. Its inode, however, doesn’t need to include pointers to blocks of data on the disk (the file’s data) because there are none. Instead, the inode must include an identifier of the hardware device corresponding to the character or block device file.</p>
 <p>Traditionally, this identifier consists of the type of device file (character or block) and a pair of numbers. The first number, called the <em>major number</em>, identifies the device type. Traditionally, all device files that have the same major number and the same type share the same set of file operations, because they are handled by the same device driver. The second number, called the <em>minor number</em>, identifies a specific device among a group of devices that share the same major number. For instance, a group of disks managed by the same disk controller have the same major number and different minor numbers.</p>
-<p><img src="/images/2019/1/14.png" alt=""></p>
+<p><img src="/images/2019/1/14.png" alt></p>
 <h3 id="3-1-User-Mode-Handling-of-Device-Files"><a href="#3-1-User-Mode-Handling-of-Device-Files" class="headerlink" title="3.1 User Mode Handling of Device Files"></a>3.1 User Mode Handling of Device Files</h3><h3 id="3-2-VFS-Handling-of-Device-Files"><a href="#3-2-VFS-Handling-of-Device-Files" class="headerlink" title="3.2 VFS Handling of Device Files"></a>3.2 VFS Handling of Device Files</h3><p>Device files live in the system directory tree but are intrinsically different from regular files and directories. When a process accesses a regular file, it is accessing some data blocks in a disk partition through a filesystem; when a process accesses a device file, it is just driving a hardware device. </p>
 <h2 id="4-Device-Drivers"><a href="#4-Device-Drivers" class="headerlink" title="4 Device Drivers"></a>4 Device Drivers</h2><p>A <em>device driver</em> is the set of kernel routines that makes a hardware device respond to the programming interface defined by the canonical set of VFS functions (<code>open</code>, <code>read</code>, <code>lseek</code>, <code>ioctl</code>, and so forth) that control a device. The actual implementation of all these functions is delegated to the device driver. Because each device has a different I/O controller, and thus different commands and different state information, most I/O devices have their own drivers.</p>
 <p>A device driver does not consist only of the functions that implement the device file operations. Before using a device driver, several activities must have taken place.</p>
 <h3 id="4-1-Device-Driver-Registration"><a href="#4-1-Device-Driver-Registration" class="headerlink" title="4.1 Device Driver Registration"></a>4.1 Device Driver Registration</h3><h3 id="4-2-Device-Driver-Initialization"><a href="#4-2-Device-Driver-Initialization" class="headerlink" title="4.2 Device Driver Initialization"></a>4.2 Device Driver Initialization</h3><h3 id="4-3-Monitoring-I-O-Operations"><a href="#4-3-Monitoring-I-O-Operations" class="headerlink" title="4.3 Monitoring I/O Operations"></a>4.3 Monitoring I/O Operations</h3><h3 id="4-4-Accessing-the-I-O-Shared-Memory"><a href="#4-4-Accessing-the-I-O-Shared-Memory" class="headerlink" title="4.4 Accessing the I/O Shared Memory"></a>4.4 Accessing the I/O Shared Memory</h3><h3 id="4-5-Direct-Memory-Access-DMA"><a href="#4-5-Direct-Memory-Access-DMA" class="headerlink" title="4.5 Direct Memory Access (DMA)"></a>4.5 Direct Memory Access (DMA)</h3><p><strong>Bus addresses</strong><br>Every DMA transfer involves (at least) one memory buffer, which contains the data to be read or written by the hardware device. In general, before activating the transfer, the device driver must ensure that the DMA circuit can directly access the RAM locations.</p>
 <p>Until now we have distinguished three kinds of memory addresses: logical and linear addresses, which are used internally by the CPU, and physical addresses, which are the memory addresses used by the CPU to physically drive the data bus. However, there is a fourth kind of memory address: the so-called <em>bus address</em>. It corresponds to the memory addresses used by all hardware devices except the CPU to drive the data bus.</p>
 <p>In the 80×86 architecture, bus addresses coincide with physical addresses.</p>
-<h3 id="4-6-Levels-of-Kernel-Support"><a href="#4-6-Levels-of-Kernel-Support" class="headerlink" title="4.6 Levels of Kernel Support"></a>4.6 Levels of Kernel Support</h3><h2 id="5-Character-Device-Drivers"><a href="#5-Character-Device-Drivers" class="headerlink" title="5 Character Device Drivers"></a>5 Character Device Drivers</h2><p><img src="/images/2019/1/15.png" alt=""></p>
+<h3 id="4-6-Levels-of-Kernel-Support"><a href="#4-6-Levels-of-Kernel-Support" class="headerlink" title="4.6 Levels of Kernel Support"></a>4.6 Levels of Kernel Support</h3><h2 id="5-Character-Device-Drivers"><a href="#5-Character-Device-Drivers" class="headerlink" title="5 Character Device Drivers"></a>5 Character Device Drivers</h2><p><img src="/images/2019/1/15.png" alt></p>
 <h3 id="5-1-Assigning-Device-Numbers"><a href="#5-1-Assigning-Device-Numbers" class="headerlink" title="5.1 Assigning Device Numbers"></a>5.1 Assigning Device Numbers</h3><h3 id="5-2-Accessing-a-Character-Device-Driver"><a href="#5-2-Accessing-a-Character-Device-Driver" class="headerlink" title="5.2 Accessing a Character Device Driver"></a>5.2 Accessing a Character Device Driver</h3><h3 id="5-3-Buffering-Strategies-for-Character-Devices"><a href="#5-3-Buffering-Strategies-for-Character-Devices" class="headerlink" title="5.3 Buffering Strategies for Character Devices"></a>5.3 Buffering Strategies for Character Devices</h3><hr>
 <p>参考资料：</p>
 <ol>

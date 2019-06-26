@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="系统性能分析工具"/>
+  <meta name="description" content="系统性能分析工具">
 
 
 
 
-  <meta name="keywords" content="工具, L" />
+  <meta name="keywords" content="工具, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2018/03/06/系统性能分析工具/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/03/06/系统性能分析工具/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -306,7 +306,7 @@
 <p>有些程序慢是因为计算量太大，其多数时间都应该在使用 CPU 进行计算，这叫做 CPU bound 型；有些程序慢是因为过多的 IO，这种时候其 CPU 利用率应该不高，这叫做 IO bound 型；对于 CPU bound 程序的调优和 IO bound 的调优是不同的。</p>
 <p>如果你认同这些说法的话，perf stat 应该是你最先使用的一个工具。它通过概括精简的方式提供被调试程序运行的整体情况和汇总数据。</p>
 <p>还记得我们前面准备的那个例子程序么？现在将它编译为可执行文件 t1<br><code>gcc -o t1 -g test.c</code></p>
-<p>下面演示了 perf stat 针对程序 t1 的输出：<br><code>perf stat ./t1</code><br><img src="/images/2018/3/1.png" alt=""><br>上面告诉我们，程序 t1 是一个 CPU bound 型，因为 task-clock-msecs 接近 1。</p>
+<p>下面演示了 perf stat 针对程序 t1 的输出：<br><code>perf stat ./t1</code><br><img src="/images/2018/3/1.png" alt><br>上面告诉我们，程序 t1 是一个 CPU bound 型，因为 task-clock-msecs 接近 1。</p>
 <p>对 t1 进行调优应该要找到热点 ( 即最耗时的代码片段 )，再看看是否能够提高热点代码的效率。</p>
 <p>缺省情况下，除了 task-clock-msecs 之外，perf stat 还给出了其他几个最常用的统计信息：</p>
 <p>Task-clock-msecs：CPU 利用率，该值高，说明程序的多数时间花费在 CPU 计算上而非 IO。</p>
@@ -325,16 +325,16 @@
 <p>不知道你怎么想，反正我觉得做一件有益的事情很难，但做点儿坏事儿却非常容易。我很快就想到了如代码清单 2 所示的一个程序：</p>
 <p>清单 2. 一个死循环<br><code>while (1) i++;</code></p>
 <p>我叫他 t2。启动 t2，然后用 perf top 来观察：</p>
-<p>下面是 perf top 的输出：<br><img src="/images/2018/3/2.png" alt=""></p>
+<p>下面是 perf top 的输出：<br><img src="/images/2018/3/2.png" alt></p>
 <p>很容易便发现 t2 是需要关注的可疑程序。不过其作案手法太简单：肆无忌惮地浪费着 CPU。所以我们不用再做什么其他的事情便可以找到问题所在。但现实生活中，影响性能的程序一般都不会如此愚蠢，所以我们往往还需要使用其他的 perf 工具进一步分析。</p>
 <h3 id="使用-perf-record-和perf-report"><a href="#使用-perf-record-和perf-report" class="headerlink" title="使用 perf record 和perf report"></a>使用 perf record 和perf report</h3><p>使用 top 和 stat 之后，你可能已经大致有数了。要进一步分析，便需要一些粒度更细的信息。比如说你已经断定目标程序计算量较大，也许是因为有些代码写的不够精简。那么面对长长的代码文件，究竟哪几行代码需要进一步修改呢？这便需要使用 perf record 记录单个函数级别的统计信息，并使用 perf report 来显示统计结果。</p>
 <p>你的调优应该将注意力集中到百分比高的热点代码片段上，假如一段代码只占用整个程序运行时间的 0.1%，即使你将其优化到仅剩一条机器指令，恐怕也只能将整体的程序性能提高 0.1%。俗话说，好钢用在刀刃上，不必我多说了。</p>
 <p>仍以 t1 为例。<br><code>perf record – e cpu-clock ./t1</code><br><code>perf report</code></p>
-<p> perf report 示例结果如下图所示：<br><img src="/images/2018/3/3.png" alt=""></p>
+<p> perf report 示例结果如下图所示：<br><img src="/images/2018/3/3.png" alt></p>
 <p>不出所料，热点是 longa( ) 函数。</p>
 <p>但代码是非常复杂的，t1 程序中的 foo1() 也是一个潜在的调优对象，为什么要调用 100 次那个无聊的 longa() 函数呢？但我们在上图中无法发现 foo1 和 foo2，更无法了解他们的区别了。</p>
 <p>使用 perf 的 -g 选项便可以得到需要的信息：<br><code>perf record – e cpu-clock – g ./t1</code><br><code>perf report</code></p>
-<p>perf – g report 示例结果如下图所示：<br><img src="/images/2018/3/4.png" alt=""></p>
+<p>perf – g report 示例结果如下图所示：<br><img src="/images/2018/3/4.png" alt></p>
 <p>通过对调用图的分析，能很方便地看到 91% 的时间都花费在 foo1() 函数中，因为它调用了 100 次 longa() 函数，因此假如 longa() 是个无法优化的函数，那么程序员就应该考虑优化 foo1，减少对 longa() 的调用次数。</p>
 <hr>
 <p>参考资料：</p>

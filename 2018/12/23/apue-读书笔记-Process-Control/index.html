@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="apue 读书笔记- Process Control"/>
+  <meta name="description" content="apue 读书笔记- Process Control">
 
 
 
 
-  <meta name="keywords" content="linux, 读书笔记, L" />
+  <meta name="keywords" content="linux, 读书笔记, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2018/12/23/apue-读书笔记-Process-Control/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/12/23/apue-读书笔记-Process-Control/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -296,7 +296,7 @@
 <p>Process ID 0 is usually the scheduler process.<br>Process ID 1 is usually the <code>init</code> process and is invoked by the kernel at the end of the bootstrap procedure. </p>
 <h2 id="2-fork-Function"><a href="#2-fork-Function" class="headerlink" title="2 fork Function"></a>2 <code>fork</code> Function</h2><p>An existing process can create a new one by calling the <code>fork</code> function.<br>The new process created by <code>fork</code> is called the <em>child process</em>. This function is called once but returns twice. The only difference in the returns is that the return value in the child is 0, whereas the return value in the parent is the process ID of the new child.</p>
 <p><strong>File Sharing</strong><br>One characteristic of <code>fork</code> is that all file descriptors that are open in the parent are duplicated in the child. We say ‘‘duplicated’’ because it’s as if the <code>dup</code> function had been called for each descriptor. The parent and the child share a file table entry for every open descriptor.</p>
-<p>Consider a process that has three different files opened for standard input, standard output, and standard error. On return from <code>fork</code>, we have the arrangement shown in Figure 8.2.<br><img src="/images/2018/12/45.png" alt=""><br>It is important that the parent and the child share the same file offset.</p>
+<p>Consider a process that has three different files opened for standard input, standard output, and standard error. On return from <code>fork</code>, we have the arrangement shown in Figure 8.2.<br><img src="/images/2018/12/45.png" alt><br>It is important that the parent and the child share the same file offset.</p>
 <h2 id="3-exit-Functions"><a href="#3-exit-Functions" class="headerlink" title="3 exit Functions"></a>3 <code>exit</code> Functions</h2><p>Regardless of how a process terminates, the same code in the kernel is eventually executed. This kernel code closes all the open descriptors for the process, releases the memory that it was using, and so on.</p>
 <p>For any of the preceding cases, we want the terminating process to be able to notify its parent how it terminated. For the three exit functions (<code>exit</code>, <code>_exit</code>, and <code>_Exit</code>), this is done by passing an exit status as the argument to the function. In the case of an abnormal termination, however, the kernel—not the process—generates a termination status to indicate the reason for the abnormal termination. In any case, the parent of the process can obtain the termination status from either the <code>wait</code> or the <code>waitpid</code> function.</p>
 <p>What happens if the parent terminates before the child? The answer is that the <code>init</code> process becomes the parent process of any process whose parent terminates. In such a case, we say that the process has been inherited by init.</p>
@@ -309,7 +309,7 @@
 <li>Return immediately with an error, if it doesn’t have any child processes</li>
 </ul>
 <p>If the process is calling <code>wait</code> because it received the <code>SIGCHLD</code> signal, we expect <code>wait</code> to return immediately. But if we call it at any random point in time, it can block.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pid_t</span> wait(<span class="keyword">int</span> *statloc);</span><br><span class="line"><span class="keyword">pid_t</span> waitpid(<span class="keyword">pid_t</span> pid, <span class="keyword">int</span> *statloc, <span class="keyword">int</span> options);</span><br></pre></td></tr></table></figure></p>
-<p><img src="/images/2018/12/46.png" alt=""></p>
+<p><img src="/images/2018/12/46.png" alt></p>
 <p>The <code>waitpid</code> function provides three features that aren’t provided by the <code>wait</code><br>function.</p>
 <ol>
 <li>The <code>waitpid</code> function lets us wait for one particular process, whereas the <code>wait</code> function returns the status of any terminated child.</li>

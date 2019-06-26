@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Proactively Breaking Large Pages to Improve Memory Overcommitment Performance in VMware ESXi"/>
+  <meta name="description" content="Proactively Breaking Large Pages to Improve Memory Overcommitment Performance in VMware ESXi">
 
 
 
 
-  <meta name="keywords" content="内存管理, L" />
+  <meta name="keywords" content="内存管理, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2017/08/23/Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance-in-VMware-ESXi/"/>
+<link rel="canonical" href="http://liujunming.github.io/2017/08/23/Proactively-Breaking-Large-Pages-to-Improve-Memory-Overcommitment-Performance-in-VMware-ESXi/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -326,9 +326,9 @@
 <li><a href="https://scholar.google.com/scholar?cites=17156731682018332745&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=zh-CN" target="_blank" rel="noopener">最新动态</a></li>
 </ul>
 <h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>当主机内存过量使用时，我们会衡量大页对工作负载性能的影响。由于使用大页会显著增加虚拟机内存消耗并降低页面共享，与使用小页相比，工作负载性能可能会大大降低。 然而，当主机有大量可用内存时，禁用大页通常会降低许多工作负载的性能。</p>
-<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><h4 id="VMware-ESXi内存管理基础原则"><a href="#VMware-ESXi内存管理基础原则" class="headerlink" title="VMware ESXi内存管理基础原则"></a>VMware ESXi内存管理基础原则</h4><p>主机空闲内存的数量决定了空闲内存状态，根据不同的状态，ESXi将采取不同的技术来回收内存。主机内存有high和low这两个状态，状态转换阈值称为minFree，并根据主机内存大小进行预设。<br><img src="/images/2017/8/5.png" alt=""><br>当主机内存处于high状态时，仅使用页面共享来回收内存；当主机内存处于low状态时，ESXi会使用气球和swapping来回收内存。</p>
+<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><h4 id="VMware-ESXi内存管理基础原则"><a href="#VMware-ESXi内存管理基础原则" class="headerlink" title="VMware ESXi内存管理基础原则"></a>VMware ESXi内存管理基础原则</h4><p>主机空闲内存的数量决定了空闲内存状态，根据不同的状态，ESXi将采取不同的技术来回收内存。主机内存有high和low这两个状态，状态转换阈值称为minFree，并根据主机内存大小进行预设。<br><img src="/images/2017/8/5.png" alt><br>当主机内存处于high状态时，仅使用页面共享来回收内存；当主机内存处于low状态时，ESXi会使用气球和swapping来回收内存。</p>
 <h4 id="拆分“冷”大页"><a href="#拆分“冷”大页" class="headerlink" title="拆分“冷”大页"></a>拆分“冷”大页</h4><p>识别不经常使用的大页，即“冷”大页，并允许它们在主机空闲内存充足时被拆分。 基本上，我们通过定期扫描大页的Accessed位，实现一个简单的“冷”大页检测器。 然后，Hypervisor会拆分包含可共享小页的“冷”大页。</p>
-<h4 id="clear-内存状态"><a href="#clear-内存状态" class="headerlink" title="clear 内存状态"></a>clear 内存状态</h4><p>当主机内存压力低时，拆分“冷”大页会降低主机内存消耗，性能影响可以忽略不计。 然而，当主机内存压力增加时，拆分“冷”大页可能依然使主机内存不足，主机内存最终达到low状态。 在这种情况下，提前打破所有大页（包括“热”的）是有益的，以便hypervisor可以通过页面共享抢先回收内存， 然后将气球技术或swapping回收的内存量最小化。 为了实现这一点，我们提出了一种在high状态和low状态之间的clear状态。<br><img src="/images/2017/8/6.png" alt=""></p>
+<h4 id="clear-内存状态"><a href="#clear-内存状态" class="headerlink" title="clear 内存状态"></a>clear 内存状态</h4><p>当主机内存压力低时，拆分“冷”大页会降低主机内存消耗，性能影响可以忽略不计。 然而，当主机内存压力增加时，拆分“冷”大页可能依然使主机内存不足，主机内存最终达到low状态。 在这种情况下，提前打破所有大页（包括“热”的）是有益的，以便hypervisor可以通过页面共享抢先回收内存， 然后将气球技术或swapping回收的内存量最小化。 为了实现这一点，我们提出了一种在high状态和low状态之间的clear状态。<br><img src="/images/2017/8/6.png" alt></p>
 <p>从high状态切换到clear状态的阈值，被称为high-to-clear。在clear状态下，任何大页如果包含可共享的小页，则可能会被拆分，并且不包含可共享的小页的大页仍然保留， ESXi中的大页分配和合并也都被禁用。</p>
 <h5 id="high-to-clear的动态调整"><a href="#high-to-clear的动态调整" class="headerlink" title="high-to-clear的动态调整"></a>high-to-clear的动态调整</h5><p>我们提出了一种基于空闲内存消耗率的high-to-clear调整机制。 本质上，如果主机空闲内存在clear状态时增加，我们将降低high-to-clear，以允许主机在将来重新进入high状态 ； 一旦我们检测到主机空闲内存迅速下降， high-to-clear将恢复为默认值。</p>
 <h4 id="页面扫描速率的动态调整"><a href="#页面扫描速率的动态调整" class="headerlink" title="页面扫描速率的动态调整"></a>页面扫描速率的动态调整</h4><p>一般来说，扫描速率应根据主机内存消耗速率和虚拟机内存共享性进行设置。 例如，如果大页中较少的小页可共享，则扫描速率需要更高，以便从拆分的大页中拾取足够可共享的小页，反之亦然。 由于VM大页中的内存共享性在ESXi中是未知的，因此我们提出了一种使用抽样技术来估计客户机内存的可共享量。</p>

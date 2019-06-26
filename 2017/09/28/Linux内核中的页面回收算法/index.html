@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Linux内核中的页面回收算法"/>
+  <meta name="description" content="Linux内核中的页面回收算法">
 
 
 
 
-  <meta name="keywords" content="内存管理, Kernel, L" />
+  <meta name="keywords" content="内存管理, Kernel, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2017/09/28/Linux内核中的页面回收算法/"/>
+<link rel="canonical" href="http://liujunming.github.io/2017/09/28/Linux内核中的页面回收算法/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -360,8 +360,8 @@
 </ul>
 <h4 id="LRU-缓存"><a href="#LRU-缓存" class="headerlink" title="LRU 缓存"></a>LRU 缓存</h4><p>前边提到，页面根据其活跃程度会在 active 链表和 inactive 链表之间来回移动，如果要将某个页面插入到这两个链表中去，必须要通过自旋锁以保证对链表的并发访问操作不会出错。为了降低锁的竞争，Linux 提供了一种特殊的缓存：LRU 缓存，用以批量地向 LRU 链表中快速地添加页面。有了 LRU 缓存之后，新页不会被马上添加到相应的链表上去，而是先被放到一个缓冲区中去，当该缓冲区缓存了足够多的页面之后，缓冲区中的页面才会被一次性地全部添加到相应的 LRU 链表中去。Linux 采用这种方法降低了锁的竞争，极大地提升了系统的性能。<br>LRU 缓存用到了 pagevec 结构，如下所示 :<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pagevec</span> &#123;</span> </span><br><span class="line"> <span class="keyword">unsigned</span> <span class="keyword">long</span> nr; </span><br><span class="line"> <span class="keyword">unsigned</span> <span class="keyword">long</span> cold; </span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">page</span> *<span class="title">pages</span>[<span class="title">PAGEVEC_SIZE</span>];</span> </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
 <p>pagevec 这个结构就是用来管理 LRU 缓存中的这些页面的。该结构定义了一个数组，这个数组中的项是指向 page 结构的指针。一个 pagevec 结构最多可以存在 14 个这样的项（PAGEVEC_SIZE 的默认值是 14）。当一个 pagevec 的结构满了，那么该 pagevec 中的所有页面会一次性地被移动到相应的 LRU 链表上去。<br>用来实现 LRU 缓存的两个关键函数是 <a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/mm/swap.c#L161" target="_blank" rel="noopener">lru_cache_add()</a> 和 <a href="http://elixir.free-electrons.com/linux/v2.6.18.1/source/mm/swap.c#L171" target="_blank" rel="noopener">lru_cache_add_active()</a>。前者用于延迟将页面添加到 inactive 链表上去，后者用于延迟将页面添加到 active 链表上去。这两个函数都会将要移动的页面先放到页向量 pagevec 中，当 pagevec 满了（已经装了 14 个页面的描述符指针），pagevec 结构中的所有页面才会被一次性地移动到相应的链表上去。<br>下图概括总结了上文介绍的如何在两个链表之间移动页面，以及 LRU 缓存在其中起到的作用：</p>
-<p><strong>图 1. 页面在 LRU 链表之间移动示意图</strong><br><img src="/images/2017/9/12.png" alt=""><br>其中，1 表示函数 mark_page_accessed()，2 表示函数 page_referenced()，3 表示函数 activate_page()，4 表示函数 shrink_active_list()。</p>
-<h3 id="页面回收的实现"><a href="#页面回收的实现" class="headerlink" title="页面回收的实现"></a>页面回收的实现</h3><p>Linux 操作系统进行页面回收需要考虑的方面很多，下图列出了 Linux 操作系统进行页面回收的关键代码流程图，该图给出了实现页面回收的关键代码函数名，并说明它们之间是如何彼此链接的。<br><strong>图 2. 页面回收关键代码流程图</strong><br><img src="/images/2017/9/13.jpg" alt=""></p>
+<p><strong>图 1. 页面在 LRU 链表之间移动示意图</strong><br><img src="/images/2017/9/12.png" alt><br>其中，1 表示函数 mark_page_accessed()，2 表示函数 page_referenced()，3 表示函数 activate_page()，4 表示函数 shrink_active_list()。</p>
+<h3 id="页面回收的实现"><a href="#页面回收的实现" class="headerlink" title="页面回收的实现"></a>页面回收的实现</h3><p>Linux 操作系统进行页面回收需要考虑的方面很多，下图列出了 Linux 操作系统进行页面回收的关键代码流程图，该图给出了实现页面回收的关键代码函数名，并说明它们之间是如何彼此链接的。<br><strong>图 2. 页面回收关键代码流程图</strong><br><img src="/images/2017/9/13.jpg" alt></p>
 <p>上文提到 Linux 中页面回收主要是通过两种方式触发的，一种是由“内存严重不足”事件触发的；一种是由后台进程 kswapd 触发的，该进程周期性地运行，一旦检测到内存不足，就会触发页面回收操作。对于第一种情况，系统会调用函数 try_to_free_pages() 去检查当前内存区域中的页面，回收那些最不常用的页面。对于第二种情况，函数 balance_pgdat() 是入口函数。<br>当 NUMA 上的某个节点的低内存区域调用函数 try_to_free_pages() 的时候，该函数会反复调用 shrink_zones() 以及 shrink_slab() 释放一定数目的页面，默认值是 32 个页面。如果在特定的循环次数内没有能够成功释放 32 个页面，那么页面回收会调用 OOM killer 选择并杀死一个进程，然后释放它占用的所有页面。函数 shrink_zones() 会对内存区域列表中的所有区域分别调用 shrink_zone() 函数，后者是从内存回收最近最少使用页面的入口函数。<br>对于定期页面检查并进行回收的入口函数 balance_pgdat() 来说，它主要调用的函数是 shrink_zone() 和 shrink_slab()。从上图中我们也可以看出，进行页面回收的两条代码路径最终汇合到函数 shrink_zone() 和函数 shrink_slab() 上。</p>
 <h4 id="函数-shrink-zone"><a href="#函数-shrink-zone" class="headerlink" title="函数 shrink_zone()"></a>函数 shrink_zone()</h4><p>其中，shrink_zone() 函数是 Linux 操作系统实现页面回收的最核心的函数之一，它实现了对一个内存区域的页面进行回收的功能，该函数主要做了两件事情：</p>
 <ul>
@@ -369,7 +369,7 @@
 <li>从 inactive 链表中选定一定数目的页面，将其放到一个临时链表中，这由函数 shrink_inactive_list() 完成。该函数最终会调用 shrink_page_list() 去回收这些页面。</li>
 </ul>
 <p>函数 shrink_page_list() 返回的是回收成功的页面数目。概括来说，对于可进行回收的页面，该函数主要做了这样几件事情，其代码流程图如下所示：</p>
-<p><img src="/images/2017/9/15.jpg" alt=""></p>
+<p><img src="/images/2017/9/15.jpg" alt></p>
 <ul>
 <li>对于匿名页面来说，在回收此类页面时，需要将其数据写入到交换区。如果尚未为该页面分配交换区槽位，则先分配一个槽位，并将该页面添加到交换缓存。同时，将相关的 page 实例加入到交换区，这样，对该页面的处理就可以跟其他已经建立映射的页面一样；</li>
 <li>如果该页面已经被映射到一个或者多个进程的页表项中，那么必须找到所有引用该页面的进程，并更新页表中与这些进程相关的所有页表项。</li>

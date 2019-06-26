@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Understanding the Linux Kernel 读书笔记 -Process Scheduling"/>
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记 -Process Scheduling">
 
 
 
 
-  <meta name="keywords" content="Kernel, 读书笔记, L" />
+  <meta name="keywords" content="Kernel, 读书笔记, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2018/12/27/Understanding-the-Linux-Kernel-读书笔记-Process-Scheduling/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/12/27/Understanding-the-Linux-Kernel-读书笔记-Process-Scheduling/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -295,7 +295,7 @@
         <p>This chapter deals with <em>scheduling</em>, which is concerned with when to switch and which process to choose.<a id="more"></a> </p>
 <h2 id="1-Scheduling-Policy"><a href="#1-Scheduling-Policy" class="headerlink" title="1 Scheduling Policy"></a>1 Scheduling Policy</h2><p>The set of rules used to determine when and how to select a new process to run is called <em>scheduling policy</em>.<br>Linux scheduling is based on the <em>time sharing</em> technique: several processes run in “time multiplexing” because the CPU time is divided into <em>slices</em>, one for each runnable process.</p>
 <p>Programmers may change the scheduling priorities by means of the system calls illustrated in Table 7-1.</p>
-<p><img src="/images/2018/12/59.png" alt=""></p>
+<p><img src="/images/2018/12/59.png" alt></p>
 <h3 id="1-1-Process-Preemption"><a href="#1-1-Process-Preemption" class="headerlink" title="1.1 Process Preemption"></a>1.1 Process Preemption</h3><p>Linux processes are <em>preemptable</em>. When a process enters the <code>TASK_RUNNING</code> state, the kernel checks whether its dynamic priority is greater than the priority of the currently running process. If it is, the execution of <code>current</code> is interrupted and the scheduler is invoked to select another process to run (usually the process that just became runnable).</p>
 <p>Be aware that a preempted process is not suspended, because it remains in the <code>TASK_ RUNNING</code> state; it simply no longer uses the CPU.</p>
 <h3 id="1-2-How-Long-Must-a-Quantum-Last"><a href="#1-2-How-Long-Must-a-Quantum-Last" class="headerlink" title="1.2 How Long Must a Quantum Last?"></a>1.2 How Long Must a Quantum Last?</h3><p>The quantum[时间片] duration is critical for system performance: it should be neither too long nor too short.</p>
@@ -309,7 +309,7 @@
 <h3 id="3-1-The-runqueue-Data-Structure"><a href="#3-1-The-runqueue-Data-Structure" class="headerlink" title="3.1 The runqueue Data Structure"></a>3.1 The <code>runqueue</code> Data Structure</h3><p>The <a href="https://elixir.bootlin.com/linux/v2.6.11/source/kernel/sched.c#L198" target="_blank" rel="noopener">runqueue</a> data structure.</p>
 <p>Each CPU in the system has its own runqueue; all <code>runqueue</code> structures are stored in the <code>runqueues</code> per-CPU variable.</p>
 <p>The most important fields of the <code>runqueue</code> data structure are those related to the lists of runnable processes.</p>
-<p>The <code>arrays</code> field of the runqueue is an array consisting of two <code>prio_array_t</code> structures. Each data structure represents a set of runnable processes, and includes 140 doubly linked list heads (one list for each possible process priority), a priority bitmap, and a counter of the processes included in the set.<br><img src="/images/2018/12/60.png" alt=""></p>
+<p>The <code>arrays</code> field of the runqueue is an array consisting of two <code>prio_array_t</code> structures. Each data structure represents a set of runnable processes, and includes 140 doubly linked list heads (one list for each possible process priority), a priority bitmap, and a counter of the processes included in the set.<br><img src="/images/2018/12/60.png" alt></p>
 <h3 id="3-2-Process-Descriptor"><a href="#3-2-Process-Descriptor" class="headerlink" title="3.2 Process Descriptor"></a>3.2 Process Descriptor</h3><p>Each process descriptor includes several fields related to scheduling.</p>
 <h2 id="4-Functions-Used-by-the-Scheduler"><a href="#4-Functions-Used-by-the-Scheduler" class="headerlink" title="4 Functions Used by the Scheduler"></a>4 Functions Used by the Scheduler</h2><p>The scheduler relies on several functions in order to do its work; the most important are:</p>
 <ul>
@@ -351,7 +351,7 @@
 <p>Therefore, the kernel periodically checks whether the workloads of the runqueues are balanced and, if necessary, moves some process from one runqueue to another. However, to get the best performance from a multiprocessor system, the load balancing algorithm should take into consideration the topology of the CPUs in the system. Linux sports a sophisticated runqueue balancing algorithm based on the notion of “scheduling domains.” Thanks to the scheduling domains, the algorithm can be easily tuned for all kinds of existing multiprocessor architectures.</p>
 <h3 id="5-1-Scheduling-Domains"><a href="#5-1-Scheduling-Domains" class="headerlink" title="5.1 Scheduling Domains"></a>5.1 Scheduling Domains</h3><p>Essentially, a <em>scheduling domain</em> is a set of CPUs whose workloads should be kept balanced by the kernel. Generally speaking, scheduling domains are hierarchically organized: the top-most scheduling domain, which usually spans all CPUs in the system, includes children scheduling domains, each of which include a subset of the CPUs. Thanks to the hierarchy of scheduling domains, workload balancing can be done in a rather efficient way.</p>
 <p>Figure 7-2 illustrates three examples of scheduling domain hierarchies, corresponding to the three main architectures of multiprocessor machines.</p>
-<p><img src="/images/2018/12/61.png" alt=""></p>
+<p><img src="/images/2018/12/61.png" alt></p>
 
       
     </div>

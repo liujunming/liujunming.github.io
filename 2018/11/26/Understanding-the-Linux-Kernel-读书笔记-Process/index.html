@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Understanding the Linux Kernel 读书笔记 -Process"/>
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记 -Process">
 
 
 
 
-  <meta name="keywords" content="Kernel, 读书笔记, L" />
+  <meta name="keywords" content="Kernel, 读书笔记, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2018/11/26/Understanding-the-Linux-Kernel-读书笔记-Process/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/11/26/Understanding-the-Linux-Kernel-读书笔记-Process/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -295,14 +295,14 @@
         <h2 id="Processes-Lightweight-Processes-and-Threads"><a href="#Processes-Lightweight-Processes-and-Threads" class="headerlink" title="Processes, Lightweight Processes, and Threads"></a>Processes, Lightweight Processes, and Threads</h2><p>A process is an instance of a program in execution. You might think of it as the collection of data structures that fully describes how far the execution of the program has progressed. The purpose of a process is to act as an entity to which system resources (CPU time, memory, etc.) are allocated.<br><a id="more"></a><br>Linux uses <em>lightweight processes</em> to offer better support for multithreaded applications. A straightforward way to implement multithreaded applications is to associate a lightweight process with each thread. Each thread can be scheduled independently by the kernel so that one may sleep while another remains runnable.</p>
 <h2 id="Process-Descriptor"><a href="#Process-Descriptor" class="headerlink" title="Process Descriptor"></a>Process Descriptor</h2><p>This is the role of the process descriptor—a <code>task_ struct</code> type structure whose fields contain all the information related to a single process.</p>
 <h3 id="2-1-Process-State"><a href="#2-1-Process-State" class="headerlink" title="2.1 Process State"></a>2.1 Process State</h3><h3 id="2-2-Identifying-a-Process"><a href="#2-2-Identifying-a-Process" class="headerlink" title="2.2 Identifying a Process"></a>2.2 Identifying a Process</h3><p>Linux associates a different PID with each process or lightweight process in the system. However, POSIX standard states that all threads of a multithreaded application must have the same PID.<br>To comply with this standard, the identifier shared by the threads is the PID of the <em>thread group leader</em>, that is, the PID of the first lightweight process in the group; it is stored in the <code>tgid</code> field of the process descriptors.<br>The <code>getpid()</code> system call returns the value of <code>tgid</code> relative to the current process instead of the value of <code>pid</code>, so all the threads of a multithreaded application share the same identifier.</p>
-<h4 id="2-2-1-Process-descriptors-handling"><a href="#2-2-1-Process-descriptors-handling" class="headerlink" title="2.2.1 Process descriptors handling"></a>2.2.1 Process descriptors handling</h4><p>For each process, Linux packs two different data structures in a single per-process memory area: a small data structure linked to the process descriptor, namely the <code>thread_info</code> structure, and the <strong>Kernel Mode process stack</strong>.<br><img src="/images/2018/11/12.png" alt=""></p>
+<h4 id="2-2-1-Process-descriptors-handling"><a href="#2-2-1-Process-descriptors-handling" class="headerlink" title="2.2.1 Process descriptors handling"></a>2.2.1 Process descriptors handling</h4><p>For each process, Linux packs two different data structures in a single per-process memory area: a small data structure linked to the process descriptor, namely the <code>thread_info</code> structure, and the <strong>Kernel Mode process stack</strong>.<br><img src="/images/2018/11/12.png" alt></p>
 <h4 id="2-2-2-Identifying-the-current-process"><a href="#2-2-2-Identifying-the-current-process" class="headerlink" title="2.2.2 Identifying the current process"></a>2.2.2 Identifying the current process</h4><p>The kernel can easily obtain the address of the <code>thread_info</code> structure of the process currently running on a CPU from the value of the esp register.</p>
 <h4 id="2-2-3-The-process-list"><a href="#2-2-3-The-process-list" class="headerlink" title="2.2.3 The process list"></a>2.2.3 The process list</h4><h4 id="2-2-4-The-lists-of-TASK-RUNNING-processes"><a href="#2-2-4-The-lists-of-TASK-RUNNING-processes" class="headerlink" title="2.2.4 The lists of TASK_RUNNING processes"></a>2.2.4 The lists of TASK_RUNNING processes</h4><p>When looking for a new process to run on a CPU, the kernel has to consider only the <strong>runnable</strong> processes (that is, the processes in the <code>TASK_RUNNING</code>state).</p>
 <p>Linux 2.6 implements the runqueue without putting all runnable processes in the same list. The aim is to allow the scheduler to select the best runnable process in constant time.</p>
 <p>The trick is splitting the runqueue in many lists of runnable processes, one list per process priority. Each <code>task_struct</code> descriptor includes a <code>run_list</code>field which points to the corresponding runqueue.</p>
 <p>All these are implemented by a single data structure <code>prio_array_t</code>. Noted that each CPU has its own runqueue.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">prio_array</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> nr_active; <span class="comment">/* The number of process descriptors linked into the lists */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> bitmap[BITMAP_SIZE];  <span class="comment">/* A priority bitmap: each flag is set if and only if the corre- sponding priority list is not empty */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">queue</span>[<span class="title">MAX_PRIO</span>];</span> <span class="comment">/* The 140 heads of the priority lists */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<h3 id="2-3-Relationships-Among-Processes"><a href="#2-3-Relationships-Among-Processes" class="headerlink" title="2.3 Relationships Among Processes"></a>2.3 Relationships Among Processes</h3><p>The pidhash table and chained lists<br><img src="/images/2018/11/13.png" alt=""></p>
-<p><img src="/images/2018/11/14.png" alt=""></p>
+<h3 id="2-3-Relationships-Among-Processes"><a href="#2-3-Relationships-Among-Processes" class="headerlink" title="2.3 Relationships Among Processes"></a>2.3 Relationships Among Processes</h3><p>The pidhash table and chained lists<br><img src="/images/2018/11/13.png" alt></p>
+<p><img src="/images/2018/11/14.png" alt></p>
 <h3 id="2-4-How-Processes-Are-Organized"><a href="#2-4-How-Processes-Are-Organized" class="headerlink" title="2.4 How Processes Are Organized"></a>2.4 How Processes Are Organized</h3><h4 id="2-4-1-Wait-queues"><a href="#2-4-1-Wait-queues" class="headerlink" title="2.4.1 Wait queues"></a>2.4.1 Wait queues</h4><p>A wait queue represents a set of sleeping processes, which are woken up by the kernel when some condition becomes true.</p>
 <h4 id="2-4-2-Handling-wait-queues"><a href="#2-4-2-Handling-wait-queues" class="headerlink" title="2.4.2 Handling wait queues"></a>2.4.2 Handling wait queues</h4><h3 id="2-5-Process-Resource-Limits"><a href="#2-5-Process-Resource-Limits" class="headerlink" title="2.5 Process Resource Limits"></a>2.5 Process Resource Limits</h3><p>Each process has an associated set of resource limits, which specify the amount of system resources it can use.<br>The resource limits are stored in an array (<code>task_struct-&gt;signal</code>) of elements of type struct rlimit.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rlimit</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>   rlim_cur;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>   rlim_max;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
 <h2 id="Process-Switch"><a href="#Process-Switch" class="headerlink" title="Process Switch"></a>Process Switch</h2><h3 id="3-1-Hardware-Context"><a href="#3-1-Hardware-Context" class="headerlink" title="3.1 Hardware Context"></a>3.1 Hardware Context</h3><p>The set of data that must be loaded into the registers before the process resumes its execution on the CPU is called the <em>hardware context</em>. The hardware context is a subset of the process execution context, which includes all information needed for the process execution. In Linux, a part of the hardware context of a process is stored in the process descriptor, while the remaining part is saved in the Kernel Mode stack.</p>

@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Understanding the Linux Kernel 读书笔记-Block Device Drivers"/>
+  <meta name="description" content="Understanding the Linux Kernel 读书笔记-Block Device Drivers">
 
 
 
 
-  <meta name="keywords" content="Kernel, I/O系统, 读书笔记, L" />
+  <meta name="keywords" content="Kernel, I/O系统, 读书笔记, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2019/01/03/Understanding-the-Linux-Kernel-读书笔记-Block-Device-Drivers/"/>
+<link rel="canonical" href="http://liujunming.github.io/2019/01/03/Understanding-the-Linux-Kernel-读书笔记-Block-Device-Drivers/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -295,7 +295,7 @@
         <p>We start in the first section “Block Devices Handling” to explain the general architecture of the Linux block I/O subsystem. In the sections “The Generic Block Layer,” “The I/O Scheduler,” and “Block Device Drivers,” we will describe the main components of the block I/O subsystem. Finally, in the last section, “Opening a Block Device File,” we will outline the steps performed by the kernel when opening a block device file.<a id="more"></a></p>
 <p><a href="http://www.ilinuxkernel.com/files/IO.Data.Structure.pdf" target="_blank" rel="noopener">Linux内核I/O流程主要数据结构</a></p>
 <p>阅读时注意request的上下文，可能代表普遍意义上的请求，也可能代表<code>request</code>结构体。</p>
-<h2 id="1-Block-Devices-Handling"><a href="#1-Block-Devices-Handling" class="headerlink" title="1 Block Devices Handling"></a>1 Block Devices Handling</h2><p>Each operation on a block device driver involves a large number of kernel components; the most important ones are shown in Figure 14-1.<br><img src="/images/2019/1/16.png" alt=""><br>Let us suppose, for instance, that a process issued a read() system call on some disk file. Here is what the kernel typically does to service the process request:</p>
+<h2 id="1-Block-Devices-Handling"><a href="#1-Block-Devices-Handling" class="headerlink" title="1 Block Devices Handling"></a>1 Block Devices Handling</h2><p>Each operation on a block device driver involves a large number of kernel components; the most important ones are shown in Figure 14-1.<br><img src="/images/2019/1/16.png" alt><br>Let us suppose, for instance, that a process issued a read() system call on some disk file. Here is what the kernel typically does to service the process request:</p>
 <ol>
 <li>The service routine of the <code>read()</code> system call activates a suitable VFS function, passing to it a file descriptor and an offset inside the file. </li>
 <li>The VFS function determines if the requested data is already available and, if necessary, how to perform the read operation.</li>
@@ -316,7 +316,7 @@
 <li>The disk caches work on “pages” of disk data, each of which fits in a page frame.</li>
 <li>The generic block layer glues together all the upper and lower components, thus it knows about sectors, blocks, segments, and pages of data.</li>
 </ul>
-<p><img src="/images/2019/1/17.png" alt=""></p>
+<p><img src="/images/2019/1/17.png" alt></p>
 <h3 id="1-1-Sectors"><a href="#1-1-Sectors" class="headerlink" title="1.1 Sectors"></a>1.1 Sectors</h3><h3 id="1-2-Blocks"><a href="#1-2-Blocks" class="headerlink" title="1.2 Blocks"></a>1.2 Blocks</h3><h3 id="1-3-Segments"><a href="#1-3-Segments" class="headerlink" title="1.3 Segments"></a>1.3 Segments</h3><h2 id="2-The-Generic-Block-Layer"><a href="#2-The-Generic-Block-Layer" class="headerlink" title="2 The Generic Block Layer"></a>2 The Generic Block Layer</h2><p>The generic block layer is a kernel component that handles the requests for all block devices in the system. Thanks to its functions, the kernel may easily:</p>
 <ul>
 <li>Implement—with some additional effort—a “zero-copy” schema, where disk data is directly put in the User Mode address space without being copied to kernel memory first.</li>
@@ -324,12 +324,12 @@
 <li>Exploit the advanced features of the most recent disk controllers.</li>
 </ul>
 <h3 id="2-1-The-Bio-Structure"><a href="#2-1-The-Bio-Structure" class="headerlink" title="2.1 The Bio Structure"></a>2.1 The Bio Structure</h3><p>The core data structure of the generic block layer is a descriptor of an ongoing I/O block device operation called <em>bio</em>. Each bio essentially includes an identifier for a disk storage area—the initial sector number and the number of sectors included in the storage area—and one or more segments describing the memory areas involved in the I/O operation. A bio is implemented by the <code>bio</code> data structure.</p>
-<p>Each segment in a bio is represented by a <code>bio_vec</code> data structure.<br><img src="/images/2019/1/18.png" alt=""></p>
+<p>Each segment in a bio is represented by a <code>bio_vec</code> data structure.<br><img src="/images/2019/1/18.png" alt></p>
 <h3 id="2-2-Representing-Disks-and-Disk-Partitions"><a href="#2-2-Representing-Disks-and-Disk-Partitions" class="headerlink" title="2.2 Representing Disks and Disk Partitions"></a>2.2 Representing Disks and Disk Partitions</h3><p>A <em>disk</em> is a logical block device that is handled by the generic block layer. Usually a disk corresponds to a hardware block device such as a hard disk, a floppy disk, or a CD-ROM disk. However, a disk can be a virtual device built upon several physical disk partitions, or a storage area living in some dedicated pages of RAM. In any case, the upper kernel components operate on all disks in the same way thanks to the services offered by the generic block layer.</p>
 <p>A disk is represented by the <code>gendisk</code> object.</p>
 <p>Hard disks are commonly split into <em>logical partitions</em>. Each block device file may represent either a whole disk or a partition inside the disk. If a disk is split in partitions, their layout is kept in an array of <code>hd_struct</code> structures whose address is stored in the <code>part</code> field of the <code>gendisk</code> object.</p>
-<h3 id="2-3-Submitting-a-Request"><a href="#2-3-Submitting-a-Request" class="headerlink" title="2.3 Submitting a Request"></a>2.3 Submitting a Request</h3><h2 id="3-The-I-O-Scheduler"><a href="#3-The-I-O-Scheduler" class="headerlink" title="3 The I/O Scheduler"></a>3 The I/O Scheduler</h2><p><img src="/images/2019/1/20.jpg" alt=""></p>
-<p><img src="/images/2019/1/19.png" alt=""></p>
+<h3 id="2-3-Submitting-a-Request"><a href="#2-3-Submitting-a-Request" class="headerlink" title="2.3 Submitting a Request"></a>2.3 Submitting a Request</h3><h2 id="3-The-I-O-Scheduler"><a href="#3-The-I-O-Scheduler" class="headerlink" title="3 The I/O Scheduler"></a>3 The I/O Scheduler</h2><p><img src="/images/2019/1/20.jpg" alt></p>
+<p><img src="/images/2019/1/19.png" alt></p>
 <p>Although block device drivers are able to transfer a single sector at a time, the block I/O layer does not perform an individual I/O operation for each sector to be accessed on disk; this would lead to poor disk performance, because locating the physical position of a sector on the disk surface is quite time-consuming. Instead, the kernel tries, whenever possible, to cluster several sectors and handle them as a whole, thus reducing the average number of head movements.</p>
 <p>When a kernel component wishes to read or write some disk data, it actually creates a block device request. That request essentially describes the requested sectors and the kind of operation to be performed on them (read or write). However, the kernel does not satisfy a request as soon as it is created—the I/O operation is just scheduled and will be performed at a later time.</p>
 <p>Each block device driver maintains its own <em>request queue</em>, which contains the list of pending requests for the device. If the disk controller is handling several disks, there is usually one request queue for each physical block device. I/O scheduling is performed separately on each request queue, thus increasing disk performance.</p>

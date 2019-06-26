@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
+  <head><meta name="generator" content="Hexo 3.9.0">
     
-<meta charset="UTF-8"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
 
-<meta name="theme-color" content="#f8f5ec" />
+<meta name="theme-color" content="#f8f5ec">
 <meta name="msapplication-navbutton-color" content="#f8f5ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
 
-  <meta name="description" content="Docker基础技术：DeviceMapper"/>
+  <meta name="description" content="Docker基础技术：DeviceMapper">
 
 
 
 
-  <meta name="keywords" content="容器, docker, L" />
+  <meta name="keywords" content="容器, docker, L">
 
 
 
@@ -38,24 +38,24 @@
 
 
 
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2018/01/19/Docker基础技术：DeviceMapper/"/>
+<link rel="canonical" href="http://liujunming.github.io/2018/01/19/Docker基础技术：DeviceMapper/">
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
 
 
 
 
-  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css" />
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
 
 
 
-<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1" />
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
 
 
 
@@ -293,30 +293,30 @@
     <div class="post-content">
       
         <p>本文转载自:<a href="https://coolshell.cn/articles/17200.html" target="_blank" rel="noopener">DOCKER基础技术：DEVICEMAPPER</a><br><a id="more"></a></p>
-<p>在上一篇<a href="https://coolshell.cn/articles/17061.html" target="_blank" rel="noopener">介绍AUFS的文章</a>中，大家可以看到，Docker的分层镜像是怎么通过UnionFS这种文件系统做到的，但是，因为Docker首选的AUFS并不在Linux的内核主干里，所以，对于非Ubuntu的Linux分发包，比如CentOS，就无法使用AUFS作为Docker的文件系统了。于是作为第二优先级的DeviceMapper就被拿出来做分层镜像的一个实现。<br><img src="/images/2018/1/9.jpg" alt=""></p>
+<p>在上一篇<a href="https://coolshell.cn/articles/17061.html" target="_blank" rel="noopener">介绍AUFS的文章</a>中，大家可以看到，Docker的分层镜像是怎么通过UnionFS这种文件系统做到的，但是，因为Docker首选的AUFS并不在Linux的内核主干里，所以，对于非Ubuntu的Linux分发包，比如CentOS，就无法使用AUFS作为Docker的文件系统了。于是作为第二优先级的DeviceMapper就被拿出来做分层镜像的一个实现。<br><img src="/images/2018/1/9.jpg" alt></p>
 <h2 id="Device-Mapper-简介"><a href="#Device-Mapper-简介" class="headerlink" title="Device Mapper 简介"></a>Device Mapper 简介</h2><p>DeviceMapper自Linux 2.6被引入，成为了Linux最重要的一个技术。它是内核中支持逻辑卷管理的通用设备映射机制，它为实现用于存储资源管理的块设备驱动提供了一个高度模块化的内核架构，它包含三个重要的对象概念，Mapped Device、Mapping Table、Target device。</p>
 <p>Mapped Device 是一个逻辑抽象，可以理解成为内核向外提供的逻辑设备，它通过Mapping Table描述的映射关系和 Target Device 建立映射。Target device 表示的是 Mapped Device 所映射的物理空间段，对 Mapped Device 所表示的逻辑设备来说，就是该逻辑设备映射到的一个物理设备。</p>
 <p>Mapping Table里有 Mapped Device 逻辑的起始地址、范围、和表示在 Target Device 所在物理设备的地址偏移量以及Target 类型等信息（注：这些地址和偏移量都是以磁盘的扇区为单位的，即 512 个字节大小，所以，当你看到128的时候，其实表示的是128*512=64K）。</p>
 <p>DeviceMapper 中的逻辑设备Mapped Device不但可以映射一个或多个物理设备Target Device，还可以映射另一个Mapped Device，于是，就是构成了一个迭代或递归的情况，就像文件系统中的目录里除了文件还可以有目录，理论上可以无限嵌套下去。</p>
 <p>DeviceMapper在内核中通过一个个模块化的 Target Driver 插件实现对 IO 请求的过滤或者重新定向等工作，当前已经实现的插件包括软 Raid、加密、多路径、镜像、快照等，这体现了在 Linux 内核设计中策略和机制分离的原则。如下图所示。从图中，我们可以<strong>看到DeviceMapper只是一个框架，在这个框架上，我们可以插入各种各样的策略</strong>，在这诸多“插件”中，<strong>有一个东西叫Thin Provisioning Snapshot，这是Docker使用DeviceMapper中最重要的模块</strong>。</p>
-<p><img src="/images/2018/1/10.gif" alt=""></p>
+<p><img src="/images/2018/1/10.gif" alt></p>
 <center>图片来源：<a href="http://people.redhat.com/agk/talks/FOSDEM_2005/" target="_blank" rel="noopener">http://people.redhat.com/agk/talks/FOSDEM_2005/</a></center>
 
 <h2 id="Thin-Provisioning-简介"><a href="#Thin-Provisioning-简介" class="headerlink" title="Thin Provisioning 简介"></a>Thin Provisioning 简介</h2><p>Thin Provisioning要怎么翻译成中文，真是一件令人头痛的事，我就不翻译了。这个技术是虚拟化技术中的一种。它是什么意思呢？你可以联想一下我们计算机中的内存管理中用到的——“虚拟内存技术”——操作系统给每个进程N多N多用不完的内址地址，但是呢，我们知道，物理内存是没有那么多的，如果按照进程内存和物理内存一一映射来玩的话，那么，我们得要多少的物理内存啊。所以，操作系统引入了虚拟内存的设计，意思是，我逻辑上给你无限多的内存，但是实际上是实报实销，因为我知道你一定用不了那么多，于是，达到了内存使用率提高的效果。（今天云计算中很多所谓的虚拟化其实完全都是在用和“虚拟内存”相似的Thin Provisioning的技术）</p>
 <p>好了，话题拉回来，我们这里说的是存储。看下面两个图（<a href="http://www.architecting.it/2009/06/04/enterprise-computing-why-thin-provisioning-is-not-the-holy-grail-for-utilisation/" target="_blank" rel="noopener">图片来源</a>），第一个是Fat Provisioning，第二个是Thin Provisioning，其很好的说明了是个怎么一回事（和虚拟内存是一个概念）</p>
-<p><img src="/images/2018/1/10.jpg" alt=""></p>
-<p><img src="/images/2018/1/11.jpg" alt=""></p>
+<p><img src="/images/2018/1/10.jpg" alt></p>
+<p><img src="/images/2018/1/11.jpg" alt></p>
 <p>那么，Docker是怎么使用Thin Provisioning这个技术做到像UnionFS那样的分层镜像的呢？答案是，Docker使用了Thin Provisioning的Snapshot的技术。下面我们来介绍一下Thin Provisioning的Snapshot。</p>
 <h2 id="Thin-Provisioning-Snapshot-演示"><a href="#Thin-Provisioning-Snapshot-演示" class="headerlink" title="Thin Provisioning Snapshot 演示"></a>Thin Provisioning Snapshot 演示</h2><p>下面，我们用一系列的命令来演示一下Device Mapper的Thin Provisioning Snapshot是怎么玩的,请切换到root用户运行命令。</p>
 <p>首先，我们需要先建两个文件，一个是data.img，另一个是meta.data.img：<br><code>dd if=/dev/zero of=/tmp/data.img bs=1K count=1 seek=10M</code><br><code>dd if=/dev/zero of=/tmp/meta.data.img bs=1K count=1 seek=100K</code></p>
-<p><img src="/images/2018/1/12.png" alt=""></p>
+<p><img src="/images/2018/1/12.png" alt></p>
 <p>注意命令中seek选项，表示在备份时对of后面的部分也就是目标文件跳过多少块再开始写内容。因为bs是1K个字节，即块大小为1KB，所以当seek=10M时，也就是在备份时对data.img跳过10M个块（即10GB）再开始写内容。但此刻data.img在硬盘上占有空间只有1k的内容，当向其写入内容时，才会在硬盘上为其分配空间。我们可以用ls命令看一下data.img和meta.data.img实际分配的空间。</p>
 <p><code>ls -lsh /tmp/data.img</code><br><code>ls -lsh /tmp/meta.data.img</code></p>
-<p><img src="/images/2018/1/13.png" alt=""></p>
+<p><img src="/images/2018/1/13.png" alt></p>
 <p>然后，我们为这些文件创建<a href="http://liujunming.top/2018/01/17/%E5%9B%9E%E7%8E%AF%E8%AE%BE%E5%A4%87loopback-device/" target="_blank" rel="noopener">loopback设备</a>。</p>
 <p><code>losetup /dev/loop2015 /tmp/data.img</code><br><code>losetup /dev/loop2016 /tmp/meta.data.img</code></p>
 <p><code>losetup -a</code></p>
-<p><img src="/images/2018/1/14.png" alt=""></p>
+<p><img src="/images/2018/1/14.png" alt></p>
 <p>现在，我们为设备建一个Thin Provisioning的Pool，用dmsetup命令</p>
 <p><code>dmsetup create hchen-thin-pool --table &quot;0 20971520 thin-pool /dev/loop2016 /dev/loop2015 128 65536 1 skip_block_zeroing&quot;</code></p>
 <p>其中的参数解释如下（更多信息可参看<a href="https://github.com/torvalds/linux/blob/master/Documentation/device-mapper/thin-provisioning.txt" target="_blank" rel="noopener">Thin Provisioning的man page</a>）：</p>
@@ -336,7 +336,7 @@
 </li>
 </ul>
 <p>然后，我们就可以看到一个Device Mapper的设备了：<br><code>ll /dev/mapper/hchen-thin-pool</code></p>
-<p><img src="/images/2018/1/15.png" alt=""></p>
+<p><img src="/images/2018/1/15.png" alt></p>
 <p>我们的初始化工作还没有完成，接下来，还要创建一个Thin Provisioning 的 Volume：</p>
 <p><code>dmsetup message /dev/mapper/hchen-thin-pool 0 &quot;create_thin 0&quot;</code><br><code>dmsetup create hchen-thin-volumn-001 --table &quot;0 2097152 thin /dev/mapper/hchen-thin-pool 0&quot;</code></p>
 <p>其中：</p>
@@ -344,9 +344,9 @@
 <li>第一个命令中的create_thin是关键字，后面的0表示这个Volume的device 的 id</li>
 <li>第二个命令，是真正的为这个Volumn创建一个可以mount的设备，名字叫hchen-thin-volumn-001。</li>
 </ul>
-<p>好了，在mount前，我们还要格式化一下：<br><code>mkfs.ext4 /dev/mapper/hchen-thin-volumn-001</code><br><img src="/images/2018/1/16.png" alt=""></p>
-<p>好了，我们可以mount了（下面的命令中，我还创建了一个文件）<br><code>mkdir -p /mnt/base</code><br><code>mount /dev/mapper/hchen-thin-volumn-001 /mnt/base</code><br><code>echo &quot;hello world, I am a base&quot; &gt; /mnt/base/id.txt</code><br><code>cat /mnt/base/id.txt</code><br><img src="/images/2018/1/17.png" alt=""><br>好了，接下来，我们来看看snapshot怎么搞：<br><code>dmsetup message /dev/mapper/hchen-thin-pool 0 &quot;create_snap 1 0&quot;</code><br><code>dmsetup create mysnap1 --table &quot;0 2097152 thin /dev/mapper/hchen-thin-pool 1&quot;</code></p>
-<p><code>ll /dev/mapper/mysnap1</code><br><img src="/images/2018/1/18.png" alt=""><br>上面的命令中：</p>
+<p>好了，在mount前，我们还要格式化一下：<br><code>mkfs.ext4 /dev/mapper/hchen-thin-volumn-001</code><br><img src="/images/2018/1/16.png" alt></p>
+<p>好了，我们可以mount了（下面的命令中，我还创建了一个文件）<br><code>mkdir -p /mnt/base</code><br><code>mount /dev/mapper/hchen-thin-volumn-001 /mnt/base</code><br><code>echo &quot;hello world, I am a base&quot; &gt; /mnt/base/id.txt</code><br><code>cat /mnt/base/id.txt</code><br><img src="/images/2018/1/17.png" alt><br>好了，接下来，我们来看看snapshot怎么搞：<br><code>dmsetup message /dev/mapper/hchen-thin-pool 0 &quot;create_snap 1 0&quot;</code><br><code>dmsetup create mysnap1 --table &quot;0 2097152 thin /dev/mapper/hchen-thin-pool 1&quot;</code></p>
+<p><code>ll /dev/mapper/mysnap1</code><br><img src="/images/2018/1/18.png" alt><br>上面的命令中：</p>
 <ul>
 <li>第一条命令是向hchen-thin-pool发一个create_snap的消息，后面跟两个id，第一个是新的dev id，第二个是要从哪个已有的dev id上做snapshot（0这个dev id是我们前面就创建了了）</li>
 <li>第二条命令是创建一个mysnap1的device，并可以被mount。</li>
@@ -354,18 +354,18 @@
 <p>下面我们来看看：<br><code>mkdir -p /mnt/mysnap1</code><br><code>mount /dev/mapper/mysnap1 /mnt/mysnap1</code></p>
 <p><code>ll /mnt/mysnap1/</code></p>
 <p><code>cat /mnt/mysnap1/id.txt</code></p>
-<p><img src="/images/2018/1/19.png" alt=""></p>
+<p><img src="/images/2018/1/19.png" alt></p>
 <p>我们来修改一下/mnt/mysnap1/id.txt，并加上一个snap1.txt的文件：<br><code>echo &quot;I am snap1&quot; &gt;&gt; /mnt/mysnap1/id.txt</code><br><code>echo &quot;I am snap1&quot; &gt; /mnt/mysnap1/snap1.txt</code></p>
 <p><code>cat /mnt/mysnap1/id.txt</code></p>
 <p><code>cat /mnt/mysnap1/snap1.txt</code></p>
-<p><img src="/images/2018/1/20.png" alt=""></p>
+<p><img src="/images/2018/1/20.png" alt></p>
 <p>我们再看一下/mnt/base，你会发现没有什么变化：<br><code>ls /mnt/base</code><br><code>cat /mnt/base/id.txt</code></p>
-<p><img src="/images/2018/1/21.png" alt=""></p>
+<p><img src="/images/2018/1/21.png" alt></p>
 <p>你是不是已经看到了分层镜像的样子了？</p>
 <p>你还可以继续在刚才的snapshot上再建一个snapshot<br><code>dmsetup message /dev/mapper/hchen-thin-pool 0 &quot;create_snap 2 1&quot;</code><br><code>dmsetup create mysnap2  --table &quot;0 2097152 thin /dev/mapper/hchen-thin-pool 2&quot;</code></p>
 <p><code>ll /dev/mapper/mysnap2</code></p>
 <p><code>mkdir -p /mnt/mysnap2</code><br><code>mount /dev/mapper/mysnap2 /mnt/mysnap2</code><br><code>ls /mnt/mysnap2</code></p>
-<p><img src="/images/2018/1/22.png" alt=""></p>
+<p><img src="/images/2018/1/22.png" alt></p>
 <p>好了，我相信你看到了分层镜像的样子了。</p>
 <p>看完演示，我们再来补点理论知识吧：</p>
 <ul>
@@ -374,11 +374,11 @@
 </ul>
 <p>另外，这里有篇文章<a href="http://searchstorage.techtarget.com/tip/Storage-thin-provisioning-benefits-and-challenges" target="_blank" rel="noopener">Storage thin provisioning benefits and challenges</a>可以前往一读。</p>
 <h2 id="Docker的DeviceMapper"><a href="#Docker的DeviceMapper" class="headerlink" title="Docker的DeviceMapper"></a>Docker的DeviceMapper</h2><p>上面基本上就是Docker的玩法了。</p>
-<p><code>ls -alhs /var/lib/docker/devicemapper/devicemapper</code><br><img src="/images/2018/1/24.png" alt=""></p>
-<p>下面是相关的thin-pool。其中，有个一大串hash的device是正在启动的容器：<br><code>sudo ll /dev/mapper/dock*</code><br><img src="/images/2018/1/25.png" alt=""></p>
-<p>我们可以看一下它的device id（Docker都把它们记下来了）：<br><code>cat /var/lib/docker/devicemapper/metadata/29ef919ba2a241fa4fdb024fb66923522cea89e155162ca83b454212569b8f21</code><br><img src="/images/2018/1/26.png" alt=""></p>
-<p>device_id是1326，size是10737418240，除以512，就是20971520 个 sector，我们用这些信息来做个snapshot看看（注：我用了一个比较大的dev id – 2048）：<br><code>dmsetup message &quot;/dev/mapper/docker-thinpool&quot; 0 &quot;create_snap 2048 1326&quot;</code><br><code>dmsetup create dockersnap --table &quot;0 20971520 thin /dev/mapper/docker-thinpool 2048&quot;</code><br><code>mkdir /mnt/docker</code><br><code>mount /dev/mapper/dockersnap /mnt/docker/</code><br><code>ls /mnt/docker/</code><br><code>ls /mnt/docker/rootfs/</code><br><img src="/images/2018/1/27.png" alt=""></p>
-<p>我们在docker的容器里用findmnt命令也可以看到相关的mount的情况（因为太长，下面只是摘要）：<br><code>findmnt</code><br><img src="/images/2018/1/28.png" alt=""></p>
+<p><code>ls -alhs /var/lib/docker/devicemapper/devicemapper</code><br><img src="/images/2018/1/24.png" alt></p>
+<p>下面是相关的thin-pool。其中，有个一大串hash的device是正在启动的容器：<br><code>sudo ll /dev/mapper/dock*</code><br><img src="/images/2018/1/25.png" alt></p>
+<p>我们可以看一下它的device id（Docker都把它们记下来了）：<br><code>cat /var/lib/docker/devicemapper/metadata/29ef919ba2a241fa4fdb024fb66923522cea89e155162ca83b454212569b8f21</code><br><img src="/images/2018/1/26.png" alt></p>
+<p>device_id是1326，size是10737418240，除以512，就是20971520 个 sector，我们用这些信息来做个snapshot看看（注：我用了一个比较大的dev id – 2048）：<br><code>dmsetup message &quot;/dev/mapper/docker-thinpool&quot; 0 &quot;create_snap 2048 1326&quot;</code><br><code>dmsetup create dockersnap --table &quot;0 20971520 thin /dev/mapper/docker-thinpool 2048&quot;</code><br><code>mkdir /mnt/docker</code><br><code>mount /dev/mapper/dockersnap /mnt/docker/</code><br><code>ls /mnt/docker/</code><br><code>ls /mnt/docker/rootfs/</code><br><img src="/images/2018/1/27.png" alt></p>
+<p>我们在docker的容器里用findmnt命令也可以看到相关的mount的情况（因为太长，下面只是摘要）：<br><code>findmnt</code><br><img src="/images/2018/1/28.png" alt></p>
 <p>如果你在使用loopback的devicemapper的话，当你的存储出现了问题后，正确的解决方案是：<br><code>rm -rf /var/lib/docker</code></p>
 
       
