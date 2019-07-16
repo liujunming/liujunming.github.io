@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="计算机启动相关知识点">
+  <meta name="description" content="Intel GPU 内存管理">
 
 
 
 
-  <meta name="keywords" content="系统, L">
+  <meta name="keywords" content="GPU, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2019/07/15/计算机启动相关知识点/">
+<link rel="canonical" href="http://liujunming.github.io/2019/07/16/Intel-GPU-内存管理/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> 计算机启动相关知识点 - L </title>
+    <title> Intel GPU 内存管理 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,18 +260,18 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          计算机启动相关知识点
+          Intel GPU 内存管理
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2019-07-15
+          2019-07-16
         </span>
         
           <span class="post-category">
             
-              <a href="/categories/系统/">系统</a>
+              <a href="/categories/GPU/">GPU</a>
             
           </span>
         
@@ -281,12 +281,38 @@
 
     
     
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#global-graphic-memory"><span class="toc-text">global graphic memory</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#local-graphic-memory"><span class="toc-text">local graphic memory</span></a></li></ol>
+    </div>
+  </div>
+
 
 
     <div class="post-content">
       
-        <p>附件中将会介绍计算机启动的相关知识点，详细内容见参考链接。</p>
-<p><a href="/pdf/computer_boot.pdf">计算机启动</a></p>
+        <p>本文将会介绍Intel GPU的内存管理。<a id="more"></a>由于不同GPU的参数可能不一致，本文给出的参数是demo性质的，如果想要查看GPU的具体参数，请参考<a href="https://01.org/zh/linuxgraphics/documentation/hardware-specification-prms" target="_blank" rel="noopener">HARDWARE SPECIFICATION - PRMS</a>。</p>
+<p>PS:到目前为止，我司GPU的memory依然是system memory，而非on-die memory。</p>
+<p>对于GPU的应用而言，GPU的virtual memory address space分为两部分，分别是global graphic memory和local graphic memory。在本文接下来的内容中，我们将global graphic memory和local graphic memory的大小设置为2GB。</p>
+<h2 id="global-graphic-memory"><a href="#global-graphic-memory" class="headerlink" title="global graphic memory"></a>global graphic memory</h2><p>对于GPU的global graphic memory，是所有进程共享的：即所有的进程共用这2GB的虚拟地址空间。</p>
+<p>当GPU访问global graphic memory时，利用global graphics translation table (GGTT) 来完成虚拟地址到物理地址的映射，过程如下图所示（可以将GGTT看作是GPU的页表，同时GGTT是一级页表，而寻址过程是由硬件来完成的）。</p>
+<p><img src="/images/2019/7/1.png" alt></p>
+<p>global graphic memory的部分内存，CPU是可以访问的，这样才能完成GPU与CPU的数据交互。对于CPU能访问的这部分内存，我们称之为<a href="https://www.wikiwand.com/en/Aperture_%28computer_memory%29" target="_blank" rel="noopener">aperture</a>。CPU的虚拟地址空间与GPU的虚拟地址空间是相互独立的，因此，CPU如果想要访问aperture，就需要将aperture mmap到CPU的虚拟地址空间。</p>
+<p><img src="/images/2019/7/2.png" alt></p>
+<p>如上图所示，在GPU的global graphic memory中，0~FFFFFF的内容是aperture，而CPU将aperture内存mmap到C000000~CFFFFFF地址范围内，这样CPU就可以访问aperture了。对于global graphic memory的非aperture部分，CPU是无法访问的。</p>
+<h2 id="local-graphic-memory"><a href="#local-graphic-memory" class="headerlink" title="local graphic memory"></a>local graphic memory</h2><p>对于GPU的local graphic memory，每个进程都有2GB的虚拟地址空间。GPU通过per-process graphics translation table(PPGTT)来完成地址翻译，过程如下图所示。</p>
+<p><img src="/images/2019/7/3.png" alt></p>
+<p>值得注意的是：</p>
+<ul>
+<li>PPGTT是多级页表(具体级数跟GPU的架构相关)</li>
+<li>CPU是无法访问local graphic memory的</li>
+</ul>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://01.org/zh/linuxgraphics/documentation/hardware-specification-prms" target="_blank" rel="noopener">HARDWARE SPECIFICATION - PRMS</a></li>
+</ol>
 
       
     </div>
@@ -306,7 +332,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/系统/">系统</a>
+              <a href="/tags/GPU/">GPU</a>
             
           </div>
         
@@ -314,15 +340,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2019/07/16/Intel-GPU-内存管理/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Intel GPU 内存管理</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2019/06/23/Paper-Notes/">
-        <span class="next-text nav-default">Paper Notes</span>
+      <a class="next" href="/2019/07/15/计算机启动相关知识点/">
+        <span class="next-text nav-default">计算机启动相关知识点</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -435,9 +455,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2019/07/15/计算机启动相关知识点/';
-        this.page.identifier = '2019/07/15/计算机启动相关知识点/';
-        this.page.title = '计算机启动相关知识点';
+        this.page.url = 'http://liujunming.github.io/2019/07/16/Intel-GPU-内存管理/';
+        this.page.identifier = '2019/07/16/Intel-GPU-内存管理/';
+        this.page.title = 'Intel GPU 内存管理';
     };
     (function() {
     var d = document, s = d.createElement('script');
