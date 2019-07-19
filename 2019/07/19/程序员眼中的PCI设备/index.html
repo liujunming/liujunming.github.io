@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="Intel GPU 内存管理">
+  <meta name="description" content="程序员眼中的PCI设备">
 
 
 
 
-  <meta name="keywords" content="GPU, L">
+  <meta name="keywords" content="系统, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2019/07/16/Intel-GPU-内存管理/">
+<link rel="canonical" href="http://liujunming.github.io/2019/07/19/程序员眼中的PCI设备/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Intel GPU 内存管理 - L </title>
+    <title> 程序员眼中的PCI设备 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,18 +260,18 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Intel GPU 内存管理
+          程序员眼中的PCI设备
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2019-07-16
+          2019-07-19
         </span>
         
           <span class="post-category">
             
-              <a href="/categories/GPU/">GPU</a>
+              <a href="/categories/系统/">系统</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#global-graphic-memory"><span class="toc-text">global graphic memory</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#local-graphic-memory"><span class="toc-text">local graphic memory</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-PCI总线架构"><span class="toc-text">1. PCI总线架构</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#设备标识符"><span class="toc-text">设备标识符</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-PCI设备枚举过程"><span class="toc-text">2. PCI设备枚举过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-PCI-configeration-space"><span class="toc-text">3. PCI configeration space</span></a></li></ol>
     </div>
   </div>
 
@@ -292,26 +292,30 @@
 
     <div class="post-content">
       
-        <p>本文将会介绍Intel GPU的内存管理。<a id="more"></a>由于不同GPU的参数可能不一致，本文给出的参数是demo性质的，如果想要查看GPU的具体参数，请参考<a href="https://01.org/zh/linuxgraphics/documentation/hardware-specification-prms" target="_blank" rel="noopener">HARDWARE SPECIFICATION - PRMS</a>。</p>
-<p>PS:到目前为止，我司GPU的memory依然是system memory，而非on-die memory。</p>
-<p>对于GPU的应用而言，GPU的virtual memory address space分为两部分，分别是global graphic memory和local graphic memory。在本文接下来的内容中，我们将global graphic memory和local graphic memory的大小设置为2GB。</p>
-<h2 id="global-graphic-memory"><a href="#global-graphic-memory" class="headerlink" title="global graphic memory"></a>global graphic memory</h2><p>对于GPU的global graphic memory，是所有进程共享的：即所有的进程共用这2GB的虚拟地址空间。</p>
-<p>当GPU访问global graphic memory时，利用global graphics translation table (GGTT) 来完成虚拟地址到物理地址的映射，过程如下图所示（可以将GGTT看作是GPU的页表，同时GGTT是一级页表，而寻址过程是由硬件来完成的）。</p>
-<p><img src="/images/2019/7/1.png" alt></p>
-<p>global graphic memory的部分内存，CPU是可以访问的，这样才能完成GPU与CPU的数据交互。对于CPU能访问的这部分内存，我们称之为<a href="https://www.wikiwand.com/en/Aperture_%28computer_memory%29" target="_blank" rel="noopener">aperture</a>。CPU的虚拟地址空间与GPU的虚拟地址空间是相互独立的，因此，CPU如果想要访问aperture，就需要将aperture mmap到CPU的虚拟地址空间。</p>
-<p><img src="/images/2019/7/2.png" alt></p>
-<p>如上图所示，在GPU的global graphic memory中，0~FFFFFF的内容是aperture，而CPU将aperture内存mmap到C000000~CFFFFFF地址范围内，这样CPU就可以访问aperture了。对于global graphic memory的非aperture部分，CPU是无法访问的。</p>
-<h2 id="local-graphic-memory"><a href="#local-graphic-memory" class="headerlink" title="local graphic memory"></a>local graphic memory</h2><p>对于GPU的local graphic memory，每个进程都有2GB的虚拟地址空间。GPU通过per-process graphics translation table(PPGTT)来完成地址翻译，过程如下图所示。</p>
-<p><img src="/images/2019/7/3.png" alt></p>
-<p>值得注意的是：</p>
+        <p>注：本文主要内容来自<a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a>，再加上自己的一些理解，希望能将PCI设备的内容解释清楚。</p>
+<p>何为PCI(Peripheral Component Interconnect)总线？PCI总线是CPU与外部设备沟通的桥梁。<a id="more"></a>PCI总线的优点：速度快、具有动态配置功能、独立于CPU架构等，因而迅速被各种平台接受，成为一种通用的总线架构。</p>
+<h3 id="1-PCI总线架构"><a href="#1-PCI总线架构" class="headerlink" title="1. PCI总线架构"></a>1. PCI总线架构</h3><p>PCI总线是一种典型的树结构。把北桥中HOST-PCI桥看作根，总线中其他PCI-PCI桥、PCI-ISA桥等桥设备和直接接PCI总线的设备看作节点，整个PCI架构可以概括为下图所示。<br><img src="/images/2019/7/4.png" alt></p>
+<h4 id="设备标识符"><a href="#设备标识符" class="headerlink" title="设备标识符"></a><strong>设备标识符</strong></h4><p><img src="/images/2019/7/5.png" alt></p>
+<h3 id="2-PCI设备枚举过程"><a href="#2-PCI设备枚举过程" class="headerlink" title="2. PCI设备枚举过程"></a>2. PCI设备枚举过程</h3><p>PCI设备和总线一起构成了树结构，其中桥设备是子树的根节点，设备枚举的过程就是要在内存中建立一颗和实际总线情况相符合的设备树。枚举过程中最关键的步骤就是发现桥设备。<br><a href="https://www.youtube.com/watch?v=qhIHu8mFrdg" target="_blank" rel="noopener">PCI Basics and Bus Enumeration</a>很好地阐述了此动态过程，看完视频之后都理解的话，那么对PCI设备枚举过程也就理解了。</p>
+<h3 id="3-PCI-configeration-space"><a href="#3-PCI-configeration-space" class="headerlink" title="3. PCI configeration space"></a>3. PCI configeration space</h3><p>通过BDF，我们可以唯一标志一个设备。每个设备，都有自己PCI configeration space，而PCI configeration space本质是registers。PCI设备规范规定，设备的配置空间最多为256个字节，其中前64个字节的格式和用途是统一的，如下图所示。<br><img src="/images/2019/7/6.png" alt></p>
+<p><strong>例1：</strong>假设设备1的BDF编号是(0,3,2),当我们需要定位其Expansion ROM Base Address寄存器时，应输入(0,3,2,30h)。</p>
+<p>x86架构把I/O端口地址空间中的0xCF8~0xCFF段预留给了PCI总线，用于访问设备的配置空间。其中，前32位的寄存器为”地址寄存器“，后32位为”值寄存器“。软件通过把设备的BDF和要访问的配置空间的字节偏移量写入”地址寄存器“中，就可以通过”值寄存器“读写该配置空间了。</p>
+<p>BDF占据16bits，而PCI configeration space最多为256个字节，也就是64个DWORD(Double WORD,WORD占16位，DWORD即占32位)，所以Config. Addr只需占用6bits(能定位到64个DWORD)。具体位数含义可参见下图：<br><img src="/images/2019/7/7.png" alt></p>
+<p>如例1所示，我们将(0,3,2,30h)写入pio的0xCF8h，就可以通过读0xCFCh来获取设备1的Expansion ROM Base Address寄存器值了。</p>
+<p>讲完Accessing PCIe Config Registers后，我们需要介绍下程序员最关心的Base Address Registers和Interrupt Line了。</p>
 <ul>
-<li>PPGTT是多级页表(具体级数跟GPU的架构相关)</li>
-<li>CPU是无法访问local graphic memory的</li>
+<li>Base Address Registers:基地址寄存器，也就是常说的PCI Bar。它报告设备寄存器或者设备RAM在I/O端口地址空间（或物理地址空间中）的地址。地址是由软件(BIOS或操作系统)动态设置的。通常枚举PCI设备的软件(BIOS或操作系统)会在获得平台所有PCI设备后，根据设备数量，依照固定的算法为每个设备的PCI Bar分配I/O端口(或物理地址)。设备的电子线路负责把这些端口(或地址)映射到自身的寄存器(设备RAM)上，这样CPU就可以通过端口号(Port I/O方式)、物理地址(MMIO方式)访问到设备了。</li>
+</ul>
+<ul>
+<li>Interupt Line:设备的中断线。BIOS通常用它来保存设备所连的PIC/IOAPIC的管脚号。</li>
 </ul>
 <hr>
 <p>参考资料：</p>
 <ol>
-<li><a href="https://01.org/zh/linuxgraphics/documentation/hardware-specification-prms" target="_blank" rel="noopener">HARDWARE SPECIFICATION - PRMS</a></li>
+<li><a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a></li>
+<li><a href="http://cpci.co.kr/eng/download/technote/config-pci.pdf" target="_blank" rel="noopener">PCI configuration mechanism </a></li>
+<li><a href="https://www.youtube.com/watch?v=qhIHu8mFrdg" target="_blank" rel="noopener">PCI Basics and Bus Enumeration</a></li>
+<li><a href="https://www.youtube.com/watch?v=6112AekrsqA" target="_blank" rel="noopener">Accessing PCIe Config Registers</a></li>
 </ol>
 
       
@@ -332,7 +336,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/GPU/">GPU</a>
+              <a href="/tags/系统/">系统</a>
             
           </div>
         
@@ -340,15 +344,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2019/07/19/程序员眼中的PCI设备/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">程序员眼中的PCI设备</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2019/07/15/计算机启动相关知识点/">
-        <span class="next-text nav-default">计算机启动相关知识点</span>
+      <a class="next" href="/2019/07/16/Intel-GPU-内存管理/">
+        <span class="next-text nav-default">Intel GPU 内存管理</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -461,9 +459,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2019/07/16/Intel-GPU-内存管理/';
-        this.page.identifier = '2019/07/16/Intel-GPU-内存管理/';
-        this.page.title = 'Intel GPU 内存管理';
+        this.page.url = 'http://liujunming.github.io/2019/07/19/程序员眼中的PCI设备/';
+        this.page.identifier = '2019/07/19/程序员眼中的PCI设备/';
+        this.page.title = '程序员眼中的PCI设备';
     };
     (function() {
     var d = document, s = d.createElement('script');

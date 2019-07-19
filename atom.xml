@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2019-07-16T15:07:44.047Z</updated>
+  <updated>2019-07-19T14:26:35.687Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>程序员眼中的PCI设备</title>
+    <link href="http://liujunming.github.io/2019/07/19/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9C%BC%E4%B8%AD%E7%9A%84PCI%E8%AE%BE%E5%A4%87/"/>
+    <id>http://liujunming.github.io/2019/07/19/程序员眼中的PCI设备/</id>
+    <published>2019-07-19T10:18:52.000Z</published>
+    <updated>2019-07-19T14:26:35.687Z</updated>
+    
+    <content type="html"><![CDATA[<p>注：本文主要内容来自<a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a>，再加上自己的一些理解，希望能将PCI设备的内容解释清楚。</p><p>何为PCI(Peripheral Component Interconnect)总线？PCI总线是CPU与外部设备沟通的桥梁。<a id="more"></a>PCI总线的优点：速度快、具有动态配置功能、独立于CPU架构等，因而迅速被各种平台接受，成为一种通用的总线架构。</p><h3 id="1-PCI总线架构"><a href="#1-PCI总线架构" class="headerlink" title="1. PCI总线架构"></a>1. PCI总线架构</h3><p>PCI总线是一种典型的树结构。把北桥中HOST-PCI桥看作根，总线中其他PCI-PCI桥、PCI-ISA桥等桥设备和直接接PCI总线的设备看作节点，整个PCI架构可以概括为下图所示。<br><img src="/images/2019/7/4.png" alt></p><h4 id="设备标识符"><a href="#设备标识符" class="headerlink" title="设备标识符"></a><strong>设备标识符</strong></h4><p><img src="/images/2019/7/5.png" alt></p><h3 id="2-PCI设备枚举过程"><a href="#2-PCI设备枚举过程" class="headerlink" title="2. PCI设备枚举过程"></a>2. PCI设备枚举过程</h3><p>PCI设备和总线一起构成了树结构，其中桥设备是子树的根节点，设备枚举的过程就是要在内存中建立一颗和实际总线情况相符合的设备树。枚举过程中最关键的步骤就是发现桥设备。<br><a href="https://www.youtube.com/watch?v=qhIHu8mFrdg" target="_blank" rel="noopener">PCI Basics and Bus Enumeration</a>很好地阐述了此动态过程，看完视频之后都理解的话，那么对PCI设备枚举过程也就理解了。</p><h3 id="3-PCI-configeration-space"><a href="#3-PCI-configeration-space" class="headerlink" title="3. PCI configeration space"></a>3. PCI configeration space</h3><p>通过BDF，我们可以唯一标志一个设备。每个设备，都有自己PCI configeration space，而PCI configeration space本质是registers。PCI设备规范规定，设备的配置空间最多为256个字节，其中前64个字节的格式和用途是统一的，如下图所示。<br><img src="/images/2019/7/6.png" alt></p><p><strong>例1：</strong>假设设备1的BDF编号是(0,3,2),当我们需要定位其Expansion ROM Base Address寄存器时，应输入(0,3,2,30h)。</p><p>x86架构把I/O端口地址空间中的0xCF8~0xCFF段预留给了PCI总线，用于访问设备的配置空间。其中，前32位的寄存器为”地址寄存器“，后32位为”值寄存器“。软件通过把设备的BDF和要访问的配置空间的字节偏移量写入”地址寄存器“中，就可以通过”值寄存器“读写该配置空间了。</p><p>BDF占据16bits，而PCI configeration space最多为256个字节，也就是64个DWORD(Double WORD,WORD占16位，DWORD即占32位)，所以Config. Addr只需占用6bits(能定位到64个DWORD)。具体位数含义可参见下图：<br><img src="/images/2019/7/7.png" alt></p><p>如例1所示，我们将(0,3,2,30h)写入pio的0xCF8h，就可以通过读0xCFCh来获取设备1的Expansion ROM Base Address寄存器值了。</p><p>讲完Accessing PCIe Config Registers后，我们需要介绍下程序员最关心的Base Address Registers和Interrupt Line了。</p><ul><li>Base Address Registers:基地址寄存器，也就是常说的PCI Bar。它报告设备寄存器或者设备RAM在I/O端口地址空间（或物理地址空间中）的地址。地址是由软件(BIOS或操作系统)动态设置的。通常枚举PCI设备的软件(BIOS或操作系统)会在获得平台所有PCI设备后，根据设备数量，依照固定的算法为每个设备的PCI Bar分配I/O端口(或物理地址)。设备的电子线路负责把这些端口(或地址)映射到自身的寄存器(设备RAM)上，这样CPU就可以通过端口号(Port I/O方式)、物理地址(MMIO方式)访问到设备了。</li></ul><ul><li>Interupt Line:设备的中断线。BIOS通常用它来保存设备所连的PIC/IOAPIC的管脚号。</li></ul><hr><p>参考资料：</p><ol><li><a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a></li><li><a href="http://cpci.co.kr/eng/download/technote/config-pci.pdf" target="_blank" rel="noopener">PCI configuration mechanism </a></li><li><a href="https://www.youtube.com/watch?v=qhIHu8mFrdg" target="_blank" rel="noopener">PCI Basics and Bus Enumeration</a></li><li><a href="https://www.youtube.com/watch?v=6112AekrsqA" target="_blank" rel="noopener">Accessing PCIe Config Registers</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;注：本文主要内容来自&lt;a href=&quot;https://book.douban.com/subject/3619896/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;系统虚拟化&lt;/a&gt;，再加上自己的一些理解，希望能将PCI设备的内容解释清楚。&lt;/p&gt;
+&lt;p&gt;何为PCI(Peripheral Component Interconnect)总线？PCI总线是CPU与外部设备沟通的桥梁。
+    
+    </summary>
+    
+      <category term="系统" scheme="http://liujunming.github.io/categories/%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+      <category term="系统" scheme="http://liujunming.github.io/tags/%E7%B3%BB%E7%BB%9F/"/>
+    
+  </entry>
   
   <entry>
     <title>Intel GPU 内存管理</title>
@@ -467,30 +490,6 @@
     
     
       <category term="内存管理" scheme="http://liujunming.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-      <category term="读书笔记" scheme="http://liujunming.github.io/tags/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Understanding the Linux Kernel 读书笔记 -Process Scheduling</title>
-    <link href="http://liujunming.github.io/2018/12/27/Understanding-the-Linux-Kernel-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-Process-Scheduling/"/>
-    <id>http://liujunming.github.io/2018/12/27/Understanding-the-Linux-Kernel-读书笔记-Process-Scheduling/</id>
-    <published>2018-12-27T02:43:29.000Z</published>
-    <updated>2018-12-27T06:43:51.834Z</updated>
-    
-    <content type="html"><![CDATA[<p>This chapter deals with <em>scheduling</em>, which is concerned with when to switch and which process to choose.<a id="more"></a> </p><h2 id="1-Scheduling-Policy"><a href="#1-Scheduling-Policy" class="headerlink" title="1 Scheduling Policy"></a>1 Scheduling Policy</h2><p>The set of rules used to determine when and how to select a new process to run is called <em>scheduling policy</em>.<br>Linux scheduling is based on the <em>time sharing</em> technique: several processes run in “time multiplexing” because the CPU time is divided into <em>slices</em>, one for each runnable process.</p><p>Programmers may change the scheduling priorities by means of the system calls illustrated in Table 7-1.</p><p><img src="/images/2018/12/59.png" alt></p><h3 id="1-1-Process-Preemption"><a href="#1-1-Process-Preemption" class="headerlink" title="1.1 Process Preemption"></a>1.1 Process Preemption</h3><p>Linux processes are <em>preemptable</em>. When a process enters the <code>TASK_RUNNING</code> state, the kernel checks whether its dynamic priority is greater than the priority of the currently running process. If it is, the execution of <code>current</code> is interrupted and the scheduler is invoked to select another process to run (usually the process that just became runnable).</p><p>Be aware that a preempted process is not suspended, because it remains in the <code>TASK_ RUNNING</code> state; it simply no longer uses the CPU.</p><h3 id="1-2-How-Long-Must-a-Quantum-Last"><a href="#1-2-How-Long-Must-a-Quantum-Last" class="headerlink" title="1.2 How Long Must a Quantum Last?"></a>1.2 How Long Must a Quantum Last?</h3><p>The quantum[时间片] duration is critical for system performance: it should be neither too long nor too short.</p><h2 id="2-The-Scheduling-Algorithm"><a href="#2-The-Scheduling-Algorithm" class="headerlink" title="2 The Scheduling Algorithm"></a>2 The Scheduling Algorithm</h2><p><a href="http://liujunming.top/junming/os/8.cpu-sched-mlfq.pdf" target="_blank" rel="noopener">The Multi-Level Feedback Queue</a></p><h3 id="2-1-Scheduling-of-Conventional-Processes"><a href="#2-1-Scheduling-of-Conventional-Processes" class="headerlink" title="2.1 Scheduling of Conventional Processes"></a>2.1 Scheduling of Conventional Processes</h3><ul><li><strong>Base time quantum</strong></li><li><strong>Dynamic priority and average sleep time</strong></li><li><strong>Active and expired processes</strong></li></ul><h3 id="2-2-Scheduling-of-Real-Time-Processes"><a href="#2-2-Scheduling-of-Real-Time-Processes" class="headerlink" title="2.2 Scheduling of Real-Time Processes"></a>2.2 Scheduling of Real-Time Processes</h3><h2 id="3-Data-Structures-Used-by-the-Scheduler"><a href="#3-Data-Structures-Used-by-the-Scheduler" class="headerlink" title="3 Data Structures Used by the Scheduler"></a>3 Data Structures Used by the Scheduler</h2><p>The runqueue lists link the process descriptors of all runnable processes—that is, of those in a <code>TASK_RUNNING</code> state—except the <em>swapper</em> process (idle process).</p><h3 id="3-1-The-runqueue-Data-Structure"><a href="#3-1-The-runqueue-Data-Structure" class="headerlink" title="3.1 The runqueue Data Structure"></a>3.1 The <code>runqueue</code> Data Structure</h3><p>The <a href="https://elixir.bootlin.com/linux/v2.6.11/source/kernel/sched.c#L198" target="_blank" rel="noopener">runqueue</a> data structure.</p><p>Each CPU in the system has its own runqueue; all <code>runqueue</code> structures are stored in the <code>runqueues</code> per-CPU variable.</p><p>The most important fields of the <code>runqueue</code> data structure are those related to the lists of runnable processes.</p><p>The <code>arrays</code> field of the runqueue is an array consisting of two <code>prio_array_t</code> structures. Each data structure represents a set of runnable processes, and includes 140 doubly linked list heads (one list for each possible process priority), a priority bitmap, and a counter of the processes included in the set.<br><img src="/images/2018/12/60.png" alt></p><h3 id="3-2-Process-Descriptor"><a href="#3-2-Process-Descriptor" class="headerlink" title="3.2 Process Descriptor"></a>3.2 Process Descriptor</h3><p>Each process descriptor includes several fields related to scheduling.</p><h2 id="4-Functions-Used-by-the-Scheduler"><a href="#4-Functions-Used-by-the-Scheduler" class="headerlink" title="4 Functions Used by the Scheduler"></a>4 Functions Used by the Scheduler</h2><p>The scheduler relies on several functions in order to do its work; the most important are:</p><ul><li><code>scheduler_tick()</code></li></ul><p>Keeps the <code>time_slice</code> counter of <code>current</code> up-to-date</p><ul><li><code>try_to_wake_up()</code></li></ul><p>Awakens a sleeping process</p><ul><li><code>recalc_task_prio()</code></li></ul><p>Updates the dynamic priority of a process</p><ul><li><code>schedule()</code></li></ul><p>Selects a new process to be executed</p><ul><li><code>load_balance()</code></li></ul><p>Keeps the runqueues of a multiprocessor system balanced</p><h2 id="5-Runqueue-Balancing-in-Multiprocessor-Systems"><a href="#5-Runqueue-Balancing-in-Multiprocessor-Systems" class="headerlink" title="5 Runqueue Balancing in Multiprocessor Systems"></a>5 Runqueue Balancing in Multiprocessor Systems</h2><p>Multiprocessor machines come in many different flavors, and the scheduler behaves differently depending on the hardware characteristics. In particular, we will consider the following three types of multiprocessor machines:</p><ul><li><em>Classic multiprocessor architecture</em></li></ul><p>Until recently, this was the most common architecture for multiprocessor machines. These machines have a common set of RAM chips shared by all CPUs.</p><ul><li><em>Hyper-threading</em></li></ul><p>A hyper-threaded chip is a microprocessor that executes several threads of execution at once; it includes several copies of the internal registers and quickly switches between them. This technology allows the processor to exploit the machine cycles to execute another thread while the current thread is stalled for a memory access. A hyper-threaded physical CPU is seen by Linux as several different logical CPUs.</p><ul><li><em>NUMA</em></li></ul><hr><p>These basic kinds of multiprocessor systems are often combined. For instance, a motherboard that includes two different hyper-threaded CPUs is seen by the kernel as four logical CPUs.</p><p>A runnable process is always stored in exactly one runqueue: no runnable process ever appears in two or more runqueues. Therefore, until a process remains runnable, it is usually bound to one CPU.</p><p>This design choice is usually beneficial for system performance, because the hardware cache of every CPU is likely to be filled with data owned by the runnable processes in the runqueue. In some cases, however, binding a runnable process to a given CPU might induce a severe performance penalty. For instance, consider a large number of batch processes that make heavy use of the CPU: if most of them end up in the same runqueue, one CPU in the system will be overloaded, while the others will be nearly idle.</p><p>Therefore, the kernel periodically checks whether the workloads of the runqueues are balanced and, if necessary, moves some process from one runqueue to another. However, to get the best performance from a multiprocessor system, the load balancing algorithm should take into consideration the topology of the CPUs in the system. Linux sports a sophisticated runqueue balancing algorithm based on the notion of “scheduling domains.” Thanks to the scheduling domains, the algorithm can be easily tuned for all kinds of existing multiprocessor architectures.</p><h3 id="5-1-Scheduling-Domains"><a href="#5-1-Scheduling-Domains" class="headerlink" title="5.1 Scheduling Domains"></a>5.1 Scheduling Domains</h3><p>Essentially, a <em>scheduling domain</em> is a set of CPUs whose workloads should be kept balanced by the kernel. Generally speaking, scheduling domains are hierarchically organized: the top-most scheduling domain, which usually spans all CPUs in the system, includes children scheduling domains, each of which include a subset of the CPUs. Thanks to the hierarchy of scheduling domains, workload balancing can be done in a rather efficient way.</p><p>Figure 7-2 illustrates three examples of scheduling domain hierarchies, corresponding to the three main architectures of multiprocessor machines.</p><p><img src="/images/2018/12/61.png" alt></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;This chapter deals with &lt;em&gt;scheduling&lt;/em&gt;, which is concerned with when to switch and which process to choose.
-    
-    </summary>
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
-    
     
       <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
