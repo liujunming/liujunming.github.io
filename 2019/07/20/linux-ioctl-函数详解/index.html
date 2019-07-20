@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="linux ioctl()函数详解">
+
+
+
+
+  <meta name="keywords" content="I/O系统, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/07/20/linux-ioctl-函数详解/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> linux ioctl()函数详解 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          linux ioctl()函数详解
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-07-20
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/I-O系统/">I/O系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introducing-ioctl"><span class="toc-text">Introducing ioctl()</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Querying-driver-internal-variables"><span class="toc-text">Querying driver-internal variables</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Defining-the-ioctl-commands"><span class="toc-text">Defining the ioctl() commands</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文主要转载自<a href="https://opensourceforu.com/2011/08/io-control-in-linux/" target="_blank" rel="noopener">I/O Control in Linux</a>。</p>
+<blockquote>
+<p>Most drivers need the ability to perform various types of hardware control via the device driver. Most devices can perform operations beyond simple data transfers; user space must often be able to request, for example, that the device lock its door, eject its media, report error information, change a baud rate, or self destruct. These operations are usually supported via the <code>ioctl</code> method, which implements the system call by the same time.</p>
+</blockquote>
+<a id="more"></a>
+<p>摘录自《Linux Device Drivers》第三版第六章。</p>
+<h2 id="Introducing-ioctl"><a href="#Introducing-ioctl" class="headerlink" title="Introducing ioctl()"></a>Introducing <em>ioctl()</em></h2><p>Input/Output Control (<em>ioctl</em>, in short) is a common operation, or system call, available in most driver categories. It is a one-bill-fits-all kind of system call. If there is no other system call that meets a particular requirement, then <code>ioctl()</code> is the one to use.</p>
+<p>Practical examples include volume control for an audio device, display configuration for a video device, reading device registers, and so on — basically, anything to do with device input/output, or device-specific operations, yet versatile enough for any kind of operation (for example, for debugging a driver by querying driver data structures).</p>
+<p>The question is: how can all this be achieved by a single function prototype? The trick lies in using its two key parameters: <em>command</em> and <em>argument</em>. The <em>command</em> is a number representing an operation. The <em>argument</em> is the corresponding parameter for the operation. The <code>ioctl()</code> function implementation does a switch … <em>case</em> over the commmand to implement the corresponding functionality. The following has been its prototype in the Linux kernel for quite some time:</p>
+<p><code>int ioctl(struct inode *i, struct file *f, unsigned int cmd, unsigned long arg);</code></p>
+<p>However, from kernel 2.6.35, it changed to:</p>
+<p><code>long ioctl(struct file *f, unsigned int cmd, unsigned long arg);</code></p>
+<p>If there is a need for more arguments, all of them are put in a structure, and a pointer to the structure becomes the ‘one’ argument. Whether integer or pointer, the argument is taken as a long integer in kernel-space, and accordingly type-cast and processed.</p>
+<p><code>ioctl()</code> is typically implemented as part of the corresponding driver, and then an appropriate function pointer is initialised with it, exactly as in other system calls like <code>open()</code>, <code>read()</code>, etc. For example, in character drivers, it is the <code>ioctl</code> or <code>unlocked_ioctl</code> (since kernel 2.6.35) function pointer field in the struct <code>file_operations</code> that is to be initialised.</p>
+<p>Again, like other system calls, it can be equivalently invoked from user-space using the <code>ioctl()</code> system call, prototyped in <code>&lt;sys/ioctl.h&gt;</code>as:</p>
+<p><code>int ioctl(int fd, int cmd, ...);</code></p>
+<p>Here, <code>cmd</code> is the same as what is implemented in the driver’s <code>ioctl()</code>, and the variable argument construct (<code>...</code>) is a hack to be able to pass any type of argument (though only one) to the driver’s <code>ioctl()</code>. Other parameters will be ignored.</p>
+<p>Note that both the command and argument type definitions need to be shared across the driver (in kernel-space) and the application (in user-space). Thus, these definitions are commonly put into header files for each space.</p>
+<h2 id="Querying-driver-internal-variables"><a href="#Querying-driver-internal-variables" class="headerlink" title="Querying driver-internal variables"></a>Querying driver-internal variables</h2><p>To better understand the boring theory explained above, here’s the code set for the “debugging a driver” example. This driver has three static global variables: <code>status</code>, <code>dignity</code>, and <code>ego</code>, which need to be queried and possibly operated from an application. The header file <code>query_ioctl.h</code> defines the corresponding commands and argument type. A listing follows:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> QUERY_IOCTL_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> QUERY_IOCTL_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/ioctl.h&gt;</span></span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">int</span> status, dignity, ego;</span><br><span class="line">&#125; <span class="keyword">query_arg_t</span>;</span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> QUERY_GET_VARIABLES _IOR(<span class="meta-string">'q'</span>, 1, query_arg_t *)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> QUERY_CLR_VARIABLES _IO(<span class="meta-string">'q'</span>, 2)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> QUERY_SET_VARIABLES _IOW(<span class="meta-string">'q'</span>, 3, query_arg_t *)</span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+<p>Using these, the driver’s <code>ioctl()</code> implementation in <code>query_ioctl.c</code> would be as follows:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/version.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/fs.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/cdev.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/device.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/errno.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;asm/uaccess.h&gt;</span></span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"query_ioctl.h"</span></span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FIRST_MINOR 0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MINOR_CNT 1</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">dev_t</span> dev;</span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> <span class="title">c_dev</span>;</span></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">class</span> *<span class="title">cl</span>;</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> status = <span class="number">1</span>, dignity = <span class="number">3</span>, ego = <span class="number">5</span>;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">my_open</span><span class="params">(struct inode *i, struct file *f)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">my_close</span><span class="params">(struct inode *i, struct file *f)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> (LINUX_VERSION_CODE &lt; KERNEL_VERSION(2,6,35))</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">my_ioctl</span><span class="params">(struct inode *i, struct file *f, <span class="keyword">unsigned</span> <span class="keyword">int</span> cmd, <span class="keyword">unsigned</span> <span class="keyword">long</span> arg)</span></span></span><br><span class="line"><span class="function"><span class="meta">#<span class="meta-keyword">else</span></span></span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">long</span> <span class="title">my_ioctl</span><span class="params">(struct file *f, <span class="keyword">unsigned</span> <span class="keyword">int</span> cmd, <span class="keyword">unsigned</span> <span class="keyword">long</span> arg)</span></span></span><br><span class="line"><span class="function"><span class="meta">#<span class="meta-keyword">endif</span></span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">query_arg_t</span> q;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">switch</span> (cmd)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> QUERY_GET_VARIABLES:</span><br><span class="line">            q.status = status;</span><br><span class="line">            q.dignity = dignity;</span><br><span class="line">            q.ego = ego;</span><br><span class="line">            <span class="keyword">if</span> (copy_to_user((<span class="keyword">query_arg_t</span> *)arg, &amp;q, <span class="keyword">sizeof</span>(<span class="keyword">query_arg_t</span>)))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EACCES;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> QUERY_CLR_VARIABLES:</span><br><span class="line">            status = <span class="number">0</span>;</span><br><span class="line">            dignity = <span class="number">0</span>;</span><br><span class="line">            ego = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> QUERY_SET_VARIABLES:</span><br><span class="line">            <span class="keyword">if</span> (copy_from_user(&amp;q, (<span class="keyword">query_arg_t</span> *)arg, <span class="keyword">sizeof</span>(<span class="keyword">query_arg_t</span>)))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EACCES;</span><br><span class="line">            &#125;</span><br><span class="line">            status = q.status;</span><br><span class="line">            dignity = q.dignity;</span><br><span class="line">            ego = q.ego;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">return</span> -EINVAL;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">query_fops</span> =</span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    .owner = THIS_MODULE,</span><br><span class="line">    .open = my_open,</span><br><span class="line">    .release = my_close,</span><br><span class="line">#<span class="keyword">if</span> (LINUX_VERSION_CODE &lt; KERNEL_VERSION(<span class="number">2</span>,<span class="number">6</span>,<span class="number">35</span>))</span><br><span class="line">    .ioctl = my_ioctl</span><br><span class="line">#<span class="keyword">else</span></span><br><span class="line">    .unlocked_ioctl = my_ioctl</span><br><span class="line">#endif</span><br><span class="line">&#125;;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">query_ioctl_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ret;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">dev_ret</span>;</span></span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">    <span class="keyword">if</span> ((ret = alloc_chrdev_region(&amp;dev, FIRST_MINOR, MINOR_CNT, <span class="string">"query_ioctl"</span>)) &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> ret;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    cdev_init(&amp;c_dev, &amp;query_fops);</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">if</span> ((ret = cdev_add(&amp;c_dev, dev, MINOR_CNT)) &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> ret;</span><br><span class="line">    &#125;</span><br><span class="line">     </span><br><span class="line">    <span class="keyword">if</span> (IS_ERR(cl = class_create(THIS_MODULE, <span class="string">"char"</span>)))</span><br><span class="line">    &#123;</span><br><span class="line">        cdev_del(&amp;c_dev);</span><br><span class="line">        unregister_chrdev_region(dev, MINOR_CNT);</span><br><span class="line">        <span class="keyword">return</span> PTR_ERR(cl);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (IS_ERR(dev_ret = device_create(cl, <span class="literal">NULL</span>, dev, <span class="literal">NULL</span>, <span class="string">"query"</span>)))</span><br><span class="line">    &#123;</span><br><span class="line">        class_destroy(cl);</span><br><span class="line">        cdev_del(&amp;c_dev);</span><br><span class="line">        unregister_chrdev_region(dev, MINOR_CNT);</span><br><span class="line">        <span class="keyword">return</span> PTR_ERR(dev_ret);</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function"><span class="built_in">exit</span> <span class="title">query_ioctl_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    device_destroy(cl, dev);</span><br><span class="line">    class_destroy(cl);</span><br><span class="line">    cdev_del(&amp;c_dev);</span><br><span class="line">    unregister_chrdev_region(dev, MINOR_CNT);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">module_init(query_ioctl_init);</span><br><span class="line">module_exit(query_ioctl_exit);</span><br><span class="line"> </span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL"</span>);</span><br><span class="line">MODULE_AUTHOR(<span class="string">"Anil Kumar Pugalia &lt;email_at_sarika-pugs_dot_com&gt;"</span>);</span><br><span class="line">MODULE_DESCRIPTION(<span class="string">"Query ioctl() Char Driver"</span>);</span><br></pre></td></tr></table></figure>
+<p>And finally, the corresponding invocation functions from the application <code>query_app.c</code> would be as follows:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/ioctl.h&gt;</span></span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"query_ioctl.h"</span></span></span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">get_vars</span><span class="params">(<span class="keyword">int</span> fd)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">query_arg_t</span> q;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">if</span> (ioctl(fd, QUERY_GET_VARIABLES, &amp;q) == <span class="number">-1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        perror(<span class="string">"query_apps ioctl get"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Status : %d\n"</span>, q.status);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Dignity: %d\n"</span>, q.dignity);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Ego    : %d\n"</span>, q.ego);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">clr_vars</span><span class="params">(<span class="keyword">int</span> fd)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (ioctl(fd, QUERY_CLR_VARIABLES) == <span class="number">-1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        perror(<span class="string">"query_apps ioctl clr"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">set_vars</span><span class="params">(<span class="keyword">int</span> fd)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> v;</span><br><span class="line">    <span class="keyword">query_arg_t</span> q;</span><br><span class="line"> </span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Enter Status: "</span>);</span><br><span class="line">    <span class="built_in">scanf</span>(<span class="string">"%d"</span>, &amp;v);</span><br><span class="line">    getchar();</span><br><span class="line">    q.status = v;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Enter Dignity: "</span>);</span><br><span class="line">    <span class="built_in">scanf</span>(<span class="string">"%d"</span>, &amp;v);</span><br><span class="line">    getchar();</span><br><span class="line">    q.dignity = v;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Enter Ego: "</span>);</span><br><span class="line">    <span class="built_in">scanf</span>(<span class="string">"%d"</span>, &amp;v);</span><br><span class="line">    getchar();</span><br><span class="line">    q.ego = v;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">if</span> (ioctl(fd, QUERY_SET_VARIABLES, &amp;q) == <span class="number">-1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        perror(<span class="string">"query_apps ioctl set"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">char</span> *file_name = <span class="string">"/dev/query"</span>;</span><br><span class="line">    <span class="keyword">int</span> fd;</span><br><span class="line">    <span class="keyword">enum</span></span><br><span class="line">    &#123;</span><br><span class="line">        e_get,</span><br><span class="line">        e_clr,</span><br><span class="line">        e_set</span><br><span class="line">    &#125; option;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">if</span> (argc == <span class="number">1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        option = e_get;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (argc == <span class="number">2</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">strcmp</span>(argv[<span class="number">1</span>], <span class="string">"-g"</span>) == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            option = e_get;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (<span class="built_in">strcmp</span>(argv[<span class="number">1</span>], <span class="string">"-c"</span>) == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            option = e_clr;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (<span class="built_in">strcmp</span>(argv[<span class="number">1</span>], <span class="string">"-s"</span>) == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            option = e_set;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Usage: %s [-g | -c | -s]\n"</span>, argv[<span class="number">0</span>]);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Usage: %s [-g | -c | -s]\n"</span>, argv[<span class="number">0</span>]);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    fd = open(file_name, O_RDWR);</span><br><span class="line">    <span class="keyword">if</span> (fd == <span class="number">-1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        perror(<span class="string">"query_apps open"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">switch</span> (option)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> e_get:</span><br><span class="line">            get_vars(fd);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> e_clr:</span><br><span class="line">            clr_vars(fd);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> e_set:</span><br><span class="line">            set_vars(fd);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    close (fd);</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Now try out <code>query_app.c</code> and <code>query_ioctl.c</code> with the following operations:</p>
+<ul>
+<li>Build the <code>query_ioctl</code> driver (<code>query_ioctl.ko</code> file) and the application (<code>query_app</code> file) by running <code>make</code>, using the following <code>Makefile</code>:</li>
+</ul>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># If called directly from the command line, invoke the kernel build system.</span></span><br><span class="line"><span class="keyword">ifeq</span> (<span class="variable">$(KERNELRELEASE)</span>,)</span><br><span class="line"> </span><br><span class="line">    KERNEL_SOURCE := /usr/src/linux</span><br><span class="line">    PWD := <span class="variable">$(<span class="built_in">shell</span> pwd)</span></span><br><span class="line"><span class="section">default: module query_app</span></span><br><span class="line"> </span><br><span class="line"><span class="section">module:</span></span><br><span class="line">    <span class="variable">$(MAKE)</span> -C <span class="variable">$(KERNEL_SOURCE)</span> SUBDIRS=<span class="variable">$(PWD)</span> modules</span><br><span class="line"> </span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">    <span class="variable">$(MAKE)</span> -C <span class="variable">$(KERNEL_SOURCE)</span> SUBDIRS=<span class="variable">$(PWD)</span> clean</span><br><span class="line">    $&#123;RM&#125; query_app</span><br><span class="line"> </span><br><span class="line"><span class="comment"># Otherwise KERNELRELEASE is defined; we've been invoked from the</span></span><br><span class="line"><span class="comment"># kernel build system and can use its language.</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line"> </span><br><span class="line">    obj-m := query_ioctl.o</span><br><span class="line"> </span><br><span class="line"><span class="keyword">endif</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>Load the driver using insmod <code>query_ioctl.ko</code>.</li>
+<li>With appropriate privileges and command-line arguments, run the application <code>query_app</code>:<ul>
+<li><code>./query_app</code> — to display the driver variables</li>
+<li><code>./query_app -c</code> — to clear the driver variables</li>
+<li><code>./query_app -g</code> — to display the driver variables</li>
+<li><code>./query_app -s</code> — to set the driver variables (not mentioned above)</li>
+</ul>
+</li>
+<li>Unload the driver using <code>rmmod query_ioctl</code>.</li>
+</ul>
+<h2 id="Defining-the-ioctl-commands"><a href="#Defining-the-ioctl-commands" class="headerlink" title="Defining the ioctl() commands"></a>Defining the <em>ioctl()</em> commands</h2><p>You may wondere about <code>_IOR</code>, <code>_IO</code>, etc., which were used in defining commands in <code>query_ioctl.h</code>. These are usual numbers only, as mentioned earlier for an <code>ioctl()</code> command. Just that, now additionally, some useful command related information is also encoded as part of these numbers using various macros, as per the POSIX standard for <code>ioctl</code>. The standard talks about the 32-bit command numbers, formed of four components embedded into the [31:0] bits:</p>
+<ol>
+<li>The direction of command operation [bits 31:30] — read, write, both, or none — filled by the corresponding macro (<code>_IOR</code>, <code>_IOW</code>, <code>_IOWR</code>, <code>_IO</code>).</li>
+<li>The size of the  argument [bits 29:16] — computed using <code>sizeof()</code> with the  argument’s type — the third argument to these macros.</li>
+<li>The 8-bit magic number [bits 15:8] — to render the commands unique enough — typically an ASCII character (the first argument to these macros).</li>
+<li>The original command number [bits 7:0] — the actual command number (1, 2, 3, …), defined as per our requirement — the second argument to these macros.</li>
+</ol>
+<p>Check out the header <a href="https://elixir.bootlin.com/linux/latest/source/include/uapi/asm-generic/ioctl.h" target="_blank" rel="noopener">&lt;asm-generic/ioctl.h&gt;</a> for implementation details.</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/I-O系统/">I/O系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2019/07/19/程序员眼中的PCI设备/">
+        <span class="next-text nav-default">程序员眼中的PCI设备</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/07/20/linux-ioctl-函数详解/';
+        this.page.identifier = '2019/07/20/linux-ioctl-函数详解/';
+        this.page.title = 'linux ioctl()函数详解';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
