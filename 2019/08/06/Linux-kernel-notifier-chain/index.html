@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Linux kernel notifier chain">
+
+
+
+
+  <meta name="keywords" content="Kernel, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/08/06/Linux-kernel-notifier-chain/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Linux kernel notifier chain - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Linux kernel notifier chain
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-08-06
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-概述"><span class="toc-text">1. 概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-数据结构"><span class="toc-text">2. 数据结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-运行机理"><span class="toc-text">3. 运行机理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-子系统向事件通知链注册的步骤"><span class="toc-text">3.1 子系统向事件通知链注册的步骤</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-通知子系统有事件发生"><span class="toc-text">3.2 通知子系统有事件发生</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-事件列表"><span class="toc-text">3.3 事件列表</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-demo"><span class="toc-text">4. demo</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍Linux内核基础–事件通知链。</p>
+<a id="more"></a>
+<p>内容主要转载自：<a href="https://blog.csdn.net/wuhzossibility/article/details/8079025" target="_blank" rel="noopener">Linux内核基础–事件通知链</a>。</p>
+<h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h2><p>Linux内核中各个子系统相互依赖，当其中某个子系统状态发生改变时，就必须使用一定的机制告知使用其服务的其他子系统，以便其他子系统采取相应的措施。为满足这样的需求，内核实现了事件通知链机制（notification chain）。</p>
+<p>通知链只能用在各个子系统之间，而不能在内核态和用户态之间进行事件通知。内核的核心代码均位于kernel目录下，通知链表位于kernel/notifier.c中，对应的头文件为include/linux/notifier.h。</p>
+<p>事件通知链是一个事件处理函数的列表，每个通知链都与某个或某些事件有关。当特定的事件发生时，就调用相应的事件通知链中的回调函数，进行相应的处理。</p>
+<p><img src="/images/2019/8/2.png" alt></p>
+<center>图 1  内核通知链</center>
+
+<h2 id="2-数据结构"><a href="#2-数据结构" class="headerlink" title="2. 数据结构"></a>2. 数据结构</h2><p>如图 1中所示，Linux的网络子系统一共有3个通知链：表示ipv4地址发生变化时的inetaddr_chain；表示ipv6地址发生变化的inet6addr_chain；还有表示设备注册、状态变化的netdev_chain。</p>
+<p>在这些链中都是一个个notifier_block结构：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">notifier_block</span> &#123;</span></span><br><span class="line">       <span class="keyword">int</span> (*notifier_call)(struct notifier_block *, <span class="keyword">unsigned</span> <span class="keyword">long</span>, <span class="keyword">void</span> *);</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">notifier_block</span> *<span class="title">next</span>;</span></span><br><span class="line">       <span class="keyword">int</span> priority;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>其中:</p>
+<ol>
+<li><p><code>notifier_call</code>：当相应事件发生时应该调用的函数，由被通知方提供，如other_subsys_1；</p>
+</li>
+<li><p><code>notifier_block *next</code>：用于链接成链表的指针；</p>
+</li>
+<li><p><code>priority</code>：回调函数的优先级，一般默认为0。</p>
+</li>
+</ol>
+<p>内核代码中一般把通知链命名为xxx_chain, xxx_nofitier_chain这种形式的变量名。围绕核心数据结构<code>notifier_block</code>，内核定义了四种通知链类型：</p>
+<ol>
+<li><p>原子通知链（Atomic notifier chains）：通知链元素的回调函数（当事件发生时要执行的函数）在中断或原子操作上下文中运行，不允许阻塞。对应的链表头结构：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">atomic_notifier_head</span> &#123;</span></span><br><span class="line">        <span class="keyword">spinlock_t</span>  lock;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span>  <span class="title">notifier_block</span> *<span class="title">head</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>可阻塞通知链（Blocking notifier chains）：通知链元素的回调函数在进程上下文中运行，允许阻塞。对应的链表头：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span>  <span class="title">blocking_notifier_head</span> &#123;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span>  <span class="title">rw_semaphore</span>  <span class="title">rwsem</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span>  <span class="title">notifier_block</span>   *<span class="title">head</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>原始通知链（Raw notifierchains）：对通知链元素的回调函数没有任何限制，所有锁和保护机制都由调用者维护。对应的链表头：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span>  <span class="title">raw_notifier_head</span> &#123;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span>  <span class="title">notifier_block</span>   *<span class="title">head</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>SRCU 通知链（ SRCU notifier chains ）：可阻塞通知链的一种变体。对应的链表头：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span>  <span class="title">srcu_notifier_head</span> &#123;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span>  <span class="title">mutex</span> <span class="title">mutex</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span>  <span class="title">srcu_struct</span>  <span class="title">srcu</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span>  <span class="title">notifier_block</span>  *<span class="title">head</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="3-运行机理"><a href="#3-运行机理" class="headerlink" title="3. 运行机理"></a>3. 运行机理</h2><p>被通知一方（other_subsys_x）通过notifier_chain_register向特定的chain注册回调函数，并且一般而言特定的子系统会用特定的notifier_chain_register包装函数来注册。</p>
+<h3 id="3-1-子系统向事件通知链注册的步骤"><a href="#3-1-子系统向事件通知链注册的步骤" class="headerlink" title="3.1 子系统向事件通知链注册的步骤"></a>3.1 子系统向事件通知链注册的步骤</h3><ol>
+<li><p>申明struct notifier_block结构</p>
+</li>
+<li><p>编写notifier_call函数</p>
+</li>
+<li><p>调用特定的事件通知链的注册函数，将notifier_block注册到通知链中</p>
+</li>
+</ol>
+<h3 id="3-2-通知子系统有事件发生"><a href="#3-2-通知子系统有事件发生" class="headerlink" title="3.2 通知子系统有事件发生"></a>3.2 通知子系统有事件发生</h3><p>inet_subsys是通过notifier_call_chain来通知其他的子系统（other_subsys_x）的。</p>
+<p>notifier_call_chain会按照通知链上各成员的优先级顺序执行回调函数（notifier_call_x）。</p>
+<h3 id="3-3-事件列表"><a href="#3-3-事件列表" class="headerlink" title="3.3 事件列表"></a>3.3 事件列表</h3><p>对于网络子系统而言，其事件常以NETDEV_XXX命名：描述了网络设备状态（dev-&gt;flags）、传送队列状态（dev-&gt;state）、设备注册状态（dev-&gt;reg_state），以及设备的硬件功能特性（dev-&gt;features）。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* netdevice notifier chain */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_UP  0x0001  <span class="comment">/* 激活一个网络设备 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_DOWN  0x0002f <span class="comment">/* 停止一个网络设备，所有对该设备的引用都应释放 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_REBOOT       0x0003       <span class="comment">/* 检查到网络设备接口硬件崩溃，硬件重启 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_CHANGE       0x0004  <span class="comment">/* 网络设备的数据包队列状态发生改变 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_REGISTER  0x0005   <span class="comment">/*一个网络设备事例注册到系统中，但尚未激活 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_UNREGISTER       0x0006       <span class="comment">/*网络设备驱动已卸载 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_CHANGEMTU      0x0007  <span class="comment">/*MTU发生了改变 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_CHANGEADDR    0x0008  <span class="comment">/*硬件地址发生了改变 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_GOING_DOWN   0x0009  <span class="comment">/*网络设备即将注销，有dev-&gt;close报告，通知相关子系统处理 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_CHANGENAME   0x000A  <span class="comment">/*网络设备名改变 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_FEAT_CHANGE    0x000B  <span class="comment">/*feature网络硬件功能改变 */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_BONDING_FAILOVER 0x000C  <span class="comment">/*    */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_PRE_UP        0x000D  <span class="comment">/*    */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_BONDING_OLDTYPE  0x000E              <span class="comment">/*    */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NETDEV_BONDING_NEWTYPE  0x000F      <span class="comment">/*    */</span></span></span><br></pre></td></tr></table></figure>
+<h2 id="4-demo"><a href="#4-demo" class="headerlink" title="4. demo"></a>4. demo</h2><p>notifier_chain机制只能在内核个子系统间使用，因此，这里使用3个模块：test_notifier_chain_0、test_notifier_chain_1、test_notifier_chain_2。<br>test_notifier_chain_2通过module_init初始化时会发出事件TESTCHAIN_2_INIT；然后 test_notifier_chain_1作出相应的处理(打印 test_notifier_chain_2正在初始化)。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* test_chain_0.c ：0. 申明一个通知链；1. 向内核注册通知链；2. 定义事件； 3. 导出符号*/</span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/notifier.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/init.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt;   </span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/fs.h&gt;   </span></span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TESTCHAIN_INIT 0x52U</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">RAW_NOTIFIER_HEAD</span><span class="params">(test_chain)</span></span>;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* define our own notifier_call_chain */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">call_test_notifiers</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> val, <span class="keyword">void</span> *v)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> raw_notifier_call_chain(&amp;test_chain, val, v);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(call_test_notifiers);</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* define our own notifier_chain_register func */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">register_test_notifier</span><span class="params">(struct notifier_block *nb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> err;</span><br><span class="line">    err = raw_notifier_chain_register(&amp;test_chain, nb);</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">if</span>(err)</span><br><span class="line">        <span class="keyword">goto</span> out;</span><br><span class="line"> </span><br><span class="line">out:</span><br><span class="line">    <span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">EXPORT_SYMBOL(register_test_notifier);</span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">test_chain_0_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    printk(KERN_DEBUG <span class="string">"I'm in test_chain_0\n"</span>);</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function"><span class="built_in">exit</span> <span class="title">test_chain_0_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    printk(KERN_DEBUG <span class="string">"Goodbye to test_chain_0\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL v2"</span>);</span><br><span class="line">MODULE_AUTHOR(<span class="string">"fishOnFly"</span>);</span><br><span class="line"> </span><br><span class="line">module_init(test_chain_0_init);</span><br><span class="line">module_exit(test_chain_0_exit);</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* test_chain_1.c ：1. 定义回调函数；2. 定义notifier_block；3. 向chain_0注册notifier_block；*/</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/notifier.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/init.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt;   </span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/fs.h&gt;   </span></span></span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">extern</span> <span class="keyword">int</span> <span class="title">register_test_notifier</span><span class="params">(struct notifier_block *nb)</span></span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TESTCHAIN_INIT 0x52U</span></span><br><span class="line"> </span><br><span class="line"><span class="comment">/* realize the notifier_call func */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">test_init_event</span><span class="params">(struct notifier_block *nb, <span class="keyword">unsigned</span> <span class="keyword">long</span> event,</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">void</span> *v)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">switch</span>(event)&#123;</span><br><span class="line">    <span class="keyword">case</span> TESTCHAIN_INIT:</span><br><span class="line">        printk(KERN_DEBUG <span class="string">"I got the chain event: test_chain_2 is on the way of init\n"</span>);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">return</span> NOTIFY_DONE;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* define a notifier_block */</span></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">notifier_block</span> <span class="title">test_init_notifier</span> = &#123;</span></span><br><span class="line">    .notifier_call = test_init_event,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">test_chain_1_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    printk(KERN_DEBUG <span class="string">"I'm in test_chain_1\n"</span>);</span><br><span class="line">    register_test_notifier(&amp;test_init_notifier);    <span class="comment">// 由chain_0提供的函数</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function"><span class="built_in">exit</span> <span class="title">test_chain_1_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    printk(KERN_DEBUG <span class="string">"Goodbye to test_clain_l\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL"</span>);</span><br><span class="line">MODULE_AUTHOR(<span class="string">"fishOnFly"</span>);</span><br><span class="line"> </span><br><span class="line">module_init(test_chain_1_init);</span><br><span class="line">module_exit(test_chain_1_exit);</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* test_chain_2.c：发出通知链事件*/</span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/notifier.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/init.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt;  </span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/fs.h&gt;   </span></span></span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">extern</span> <span class="keyword">int</span> <span class="title">call_test_notifiers</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> val, <span class="keyword">void</span> *v)</span></span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TESTCHAIN_INIT 0x52U</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">test_chain_2_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    printk(KERN_DEBUG <span class="string">"I'm in test_chain_2\n"</span>);</span><br><span class="line">    call_test_notifiers(TESTCHAIN_INIT, <span class="string">"no_use"</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function"><span class="built_in">exit</span> <span class="title">test_chain_2_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    printk(KERN_DEBUG <span class="string">"Goodbye to test_chain_2\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL v2"</span>);</span><br><span class="line">MODULE_AUTHOR(<span class="string">"fishOnFly"</span>);</span><br><span class="line"> </span><br><span class="line">module_init(test_chain_2_init);</span><br><span class="line">module_exit(test_chain_2_exit);</span><br></pre></td></tr></table></figure>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Makefile</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># Comment/uncomment the following line to disable/enable debugging</span></span><br><span class="line"><span class="comment"># DEBUG = y</span></span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="comment"># Add your debugging flag (or not) to CFLAGS</span></span><br><span class="line"><span class="keyword">ifeq</span> (<span class="variable">$(DEBUG)</span>,y)</span><br><span class="line">  DEBFLAGS = -O -g -DSCULL_DEBUG <span class="comment"># "-O" is needed to expand inlines</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">  DEBFLAGS = -O2</span><br><span class="line"><span class="keyword">endif</span></span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">ifneq</span> (<span class="variable">$(KERNELRELEASE)</span>,)</span><br><span class="line"><span class="comment"># call from kernel build system</span></span><br><span class="line"> </span><br><span class="line">obj-m   := test_chain_0.o test_chain_1.o test_chain_2.o</span><br><span class="line"> </span><br><span class="line"><span class="keyword">else</span></span><br><span class="line"> </span><br><span class="line">KERNELDIR ?= /lib/modules/<span class="variable">$(<span class="built_in">shell</span> uname -r)</span>/build</span><br><span class="line">PWD       := <span class="variable">$(<span class="built_in">shell</span> pwd)</span></span><br><span class="line"> </span><br><span class="line"><span class="section">modules:</span></span><br><span class="line">    <span class="variable">$(MAKE)</span> -C <span class="variable">$(KERNELDIR)</span> M=<span class="variable">$(PWD)</span> modules</span><br><span class="line"> </span><br><span class="line"><span class="keyword">endif</span></span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">    rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions</span><br><span class="line"> </span><br><span class="line">depend .depend dep:</span><br><span class="line">    <span class="variable">$(CC)</span> <span class="variable">$(CFLAGS)</span> -M *.c &gt; .depend</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">ifeq</span> (.depend,<span class="variable">$(<span class="built_in">wildcard</span> .depend)</span>)</span><br><span class="line"><span class="keyword">include</span> .depend</span><br><span class="line"><span class="keyword">endif</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">insmod test_chain_0.ko</span><br><span class="line">insmod test_chain_1.ko</span><br><span class="line">insmod test_chain_2.ko</span><br><span class="line">rmmod test_chain_2.ko</span><br><span class="line">rmmod test_chain_1.ko</span><br><span class="line">rmmod test_chain_0.ko</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2019/8/1.png" alt></p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><p><a href="https://blog.csdn.net/wuhzossibility/article/details/8079025" target="_blank" rel="noopener">Linux内核基础–事件通知链</a></p>
+</li>
+<li><p><a href="https://codingfreak.blogspot.com/2012/02/notification-chains-in-linux-kernel.html" target="_blank" rel="noopener">Notification Chains in Linux Kernel</a></p>
+</li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2019/07/20/linux-ioctl-函数详解/">
+        <span class="next-text nav-default">linux ioctl()函数详解</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/08/06/Linux-kernel-notifier-chain/';
+        this.page.identifier = '2019/08/06/Linux-kernel-notifier-chain/';
+        this.page.title = 'Linux kernel notifier chain';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
