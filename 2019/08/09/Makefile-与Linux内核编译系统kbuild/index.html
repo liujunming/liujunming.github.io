@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Makefile 与Linux内核编译系统kbuild">
+
+
+
+
+  <meta name="keywords" content="工具, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/08/09/Makefile-与Linux内核编译系统kbuild/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Makefile 与Linux内核编译系统kbuild - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Makefile 与Linux内核编译系统kbuild
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-08-09
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/工具/">工具</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-三者的作用"><span class="toc-text">1. 三者的作用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-三者的语法"><span class="toc-text">2. 三者的语法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-Makefile"><span class="toc-text">2.1 Makefile</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-Kconfig"><span class="toc-text">2.2 Kconfig</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-config"><span class="toc-text">2.3 .config</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-demo"><span class="toc-text">3. demo</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文转载自：<a href="https://blog.csdn.net/thisway_diy/article/details/76981113" target="_blank" rel="noopener">内核的Makefile、Kconfig和.config文件</a></p>
+<a id="more"></a>
+<p>如果对makefile一点不懂，可以参考<a href="http://liujunming.top/2017/07/15/makefile%E5%85%A5%E9%97%A8%E6%95%99%E7%A8%8B/" target="_blank" rel="noopener">makefile入门教程</a>。</p>
+<p>最权威资料请查阅<a href="https://www.kernel.org/doc/Documentation/kbuild/makefiles.txt" target="_blank" rel="noopener">Linux Kernel Makefiles</a>。</p>
+<p>Linux内核源码文件繁多，搞不清Makefile、Kconfig、.config间的关系，不了解内核编译体系，编译修改内核有问题无从下手，自己写的驱动不知道怎么编进内核，不知道怎么配置内核，这些问题都和Makefile、Kconfig、.config有关，下面简单谈谈Makefile、Kconfig和.config。</p>
+<h2 id="1-三者的作用"><a href="#1-三者的作用" class="headerlink" title="1. 三者的作用"></a>1. 三者的作用</h2><p>简单来说就是去饭店点菜：Kconfig是菜单，Makefile是做法，.config就是你点的菜。</p>
+<ul>
+<li><p>Makefile：一个文本形式的文件，编译源文件的方法。</p>
+</li>
+<li><p>Kconfig：一个文本形式的文件，内核的配置菜单。</p>
+</li>
+<li><p>.config：编译内核所依据的配置。</p>
+</li>
+</ul>
+<h2 id="2-三者的语法"><a href="#2-三者的语法" class="headerlink" title="2. 三者的语法"></a>2. 三者的语法</h2><h3 id="2-1-Makefile"><a href="#2-1-Makefile" class="headerlink" title="2.1 Makefile"></a>2.1 Makefile</h3><p>参考：linux-3.4.2/drivers/Makefile</p>
+<p>作用：用来定义哪些内容作为模块编译，哪些条件编译等。子目录Makefile被顶层Makefile包含。</p>
+<ol>
+<li><p>直接编译<br><code>obj-y      +=xxx.o</code><br>表示由xxx.c或xxx.s编译得到xxx.o并直接编进内核。</p>
+</li>
+<li><p>条件编译<br><code>obj -$(CONFIG_HELLO)  +=xxx.o</code><br>根据.config文件的CONFIG_XXX来决定文件是否编进内核。</p>
+</li>
+<li><p>模块编译<br><code>obj-m     +=xxx.o</code><br>表示xxx作为模块编译，即执行make modules时才会被编译。</p>
+</li>
+</ol>
+<h3 id="2-2-Kconfig"><a href="#2-2-Kconfig" class="headerlink" title="2.2 Kconfig"></a>2.2 Kconfig</h3><p>每个config菜单项都有类型定义: bool布尔类型、 tristate三态(内建、模块、移除)、string字符串、 hex十六进制、integer整型。 </p>
+<p>作用：决定make menuconfig时展示的菜单项，</p>
+<p>参考：linux-3.4.2/drivers/leds/kconfig：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">config LEDS_S3C24XX</span><br><span class="line">       tristate&quot;LED Support for Samsung S3C24XX GPIO LEDs&quot;</span><br><span class="line">       dependson LEDS_CLASS</span><br><span class="line">       dependson ARCH_S3C24XX</span><br><span class="line">       help</span><br><span class="line">         This option enables support for LEDs connected to GPIO lines on Samsung S3C24XX series CPUs, such as the S3C2410 and S3C2440.</span><br></pre></td></tr></table></figure></p>
+<p><code>LEDS_S3C24XX</code>：配置选项的名称，省略了前缀”CONFIG_”</p>
+<p><code>Tristate</code>：表示该项是否编进内核、编成模块。显示为&lt; &gt; , 假如选择编译成内核模块，则会在.config中生成一个 CONFIG_HELLO_MODULE=m的配置，选择Y就是直接编进内核，会在.config中生成一个 CONFIG_HELLO_MODULE=y的配置项。Tristate后的字符串是make menuconfig时显示的配置项名称。</p>
+<p><code>bool</code>：此类型只能选中或不选中，make menuconfig时显示为[ ]，即无法配置成模块。</p>
+<p><code>dependon</code>:该选项依赖于另一个选项，只有当依赖项被选中时，当前配置项的提示信息才会出现，才能设置当前配置项。</p>
+<p><code>select</code>:反向依赖关系，该选项选中时，同时选中select后面定义的那一项。</p>
+<p><code>help</code>：帮助信息。</p>
+<p><code>目录层次迭代</code>：Kconfig中有类似语句：source “drivers/usb/Kconfig” ，用来包含（或嵌套）新的Kconfig文件，使得各个目录管理各自的配置内容，不必把那些配置都写在同一个文件里，方便修改和管理。</p>
+<h3 id="2-3-config"><a href="#2-3-config" class="headerlink" title="2.3 .config"></a>2.3 .config</h3><p>参考：linux-3.4.2/.config</p>
+<p>通过前俩个文件的分析，.config的含义已经很清晰：内核编译参考文件，查看里面内容可以知道哪些驱动被编译进内核。</p>
+<p>配置内核方式有3种(任选其一)：</p>
+<p>（1）make menuconfig<br>（2）make xxx_defconfig<br>（3）直接修改.config</p>
+<p>注意: 如果直接修改.config，不一定会生效，因为有些配置可能存在依赖关系，make时会根据依赖关系，进行规则的检查，直接修改.config有时无效，所以不推荐直接修改。</p>
+<h2 id="3-demo"><a href="#3-demo" class="headerlink" title="3. demo"></a>3. demo</h2><p>以上可能有点抽象，下面举例说明：<br>写一个简单的入口函数输出hello world的驱动并编译进内核。</p>
+<p>步骤：<br>（1）在drivers目录下新建hello文件夹，里面实现hello.c、Makefile、Kconfig。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// hello.c：</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;  </span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt; </span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/init.h&gt;  </span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">first_drv_init</span><span class="params">(<span class="keyword">void</span>)</span>  </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">   printk(<span class="string">"------------------hello world !--------------------"</span>); </span><br><span class="line">   <span class="keyword">return</span> <span class="number">0</span>;  </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">first_drv_exit</span><span class="params">(<span class="keyword">void</span>)</span> </span></span><br><span class="line"><span class="function"></span>&#123;  </span><br><span class="line">   printk(<span class="string">"------------------exit hello world!--------------------"</span>); </span><br><span class="line">&#125;  </span><br><span class="line"></span><br><span class="line">module_init(first_drv_init); </span><br><span class="line">module_exit(first_drv_exit); </span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL"</span>);</span><br></pre></td></tr></table></figure>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">// Makefile</span><br><span class="line"></span><br><span class="line">obj-<span class="variable">$(CONFIG_HELLO)</span>        += hello.o</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// Kconfig</span><br><span class="line"></span><br><span class="line">config HELLO  </span><br><span class="line">   tristate &quot;Hello Worldfor fengyuwuzu&quot;  </span><br><span class="line">   help  </span><br><span class="line">     Hello  forfengyuwuzu</span><br></pre></td></tr></table></figure>
+<p>config HELLO决定名字：CONFIG_HELLO。<br>Hello World for fengyuwuzu：决定了在make menuconfig时显示的名字。</p>
+<p>（2）修改上一级（Linux-3.4.2/drivers下）的Makefile、Kconfig。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">// Makefile</span><br><span class="line"></span><br><span class="line">obj-y  += hello/</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">// Kconfig</span><br><span class="line"></span><br><span class="line">source &quot;drivers/hello/Kconfig&quot;</span><br></pre></td></tr></table></figure>
+<p>（3）make menuconfig</p>
+<p><img src="/images/2019/8/3.png" alt></p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://edsionte.com/techblog/archives/1332" target="_blank" rel="noopener">对Makefile、Kconfig与.config文件的再次理解</a></li>
+<li><a href="https://nanxiao.me/linux-kernel-note-59-kconfig-depends-on-select/" target="_blank" rel="noopener">Kconfig中的“depends on”和“select”</a></li>
+<li><a href="https://jin-yang.github.io/reference/linux/kernel/KBUILD_system.pdf" target="_blank" rel="noopener">KBUILD 系统原理分析</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/kbuild/makefiles.txt" target="_blank" rel="noopener">Linux Kernel Makefiles</a></li>
+<li><a href="https://stackoverflow.com/questions/29231876/how-does-kbuild-actually-work" target="_blank" rel="noopener">How does kbuild actually work?
+</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/工具/">工具</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2019/08/06/Linux-kernel-notifier-chain/">
+        <span class="next-text nav-default">Linux kernel notifier chain</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/08/09/Makefile-与Linux内核编译系统kbuild/';
+        this.page.identifier = '2019/08/09/Makefile-与Linux内核编译系统kbuild/';
+        this.page.title = 'Makefile 与Linux内核编译系统kbuild';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
