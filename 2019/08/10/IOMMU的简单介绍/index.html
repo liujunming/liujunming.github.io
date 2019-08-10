@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="IOMMU的简单介绍">
+
+
+
+
+  <meta name="keywords" content="虚拟化, IO系统, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/08/10/IOMMU的简单介绍/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> IOMMU的简单介绍 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          IOMMU的简单介绍
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-08-10
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/IO系统/">IO系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-什么是IOMMU"><span class="toc-text">1. 什么是IOMMU</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-为什么要有IOMMU"><span class="toc-text">2. 为什么要有IOMMU</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-physical-DMA-without-IOMMU"><span class="toc-text">2.1 physical DMA without IOMMU</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-with-IOMMU"><span class="toc-text">2.2 with IOMMU</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-IOMMU在虚拟化中的用途"><span class="toc-text">3. IOMMU在虚拟化中的用途</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-per-BDF-DMA-remapping"><span class="toc-text">3.1 per-BDF DMA remapping</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-interrupt-remapping"><span class="toc-text">3.2 interrupt remapping</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文主要介绍下IOMMU的相关知识点，相关细节，将在后续的文章中，结合代码，详细讲解。<br><a id="more"></a><br>本文内容是对相关材料的汇总，并非原创。详情参见文章末尾的参考资料。</p>
+<h2 id="1-什么是IOMMU"><a href="#1-什么是IOMMU" class="headerlink" title="1. 什么是IOMMU"></a>1. 什么是IOMMU</h2><p>IOMMU（Input/Output Memory Management Unit）是一个内存管理单元（Memory Management Unit），它的作用是连接DMA-capable I/O总线（Direct Memory Access-capable I/O Bus）和主存（main memory）。传统的内存管理单元会把CPU访问的虚拟地址转化成实际的物理地址。而IOMMU则是把设备（device）访问的虚拟地址转化成物理地址。</p>
+<p><img src="/images/2019/8/4.png" alt></p>
+<h2 id="2-为什么要有IOMMU"><a href="#2-为什么要有IOMMU" class="headerlink" title="2. 为什么要有IOMMU"></a>2. 为什么要有IOMMU</h2><p>首先，我们看下没有IOMMU的世界吧。</p>
+<h3 id="2-1-physical-DMA-without-IOMMU"><a href="#2-1-physical-DMA-without-IOMMU" class="headerlink" title="2.1 physical DMA without IOMMU"></a>2.1 physical DMA without IOMMU</h3><ul>
+<li>一些设备需要大量的物理连续内存，但是os无法为其分配。可以有如下解决方案：<ul>
+<li>在内核启动是为设备保留内存</li>
+<li>将MMU内嵌到设备中，如<a href="http://liujunming.top/2019/07/16/Intel-GPU-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" target="_blank" rel="noopener">GPU</a></li>
+</ul>
+</li>
+<li>一些设备有DMA寻址限制，例如，只支持32位的DMA寻址。可以有如下解决方案：<ul>
+<li><a href="http://www.chudov.com/tmp/LinuxVM/html/understand/node65.html" target="_blank" rel="noopener">Bounce buffer</a></li>
+</ul>
+</li>
+<li>没有内存保护机制，设备可能会错误地访问内存地址</li>
+<li>不能支持PCI设备的<a href="http://liujunming.top/pdf/passthrough.pdf" target="_blank" rel="noopener">pass-through</a></li>
+</ul>
+<p>接下来，我们看下拥有IOMMU的世界吧。</p>
+<h3 id="2-2-with-IOMMU"><a href="#2-2-with-IOMMU" class="headerlink" title="2.2 with IOMMU"></a>2.2 with IOMMU</h3><ul>
+<li>使用更大的DMA寻址空间<ul>
+<li>每个设备都用自己独立的DMA内存寻址空间</li>
+</ul>
+</li>
+<li>使用更大的连续DMA内存<ul>
+<li>可以将非连续的物理内存映射到连续的DMA内存空间中</li>
+<li>避免使用<a href="https://knowledge.ni.com/KnowledgeArticleDetails?id=kA00Z0000019NMqSAM" target="_blank" rel="noopener">scatter-gather list</a></li>
+</ul>
+</li>
+<li>避免使用<a href="http://www.chudov.com/tmp/LinuxVM/html/understand/node65.html" target="_blank" rel="noopener">Bounce buffer</a></li>
+<li>提供了访问内存保护机制<ul>
+<li>防止设备错误地访问内存</li>
+</ul>
+</li>
+<li>支持PCI设备的<a href="http://liujunming.top/pdf/passthrough.pdf" target="_blank" rel="noopener">pass-through</a></li>
+</ul>
+<h2 id="3-IOMMU在虚拟化中的用途"><a href="#3-IOMMU在虚拟化中的用途" class="headerlink" title="3. IOMMU在虚拟化中的用途"></a>3. IOMMU在虚拟化中的用途</h2><p>IOMMU的一个重要用途是在虚拟化技术（virtualization）：虚拟机上运行的操作系统（guest OS）通常不知道它所访问的host-physical内存地址。如果要进行DMA操作，就有可能破坏内存，因为实际的硬件（hardware）不知道guest-physical和host-physical内存地址之间的映射关系。IOMMU根据guest-physical和host-physical内存地址之间的转换表（translation table），re-mapping硬件访问的地址，就可以解决这个问题。</p>
+<p>在AMD的<a href="http://pages.cs.wisc.edu/~basu/isca_iommu_tutorial/IOMMU_TUTORIAL_ASPLOS_2016.pdf" target="_blank" rel="noopener">VIRTUALIZING IO THROUGH THE IO MEMORY MANAGEMENT UNIT (IOMMU)</a>文档中，也有一个更全面的总结图：</p>
+<p><img src="/images/2019/8/5.jpg" alt></p>
+<p>引入虚拟化后，带来的问题是：设备看到的是GPA(guest physical address)，但是访问的是HPA(host physical address)。</p>
+<h3 id="3-1-per-BDF-DMA-remapping"><a href="#3-1-per-BDF-DMA-remapping" class="headerlink" title="3.1 per-BDF DMA remapping"></a>3.1 per-BDF DMA remapping</h3><blockquote>
+<p>DMA Remapping通过IOMMU页表方式将直通设备对内存的访问限制到特定的domain中，在提高IO性能的同时完成了直通设备的隔离，保证了直通设备DMA的安全性。</p>
+</blockquote>
+<p><img src="/images/2019/8/6.png" alt></p>
+<h3 id="3-2-interrupt-remapping"><a href="#3-2-interrupt-remapping" class="headerlink" title="3.2 interrupt remapping"></a>3.2 interrupt remapping</h3><blockquote>
+<p>Interrupt Remapping则提供IO设备的中断重映射和路由功能，来达到中断隔离和中断迁移的目的，提升了虚拟化环境下直通设备的中断处理效率。</p>
+</blockquote>
+<blockquote>
+<p>为什么要搞中断重映射这么一套东西呢？直通设备的中断不能直通到虚拟机内部吗？ 我们知道直通场景下直通设备的MSI/MSI-X Msg信息都是由Guest直接分配的，那么问题来了：设备发送中断的时候写的Msg地址是GPA，肯定不能直接往host上投递，否则就乱套了。在虚拟化场景下，直通设备的中断是无法直接投递到Guest中的，那么我们该怎么办？我们可以由IOMMU截获中断，先将中断映射到host的某个中断上，然后再重定向（由VMM投递）到Guest内部。</p>
+</blockquote>
+<p>对于MSI/MSI-X中断机制的相关知识，会在后续的文章中陆续推出。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://lists.linuxfoundation.org/pipermail/iommu/2011-November/003185.html" target="_blank" rel="noopener">Kai Huang mail.kai.huang at gmail.com </a></li>
+<li><a href="https://nanxiao.me/iommu-introduction/" target="_blank" rel="noopener">什么是IOMMU？</a></li>
+<li><a href="https://invisiblethingslab.com/resources/2011/Software%20Attacks%20on%20Intel%20VT-d.pdf" target="_blank" rel="noopener">Software attacks against Intel(R) VT-d technology</a></li>
+<li><a href="https://kernelgo.org/interrupt-remapping.html" target="_blank" rel="noopener">VT-d Interrupt Remapping</a></li>
+<li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/08/04/iommu-introduction" target="_blank" rel="noopener">IOMMU introduction</a></li>
+<li><a href="https://www.wikiwand.com/en/Input%E2%80%93output_memory_management_unit" target="_blank" rel="noopener">Input–output memory management unit</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/IO系统/">IO系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2019/08/09/Makefile-与Linux内核编译系统kbuild/">
+        <span class="next-text nav-default">Makefile 与Linux内核编译系统kbuild</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/08/10/IOMMU的简单介绍/';
+        this.page.identifier = '2019/08/10/IOMMU的简单介绍/';
+        this.page.title = 'IOMMU的简单介绍';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
