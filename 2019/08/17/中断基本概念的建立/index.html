@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="gpio introduction">
+  <meta name="description" content="中断基本概念的建立">
 
 
 
 
-  <meta name="keywords" content="IO系统, L">
+  <meta name="keywords" content="中断, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2019/08/17/gpio-introduction/">
+<link rel="canonical" href="http://liujunming.github.io/2019/08/17/中断基本概念的建立/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> gpio introduction - L </title>
+    <title> 中断基本概念的建立 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,7 +260,7 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          gpio introduction
+          中断基本概念的建立
         
       </h1>
 
@@ -271,7 +271,7 @@
         
           <span class="post-category">
             
-              <a href="/categories/IO系统/">IO系统</a>
+              <a href="/categories/中断/">中断</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#概念"><span class="toc-text">概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#使用方法"><span class="toc-text">使用方法</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-PIC"><span class="toc-text">1. PIC</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-APIC"><span class="toc-text">2. APIC</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-MSI"><span class="toc-text">3. MSI</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-What-are-MSIs"><span class="toc-text">3.1 What are MSIs?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-Why-use-MSIs"><span class="toc-text">3.2 Why use MSIs?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-misc"><span class="toc-text">3.3 misc</span></a></li></ol></li></ol>
     </div>
   </div>
 
@@ -292,16 +292,44 @@
 
     <div class="post-content">
       
-        <p>本文主要介绍gpio的概念与使用方法。<a id="more"></a></p>
-<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><p>每个GPIO都代表一个连接到特定引脚的一个位。</p>
-<p>“通用输入/输出口”(GPIO)是一个灵活的由软件控制的数字信号。</p>
-<h2 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h2><p>gpio的确切含义由主板提供。在安装完gpio的驱动后，就可以在sysfs/class/gpio中使用了。</p>
-<p>看完<a href="https://www.youtube.com/watch?v=i28nmEwwWHo&amp;t=7s" target="_blank" rel="noopener">Linux GPIO access using sysfs</a>后就能明白gpio的使用了。</p>
+        <p>本文将介绍PCI、APIC、MSI基本概念。<a id="more"></a></p>
+<p>中断从设备发送到CPU需要“可编程中断控制器”的转发(MSI除外)。中断控制器发展至今，经历了PIC和APIC两个阶段。</p>
+<h2 id="1-PIC"><a href="#1-PIC" class="headerlink" title="1. PIC"></a>1. PIC</h2><p>也就是8259A芯片。PIC的相关介绍参见<a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a>2.4.1章节。</p>
+<p>明白PIC中重要的寄存器以及PIC向CPU递交中断的流程即可。若想深究，可以参见<a href="https://pdos.csail.mit.edu/6.828/2005/readings/hardware/8259A.pdf" target="_blank" rel="noopener">8259A Programmable Interrupt Controller
+</a></p>
+<h2 id="2-APIC"><a href="#2-APIC" class="headerlink" title="2. APIC"></a>2. APIC</h2><p>PIC可以在UP(单处理器)平台上工作，但无法用于MP(多处理器)平台。为此，APIC应运而生。</p>
+<p><img src="/images/2019/8/9.png" alt><br>APIC的相关介绍参见<a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a>2.4.1章节。</p>
+<p>APIC的发展历程：<br>APIC-&gt;xAPIC-&gt;x2APIC</p>
+<p>LAPIC处理的中断类型有如下三种：</p>
+<ul>
+<li>Local interrupt - configured by local vector table(LVT)</li>
+<li>External interrupt - from IOAPIC/MSI</li>
+<li>inter-processor interrupt(IPI) - configured by interrupt command register(ICR)</li>
+</ul>
+<p>详细内容请参见SDM(ADVANCED PROGRAMMABLE INTERRUPT CONTROLLER)部分。</p>
+<h2 id="3-MSI"><a href="#3-MSI" class="headerlink" title="3. MSI"></a>3. MSI</h2><h3 id="3-1-What-are-MSIs"><a href="#3-1-What-are-MSIs" class="headerlink" title="3.1 What are MSIs?"></a>3.1 What are MSIs?</h3><p>A Message Signaled Interrupt is a write from the device to a special address which causes an interrupt to be received by the CPU.</p>
+<p>The MSI capability was first specified in PCI 2.2 and was later enhanced in PCI 3.0 to allow each interrupt to be masked individually.  The MSI-X capability was also introduced with PCI 3.0.  It supports more interrupts per device than MSI and allows interrupts to be independently configured.</p>
+<h3 id="3-2-Why-use-MSIs"><a href="#3-2-Why-use-MSIs" class="headerlink" title="3.2 Why use MSIs?"></a>3.2 Why use MSIs?</h3><p>There are three reasons why using MSIs can give an advantage over traditional pin-based interrupts.</p>
+<ol>
+<li><p>Pin-based PCI interrupts are often shared amongst several devices. To support this, the kernel must call each interrupt handler associated with an interrupt, which leads to reduced performance for the system as a whole.  MSIs are never shared, so this problem cannot arise. <a href="http://liujunming.top/2018/12/04/Understanding-the-Linux-Kernel-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-Interrupts-and-Exceptions/" target="_blank" rel="noopener">for detail</a></p>
+</li>
+<li><p>When a device writes data to memory, then raises a pin-based interrupt, it is possible that the interrupt may arrive before all the data has arrived in memory (this becomes more likely with devices behind PCI-PCI bridges).  In order to ensure that all the data has arrived in memory, the interrupt handler must read a register on the device which raised the interrupt.  PCI transaction ordering rules require that all the data arrive in memory before the value may be returned from the register. Using MSIs avoids this problem as the interrupt-generating write cannot pass the data writes, so by the time the interrupt is raised, the driver knows that all the data has arrived in memory.</p>
+</li>
+<li><p>PCI devices can only support a single pin-based interrupt per function. Often drivers have to query the device to find out what event has occurred, slowing down interrupt handling for the common case.  With MSIs, a device can support more interrupts, allowing each interrupt to be specialised to a different purpose.  </p>
+</li>
+</ol>
+<h3 id="3-3-misc"><a href="#3-3-misc" class="headerlink" title="3.3 misc"></a>3.3 misc</h3><p>intel系统中，MSI允许PCI设备直接发送中断到LAPIC，不需要通过IOAPIC。</p>
+<p>MSI allows the device to write a small amount of interrupt-describing data to a special memory-mapped I/O address, and the chipset then delivers the corresponding interrupt to a processor.</p>
+<p>A common misconception with MSI is that it allows the device to send data to a processor as part of the interrupt. The data that is sent as part of the memory write transaction is used by the chipset to determine which interrupt to trigger on which processor; that data is not available for the device to communicate additional information to the interrupt handler.</p>
+<p>On Intel systems, the LAPIC must be enabled for the PCI (and PCI Express) MSI/MSI-X to work, even on uniprocessor (single core) systems. In these systems, MSIs are handled by writing the interrupt vector directly into the LAPIC of the processor/core that needs to service the interrupt.</p>
+<p>详细内容请参见SDM(MESSAGE SIGNALLED INTERRUPTS)部分。</p>
 <hr>
 <p>参考资料：</p>
 <ol>
-<li><a href="https://www.kernel.org/doc/html/latest/driver-api/gpio/intro.html" target="_blank" rel="noopener">GPIO Introduction</a></li>
-<li><a href="https://www.youtube.com/watch?v=i28nmEwwWHo&amp;t=7s" target="_blank" rel="noopener">Linux GPIO access using sysfs</a></li>
+<li><a href="https://elixir.bootlin.com/linux/v5.3-rc4/source/Documentation/PCI/msi-howto.rst" target="_blank" rel="noopener">msi kernel document</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Message_Signaled_Interrupts" target="_blank" rel="noopener">msi wikipedia</a></li>
+<li><a href="https://www.binss.me/blog/what-is-apic/" target="_blank" rel="noopener">APIC的那些事儿</a></li>
+<li><a href="https://github.com/GiantVM/doc/tree/master/interrupt_and_io" target="_blank" rel="noopener">interrupt_and_io</a></li>
 </ol>
 
       
@@ -322,7 +350,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/IO系统/">IO系统</a>
+              <a href="/tags/中断/">中断</a>
             
           </div>
         
@@ -330,15 +358,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2019/08/17/中断那些事/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">中断那些事</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2019/08/16/Some-notes-about-learning-kernel-virtualization/">
-        <span class="next-text nav-default">Some notes about learning kernel && virtualization</span>
+      <a class="next" href="/2019/08/17/中断那些事/">
+        <span class="next-text nav-default">中断那些事</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -451,9 +473,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2019/08/17/gpio-introduction/';
-        this.page.identifier = '2019/08/17/gpio-introduction/';
-        this.page.title = 'gpio introduction';
+        this.page.url = 'http://liujunming.github.io/2019/08/17/中断基本概念的建立/';
+        this.page.identifier = '2019/08/17/中断基本概念的建立/';
+        this.page.title = '中断基本概念的建立';
     };
     (function() {
     var d = document, s = d.createElement('script');

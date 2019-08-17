@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2019-08-17T02:28:24.828Z</updated>
+  <updated>2019-08-17T09:37:47.587Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,50 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>中断基本概念的建立</title>
+    <link href="http://liujunming.github.io/2019/08/17/%E4%B8%AD%E6%96%AD%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E7%9A%84%E5%BB%BA%E7%AB%8B/"/>
+    <id>http://liujunming.github.io/2019/08/17/中断基本概念的建立/</id>
+    <published>2019-08-17T08:14:01.000Z</published>
+    <updated>2019-08-17T09:37:47.587Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将介绍PCI、APIC、MSI基本概念。<a id="more"></a></p><p>中断从设备发送到CPU需要“可编程中断控制器”的转发(MSI除外)。中断控制器发展至今，经历了PIC和APIC两个阶段。</p><h2 id="1-PIC"><a href="#1-PIC" class="headerlink" title="1. PIC"></a>1. PIC</h2><p>也就是8259A芯片。PIC的相关介绍参见<a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a>2.4.1章节。</p><p>明白PIC中重要的寄存器以及PIC向CPU递交中断的流程即可。若想深究，可以参见<a href="https://pdos.csail.mit.edu/6.828/2005/readings/hardware/8259A.pdf" target="_blank" rel="noopener">8259A Programmable Interrupt Controller</a></p><h2 id="2-APIC"><a href="#2-APIC" class="headerlink" title="2. APIC"></a>2. APIC</h2><p>PIC可以在UP(单处理器)平台上工作，但无法用于MP(多处理器)平台。为此，APIC应运而生。</p><p><img src="/images/2019/8/9.png" alt><br>APIC的相关介绍参见<a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a>2.4.1章节。</p><p>APIC的发展历程：<br>APIC-&gt;xAPIC-&gt;x2APIC</p><p>LAPIC处理的中断类型有如下三种：</p><ul><li>Local interrupt - configured by local vector table(LVT)</li><li>External interrupt - from IOAPIC/MSI</li><li>inter-processor interrupt(IPI) - configured by interrupt command register(ICR)</li></ul><p>详细内容请参见SDM(ADVANCED PROGRAMMABLE INTERRUPT CONTROLLER)部分。</p><h2 id="3-MSI"><a href="#3-MSI" class="headerlink" title="3. MSI"></a>3. MSI</h2><h3 id="3-1-What-are-MSIs"><a href="#3-1-What-are-MSIs" class="headerlink" title="3.1 What are MSIs?"></a>3.1 What are MSIs?</h3><p>A Message Signaled Interrupt is a write from the device to a special address which causes an interrupt to be received by the CPU.</p><p>The MSI capability was first specified in PCI 2.2 and was later enhanced in PCI 3.0 to allow each interrupt to be masked individually.  The MSI-X capability was also introduced with PCI 3.0.  It supports more interrupts per device than MSI and allows interrupts to be independently configured.</p><h3 id="3-2-Why-use-MSIs"><a href="#3-2-Why-use-MSIs" class="headerlink" title="3.2 Why use MSIs?"></a>3.2 Why use MSIs?</h3><p>There are three reasons why using MSIs can give an advantage over traditional pin-based interrupts.</p><ol><li><p>Pin-based PCI interrupts are often shared amongst several devices. To support this, the kernel must call each interrupt handler associated with an interrupt, which leads to reduced performance for the system as a whole.  MSIs are never shared, so this problem cannot arise. <a href="http://liujunming.top/2018/12/04/Understanding-the-Linux-Kernel-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-Interrupts-and-Exceptions/" target="_blank" rel="noopener">for detail</a></p></li><li><p>When a device writes data to memory, then raises a pin-based interrupt, it is possible that the interrupt may arrive before all the data has arrived in memory (this becomes more likely with devices behind PCI-PCI bridges).  In order to ensure that all the data has arrived in memory, the interrupt handler must read a register on the device which raised the interrupt.  PCI transaction ordering rules require that all the data arrive in memory before the value may be returned from the register. Using MSIs avoids this problem as the interrupt-generating write cannot pass the data writes, so by the time the interrupt is raised, the driver knows that all the data has arrived in memory.</p></li><li><p>PCI devices can only support a single pin-based interrupt per function. Often drivers have to query the device to find out what event has occurred, slowing down interrupt handling for the common case.  With MSIs, a device can support more interrupts, allowing each interrupt to be specialised to a different purpose.  </p></li></ol><h3 id="3-3-misc"><a href="#3-3-misc" class="headerlink" title="3.3 misc"></a>3.3 misc</h3><p>intel系统中，MSI允许PCI设备直接发送中断到LAPIC，不需要通过IOAPIC。</p><p>MSI allows the device to write a small amount of interrupt-describing data to a special memory-mapped I/O address, and the chipset then delivers the corresponding interrupt to a processor.</p><p>A common misconception with MSI is that it allows the device to send data to a processor as part of the interrupt. The data that is sent as part of the memory write transaction is used by the chipset to determine which interrupt to trigger on which processor; that data is not available for the device to communicate additional information to the interrupt handler.</p><p>On Intel systems, the LAPIC must be enabled for the PCI (and PCI Express) MSI/MSI-X to work, even on uniprocessor (single core) systems. In these systems, MSIs are handled by writing the interrupt vector directly into the LAPIC of the processor/core that needs to service the interrupt.</p><p>详细内容请参见SDM(MESSAGE SIGNALLED INTERRUPTS)部分。</p><hr><p>参考资料：</p><ol><li><a href="https://elixir.bootlin.com/linux/v5.3-rc4/source/Documentation/PCI/msi-howto.rst" target="_blank" rel="noopener">msi kernel document</a></li><li><a href="https://en.wikipedia.org/wiki/Message_Signaled_Interrupts" target="_blank" rel="noopener">msi wikipedia</a></li><li><a href="https://www.binss.me/blog/what-is-apic/" target="_blank" rel="noopener">APIC的那些事儿</a></li><li><a href="https://github.com/GiantVM/doc/tree/master/interrupt_and_io" target="_blank" rel="noopener">interrupt_and_io</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将介绍PCI、APIC、MSI基本概念。
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>中断那些事</title>
+    <link href="http://liujunming.github.io/2019/08/17/%E4%B8%AD%E6%96%AD%E9%82%A3%E4%BA%9B%E4%BA%8B/"/>
+    <id>http://liujunming.github.io/2019/08/17/中断那些事/</id>
+    <published>2019-08-17T07:59:43.000Z</published>
+    <updated>2019-08-17T08:15:11.511Z</updated>
+    
+    <content type="html"><![CDATA[<p>中断，既熟悉，又陌生。<a id="more"></a></p><p>本系列将逐步更新中断相关文章，将会包含如下内容：</p><ol><li>PIC</li><li>APIC</li><li>MSI/MSI-x</li><li>interrupt软件虚拟化</li><li>interrupt硬件虚拟化<ol><li>interrupt remapping</li><li>posted-interrupt</li></ol></li></ol><ul><li><a href="http://liujunming.top/2019/08/17/%E4%B8%AD%E6%96%AD%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E7%9A%84%E5%BB%BA%E7%AB%8B/" target="_blank" rel="noopener">中断基本概念的建立</a></li></ul>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;中断，既熟悉，又陌生。
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
   
   <entry>
     <title>gpio introduction</title>
@@ -43,9 +87,9 @@
     <link href="http://liujunming.github.io/2019/08/16/Some-notes-about-learning-kernel-virtualization/"/>
     <id>http://liujunming.github.io/2019/08/16/Some-notes-about-learning-kernel-virtualization/</id>
     <published>2019-08-16T12:35:14.000Z</published>
-    <updated>2019-08-16T15:53:57.904Z</updated>
+    <updated>2019-08-17T08:15:51.681Z</updated>
     
-    <content type="html"><![CDATA[<p>本文主要分享自己的一些学习经验，同时会推荐相关资料与工具。<a id="more"></a></p><p>本页面将持续更新。</p><h2 id="内核资料"><a href="#内核资料" class="headerlink" title="内核资料"></a>内核资料</h2><p>学习内核的最好方法是阅读源码，然而，一上来读源码是不现实的。要明白机理之后读源码才有意义。</p><p>当需要读某一模块源码时，可以按照如下方法去查询资料：</p><ul><li>去内核的Document目录中查询最官方的文档资料</li><li>用关键字去Google、百度中搜索</li><li>去谷歌学术中搜索是否有相关论文</li><li>去<a href="https://software.intel.com/en-us/articles/intel-sdm" target="_blank" rel="noopener">SDM</a>中查询硬件接口信息<ul><li>要能够区分什么事情是硬件做的，什么事情是操作系统做的。以内存寻址为例，操作系统的任务是建立与维护页表，而页表查询是由硬件MMU单元来完成的。</li><li>首先存在硬件，之后根据硬件的接口信息，才能写出相关软件(操作系统)。</li></ul></li><li>阅读相关patch<ul><li>去查询相关模块的git commit history，去阅读每一个patch。</li><li>结合patch中的comment信息与git diff源码信息，可以增进对源码的理解</li></ul></li></ul><h2 id="虚拟化资料"><a href="#虚拟化资料" class="headerlink" title="虚拟化资料"></a>虚拟化资料</h2><ul><li><a href="http://liujunming.top/2019/05/27/%E8%99%9A%E6%8B%9F%E5%8C%96%E8%AF%BE%E7%A8%8B%E5%AD%A6%E4%B9%A0/" target="_blank" rel="noopener">Concurrent and Distributed Systems</a></li><li><a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a><ul><li><strong>虚拟化领域的圣经</strong>，我司出品，必属精品，但有些内容有些陈旧。遗憾的是实体书已经绝版，不过网上有电子资源</li><li>虚拟化最好的入门书籍，若想了解实现细节，只有实践+源码</li></ul></li><li><a href="https://software.intel.com/en-us/articles/intel-sdm" target="_blank" rel="noopener">SDM</a><ul><li>查询硬件辅助虚拟化的相关硬件信息</li></ul></li><li>我部门的内部培训资料<ul><li>很多培训资料，由于是保密资料，所以不能分享</li><li>若想学习，欢迎来我司。简历可以发我邮箱:<a href="mailto:junming.liu@intel.com" target="_blank" rel="noopener">junming.liu@intel.com</a></li></ul></li></ul><h2 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h2><ul><li>tig<ul><li>tig 文件，可以查看该文件的commit history</li><li>tig 目录，可以查看该目录的commit history</li><li>这样，可以查询到某一模块的相关patch，就可以开始啃源码了</li></ul></li></ul><h2 id="后续博客内容"><a href="#后续博客内容" class="headerlink" title="后续博客内容"></a>后续博客内容</h2><p>立个flag，将在后续博客中，将理论结合源码，推出如下系列文章。</p><ul><li>中断那些事</li><li>ACRN hypervisor那些事</li><li>ACRN kernel那些事</li><li>BOOT那些事</li><li>CPU虚拟化那些事</li><li>内存虚拟化那些事</li><li>IO虚拟化那些事</li><li>GPU &amp; GVT那些事</li></ul>]]></content>
+    <content type="html"><![CDATA[<p>本文主要分享自己的一些学习经验，同时会推荐相关资料与工具。<a id="more"></a></p><p>本页面将持续更新。</p><h2 id="内核资料"><a href="#内核资料" class="headerlink" title="内核资料"></a>内核资料</h2><p>学习内核的最好方法是阅读源码，然而，一上来读源码是不现实的。要明白机理之后读源码才有意义。</p><p>当需要读某一模块源码时，可以按照如下方法去查询资料：</p><ul><li>去内核的Document目录中查询最官方的文档资料</li><li>用关键字去Google、百度中搜索</li><li>去谷歌学术中搜索是否有相关论文</li><li>去<a href="https://software.intel.com/en-us/articles/intel-sdm" target="_blank" rel="noopener">SDM</a>中查询硬件接口信息<ul><li>要能够区分什么事情是硬件做的，什么事情是操作系统做的。以内存寻址为例，操作系统的任务是建立与维护页表，而页表查询是由硬件MMU单元来完成的。</li><li>首先存在硬件，之后根据硬件的接口信息，才能写出相关软件(操作系统)。</li></ul></li><li>阅读相关patch<ul><li>去查询相关模块的git commit history，去阅读每一个patch。</li><li>结合patch中的comment信息与git diff源码信息，可以增进对源码的理解</li></ul></li></ul><h2 id="虚拟化资料"><a href="#虚拟化资料" class="headerlink" title="虚拟化资料"></a>虚拟化资料</h2><ul><li><a href="http://liujunming.top/2019/05/27/%E8%99%9A%E6%8B%9F%E5%8C%96%E8%AF%BE%E7%A8%8B%E5%AD%A6%E4%B9%A0/" target="_blank" rel="noopener">Concurrent and Distributed Systems</a></li><li><a href="https://book.douban.com/subject/3619896/" target="_blank" rel="noopener">系统虚拟化</a><ul><li><strong>虚拟化领域的圣经</strong>，我司出品，必属精品，但有些内容有些陈旧。遗憾的是实体书已经绝版，不过网上有电子资源</li><li>虚拟化最好的入门书籍，若想了解实现细节，只有实践+源码</li></ul></li><li><a href="https://software.intel.com/en-us/articles/intel-sdm" target="_blank" rel="noopener">SDM</a><ul><li>查询硬件辅助虚拟化的相关硬件信息</li></ul></li><li>我部门的内部培训资料<ul><li>很多培训资料，由于是保密资料，所以不能分享</li><li>若想学习，欢迎来我司。简历可以发我邮箱:<a href="mailto:junming.liu@intel.com" target="_blank" rel="noopener">junming.liu@intel.com</a></li></ul></li></ul><h2 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h2><ul><li>tig<ul><li>tig 文件，可以查看该文件的commit history</li><li>tig 目录，可以查看该目录的commit history</li><li>这样，可以查询到某一模块的相关patch，就可以开始啃源码了</li></ul></li></ul><h2 id="后续博客内容"><a href="#后续博客内容" class="headerlink" title="后续博客内容"></a>后续博客内容</h2><p>立个flag，将在后续博客中，将理论结合源码，推出如下系列文章。</p><ul><li><a href="http://liujunming.top/2019/08/17/%E4%B8%AD%E6%96%AD%E9%82%A3%E4%BA%9B%E4%BA%8B/" target="_blank" rel="noopener">中断那些事</a></li><li>ACRN hypervisor那些事</li><li>ACRN kernel那些事</li><li>BOOT那些事</li><li>CPU虚拟化那些事</li><li>内存虚拟化那些事</li><li>IO虚拟化那些事</li><li>GPU &amp; GVT那些事</li></ul>]]></content>
     
     <summary type="html">
     
@@ -400,9 +444,9 @@
       <category term="Concurrency" scheme="http://liujunming.github.io/categories/Concurrency/"/>
     
     
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
       <category term="Concurrency" scheme="http://liujunming.github.io/tags/Concurrency/"/>
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
@@ -427,51 +471,6 @@
     
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>(转)CPU Cache Line伪共享问题的总结和分析</title>
-    <link href="http://liujunming.github.io/2019/04/10/%E8%BD%AC-CPU-Cache-Line%E4%BC%AA%E5%85%B1%E4%BA%AB%E9%97%AE%E9%A2%98%E7%9A%84%E6%80%BB%E7%BB%93%E5%92%8C%E5%88%86%E6%9E%90/"/>
-    <id>http://liujunming.github.io/2019/04/10/转-CPU-Cache-Line伪共享问题的总结和分析/</id>
-    <published>2019-04-10T08:45:04.000Z</published>
-    <updated>2019-05-07T06:39:01.469Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文转载自：<a href="https://mp.weixin.qq.com/s/RHIjnQDqC-2AOjjBAoMKMg" target="_blank" rel="noopener">CPU Cache Line伪共享问题的总结和分析</a></p><h2 id="1-背景知识"><a href="#1-背景知识" class="headerlink" title="1 背景知识"></a>1 背景知识</h2><p>要搞清楚 Cache Line 伪共享的概念及其性能影响，需要对现代理器架构和硬件实现有一个基本的了解。 <a id="more"></a> </p><h3 id="1-1-存储器层次结构"><a href="#1-1-存储器层次结构" class="headerlink" title="1.1 存储器层次结构"></a>1.1 存储器层次结构</h3><p>众所周知，现代计算机体系结构，通过存储器层次结构 (Memory Hierarchy) 的设计，使系统在性能，成本和制造工艺之间作出取舍，从而达到一个平衡。<br>下图给出了不同层次的硬件访问延迟，可以看到，各个层次硬件访问延迟存在数量级上的差异，越高的性能，往往意味着更高的成本和更小的容量：<br><img src="/images/2019/4/1.jpg" alt></p><p>通过上图，可以对各级存储器 Cache Miss 带来的性能惩罚有个大致的概念。</p><h3 id="1-2-多核架构"><a href="#1-2-多核架构" class="headerlink" title="1.2 多核架构"></a>1.2 多核架构</h3><p>随着多核架构的普及，对称多处理器 (SMP) 系统成为主流。例如，一个物理 CPU 可以存在多个物理 Core，而每个 Core 又可以存在多个硬件线程。<br>x86 以下图为例，1 个 x86 CPU 有 4 个物理 Core，每个 Core 有两个 HT (Hyper Thread)，</p><p><img src="/images/2019/4/2.png" alt></p><p>从硬件的角度，上图的 L1 和 L2 Cache 都被两个 HT 共享，且在同一个物理 Core。而 L3 Cache 则在物理 CPU 里，被多个 Core 来共享。<br>而从 OS 内核角度，每个 HT 都是一个逻辑 CPU，因此，这个处理器在 OS 来看，就是一个 8 个 CPU 的 SMP 系统。</p><h3 id="1-3-NUMA-架构"><a href="#1-3-NUMA-架构" class="headerlink" title="1.3 NUMA 架构"></a>1.3 NUMA 架构</h3><p>按照 CPU 和内存的互连方式，可以分为 UMA (均匀内存访问) 和 NUMA (非均匀内存访问) 两种架构。<br>其中，在多个物理 CPU 之间保证 Cache 一致性的 NUMA 架构，又被称做 ccNUMA (Cache Coherent NUMA) 架构。值得注意的是：SMP也被称为UMA。</p><p>以 x86 为例，早期的 x86 就是典型的 UMA 架构。例如下图，四路处理器通过 FSB (前端系统总线) 和主板上的内存控制器芯片 (MCH) 相连，DRAM 是以 UMA 方式组织的，延迟并无访问差异。</p><p><img src="/images/2019/4/3.png" alt></p><p>然而，这种架构带来了严重的内存总线的性能瓶颈，影响了 x86 在多路服务器上的可扩展性和性能。<a href="http://cenalulu.github.io/linux/numa/" target="_blank" rel="noopener">NUMA架构的CPU – 你真的用好了么？</a></p><p>因此，从 Nehalem 架构开始，x86 开始转向 NUMA 架构，内存控制器芯片被集成到处理器内部，多个处理器通过 QPI 链路相连，从此 DRAM 有了远近之分。<br>而 Sandybridge 架构则更近一步，将片外的 IOH 芯片也集成到了处理器内部，至此，内存控制器和 PCIe Root Complex 全部在处理器内部了。 </p><p>下图就是一个典型的 x86 的 NUMA 架构：</p><p><img src="/images/2019/4/4.png" alt></p><p>由于 NUMA 架构的引入，以下主要部件产生了因物理链路的远近带来的延迟差异：</p><ul><li>Cache</li></ul><p>除物理 CPU 有本地的 Cache 的层级结构以外，还存在跨越系统总线 (QPI) 的远程 Cache 命中访问的情况。需要注意的是，远程的 Cache 命中，对发起 Cache 访问的 CPU 来说，还是被记入了 LLC Cache Miss。</p><ul><li>DRAM</li></ul><p>在两路及以上的服务器，远程 DRAM 的访问延迟，远远高于本地 DRAM 的访问延迟，有些系统可以达到 2 倍的差异。<br>需要注意的是，即使服务器 BIOS 里关闭了 NUMA 特性，也只是对 OS 内核屏蔽了这个特性，这种延迟差异还是存在的。</p><ul><li>Device</li></ul><p>对 CPU 访问设备内存，及设备发起 DMA 内存的读写活动而言，存在本地 Device 和远程 Device 的差别，有显著的延迟访问差异。</p><p>因此，对以上 NUMA 系统，一个 NUMA 节点通常可以被认为是一个物理 CPU 加上它本地的 DRAM 和 Device 组成。那么，四路服务器就拥有四个 NUMA 节点。<br>如果 BIOS 打开了 NUMA 支持，Linux 内核则会根据 ACPI 提供的表格，针对 NUMA 节点做一系列的 NUMA 亲和性的优化。</p><p>在 Linux 上，<code>numactl --hardware</code> 可以返回当前系统的 NUMA 节点信息，特别是 CPU 和 NUMA 节点的对应信息。</p><h3 id="1-4-Cache-的结构"><a href="#1-4-Cache-的结构" class="headerlink" title="1.4 Cache 的结构"></a>1.4 Cache 的结构</h3><p>Cache Line 是 CPU 和主存之间数据传输的最小单位。当一行 Cache Line 被从内存拷贝到 Cache 里，Cache 里会为这个 Cache Line 创建一个条目。<br>这个 Cache 条目里既包含了拷贝的内存数据，即 Cache Line，又包含了这行数据在内存里的位置等元数据信息。</p><p>详情可以参考<a href="https://courses.cs.washington.edu/courses/cse378/09wi/lectures/lec15.pdf" target="_blank" rel="noopener">cse378</a></p><p>Cache Line 的大小和处理器硬件架构有关。在 Linux 上，通过 <code>getconf</code> 就可以拿到 CPU 的 Cache Line 的大小。</p><p><img src="/images/2019/4/5.png" alt></p><p>除了 *_LINESIZE 指示了系统的 Cache Line 的大小是 64 字节外，还给出了 Cache 类别，大小。<br>其中 *_ASSOC 则指示了该 Cache 是几路关联 (Way Associative) 的。</p><h3 id="1-5-Cache-一致性"><a href="#1-5-Cache-一致性" class="headerlink" title="1.5 Cache 一致性"></a>1.5 Cache 一致性</h3><p>如前所述，在 SMP 系统里，每个 CPU 都有自己本地的 Cache。因此，同一个变量，或者同一行 Cache Line，有在多个处理器的本地 Cache 里存在多份拷贝的可能性，因此就存在数据一致性问题。<br>通常，处理器都实现了 Cache 一致性 (Cache Coherence）协议。如历史上 x86 曾实现了 MESI 协议以及 MESIF 协议。</p><p>假设两个处理器 A 和 B, 都在各自本地 Cache Line 里有同一个变量的拷贝时，此时该 Cache Line 处于 Shared 状态。当处理器 A 在本地修改了变量，除去把本地变量所属的 Cache Line 置为 Modified 状态以外，<br>还必须在另一个处理器 B 读同一个变量前，对该变量所在的 B 处理器本地 Cache Line 发起 Invaidate 操作，标记 B 处理器的那条 Cache Line 为 Invalidate 状态。<br>随后，若处理器 B 在对变量做读写操作时，如果遇到这个标记为 Invalidate 的状态的 Cache Line，即会引发 Cache Miss，<br>从而将内存中最新的数据拷贝到 Cache Line 里，然后处理器 B 再对此 Cache Line 对变量做读写操作。</p><p>本文中的 Cache Line 伪共享场景，就基于上述场景来讲解，关于 Cache 一致性协议更多的细节，请参考相关文档。</p><h3 id="1-6-Cache-Line-伪共享"><a href="#1-6-Cache-Line-伪共享" class="headerlink" title="1.6 Cache Line 伪共享"></a>1.6 Cache Line 伪共享</h3><p>Cache Line 伪共享问题，就是由多个 CPU 上的多个线程同时修改自己的变量引发的。这些变量表面上是不同的变量，但是实际上却存储在同一条 Cache Line 里。<br>在这种情况下，由于 Cache 一致性协议，两个处理器都存储有相同的 Cache Line 拷贝的前提下，本地 CPU 变量的修改会导致本地 Cache Line 变成 Modified 状态，然后在其它共享此 Cache Line 的 CPU 上，<br>引发 Cache Line 的 Invaidate 操作，导致 Cache Line 变为 Invalidate 状态，从而使 Cache Line 再次被访问时，发生本地 Cache Miss，从而伤害到应用的性能。<br>在此场景下，多个线程在不同的 CPU 上高频反复访问这种 Cache Line 伪共享的变量，则会因 Cache 颠簸引发严重的性能问题。</p><p>下图即为两个线程间的 Cache Line 伪共享问题的示意图。</p><p><img src="/images/2019/4/6.png" alt></p><h2 id="2-Perf-c2c-发现伪共享"><a href="#2-Perf-c2c-发现伪共享" class="headerlink" title="2 Perf c2c 发现伪共享"></a>2 Perf c2c 发现伪共享</h2><p>当应用在 NUMA 环境中运行，或者应用是多线程的，又或者是多进程间有共享内存，满足其中任意一条，那么这个应用就可能因为 Cache Line 伪共享而性能下降。</p><p>但是，要怎样才能知道一个应用是不是受伪共享所害呢？<a href="https://joemario.github.io/blog/2016/09/01/c2c-blog/" target="_blank" rel="noopener">Joe Mario</a> 提交的 patch 能够解决这个问题。Joe 的 patch 是在 Linux 的著名的 perf 工具上，添加了一些新特性，叫做 c2c，意思是“缓存到缓存” (cache-2-cache)。</p><p>Redhat 在很多 Linux 的大型应用上使用了 c2c 的原型，成功地发现了很多热的伪共享的 Cache Line。<br>Joe 在博客里总结了一下 perf c2c 的主要功能：</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文转载自：&lt;a href=&quot;https://mp.weixin.qq.com/s/RHIjnQDqC-2AOjjBAoMKMg&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;CPU Cache Line伪共享问题的总结和分析&lt;/a&gt;&lt;/p&gt;
-&lt;h2 id=&quot;1-背景知识&quot;&gt;&lt;a href=&quot;#1-背景知识&quot; class=&quot;headerlink&quot; title=&quot;1 背景知识&quot;&gt;&lt;/a&gt;1 背景知识&lt;/h2&gt;&lt;p&gt;要搞清楚 Cache Line 伪共享的概念及其性能影响，需要对现代理器架构和硬件实现有一个基本的了解。
-    
-    </summary>
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>ppt制作资源集锦</title>
-    <link href="http://liujunming.github.io/2019/01/08/ppt%E5%88%B6%E4%BD%9C%E8%B5%84%E6%BA%90%E9%9B%86%E9%94%A6/"/>
-    <id>http://liujunming.github.io/2019/01/08/ppt制作资源集锦/</id>
-    <published>2019-01-08T04:48:29.000Z</published>
-    <updated>2019-01-12T04:02:47.416Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要记录ppt制作过程中的心得以及遇到的优质资源，将持续更新。</p><a id="more"></a><h2 id="字体"><a href="#字体" class="headerlink" title="字体"></a>字体</h2><p>学术、技术报告：</p><p>英文 <code>Arial Unicode MS</code></p><p>中文 <code>微软雅黑</code></p><h2 id="配色"><a href="#配色" class="headerlink" title="配色"></a>配色</h2><p><a href="https://brandcolors.net/" target="_blank" rel="noopener">美国世界知名品牌颜色收集网</a></p><p><img src="/images/2019/1/23.png" alt></p><h2 id="表情"><a href="#表情" class="headerlink" title="表情"></a>表情</h2><p>在说明问题的优缺点时，可以添加下表情。</p><p><a href="https://emojipedia.org/apple/" target="_blank" rel="noopener">emoji表情</a></p><p><img src="/images/2019/1/24.png" alt></p><h2 id="图片素材"><a href="#图片素材" class="headerlink" title="图片素材"></a>图片素材</h2><ul><li>Google图片</li></ul><p>有时候，ppt中需要添加一些高大上图片，比如需要添加数据中心的图片，此刻，可以去谷歌中搜索<code>datacenter</code>。</p><p><img src="/images/2019/1/25.png" alt></p><ul><li><a href="https://www.pexels.com/" target="_blank" rel="noopener">pexels</a></li></ul><p>  免费高清素材下载网站</p><ul><li><a href="https://pixabay.com/" target="_blank" rel="noopener">pixabay</a></li></ul><p>免费高清矢量图片资源</p><ul><li><a href="https://www.ssyer.com/home" target="_blank" rel="noopener">莎莎野</a></li></ul><p>免费高清素材下载网站</p><ul><li><a href="https://www.flaticon.com/" target="_blank" rel="noopener">flaticon</a></li></ul><p>免费图标下载资源</p><ul><li><a href="https://www.iconfont.cn/" target="_blank" rel="noopener">阿里巴巴图标素材库</a></li></ul><h2 id="ppt排版"><a href="#ppt排版" class="headerlink" title="ppt排版"></a>ppt排版</h2><ul><li><a href="https://www.pinterest.com/a0802725pinyu/ppt-typesetting/" target="_blank" rel="noopener">PPT typesetting</a></li><li><a href="http://huaban.com/boards/19375308/" target="_blank" rel="noopener">观海PPT收集</a></li><li><a href="https://www.zhihu.com/question/47791746/answer/108730202" target="_blank" rel="noopener">如何做好一张包括一段字和几张图片的ppt,应该如何排版?</a></li></ul><h2 id="神器"><a href="#神器" class="headerlink" title="神器"></a>神器</h2><ul><li>PHOTOZOOM PRO</li></ul><p>做PPT时，我们经常需要用到图片，一张清晰出彩的图片可以为演示增分不少，而往往我们找到一张称心的图片，却发现分辨率过低，插入到PPT中变得模糊，着实令人懊恼。PHOTOZOOM PRO，就是为解决这个痛点而生的。</p><ul><li>PPTMinimizer</li></ul><p>PPT压缩软件</p><ul><li>iSlide 插件</li><li>文字云制作工具</li></ul><p><a href="https://wordart.com/" target="_blank" rel="noopener">Word Cloud Art Creator</a>，是一个支持中文的文字云生成工具</p><ul><li>Collagelt</li></ul><p>这款软件就是可以轻松将很多图片拼接在一起的一款工具。</p><h2 id="PPT-模板下载网站"><a href="#PPT-模板下载网站" class="headerlink" title="PPT 模板下载网站"></a>PPT 模板下载网站</h2><ul><li><a href="http://www.officeplus.cn/Template/Home.shtml" target="_blank" rel="noopener">officeplus</a></li><li><a href="https://slidemodel.com/" target="_blank" rel="noopener">slidemodel</a></li><li><a href="https://www.presentationmagazine.com/" target="_blank" rel="noopener">presentationmagazine</a></li><li><a href="https://slidehunter.com/" target="_blank" rel="noopener">slidehunter</a></li><li><a href="https://www.free-powerpoint-templates-design.com/" target="_blank" rel="noopener">AllPPT</a></li></ul><h2 id="keynote"><a href="#keynote" class="headerlink" title="keynote"></a>keynote</h2><p><a href="http://keynotetemplate.com/" target="_blank" rel="noopener">keynote template</a></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要记录ppt制作过程中的心得以及遇到的优质资源，将持续更新。&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="设计" scheme="http://liujunming.github.io/categories/%E8%AE%BE%E8%AE%A1/"/>
-    
-    
-      <category term="设计" scheme="http://liujunming.github.io/tags/%E8%AE%BE%E8%AE%A1/"/>
     
   </entry>
   
