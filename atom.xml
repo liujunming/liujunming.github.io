@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2019-08-17T09:37:47.587Z</updated>
+  <updated>2019-08-21T12:17:21.267Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,52 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>linux kernel中tasklet的使用</title>
+    <link href="http://liujunming.github.io/2019/08/21/linux-kernel%E4%B8%ADtasklet%E7%9A%84%E4%BD%BF%E7%94%A8/"/>
+    <id>http://liujunming.github.io/2019/08/21/linux-kernel中tasklet的使用/</id>
+    <published>2019-08-21T11:36:28.000Z</published>
+    <updated>2019-08-21T12:17:21.267Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文转载自：<a href="http://tuxthink.blogspot.com/2011/09/tasklets-1-introduction.html" target="_blank" rel="noopener">Tasklets</a></p><a id="more"></a><h2 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h2><p>Tasklets are used in kernel to schedule a function some time in future. The major use of the tasklet is to schedule <a href="http://liujunming.top/2018/12/04/Understanding-the-Linux-Kernel-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-Interrupts-and-Exceptions/" target="_blank" rel="noopener">the bottom half of an interrupt service routine</a>. </p><p>Bottom half is the part of the interrupt service routine which is not time critical and can be executed after a little delay from the time interrupt is generated. This helps is releasing the interrupt line quickly and processing more interrupts. </p><p>Let us look at how we can create a tasklet and schedule it in a kernel module. </p><p>The structure, <code>tasklet_struct</code>, declared in interrupt.h looks as follows </p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tasklet_struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">tasklet_struct</span> *<span class="title">next</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> state;</span><br><span class="line">    <span class="keyword">atomic_t</span> count;</span><br><span class="line">    <span class="keyword">void</span> (*func)(<span class="keyword">unsigned</span> <span class="keyword">long</span>);</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p>The members of the structure that has to be initialized in the module are : </p><ol><li><p><code>func</code> : Pointer to the function that needs to scheduled for execution at a later time </p></li><li><p><code>data</code> : Data to be passed to the function <code>func</code> </p></li></ol><p>The other members are initialized by the kernel as follows:</p><ul><li><code>count</code> : holds a nonzero value if the tasklet is disabled and 0 if it is enabled. </li><li><code>states</code> : <code>TASKLET_STATE_SCHED</code> , which denotes it is scheduled to run. <code>TASKLET_STATE_RUN</code> , which denotes it is running. </li></ul><p>There are two ways of creating a tasklet:<br><strong>1. Creating Statically: (using Macros) </strong></p><ol><li><code>DECLARE_TASKLET(name, func, data)</code>: Creates a tasklet in the enabled state </li><li><code>DECLARE_TASKLET_DISABLED(name, func, data)</code>: Creates a tasklet in the disabled state </li></ol><p>If the tasklets is created using the second macro, it needs to be enabled explicitly. </p><p>For details, just reference this <a href="http://tuxthink.blogspot.com/2011/09/tasklets-3-using-macros.html" target="_blank" rel="noopener">Using Macros</a>.<br><strong>2. Creating in runtime</strong></p><ul><li><code>tasklet_init(name,func,data)</code></li></ul><p>Where “name” is the name of the taskelet, “func” in the function which has to be executed as a part of the tasklet and “data” is the data that has to passed to func. </p><ul><li><p>A tasklet is a softirq and hence runs in an interrupt context. Thus while executing the function you are not allowed to go to sleep and have to use proper locking for any data that is shared with other tasklets. </p></li><li><p>Scheduling a tasklet: </p></li></ul><p>Once the tasklet has been created, it needs to be scheduled which is done by the function <code>tasklet_schedule(&amp;tasklet)</code> </p><ul><li>Enable and Disable : </li></ul><p>The tasklets can be disabled, if they are not running already, using <code>tasklet_disable(&amp;taskelt)</code></p><p>and enabled using <code>tasklet_enble(&amp;tasklet)</code></p><p>When does the tasklet actually get scheduled can not be controlled and is decided by the scheduler depending on the load on the processor. If the processor is free, it might get scheduled immediately. </p><p>For details, just reference this <a href="http://tuxthink.blogspot.com/2011/09/tasklet-2-using-tasklerinit.html" target="_blank" rel="noopener">using tasklet_init</a>.</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文转载自：&lt;a href=&quot;http://tuxthink.blogspot.com/2011/09/tasklets-1-introduction.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Tasklets&lt;/a&gt;&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>acrn-kernel那些事</title>
+    <link href="http://liujunming.github.io/2019/08/20/acrn-kernel%E9%82%A3%E4%BA%9B%E4%BA%8B/"/>
+    <id>http://liujunming.github.io/2019/08/20/acrn-kernel那些事/</id>
+    <published>2019-08-20T14:05:59.000Z</published>
+    <updated>2019-08-20T14:14:44.703Z</updated>
+    
+    <content type="html"><![CDATA[<p>学习kernel时，结合文档与patch，效果俱佳。本文将对<a href="https://github.com/projectacrn/acrn-kernel" target="_blank" rel="noopener">acrn-kernel</a>中acrn/vhm的patch进行解析，相信会从中学到许多。</p><a id="more"></a>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;学习kernel时，结合文档与patch，效果俱佳。本文将对&lt;a href=&quot;https://github.com/projectacrn/acrn-kernel&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;acrn-kernel&lt;/a&gt;中acrn/vhm的patch进行解析，相信会从中学到许多。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="acrn" scheme="http://liujunming.github.io/categories/acrn/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+      <category term="acrn" scheme="http://liujunming.github.io/tags/acrn/"/>
+    
+  </entry>
   
   <entry>
     <title>中断基本概念的建立</title>
@@ -423,54 +469,6 @@
     
     
       <category term="Concurrency" scheme="http://liujunming.github.io/tags/Concurrency/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>CPU Cache一致性问题</title>
-    <link href="http://liujunming.github.io/2019/04/29/CPU-cache%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/"/>
-    <id>http://liujunming.github.io/2019/04/29/CPU-cache一致性问题/</id>
-    <published>2019-04-29T06:40:48.000Z</published>
-    <updated>2019-05-10T06:51:33.896Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文首先介绍下产生CPU cache一致性问题的原因，然后给出CPU cache一致性的定义，最后给出解决CPU Cache一致性问题的解决方案。<a id="more"></a></p><h2 id="1-为什么会有CPU-cache一致性问题？"><a href="#1-为什么会有CPU-cache一致性问题？" class="headerlink" title="1. 为什么会有CPU cache一致性问题？"></a>1. 为什么会有CPU cache一致性问题？</h2><p>在多处理器架构中，每个处理器都拥有自己的CPU Cache，同时这些处理器共享内存资源。这样会导致多个处理器的CPU cache缓存了相同的内存数据块(以Cache Line为粒度)，此时可能会出现cache不一致问题。为了直观地展示Cache不一致问题，下图给出了一个具体的例子：<br><img src="/images/2019/5/1.gif" alt><br>p1和p2代表两个不同的处理器，在内存中，x的值为5。p1和p2都需要读取x，因而会将x读取到各自的cache中，此时，在cache中，x的值都为5。p1执行x=x+3时，在p1的cache中，x=8。与此同时，p2执行x=x+5，在p2的cache中，x=10。之后，写回p1的cache数据，此时，在内存中，x的值为8。接着，写回p2的cache数据，此时，在内存中，x的值为10。此刻，就出现了cache不一致问题：p1 cache中的x值与p2 cache中的x值不同。</p><p>下图展示了cache一致的结果：<br><img src="/images/2019/5/2.gif" alt></p><blockquote><p>In a shared memory multiprocessor system with a separate cache memory for each processor, it is possible to have many copies of shared data: one copy in the main memory and one in the local cache of each processor that requested it. When one of the copies of data is changed, the other copies must reflect that change. Cache coherence is the discipline which ensures that the changes in the values of shared operands(data) are propagated throughout the system in a timely fashion.</p></blockquote><p>The following are the requirements for cache coherence:</p><ul><li><p>Write Propagation<br>Changes to the data in any cache must be propagated to other copies (of that cache line) in the peer caches.</p></li><li><p>Transaction Serialization<br>Reads/Writes to a single memory location must be seen by all processors in the same order.</p></li></ul><h2 id="2-CPU-cache一致性的定义"><a href="#2-CPU-cache一致性的定义" class="headerlink" title="2. CPU cache一致性的定义"></a>2. CPU cache一致性的定义</h2><p>Coherence defines the behavior of reads and writes to a single address location.</p><p>In a multiprocessor system, consider that more than one processor has cached a copy of the memory location X. The following conditions are necessary to achieve cache coherence:</p><ol><li>In a read made by a processor P to a location X that follows a write by the same processor P to X, with no writes to X by another processor occurring between the write and the read instructions made by P, X must always return the value written by P.</li><li>In a read made by a processor P1 to location X that follows a write by another processor P2 to X, with no other writes to X made by any processor occurring between the two accesses and with the read and write being sufficiently separated, X must always return the value written by P2. This condition defines the concept of coherent view of memory. Propagating the writes to the shared memory location ensures that all the caches have a coherent view of the memory. If processor P1 reads the old value of X, even after the write by P2, we can say that the memory is incoherent.</li></ol><p>The above conditions satisfy the Write Propagation criteria required for cache coherence. However, they are not sufficient as they do not satisfy the Transaction Serialization condition. To illustrate this better, consider the following example:</p><p>A multi-processor system consists of four processors - P1, P2, P3 and P4, all containing cached copies of a shared variable S whose initial value is 0. Processor P1 changes the value of S (in its cached copy) to 10 following which processor P2 changes the value of S in its own cached copy to 20. If we ensure only write propagation, then P3 and P4 will certainly see the changes made to S by P1 and P2. However, P3 may see the change made by P1 after seeing the change made by P2 and hence return 10 on a read to S. P4 on the other hand may see changes made by P1 and P2 in the order in which they are made and hence return 20 on a read to S. The processors P3 and P4 now have an incoherent view of the memory.</p><p>Therefore, in order to satisfy Transaction Serialization, and hence achieve Cache Coherence, the following condition along with the previous two mentioned in this section must be met:</p><ul><li>Writes to the same location must be sequenced. In other words, if location X received two different values A and B, in this order, from any two processors, the processors can never read location X as B and then read it as A. The location X must be seen with values A and B in that order.</li></ul><h2 id="3-CPU-Cache一致性问题的解决方案"><a href="#3-CPU-Cache一致性问题的解决方案" class="headerlink" title="3. CPU Cache一致性问题的解决方案"></a>3. CPU Cache一致性问题的解决方案</h2><p>for bus-based machines，通常采用Snooping based protocols方案。for NUMA machines using a scalable switch，通常采用Directory Based Solutions。</p><blockquote><p>Snooping based protocols tend to be faster, if enough bandwidth is available, since all transactions are a request/response seen by all processors. The drawback is that snooping isn’t scalable. Every request must be broadcast to all nodes in a system, meaning that as the system gets larger, the size of the (logical or physical) bus and the bandwidth it provides must grow. Directories, on the other hand, tend to have longer latencies (with a 3 hop request/forward/respond) but use much less bandwidth since messages are point to point and not broadcast. For this reason, many of the larger systems (&gt;64 processors) use this type of cache coherence.</p></blockquote><h3 id="3-1-Snooping-based-protocols"><a href="#3-1-Snooping-based-protocols" class="headerlink" title="3.1 Snooping based protocols"></a>3.1 Snooping based protocols</h3><p>Snooping is a process where the individual caches monitor address lines for accesses to memory locations that they have cached. </p><p>Write propagation in snoopy protocols can be implemented by either of the following methods:</p><ul><li><p>Write Invalidate<br>When a processor writes into x, all copies of it in other processors are invalidated. These processors have to read a valid copy either from memory, or from the processor that modified the variable.</p></li><li><p>Write Broadcast<br>Instead of invalidating, why not broadcast the updated value to the other processors sharing that copy? </p></li></ul><p>MSI、MESI等protocol是较为常见的Snooping based protocols。<a href="https://www.youtube.com/watch?v=-p9tfMMu1PE" target="_blank" rel="noopener">MESI Cache Coherence Protocol | Vasileios Trigonakis</a>很好了阐述了MESI protocol。</p><p><img src="/images/2019/5/3.png" alt></p><p><img src="/images/2019/5/4.png" alt></p><p>概要地讲：在MESI协议中，每个cache line有四种状态，当遇到不同事件时，会改变cache line的状态，由此构成了一个有限自动机。</p><h3 id="3-2-Directory-Based-Solutions"><a href="#3-2-Directory-Based-Solutions" class="headerlink" title="3.2 Directory Based Solutions"></a>3.2 Directory Based Solutions</h3><p>In a directory-based system, the data being shared is placed in a common directory that maintains the coherence between caches. </p><p><a href="https://www.youtube.com/watch?v=6QZ_XiBEAF4" target="_blank" rel="noopener">Directory Entry</a>与<a href="https://www.youtube.com/watch?v=lZZYILcQ68Y" target="_blank" rel="noopener">Directory Example</a>给出了Directory的具体例子。</p><hr><p>参考资料：</p><ol><li><a href="https://www.wikiwand.com/en/Cache_coherence" target="_blank" rel="noopener">wikiwand Cache coherence</a></li><li><a href="https://www.wikiwand.com/en/Bus_snooping" target="_blank" rel="noopener">wikiwand Bus snooping</a></li><li><a href="https://www.wikiwand.com/en/Directory-based_coherence" target="_blank" rel="noopener">wikiwand Directory-based coherence</a></li><li><a href="https://zhuanlan.zhihu.com/p/25876351" target="_blank" rel="noopener">缓存/内存Coherence模型</a></li><li><a href="http://www.divms.uiowa.edu/~ghosh/4-20-06.pdf" target="_blank" rel="noopener">Multiprocessor Cache Coherence</a></li><li><a href="https://www.youtube.com/watch?v=-p9tfMMu1PE" target="_blank" rel="noopener">MESI Cache Coherence Protocol | Vasileios Trigonakis</a></li><li><a href="https://www.youtube.com/watch?v=lZZYILcQ68Y" target="_blank" rel="noopener">Directory Example - Georgia Tech - HPCA: Part 5</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文首先介绍下产生CPU cache一致性问题的原因，然后给出CPU cache一致性的定义，最后给出解决CPU Cache一致性问题的解决方案。
-    
-    </summary>
-    
-      <category term="Concurrency" scheme="http://liujunming.github.io/categories/Concurrency/"/>
-    
-    
-      <category term="Concurrency" scheme="http://liujunming.github.io/tags/Concurrency/"/>
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>CPU Cache</title>
-    <link href="http://liujunming.github.io/2019/04/20/CPU-cache/"/>
-    <id>http://liujunming.github.io/2019/04/20/CPU-cache/</id>
-    <published>2019-04-20T10:30:09.000Z</published>
-    <updated>2019-05-09T09:42:06.990Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="1-为什么要有CPU-Cache"><a href="#1-为什么要有CPU-Cache" class="headerlink" title="1. 为什么要有CPU Cache"></a>1. 为什么要有CPU Cache</h2><ol><li>CPU的处理速度和内存的访问速度差距</li><li>内存数据访问的局部性原理<a id="more"></a><img src="/images/2019/4/8.png" alt><center>Cache Performance</center></li></ol><h2 id="2-为什么要有多级CPU-Cache"><a href="#2-为什么要有多级CPU-Cache" class="headerlink" title="2. 为什么要有多级CPU Cache"></a>2. 为什么要有多级CPU Cache</h2><blockquote><p>Soon after the introduction of the cache the system got more complicated. The speed difference between the cache and the main memory increased again, to a point that another level of cache was added, bigger and slower than the first-level cache. Only increasing the size of the first-level cache was not an option for economical reasons.</p></blockquote><p>此外，又由于程序指令和程序数据的行为和热点分布差异很大，因此L1 Cache也被划分成L1i (i for instruction)和L1d (d for data)两种专门用途的缓存。</p><h2 id="3-CPU-Cache-是如何存放数据的"><a href="#3-CPU-Cache-是如何存放数据的" class="headerlink" title="3. CPU Cache 是如何存放数据的"></a>3. CPU Cache 是如何存放数据的</h2><p>如果对这部分知识有些遗忘，可以看下<a href="https://courses.cs.washington.edu/courses/cse378/09wi/lectures/lec15.pdf" target="_blank" rel="noopener">cse378</a>即可。</p><h3 id="3-1-为什么Cache不能做成Direct-Mapped"><a href="#3-1-为什么Cache不能做成Direct-Mapped" class="headerlink" title="3.1 为什么Cache不能做成Direct Mapped"></a>3.1 为什么Cache不能做成Direct Mapped</h3><p><img src="/images/2019/4/7.png" alt></p><blockquote><p>Direct-Mapped Cache is simplier (requires just one comparator and one multiplexer), as a result is cheaper and works faster. Given any address, it is easy to identify the single entry in cache, where it can be. A major drawback when using DM cache is called a conflict miss, when two different addresses correspond to one entry in the cache. Even if the cache is big and contains many stale entries, it can’t simply evict those, because the position within cache is predetermined by the address.</p></blockquote><h3 id="3-2-为什么Cache不能做成Fully-Associative"><a href="#3-2-为什么Cache不能做成Fully-Associative" class="headerlink" title="3.2 为什么Cache不能做成Fully Associative"></a>3.2 为什么Cache不能做成Fully Associative</h3><blockquote><p>Full Associative Cache is much more complex, and it allows to store an address into any entry. There is a price for that. In order to check if a particular address is in the cache, it has to compare all current entries (the tags to be exact).</p></blockquote><p><img src="/images/2019/4/9.png" alt></p><h3 id="3-3-什么是N-Way-Set-Associative"><a href="#3-3-什么是N-Way-Set-Associative" class="headerlink" title="3.3 什么是N-Way Set Associative"></a>3.3 什么是N-Way Set Associative</h3><p><img src="/images/2019/4/10.png" alt></p><p>阅读<a href="http://igoro.com/archive/gallery-of-processor-cache-effects/" target="_blank" rel="noopener">Gallery of Processor Cache Effects</a>和<a href="https://coolshell.cn/articles/10249.html" target="_blank" rel="noopener">7个示例科普CPU CACHE</a>可以加深对N-Way Set Associative的理解。</p><hr><p>参考资料：</p><ol><li><a href="https://courses.cs.washington.edu/courses/cse378/09wi/lectures/lec15.pdf" target="_blank" rel="noopener">cse378</a></li><li><a href="http://cenalulu.github.io/linux/all-about-cpu-cache/" target="_blank" rel="noopener">关于CPU Cache – 程序猿需要知道的那些事</a></li><li><a href="http://igoro.com/archive/gallery-of-processor-cache-effects/" target="_blank" rel="noopener">Gallery of Processor Cache Effects</a></li><li><a href="https://coolshell.cn/articles/10249.html" target="_blank" rel="noopener">7个示例科普CPU CACHE</a></li><li><a href="https://stackoverflow.com/questions/30097648/difference-between-a-direct-mapped-cache-and-fully-associative-cache" target="_blank" rel="noopener">Difference Between a Direct-Mapped Cache and Fully Associative Cache</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;h2 id=&quot;1-为什么要有CPU-Cache&quot;&gt;&lt;a href=&quot;#1-为什么要有CPU-Cache&quot; class=&quot;headerlink&quot; title=&quot;1. 为什么要有CPU Cache&quot;&gt;&lt;/a&gt;1. 为什么要有CPU Cache&lt;/h2&gt;&lt;ol&gt;
-&lt;li&gt;CPU的处理速度和内存的访问速度差距&lt;/li&gt;
-&lt;li&gt;内存数据访问的局部性原理
-    
-    </summary>
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
