@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="linux kernel中tasklet的使用">
+  <meta name="description" content="BOOT那些事">
 
 
 
 
-  <meta name="keywords" content="Kernel, L">
+  <meta name="keywords" content="系统, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2019/08/21/linux-kernel中tasklet的使用/">
+<link rel="canonical" href="http://liujunming.github.io/2019/08/23/BOOT那些事/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> linux kernel中tasklet的使用 - L </title>
+    <title> BOOT那些事 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,18 +260,18 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          linux kernel中tasklet的使用
+          BOOT那些事
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2019-08-21
+          2019-08-23
         </span>
         
           <span class="post-category">
             
-              <a href="/categories/Kernel/">Kernel</a>
+              <a href="/categories/系统/">系统</a>
             
           </span>
         
@@ -281,61 +281,27 @@
 
     
     
-  <div class="post-toc" id="post-toc">
-    <h2 class="post-toc-title">文章目录</h2>
-    <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Introduction"><span class="toc-text">1. Introduction</span></a></li></ol>
-    </div>
-  </div>
-
 
 
     <div class="post-content">
       
-        <p>本文转载自：<a href="http://tuxthink.blogspot.com/2011/09/tasklets-1-introduction.html" target="_blank" rel="noopener">Tasklets</a></p>
+        <p>总结一下BOOT相关的资料。</p>
 <a id="more"></a>
-<h2 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h2><p>Tasklets are used in kernel to schedule a function some time in future. The major use of the tasklet is to schedule <a href="http://liujunming.top/2018/12/04/Understanding-the-Linux-Kernel-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0-Interrupts-and-Exceptions/" target="_blank" rel="noopener">the bottom half of an interrupt service routine</a>. </p>
-<p>Bottom half is the part of the interrupt service routine which is not time critical and can be executed after a little delay from the time interrupt is generated. This helps is releasing the interrupt line quickly and processing more interrupts. </p>
-<p>Let us look at how we can create a tasklet and schedule it in a kernel module. </p>
-<p>The structure, <code>tasklet_struct</code>, declared in interrupt.h looks as follows </p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tasklet_struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">tasklet_struct</span> *<span class="title">next</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> state;</span><br><span class="line">    <span class="keyword">atomic_t</span> count;</span><br><span class="line">    <span class="keyword">void</span> (*func)(<span class="keyword">unsigned</span> <span class="keyword">long</span>);</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>The members of the structure that has to be initialized in the module are : </p>
-<ol>
-<li><p><code>func</code> : Pointer to the function that needs to scheduled for execution at a later time </p>
-</li>
-<li><p><code>data</code> : Data to be passed to the function <code>func</code> </p>
-</li>
-</ol>
-<p>The other members are initialized by the kernel as follows:</p>
+<p>之前总结过<a href="http://liujunming.top/2019/07/15/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%90%AF%E5%8A%A8%E7%9B%B8%E5%85%B3%E7%9F%A5%E8%AF%86%E7%82%B9/" target="_blank" rel="noopener">计算机启动相关知识点</a>，但是读完<a href="https://www.happyassassin.net/2014/01/25/uefi-boot-how-does-that-actually-work-then/" target="_blank" rel="noopener">UEFI boot: how does that actually work, then?</a>之后，理解又加深了。</p>
+<p><a href="https://blog.csdn.net/u013201439/article/details/50195743" target="_blank" rel="noopener">计算机到底如何启动？</a>对<a href="https://www.happyassassin.net/2014/01/25/uefi-boot-how-does-that-actually-work-then/" target="_blank" rel="noopener">UEFI boot: how does that actually work, then?</a>做了相关总结，可以结合着看。</p>
+<hr>
+<p>因为之前接触了<code>efibootmgr</code>，所以记录一下。 (Linux distributions contain a tool called <code>efibootmgr</code> which is used to manipulate the configuration of the UEFI boot manager)。</p>
+<hr>
+<p>Firmware为操作系统提供服务的机制有如下几种：</p>
 <ul>
-<li><code>count</code> : holds a nonzero value if the tasklet is disabled and 0 if it is enabled. </li>
-<li><code>states</code> : <code>TASKLET_STATE_SCHED</code> , which denotes it is scheduled to run. <code>TASKLET_STATE_RUN</code> , which denotes it is running. </li>
+<li>EFI spec规定的run time service，由uefi提供</li>
+<li>ACPI table</li>
+<li>SMM(system management mode)</li>
 </ul>
-<p>There are two ways of creating a tasklet:<br><strong>1. Creating Statically: (using Macros) </strong></p>
-<ol>
-<li><code>DECLARE_TASKLET(name, func, data)</code>: Creates a tasklet in the enabled state </li>
-<li><code>DECLARE_TASKLET_DISABLED(name, func, data)</code>: Creates a tasklet in the disabled state </li>
-</ol>
-<p>If the tasklets is created using the second macro, it needs to be enabled explicitly. </p>
-<p>For details, just reference this <a href="http://tuxthink.blogspot.com/2011/09/tasklets-3-using-macros.html" target="_blank" rel="noopener">Using Macros</a>.<br><strong>2. Creating in runtime</strong></p>
-<ul>
-<li><code>tasklet_init(name,func,data)</code></li>
-</ul>
-<p>Where “name” is the name of the taskelet, “func” in the function which has to be executed as a part of the tasklet and “data” is the data that has to passed to func. </p>
-<ul>
-<li><p>A tasklet is a softirq and hence runs in an interrupt context. Thus while executing the function you are not allowed to go to sleep and have to use proper locking for any data that is shared with other tasklets. </p>
-</li>
-<li><p>Scheduling a tasklet: </p>
-</li>
-</ul>
-<p>Once the tasklet has been created, it needs to be scheduled which is done by the function <code>tasklet_schedule(&amp;tasklet)</code> </p>
-<ul>
-<li>Enable and Disable : </li>
-</ul>
-<p>The tasklets can be disabled, if they are not running already, using <code>tasklet_disable(&amp;taskelt)</code></p>
-<p>and enabled using <code>tasklet_enble(&amp;tasklet)</code></p>
-<p>When does the tasklet actually get scheduled can not be controlled and is decided by the scheduler depending on the load on the processor. If the processor is free, it might get scheduled immediately. </p>
-<p>For details, just reference this <a href="http://tuxthink.blogspot.com/2011/09/tasklet-2-using-tasklerinit.html" target="_blank" rel="noopener">using tasklet_init</a>.</p>
+<hr>
+<p><img src="/images/2019/8/10.jpeg" alt><br><a href="https://github.com/tianocore/tianocore.github.io/wiki/PI-Boot-Flow" target="_blank" rel="noopener">PI Boot Flow</a></p>
+<hr>
+<p>在虚拟化场景中，不得不提<a href="https://github.com/tianocore/tianocore.github.io/wiki/OVMF" target="_blank" rel="noopener">OVMF</a>。OVMF is an <a href="https://github.com/tianocore/tianocore.github.io/wiki/EDK-II" target="_blank" rel="noopener">EDK II</a> based project to enable UEFI support for Virtual Machines.</p>
 
       
     </div>
@@ -355,7 +321,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/Kernel/">Kernel</a>
+              <a href="/tags/系统/">系统</a>
             
           </div>
         
@@ -363,15 +329,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2019/08/23/BOOT那些事/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">BOOT那些事</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2019/08/20/acrn-kernel那些事/">
-        <span class="next-text nav-default">acrn-kernel那些事</span>
+      <a class="next" href="/2019/08/21/linux-kernel中tasklet的使用/">
+        <span class="next-text nav-default">linux kernel中tasklet的使用</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -484,9 +444,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2019/08/21/linux-kernel中tasklet的使用/';
-        this.page.identifier = '2019/08/21/linux-kernel中tasklet的使用/';
-        this.page.title = 'linux kernel中tasklet的使用';
+        this.page.url = 'http://liujunming.github.io/2019/08/23/BOOT那些事/';
+        this.page.identifier = '2019/08/23/BOOT那些事/';
+        this.page.title = 'BOOT那些事';
     };
     (function() {
     var d = document, s = d.createElement('script');
