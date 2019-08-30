@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="ioremap vs vmalloc vs kmap  vs kmap">
 
 
 
+
+  <meta name="keywords" content="Kernel, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2018/12/">
+<link rel="canonical" href="http://liujunming.github.io/2019/08/30/ioremap-vs-vmalloc-vs-kmap-vs-kmap/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> ioremap vs vmalloc vs kmap  vs kmap - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,244 +256,114 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          ioremap vs vmalloc vs kmap  vs kmap
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 205 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2019-08-30
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-mmap"><span class="toc-text">1. mmap</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-ioremap"><span class="toc-text">2. ioremap</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-vmalloc"><span class="toc-text">3. vmalloc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-kmap"><span class="toc-text">4. kmap</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将浅谈<code>ioremap</code> 、 <code>vmalloc</code> 、 <code>kmap</code>  和 <code>mmap</code>的区别。</p>
+<a id="more"></a>
+<p>首先，<code>mmap</code>是在用户态中使用的函数，而<code>ioremap</code> 、 <code>vmalloc</code> 和 <code>kmap</code>是在内核态中使用的函数。</p>
+<h2 id="1-mmap"><a href="#1-mmap" class="headerlink" title="1. mmap"></a>1. mmap</h2><p>Normally user space processes can’t access device memory directly for security purpose. So, user space processes use the <code>mmap</code> system call to ask kernel to map the device into virtual address space of the calling process. After the mapping the user space process can write directly into the device memory via the returned address.<br>The <code>mmap</code> system call is declared as follows:<br><code>mmap (caddr_t addr, size_t len, int prot, int flags, int fd, off_t offset)</code>;</p>
+<p>Where as, the <code>mmap</code> field in the driver’s file operation structure is declared as:<br><code>int (*mmap) (struct file *filp, struct vm_area_struct *vma)</code>; </p>
+<h2 id="2-ioremap"><a href="#2-ioremap" class="headerlink" title="2. ioremap"></a>2. ioremap</h2><p><code>ioremap</code> is used to map cpu physical memory address into virtual address space of the kernel. </p>
+<p><a href="/2019/08/30/Linux-kernel-ioremap-nocache-and-ioremap-function/">Detail</a></p>
+<h2 id="3-vmalloc"><a href="#3-vmalloc" class="headerlink" title="3. vmalloc"></a>3. vmalloc</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * vmalloc - allocate virtually contiguous memory</span></span><br><span class="line"><span class="comment"> * @size:    allocation size</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Allocate enough pages to cover @size from the page level</span></span><br><span class="line"><span class="comment"> * allocator and map them into contiguous kernel virtual space.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Return: pointer to the allocated memory or %NULL on error</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">vmalloc</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> size)</span></span></span><br></pre></td></tr></table></figure>
+<p><code>vmalloc</code> and <code>ioremap</code> build new page tables; <code>vmalloc</code> allocates RAM memory, while <code>ioremap</code> doesn’t allocates RAM memory.</p>
+<h2 id="4-kmap"><a href="#4-kmap" class="headerlink" title="4. kmap"></a>4. kmap</h2><p>To map a given page structure into the kernel’s address space, use this function, declared<br><code>void *kmap(struct page *page)</code>.</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.quora.com/How-are-mmap-ioremap-and-kmap-different" target="_blank" rel="noopener">How are mmap, ioremap and kmap different</a></li>
+<li><a href="https://bootlin.com/doc/books/ldd3.pdf" target="_blank" rel="noopener">ldd3</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2018</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-29
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-Signals/" class="archive-post-link">
-            Understanding the Linux Kernel 读书笔记-Signals
-          </a>
-        </span>
-      </div>
-    
-      
         
         
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-29
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-System-Calls/" class="archive-post-link">
-            Understanding the Linux Kernel 读书笔记-System Calls
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-28
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Process-Address-Space/" class="archive-post-link">
-            Understanding the Linux Kernel 读书笔记-Process Address Space
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-28
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/28/Understanding-the-Linux-Kernel-读书笔记-Memory-Management/" class="archive-post-link">
-            Understanding the Linux Kernel 读书笔记-Memory Management
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-27
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/27/Understanding-the-Linux-Kernel-读书笔记-Process-Scheduling/" class="archive-post-link">
-            Understanding the Linux Kernel 读书笔记 -Process Scheduling
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-26
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/26/apue-读书笔记-Interprocess-Communication/" class="archive-post-link">
-            apue 读书笔记-Interprocess Communication
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-26
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/26/apue-读书笔记-Advanced-I-O/" class="archive-post-link">
-            apue 读书笔记-Advanced I/O
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-26
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/26/IO-同步，异步，阻塞，非阻塞/" class="archive-post-link">
-            IO - 同步，异步，阻塞，非阻塞
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-25
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/25/apue-读书笔记-Signals/" class="archive-post-link">
-            apue 读书笔记-Signals
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-24
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2018/12/24/apue-读书笔记-Process-Relationships/" class="archive-post-link">
-            apue 读书笔记-Process Relationships
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
+  <nav class="post-nav">
     
     
-      <a class="next" href="/archives/2018/12/page/2/">
-        <span class="next-text">下一页</span>
+      <a class="next" href="/2019/08/30/Linux-kernel-ioremap-nocache-and-ioremap-function/">
+        <span class="next-text nav-default">Linux kernel ioremap_nocache and ioremap function</span>
+        <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -579,6 +447,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/08/30/ioremap-vs-vmalloc-vs-kmap-vs-kmap/';
+        this.page.identifier = '2019/08/30/ioremap-vs-vmalloc-vs-kmap-vs-kmap/';
+        this.page.title = 'ioremap vs vmalloc vs kmap  vs kmap';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     

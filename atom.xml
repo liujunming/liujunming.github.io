@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2019-08-30T15:25:47.939Z</updated>
+  <updated>2019-08-30T16:07:42.872Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>ioremap vs vmalloc vs kmap  vs kmap</title>
+    <link href="http://liujunming.github.io/2019/08/30/ioremap-vs-vmalloc-vs-kmap-vs-kmap/"/>
+    <id>http://liujunming.github.io/2019/08/30/ioremap-vs-vmalloc-vs-kmap-vs-kmap/</id>
+    <published>2019-08-30T15:47:15.000Z</published>
+    <updated>2019-08-30T16:07:42.872Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将浅谈<code>ioremap</code> 、 <code>vmalloc</code> 、 <code>kmap</code>  和 <code>mmap</code>的区别。</p><a id="more"></a><p>首先，<code>mmap</code>是在用户态中使用的函数，而<code>ioremap</code> 、 <code>vmalloc</code> 和 <code>kmap</code>是在内核态中使用的函数。</p><h2 id="1-mmap"><a href="#1-mmap" class="headerlink" title="1. mmap"></a>1. mmap</h2><p>Normally user space processes can’t access device memory directly for security purpose. So, user space processes use the <code>mmap</code> system call to ask kernel to map the device into virtual address space of the calling process. After the mapping the user space process can write directly into the device memory via the returned address.<br>The <code>mmap</code> system call is declared as follows:<br><code>mmap (caddr_t addr, size_t len, int prot, int flags, int fd, off_t offset)</code>;</p><p>Where as, the <code>mmap</code> field in the driver’s file operation structure is declared as:<br><code>int (*mmap) (struct file *filp, struct vm_area_struct *vma)</code>; </p><h2 id="2-ioremap"><a href="#2-ioremap" class="headerlink" title="2. ioremap"></a>2. ioremap</h2><p><code>ioremap</code> is used to map cpu physical memory address into virtual address space of the kernel. </p><p><a href="/2019/08/30/Linux-kernel-ioremap-nocache-and-ioremap-function/">Detail</a></p><h2 id="3-vmalloc"><a href="#3-vmalloc" class="headerlink" title="3. vmalloc"></a>3. vmalloc</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * vmalloc - allocate virtually contiguous memory</span></span><br><span class="line"><span class="comment"> * @size:    allocation size</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Allocate enough pages to cover @size from the page level</span></span><br><span class="line"><span class="comment"> * allocator and map them into contiguous kernel virtual space.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Return: pointer to the allocated memory or %NULL on error</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">vmalloc</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> size)</span></span></span><br></pre></td></tr></table></figure><p><code>vmalloc</code> and <code>ioremap</code> build new page tables; <code>vmalloc</code> allocates RAM memory, while <code>ioremap</code> doesn’t allocates RAM memory.</p><h2 id="4-kmap"><a href="#4-kmap" class="headerlink" title="4. kmap"></a>4. kmap</h2><p>To map a given page structure into the kernel’s address space, use this function, declared<br><code>void *kmap(struct page *page)</code>.</p><hr><p>参考资料：</p><ol><li><a href="https://www.quora.com/How-are-mmap-ioremap-and-kmap-different" target="_blank" rel="noopener">How are mmap, ioremap and kmap different</a></li><li><a href="https://bootlin.com/doc/books/ldd3.pdf" target="_blank" rel="noopener">ldd3</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将浅谈&lt;code&gt;ioremap&lt;/code&gt; 、 &lt;code&gt;vmalloc&lt;/code&gt; 、 &lt;code&gt;kmap&lt;/code&gt;  和 &lt;code&gt;mmap&lt;/code&gt;的区别。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+  </entry>
   
   <entry>
     <title>Linux kernel ioremap_nocache and ioremap function</title>
@@ -434,28 +456,6 @@
     <summary type="html">
     
       &lt;p&gt;本文将介绍PCI、APIC、MSI基本概念。
-    
-    </summary>
-    
-      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
-    
-    
-      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>中断那些事</title>
-    <link href="http://liujunming.github.io/2019/08/17/%E4%B8%AD%E6%96%AD%E9%82%A3%E4%BA%9B%E4%BA%8B/"/>
-    <id>http://liujunming.github.io/2019/08/17/中断那些事/</id>
-    <published>2019-08-17T07:59:43.000Z</published>
-    <updated>2019-08-17T08:15:11.511Z</updated>
-    
-    <content type="html"><![CDATA[<p>中断，既熟悉，又陌生。<a id="more"></a></p><p>本系列将逐步更新中断相关文章，将会包含如下内容：</p><ol><li>PIC</li><li>APIC</li><li>MSI/MSI-x</li><li>interrupt软件虚拟化</li><li>interrupt硬件虚拟化<ol><li>interrupt remapping</li><li>posted-interrupt</li></ol></li></ol><ul><li><a href="http://liujunming.top/2019/08/17/%E4%B8%AD%E6%96%AD%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E7%9A%84%E5%BB%BA%E7%AB%8B/" target="_blank" rel="noopener">中断基本概念的建立</a></li></ul>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;中断，既熟悉，又陌生。
     
     </summary>
     
