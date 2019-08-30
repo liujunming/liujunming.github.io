@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="select usage and implementation in kernel">
+
+
+
+
+  <meta name="keywords" content="Kernel, linux, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/08/26/select-usage-and-implementation-in-kernel/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> select usage and implementation in kernel - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          select usage and implementation in kernel
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-08-26
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-用法"><span class="toc-text">1. 用法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-内核实现"><span class="toc-text">2. 内核实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-do-select-循环体"><span class="toc-text">2.1 do_select()循环体</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-struct-file-operations设备驱动的操作函数"><span class="toc-text">2.2 struct file_operations设备驱动的操作函数</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-总结"><span class="toc-text">3. 总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍select的用法及其内核实现。</p>
+<a id="more"></a>
+<h2 id="1-用法"><a href="#1-用法" class="headerlink" title="1. 用法"></a>1. 用法</h2><p>首先要建立起<a href="/2018/12/26/IO-同步，异步，阻塞，非阻塞/#3-I-O-多路复用（-I-O-multiplexing）">IO多路复用</a>的概念。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">select</span><span class="params">(<span class="keyword">int</span> nfds, fd_set *readfds, fd_set *writefds, \</span></span></span><br><span class="line"><span class="function"><span class="params">	fd_set *exceptfds, struct timeval *timeout)</span></span></span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/time.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span></span><br><span class="line">main(<span class="keyword">void</span>)</span><br><span class="line">&#123;</span><br><span class="line">    fd_set rfds;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">tv</span>;</span></span><br><span class="line">    <span class="keyword">int</span> retval;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Watch stdin (fd 0) to see when it has input. */</span></span><br><span class="line">    FD_ZERO(&amp;rfds);</span><br><span class="line">    FD_SET(<span class="number">0</span>, &amp;rfds);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Wait up to five seconds. */</span></span><br><span class="line">    tv.tv_sec = <span class="number">5</span>;</span><br><span class="line">    tv.tv_usec = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    retval = select(<span class="number">1</span>, &amp;rfds, <span class="literal">NULL</span>, <span class="literal">NULL</span>, &amp;tv);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (retval == <span class="number">-1</span>)</span><br><span class="line">        perror(<span class="string">"select()"</span>);</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (retval)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Data is available now.\n"</span>);</span><br><span class="line">        <span class="comment">/* FD_ISSET(0, &amp;rfds) will be true. */</span></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"No data within five seconds.\n"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">exit</span>(EXIT_SUCCESS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="2-内核实现"><a href="#2-内核实现" class="headerlink" title="2. 内核实现"></a>2. 内核实现</h2><p>这里只讲述内核实现select的核心部分。本部分内容源于：<a href="http://janfan.cn/chinese/2015/01/05/select-poll-impl-inside-the-kernel.html" target="_blank" rel="noopener">select()/poll() 的内核实现</a>。</p>
+<p>kernel version: <a href="https://elixir.bootlin.com/linux/v3.9-rc8/source" target="_blank" rel="noopener">v3.9-rc8</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SYSCALL_DEFINE5(select</span><br><span class="line">	core_sys_select</span><br><span class="line">		do_select</span><br><span class="line">			poll_schedule_timeout</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-do-select-循环体"><a href="#2-1-do-select-循环体" class="headerlink" title="2.1 do_select()循环体"></a>2.1 <code>do_select()</code>循环体</h3><p><code>do_select()</code>实质上是一个大的循环体，对每一个主程序要求监听的设备fd（File Descriptor）做一次<code>struct file_operations</code>结构体里的<code>poll</code>操作。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">do_select</span><span class="params">(<span class="keyword">int</span> n, fd_set_bits *fds, struct timespec *end_time)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// …</span></span><br><span class="line">	<span class="keyword">for</span> (;;) &#123;</span><br><span class="line">		<span class="comment">// …</span></span><br><span class="line">		<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; n; ++rinp, ++routp, ++rexp) &#123;</span><br><span class="line">			<span class="comment">// …</span></span><br><span class="line">			<span class="class"><span class="keyword">struct</span> <span class="title">fd</span> <span class="title">f</span>;</span></span><br><span class="line">			f = fdget(i);</span><br><span class="line">			<span class="keyword">if</span> (f.file) &#123;</span><br><span class="line">				<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> *<span class="title">f_op</span>;</span></span><br><span class="line">				f_op = f.file-&gt;f_op;</span><br><span class="line">				mask = DEFAULT_POLLMASK;</span><br><span class="line">				<span class="keyword">if</span> (f_op-&gt;poll) &#123;</span><br><span class="line">					wait_key_set(wait, in, out,</span><br><span class="line">						     bit, busy_flag);</span><br><span class="line">					<span class="comment">// 对每个fd进行I/O事件检测</span></span><br><span class="line">					mask = (*f_op-&gt;poll)(f.file, wait);</span><br><span class="line">				&#125;</span><br><span class="line">				fdput(f);</span><br><span class="line">				<span class="comment">// …</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 退出循环体</span></span><br><span class="line">		<span class="keyword">if</span> (retval || timed_out || signal_pending(current))</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="comment">// 进入休眠</span></span><br><span class="line">		<span class="keyword">if</span> (!poll_schedule_timeout(&amp;table, TASK_INTERRUPTIBLE,</span><br><span class="line">				to, slack))</span><br><span class="line">			timed_out = <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">`</span><br></pre></td></tr></table></figure></p>
+<p><code>(*f_op-&gt;poll)</code>会返回当前设备fd的状态（比如是否可读可写），根据这个状态，<code>do_select()</code>接着做出不同的动作</p>
+<ul>
+<li>如果设备fd的状态与主程序的感兴趣的I/O事件匹配，则记录下来，do_select()退出循环体，并把结果返回给上层主程序。</li>
+<li>如果不匹配，do_select()发现timeout已经到了或者进程有signal信号打断，也会退出循环，只是返回空的结果给上层应用。</li>
+</ul>
+<p>但如果<code>do_select()</code>发现当前没有事件发生，又还没到timeout，更没signal打扰，内核会在这个循环体里面永远地轮询下去吗？</p>
+<p><code>do_select()</code>把全部fd检测一轮之后如果没有可用I/O事件，会让当前进程去休眠一段时间，等待fd设备或定时器来唤醒自己，然后再继续循环体看看哪些fd可用，以此提高效率。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">poll_schedule_timeout</span><span class="params">(struct poll_wqueues *pwq, <span class="keyword">int</span> state,</span></span></span><br><span class="line"><span class="function"><span class="params">			  <span class="keyword">ktime_t</span> *expires, <span class="keyword">unsigned</span> <span class="keyword">long</span> slack)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> rc = -EINTR;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 休眠</span></span><br><span class="line">	set_current_state(state);</span><br><span class="line">	<span class="keyword">if</span> (!pwq-&gt;triggered)</span><br><span class="line">		rc = schedule_hrtimeout_range(expires, slack, HRTIMER_MODE_ABS);</span><br><span class="line">	__set_current_state(TASK_RUNNING);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Prepare for the next iteration.</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * The following set_mb() serves two purposes.  First, it's</span></span><br><span class="line"><span class="comment">	 * the counterpart rmb of the wmb in pollwake() such that data</span></span><br><span class="line"><span class="comment">	 * written before wake up is always visible after wake up.</span></span><br><span class="line"><span class="comment">	 * Second, the full barrier guarantees that triggered clearing</span></span><br><span class="line"><span class="comment">	 * doesn't pass event check of the next iteration.  Note that</span></span><br><span class="line"><span class="comment">	 * this problem doesn't exist for the first iteration as</span></span><br><span class="line"><span class="comment">	 * add_wait_queue() has full barrier semantics.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	set_mb(pwq-&gt;triggered, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> rc;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(poll_schedule_timeout);</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-2-struct-file-operations设备驱动的操作函数"><a href="#2-2-struct-file-operations设备驱动的操作函数" class="headerlink" title="2.2 struct file_operations设备驱动的操作函数"></a>2.2 <code>struct file_operations</code>设备驱动的操作函数</h3><p>设备发现I/O事件时会唤醒主程序进程？ 每个设备fd的等待队列在哪？我们什么时候把当前进程添加到它们的等待队列里去了？<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mask = (*f_op-&gt;poll)(f.file, wait);</span><br></pre></td></tr></table></figure></p>
+<p>就是上面这行代码干的好事。 不过在此之前，我们得先了解一下系统内核与文件设备的驱动程序之间耦合框架的设计。</p>
+<p>上文对每个设备的操作<code>f_op-&gt;poll</code>，是一个针对每个文件设备特定的内核函数，区别于我们平时用的系统调用<code>poll()</code>。 并且，这个操作是<code>select()</code> <code>poll()</code> <code>epoll()</code>背后实现的共同基础。</p>
+<blockquote>
+<p>Support for any of these calls requires support from the device driver. This support (for all three calls, <code>select()</code> <code>poll()</code> and <code>epoll()</code>) is provided through the driver’s poll method.</p>
+</blockquote>
+<p>Linux的设计很灵活，它并不知道每个具体的文件设备是怎么操作的（怎么打开，怎么读写），但内核让每个设备拥有一个<code>struct file_operations</code>结构体，这个结构体里定义了各种用于操作设备的函数指针，指向操作每个文件设备的驱动程序实现的具体操作函数，即设备驱动的回调函数（callback）。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">path</span>		<span class="title">f_path</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">inode</span>		*<span class="title">f_inode</span>;</span>	<span class="comment">/* cached value */</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span>	*<span class="title">f_op</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// …</span></span><br><span class="line"></span><br><span class="line">&#125; __attribute__((aligned(<span class="number">4</span>)));	<span class="comment">/* lest something weird decides that 2 is OK */</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span> *<span class="title">owner</span>;</span></span><br><span class="line">	<span class="keyword">loff_t</span> (*llseek) (struct file *, <span class="keyword">loff_t</span>, <span class="keyword">int</span>);</span><br><span class="line">	<span class="keyword">ssize_t</span> (*read) (struct file *, <span class="keyword">char</span> __user *, <span class="keyword">size_t</span>, <span class="keyword">loff_t</span> *);</span><br><span class="line">	<span class="keyword">ssize_t</span> (*write) (struct file *, <span class="keyword">const</span> <span class="keyword">char</span> __user *, <span class="keyword">size_t</span>, <span class="keyword">loff_t</span> *);</span><br><span class="line">	<span class="keyword">ssize_t</span> (*aio_read) (struct kiocb *, <span class="keyword">const</span> struct iovec *, <span class="keyword">unsigned</span> <span class="keyword">long</span>, <span class="keyword">loff_t</span>);</span><br><span class="line">	<span class="keyword">ssize_t</span> (*aio_write) (struct kiocb *, <span class="keyword">const</span> struct iovec *, <span class="keyword">unsigned</span> <span class="keyword">long</span>, <span class="keyword">loff_t</span>);</span><br><span class="line">	<span class="keyword">ssize_t</span> (*read_iter) (struct kiocb *, struct iov_iter *);</span><br><span class="line">	<span class="keyword">ssize_t</span> (*write_iter) (struct kiocb *, struct iov_iter *);</span><br><span class="line">	<span class="keyword">int</span> (*iterate) (struct file *, struct dir_context *);</span><br><span class="line">	<span class="comment">// select()轮询设备fd的操作函数</span></span><br><span class="line">	<span class="function"><span class="keyword">unsigned</span> <span class="title">int</span> <span class="params">(*poll)</span> <span class="params">(struct file *, struct poll_table_struct *)</span></span>;</span><br><span class="line">	<span class="comment">// …	</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>这个<code>f_op-&gt;poll</code>对文件设备做了什么事情呢？ 一是调用<code>poll_wait()</code>函数； 二是检测文件设备的当前状态。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="title">int</span> <span class="params">(*poll)</span> <span class="params">(struct file *filp, struct poll_table_struct *pwait)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<blockquote>
+<p>For every file descriptor, it calls that fd’s <code>poll()</code> method, which will add the caller to that fd’s wait queue, and return which events (readable, writeable, exception) currently apply to that fd.</p>
+</blockquote>
+<h2 id="3-总结"><a href="#3-总结" class="headerlink" title="3. 总结"></a>3. 总结</h2><p>总结一下<code>select()</code>的大概流程。</p>
+<ol>
+<li>先把全部fd扫一遍</li>
+<li>如果发现有可用的fd，跳到5</li>
+<li>如果没有，当前进程去睡觉xx秒</li>
+<li>xx秒后自己醒了，或者状态变化的fd唤醒了自己，跳到1</li>
+<li>结束循环体，返回</li>
+</ol>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="http://man7.org/linux/man-pages/man2/select.2.html" target="_blank" rel="noopener">man select</a></li>
+<li><a href="http://janfan.cn/chinese/2015/01/05/select-poll-impl-inside-the-kernel.html" target="_blank" rel="noopener">select()/poll() 的内核实现</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/linux/">linux</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2019/08/26/system call select vs poll vs epoll/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">system call: select vs poll vs epoll</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2019/08/25/Linux中的工作队列/">
+        <span class="next-text nav-default">Linux中的工作队列</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/08/26/select-usage-and-implementation-in-kernel/';
+        this.page.identifier = '2019/08/26/select-usage-and-implementation-in-kernel/';
+        this.page.title = 'select usage and implementation in kernel';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

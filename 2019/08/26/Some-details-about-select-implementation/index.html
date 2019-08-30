@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Some details about select implementation">
+
+
+
+
+  <meta name="keywords" content="Kernel, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/08/26/Some-details-about-select-implementation/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Some details about select implementation - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Some details about select implementation
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-08-26
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-为什么要实现-file-operation结构体的poll函数？"><span class="toc-text">1. 为什么要实现 file_operation结构体的poll函数？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-select系统调用"><span class="toc-text">2. select系统调用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-重要结构体之间关系"><span class="toc-text">3. 重要结构体之间关系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-结构体关系"><span class="toc-text">3.1 结构体关系</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-注意项"><span class="toc-text">3.2 注意项</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-fop-gt-poll"><span class="toc-text">4. fop-&gt;poll()</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-poll-wait-函数在select-睡眠前后调用的差异"><span class="toc-text">5. poll_wait()函数在select()睡眠前后调用的差异</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-唤醒应用进程"><span class="toc-text">6. 唤醒应用进程</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p><a href="/2019/08/26/select-usage-and-implementation-in-kernel/">select usage and implementation in kernel</a>简单介绍了select的内核实现，<a href="/2019/08/26/file-operations-poll-function/">file_operations poll function</a>介绍了file_operations中的 poll函数。在看完 <a href="https://blog.csdn.net/lizhiguo0532/article/details/6568964" target="_blank" rel="noopener">select(poll)系统调用实现解析(一)</a>文章后，发现还是需要介绍下detail。本文内容源于该系列文章。</p>
+<a id="more"></a>
+<p>PS:本文不适合阅读，但是当结合代码看时效果明显。</p>
+<h2 id="1-为什么要实现-file-operation结构体的poll函数？"><a href="#1-为什么要实现-file-operation结构体的poll函数？" class="headerlink" title="1. 为什么要实现 file_operation结构体的poll函数？"></a>1. 为什么要实现 file_operation结构体的poll函数？</h2><p>上层要能使用select()和poll()系统调用来监测某个设备文件描述符，那么就必须实现这个设备驱动程序中struct file_operation结构体的poll函数，为什么？</p>
+<p>因为这两个系统调用最终都会调用驱动程序中的poll函数来初始化一个等待队列项, 然后将其加入到驱动程序中的等待队列头，这样就可以在硬件可读写的时候wake up这个等待队列头，然后等待硬件设备可读写事件的进程都将被唤醒。(这个等待队列头可以包含多个等待队列项，这些不同的等待队列项是由不同的应用程序调用select或者poll来监测同一个硬件设备的时候调用file_operation的poll函数初始化填充的)。</p>
+<h2 id="2-select系统调用"><a href="#2-select系统调用" class="headerlink" title="2. select系统调用"></a>2. select系统调用</h2><p><strong>select()系统调用代码</strong><br>调用顺序如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sys_select()</span><br><span class="line">	core_sys_select()</span><br><span class="line">		do_select()</span><br><span class="line">			fop-&gt;poll()</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">SYSCALL_DEFINE5(select, <span class="keyword">int</span>, n, fd_set __user *, inp, fd_set __user *, outp, </span><br><span class="line">fd_set __user *, <span class="built_in">exp</span>, struct timeval __user *, tvp)</span><br><span class="line">&#123;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">timespec</span> <span class="title">end_time</span>, *<span class="title">to</span> = <span class="title">NULL</span>;</span></span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">tv</span>;</span></span><br><span class="line">       <span class="keyword">int</span> ret; </span><br><span class="line">       <span class="keyword">if</span> (tvp) &#123;<span class="comment">// 如果超时值非NULL</span></span><br><span class="line">              <span class="keyword">if</span> (copy_from_user(&amp;tv, tvp, <span class="keyword">sizeof</span>(tv)))   <span class="comment">// 从用户空间取数据到内核空间</span></span><br><span class="line">                     <span class="keyword">return</span> -EFAULT;</span><br><span class="line">              to = &amp;end_time;</span><br><span class="line">              <span class="comment">// 得到timespec格式的未来超时时间</span></span><br><span class="line">              <span class="keyword">if</span> (poll_select_set_timeout(to,</span><br><span class="line">                            tv.tv_sec + (tv.tv_usec / USEC_PER_SEC),</span><br><span class="line">                            (tv.tv_usec % USEC_PER_SEC) * NSEC_PER_USEC))</span><br><span class="line">                     <span class="keyword">return</span> -EINVAL;</span><br><span class="line">       &#125;</span><br><span class="line">       ret = core_sys_select(n, inp, outp, <span class="built_in">exp</span>, to);             <span class="comment">// 关键函数</span></span><br><span class="line">       ret = poll_select_copy_remaining(&amp;end_time, tvp, <span class="number">1</span>, ret);</span><br><span class="line">       <span class="comment">/*如果有超时值, 并拷贝离超时时刻还剩的时间到用户空间的timeval中*/</span></span><br><span class="line"></span><br><span class="line">       <span class="keyword">return</span> ret;             <span class="comment">// 返回就绪的文件描述符的个数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">core_sys_select</span><span class="params">(<span class="keyword">int</span> n, fd_set __user *inp, fd_set __user *outp, </span></span></span><br><span class="line"><span class="function"><span class="params">fd_set __user *<span class="built_in">exp</span>, struct timespec *end_time)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       fd_set_bits fds;</span><br><span class="line"> <span class="comment">/**</span></span><br><span class="line"><span class="comment">       typedef struct &#123;</span></span><br><span class="line"><span class="comment">              unsigned long *in, *out, *ex;</span></span><br><span class="line"><span class="comment">              unsigned long *res_in, *res_out, *res_ex;</span></span><br><span class="line"><span class="comment">&#125; fd_set_bits;</span></span><br><span class="line"><span class="comment">这个结构体中定义的全是指针，这些指针都是用来指向描述符集合的。</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"></span><br><span class="line">       <span class="keyword">void</span> *bits;</span><br><span class="line">       <span class="keyword">int</span> ret, max_fds;</span><br><span class="line">       <span class="keyword">unsigned</span> <span class="keyword">int</span> size;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> *<span class="title">fdt</span>;</span></span><br><span class="line">       <span class="comment">/* Allocate small arguments on the stack to save memory and be faster */</span></span><br><span class="line">       <span class="keyword">long</span> stack_fds[SELECT_STACK_ALLOC/<span class="keyword">sizeof</span>(<span class="keyword">long</span>)];</span><br><span class="line">       ret = -EINVAL;</span><br><span class="line">       <span class="keyword">if</span> (n &lt; <span class="number">0</span>)</span><br><span class="line">              <span class="keyword">goto</span> out_nofds;</span><br><span class="line">       <span class="comment">/* max_fds can increase, so grab it once to avoid race */</span></span><br><span class="line">       rcu_read_lock();</span><br><span class="line">       fdt = files_fdtable(current-&gt;files); <span class="comment">// RCU ref, 获取当前进程的文件描述符表</span></span><br><span class="line">       max_fds = fdt-&gt;max_fds;</span><br><span class="line">       rcu_read_unlock();</span><br><span class="line">       <span class="keyword">if</span> (n &gt; max_fds)<span class="comment">// 如果传入的n大于当前进程最大的文件描述符，给予修正</span></span><br><span class="line">              n = max_fds;</span><br><span class="line">              </span><br><span class="line">       <span class="comment">/*</span></span><br><span class="line"><span class="comment">        * We need 6 bitmaps (in/out/ex for both incoming and outgoing),</span></span><br><span class="line"><span class="comment">        * since we used fdset we need to allocate memory in units of</span></span><br><span class="line"><span class="comment">        * long-words.</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">       size = FDS_BYTES(n);</span><br><span class="line">       <span class="comment">// 以一个文件描述符占一bit来计算，传递进来的这些fd_set需要用掉多少个字</span></span><br><span class="line">       bits = stack_fds;</span><br><span class="line">       <span class="keyword">if</span> (size &gt; <span class="keyword">sizeof</span>(stack_fds) / <span class="number">6</span>) &#123;</span><br><span class="line">              <span class="comment">// 除6，为什么?因为每个文件描述符需要6个bitmaps</span></span><br><span class="line">              <span class="comment">/* Not enough space in on-stack array; must use kmalloc */</span></span><br><span class="line">              ret = -ENOMEM;</span><br><span class="line">              bits = kmalloc(<span class="number">6</span> * size, GFP_KERNEL); <span class="comment">// stack中分配的太小，直接kmalloc</span></span><br><span class="line">              <span class="keyword">if</span> (!bits)</span><br><span class="line">                     <span class="keyword">goto</span> out_nofds;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 这里就可以明显看出struct fd_set_bits结构体的用处了。</span></span><br><span class="line">       fds.in      = bits;</span><br><span class="line">       fds.out     = bits +   size;</span><br><span class="line">       fds.ex      = bits + <span class="number">2</span>*size;</span><br><span class="line">       fds.res_in  = bits + <span class="number">3</span>*size;</span><br><span class="line">       fds.res_out = bits + <span class="number">4</span>*size;</span><br><span class="line">       fds.res_ex  = bits + <span class="number">5</span>*size;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// get_fd_set仅仅调用copy_from_user从用户空间拷贝了fd_set</span></span><br><span class="line">       <span class="keyword">if</span> ((ret = get_fd_set(n, inp, fds.in)) ||</span><br><span class="line">           (ret = get_fd_set(n, outp, fds.out)) ||</span><br><span class="line">           (ret = get_fd_set(n, <span class="built_in">exp</span>, fds.ex)))</span><br><span class="line">              <span class="keyword">goto</span> out;</span><br><span class="line">       zero_fd_set(n, fds.res_in);  <span class="comment">// 对这些存放返回状态的字段清0</span></span><br><span class="line">       zero_fd_set(n, fds.res_out);</span><br><span class="line">       zero_fd_set(n, fds.res_ex);</span><br><span class="line"></span><br><span class="line">       ret = do_select(n, &amp;fds, end_time);    <span class="comment">// 关键函数，完成主要的工作</span></span><br><span class="line"> </span><br><span class="line">       <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)             <span class="comment">// 有错误</span></span><br><span class="line">              <span class="keyword">goto</span> out;</span><br><span class="line">       <span class="keyword">if</span> (!ret) &#123;              <span class="comment">// 超时返回，无设备就绪</span></span><br><span class="line">              ret = -ERESTARTNOHAND;</span><br><span class="line">              <span class="keyword">if</span> (signal_pending(current))</span><br><span class="line">                     <span class="keyword">goto</span> out;</span><br><span class="line">              ret = <span class="number">0</span>;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 把结果集,拷贝回用户空间</span></span><br><span class="line">       <span class="keyword">if</span> (set_fd_set(n, inp, fds.res_in) ||</span><br><span class="line">           set_fd_set(n, outp, fds.res_out) ||</span><br><span class="line">           set_fd_set(n, <span class="built_in">exp</span>, fds.res_ex))</span><br><span class="line">              ret = -EFAULT;</span><br><span class="line">             </span><br><span class="line">out:</span><br><span class="line">       <span class="keyword">if</span> (bits != stack_fds)</span><br><span class="line">              kfree(bits);     <span class="comment">// 如果有申请空间，那么释放fds对应的空间</span></span><br><span class="line">out_nofds:</span><br><span class="line">       <span class="keyword">return</span> ret;                    <span class="comment">// 返回就绪的文件描述符的个数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">do_select</span><span class="params">(<span class="keyword">int</span> n, fd_set_bits *fds, struct timespec *end_time)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="keyword">ktime_t</span> expire, *to = <span class="literal">NULL</span>;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_wqueues</span> <span class="title">table</span>;</span></span><br><span class="line">       poll_table *wait;</span><br><span class="line">       <span class="keyword">int</span> retval, i, timed_out = <span class="number">0</span>;</span><br><span class="line">       <span class="keyword">unsigned</span> <span class="keyword">long</span> slack = <span class="number">0</span>;</span><br><span class="line">       rcu_read_lock();</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 根据已经设置好的fd位图检查用户打开的fd, 要求对应fd必须打开, 并且返回最大的fd。</span></span><br><span class="line">       retval = max_select_fd(n, fds);</span><br><span class="line">       rcu_read_unlock();</span><br><span class="line">       <span class="keyword">if</span> (retval &lt; <span class="number">0</span>)</span><br><span class="line">              <span class="keyword">return</span> retval;</span><br><span class="line">       n = retval;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 一些重要的初始化:</span></span><br><span class="line">       <span class="comment">// poll_wqueues.poll_table.qproc函数指针初始化，该函数是驱动程序中poll函数实</span></span><br><span class="line">       <span class="comment">// 现中必须要调用的poll_wait()中使用的函数。</span></span><br><span class="line">       poll_initwait(&amp;table);</span><br><span class="line">       wait = &amp;table.pt;</span><br><span class="line">       <span class="keyword">if</span> (end_time &amp;&amp; !end_time-&gt;tv_sec &amp;&amp; !end_time-&gt;tv_nsec) &#123;</span><br><span class="line">              wait = <span class="literal">NULL</span>;</span><br><span class="line">              timed_out = <span class="number">1</span>;     <span class="comment">// 如果系统调用带进来的超时时间为0，那么设置</span></span><br><span class="line">                                          <span class="comment">// timed_out = 1，表示不阻塞，直接返回。</span></span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="keyword">if</span> (end_time &amp;&amp; !timed_out)</span><br><span class="line">              slack = estimate_accuracy(end_time); <span class="comment">// 超时时间转换</span></span><br><span class="line">              </span><br><span class="line">       retval = <span class="number">0</span>;</span><br><span class="line">       <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">              <span class="keyword">unsigned</span> <span class="keyword">long</span> *rinp, *routp, *rexp, *inp, *outp, *<span class="built_in">exp</span>;</span><br><span class="line">              inp = fds-&gt;in; outp = fds-&gt;out; <span class="built_in">exp</span> = fds-&gt;ex;</span><br><span class="line">              rinp = fds-&gt;res_in; routp = fds-&gt;res_out; rexp = fds-&gt;res_ex;</span><br><span class="line">              </span><br><span class="line">              <span class="comment">// 所有n个fd的循环</span></span><br><span class="line">              <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; n; ++rinp, ++routp, ++rexp) &#123;</span><br><span class="line">                     <span class="keyword">unsigned</span> <span class="keyword">long</span> in, out, ex, all_bits, bit = <span class="number">1</span>, mask, j;</span><br><span class="line">                     <span class="keyword">unsigned</span> <span class="keyword">long</span> res_in = <span class="number">0</span>, res_out = <span class="number">0</span>, res_ex = <span class="number">0</span>;</span><br><span class="line">                     <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> *<span class="title">f_op</span> = <span class="title">NULL</span>;</span></span><br><span class="line">                     <span class="class"><span class="keyword">struct</span> <span class="title">file</span> *<span class="title">file</span> = <span class="title">NULL</span>;</span></span><br><span class="line"></span><br><span class="line">                     <span class="comment">// 先取出当前循环周期中的32个文件描述符对应的bitmaps</span></span><br><span class="line">                     in = *inp++; out = *outp++; ex = *<span class="built_in">exp</span>++;</span><br><span class="line">                     all_bits = in | out | ex;  <span class="comment">// 组合一下，有的fd可能只监测读，或者写，</span></span><br><span class="line">                     <span class="comment">//或者e rr，或者同时都监测</span></span><br><span class="line">                     <span class="keyword">if</span> (all_bits == <span class="number">0</span>) &#123;  <span class="comment">// 这32个描述符没有任何状态被监测，就跳入</span></span><br><span class="line"><span class="comment">// 下一个32个fd的循环中</span></span><br><span class="line">                            i += __NFDBITS; <span class="comment">//每32个文件描述符一个循环，正好一个long型数</span></span><br><span class="line">                            <span class="keyword">continue</span>;</span><br><span class="line">                     &#125;</span><br><span class="line"></span><br><span class="line">                     <span class="comment">// 本次32个fd的循环中有需要监测的状态存在</span></span><br><span class="line">                     <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; __NFDBITS; ++j, ++i, bit &lt;&lt;= <span class="number">1</span>) &#123;<span class="comment">// 初始bit = 1</span></span><br><span class="line">                            <span class="keyword">int</span> fput_needed;</span><br><span class="line">                            <span class="keyword">if</span> (i &gt;= n)      <span class="comment">// i用来检测是否超出了最大待监测的fd</span></span><br><span class="line">                                   <span class="keyword">break</span>;</span><br><span class="line">                            <span class="keyword">if</span> (!(bit &amp; all_bits))</span><br><span class="line">                                   <span class="keyword">continue</span>; <span class="comment">// bit每次循环后左移一位的作用在这</span></span><br><span class="line">                                                        <span class="comment">// 跳过没有状态监测的fd</span></span><br><span class="line">                            file = fget_light(i, &amp;fput_needed); <span class="comment">// 得到file结构指针，并增加</span></span><br><span class="line">                                               <span class="comment">// 引用计数字段f_count</span></span><br><span class="line">                            <span class="keyword">if</span> (file) &#123;        <span class="comment">// 如果file存在</span></span><br><span class="line">                                   f_op = file-&gt;f_op;</span><br><span class="line">                                   mask = DEFAULT_POLLMASK;</span><br><span class="line">                                   <span class="keyword">if</span> (f_op &amp;&amp; f_op-&gt;poll) &#123;</span><br><span class="line">                                          wait_key_set(wait, in, out, bit);</span><br><span class="line">                                          <span class="comment">// 设置当前fd待监测的事件掩码</span></span><br><span class="line">                                          mask = (*f_op-&gt;poll)(file, wait);</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">调用驱动程序中的poll函数，</span></span><br><span class="line"><span class="comment">以evdev驱动中的evdev_poll()为例该函数会调用函数poll_wait(file, &amp;evdev-&gt;wait, wait)，</span></span><br><span class="line"><span class="comment">继续调用__pollwait()回调来分配一个poll_table_entry结构体，</span></span><br><span class="line"><span class="comment">该结构体有一个内嵌的等待队列项，</span></span><br><span class="line"><span class="comment">设置好wake时调用的回调函数后将其添加到驱动程序中的等待队列头中。</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line">                                   &#125;</span><br><span class="line">                                   fput_light(file, fput_needed);</span><br><span class="line">                                   <span class="comment">// 释放file结构指针，实际就是减小他的一个引用计数字段f_count。</span></span><br><span class="line"></span><br><span class="line">                                   <span class="comment">// mask是每一个fop-&gt;poll()程序返回的设备状态掩码。</span></span><br><span class="line">                                   <span class="keyword">if</span> ((mask &amp; POLLIN_SET) &amp;&amp; (in &amp; bit)) &#123;</span><br><span class="line">                                          res_in |= bit;         <span class="comment">// fd对应的设备可读</span></span><br><span class="line">                                          retval++;</span><br><span class="line">                                          wait = <span class="literal">NULL</span>;       <span class="comment">// 后续有用，避免重复执行__pollwait()</span></span><br><span class="line">                                   &#125;</span><br><span class="line">                                   <span class="keyword">if</span> ((mask &amp; POLLOUT_SET) &amp;&amp; (out &amp; bit)) &#123;</span><br><span class="line">                                          res_out |= bit;              <span class="comment">// fd对应的设备可写</span></span><br><span class="line">                                          retval++;</span><br><span class="line">                                          wait = <span class="literal">NULL</span>;</span><br><span class="line">                                   &#125;</span><br><span class="line">                                   <span class="keyword">if</span> ((mask &amp; POLLEX_SET) &amp;&amp; (ex &amp; bit)) &#123;</span><br><span class="line">                                          res_ex |= bit;</span><br><span class="line">                                          retval++;</span><br><span class="line">                                          wait = <span class="literal">NULL</span>;</span><br><span class="line">                                   &#125;</span><br><span class="line">                            &#125;</span><br><span class="line">                     &#125;</span><br><span class="line"></span><br><span class="line">                     <span class="comment">// 根据poll的结果写回到输出位图里,返回给上级函数</span></span><br><span class="line">                     <span class="keyword">if</span> (res_in)</span><br><span class="line">                            *rinp = res_in;</span><br><span class="line">                     <span class="keyword">if</span> (res_out)</span><br><span class="line">                            *routp = res_out;</span><br><span class="line">                     <span class="keyword">if</span> (res_ex)</span><br><span class="line">                            *rexp = res_ex;</span><br><span class="line"></span><br><span class="line">                     <span class="comment">/*</span></span><br><span class="line"><span class="comment">                            这里的目的纯粹是为了增加一个抢占点。</span></span><br><span class="line"><span class="comment">                            在支持抢占式调度的内核中（定义了CONFIG_PREEMPT），</span></span><br><span class="line"><span class="comment">cond_resched是空操作。</span></span><br><span class="line"><span class="comment">                     */</span></span><br><span class="line">                     cond_resched();</span><br><span class="line">              &#125;</span><br><span class="line">              wait = <span class="literal">NULL</span>;  <span class="comment">// 后续有用，避免重复执行__pollwait()</span></span><br><span class="line">              <span class="keyword">if</span> (retval || timed_out || signal_pending(current))</span><br><span class="line">                     <span class="keyword">break</span>;</span><br><span class="line">              <span class="keyword">if</span> (table.error) &#123;</span><br><span class="line">                     retval = table.error;</span><br><span class="line">                     <span class="keyword">break</span>;</span><br><span class="line">              &#125;</span><br><span class="line">              <span class="comment">/*跳出这个大循环的条件有: 有设备就绪或有异常(retval!=0), 超时(timed_out</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">              = 1), 或者有中止信号出现*/</span></span><br><span class="line"></span><br><span class="line">              <span class="comment">/*</span></span><br><span class="line"><span class="comment">               * If this is the first loop and we have a timeout</span></span><br><span class="line"><span class="comment">               * given, then we convert to ktime_t and set the to</span></span><br><span class="line"><span class="comment">               * pointer to the expiry value.</span></span><br><span class="line"><span class="comment">               */</span></span><br><span class="line"></span><br><span class="line">              <span class="keyword">if</span> (end_time &amp;&amp; !to) &#123;</span><br><span class="line">                     expire = timespec_to_ktime(*end_time);</span><br><span class="line">                     to = &amp;expire;</span><br><span class="line">              &#125;</span><br><span class="line"></span><br><span class="line">              <span class="comment">// 第一次循环中，当前用户进程从这里进入休眠，</span></span><br><span class="line">              <span class="comment">//上面传下来的超时时间只是为了用在睡眠超时这里而已</span></span><br><span class="line">              <span class="comment">// 超时，poll_schedule_timeout()返回0；被唤醒时返回-EINTR</span></span><br><span class="line">              <span class="keyword">if</span> (!poll_schedule_timeout(&amp;table, TASK_INTERRUPTIBLE,</span><br><span class="line">                                      to, slack))</span><br><span class="line">                     timed_out = <span class="number">1</span>; <span class="comment">/* 超时后，将其设置成1，方便后面退出循环返回到上层 */</span></span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 清理各个驱动程序的等待队列头，同时释放掉所有空出来的page页(poll_table_entry)</span></span><br><span class="line"></span><br><span class="line">       poll_freewait(&amp;table);</span><br><span class="line"></span><br><span class="line">       <span class="keyword">return</span> retval; <span class="comment">// 返回就绪的文件描述符的个数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="3-重要结构体之间关系"><a href="#3-重要结构体之间关系" class="headerlink" title="3. 重要结构体之间关系"></a>3. 重要结构体之间关系</h2><p>比较重要的结构体由四个：struct poll_wqueues、struct poll_table_page、struct poll_table_entry、struct poll_table_struct。</p>
+<h3 id="3-1-结构体关系"><a href="#3-1-结构体关系" class="headerlink" title="3.1 结构体关系"></a>3.1 结构体关系</h3><p>每一个调用select()系统调用的应用进程都会存在一个struct poll_weueues结构体，用来统一辅佐实现这个进程中所有待监测的fd的轮询工作，后面所有的工作和都这个结构体有关，所以它非常重要。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">poll_wqueues</span> &#123;</span></span><br><span class="line">       poll_table pt;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_page</span> *<span class="title">table</span>;</span></span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">polling_task</span>;</span> <span class="comment">//保存当前调用select的用户进程struct task_struct结构体</span></span><br><span class="line">       <span class="keyword">int</span> triggered;         <span class="comment">// 当前用户进程被唤醒后置成1，以免该进程接着睡眠</span></span><br><span class="line">       <span class="keyword">int</span> error;               <span class="comment">// 错误码</span></span><br><span class="line">       <span class="keyword">int</span> inline_index;   <span class="comment">// 数组inline_entries的引用下标</span></span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> <span class="title">inline_entries</span>[<span class="title">N_INLINE_POLL_ENTRIES</span>];</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>实际上结构体poll_wqueues内嵌的poll_table_entry数组inline_entries[] 的大小是有限：如果空间不够用，后续会动态申请物理内存页以链表的形式挂载poll_wqueues.table上统一管理。接下来的两个结构体就和这项内容密切相关：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">poll_table_page</span> &#123;</span> <span class="comment">// 申请的物理页都会将起始地址强制转换成该结构体指针</span></span><br><span class="line">     <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_page</span> * <span class="title">next</span>;</span>     <span class="comment">// 指向下一个申请的物理页</span></span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> * <span class="title">entry</span>;</span> <span class="comment">// 指向entries[]中首个待分配(空的) poll_table_entry地址</span></span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> <span class="title">entries</span>[0];</span> <span class="comment">// 该page页后面剩余的空间都是待分配的poll_table_entry结构体</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>对每一个fd调用<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fop-&gt;poll() </span><br><span class="line">	poll_wait()</span><br><span class="line">		__pollwait()</span><br></pre></td></tr></table></figure></p>
+<p>都会先从poll_wqueues. inline_entries[]中分配一个poll_table_entry结构体，直到该数组用完才会分配物理页挂在链表指针poll_wqueues.table上，然后才会分配一个poll_table_entry结构体。具体用来做什么？这里先简单说说，<code>__pollwait()</code>函数调用时需要3个参数，第一个是特定fd对应的file结构体指针，第二个就是特定fd对应的硬件驱动程序中的等待队列头指针，第3个是调用select()的应用进程中poll_wqueues结构体的poll_table项(该进程监测的所有fd，调用fop-&gt;poll函数时都用这一个poll_table结构体)。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> &#123;</span></span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">file</span> *<span class="title">filp</span>;</span>            <span class="comment">// 指向特定fd对应的file结构体;</span></span><br><span class="line">       <span class="keyword">unsigned</span> <span class="keyword">long</span> key;            <span class="comment">// 等待特定fd对应硬件设备的事件掩码，如POLLIN、</span></span><br><span class="line"><span class="comment">//  POLLOUT、POLLERR;</span></span><br><span class="line">       <span class="keyword">wait_queue_t</span> wait;           <span class="comment">// 代表调用select()的应用进程，等待在fd对应设备的特定事件</span></span><br><span class="line"><span class="comment">//  (读或者写)的等待队列头上，的等待队列项;</span></span><br><span class="line">       <span class="keyword">wait_queue_head_t</span> *wait_address; <span class="comment">// 设备驱动程序中特定事件的等待队列头；</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>总结一下几点：</p>
+<ol>
+<li>特定的硬件设备驱动程序的事件等待队列头是有限个数的，通常有读事件和写事件的等待队列头；</li>
+<li>一个调用了select()的应用进程只存在一个poll_wqueues结构体；</li>
+<li>应用程序可以有多个fd同时监测其各自的事件发生，但该应用进程中每一个fd有多少个poll_table_entry存在，那就取决于fd对应的驱动程序中有几个事件等待队列头了，也就是说，通常驱动程序的poll函数需要对每一个事件的等待队列头调用poll_wait()函数。比如，如果有读写两个等待队列头，那么在这个应用进程中存在两个poll_table_entry结构体，在这两个事件的等待队列头中分别将两个等待队列项加入。</li>
+</ol>
+<h3 id="3-2-注意项"><a href="#3-2-注意项" class="headerlink" title="3.2 注意项"></a>3.2 注意项</h3><p>对于第3点中，如果驱动程序中有多个事件等待队列头，那么在这种情况下，写设备驱动程序时就要特别小心了，特别是设备有事件就绪，然后唤醒等待队列头中所有应用进程的时候，需要使用另外的宏。</p>
+<p>在这之前看一看<code>__pollwait()</code>函数中填充poll_table_entry结构体时注册的唤醒回调函数pollwake()。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">pollwake</span><span class="params">(<span class="keyword">wait_queue_t</span> *wait, <span class="keyword">unsigned</span> mode, <span class="keyword">int</span> sync, <span class="keyword">void</span> *key)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> *<span class="title">entry</span>;</span></span><br><span class="line">       entry = container_of(wait, struct poll_table_entry, wait);</span><br><span class="line">       <span class="comment">// 取得poll_table_entry结构体指针</span></span><br><span class="line">       <span class="keyword">if</span> (key &amp;&amp; !((<span class="keyword">unsigned</span> <span class="keyword">long</span>)key &amp; entry-&gt;key))</span><br><span class="line">       <span class="comment">/*这里的条件判断至关重要，避免应用进程被误唤醒，什么意思？*/</span></span><br><span class="line">              <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">       <span class="keyword">return</span> __pollwake(wait, mode, sync, key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>驱动程序中存在多个事件的等待队列头，并且应用程序中只监测了该硬件的某几项事件，比如，驱动中有读写等待队列头，但应用程序只监测读事件的发生。这种情况下，写驱动程序时候，如果唤醒函数用法不当，就会引起误唤醒的情况。<br>先来看一看我们熟知的一些唤醒函数吧！<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> wake_up(x)                    __wake_up(x, TASK_NORMAL, 1, NULL)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> wake_up_interruptible(x)      __wake_up(x, TASK_INTERRUPTIBLE, 1, NULL)</span></span><br></pre></td></tr></table></figure></p>
+<p>注意到这个key了吗？通常我们调用唤醒函数时key为NULL，很容易看出，如果我们在这种情况下，使用上面两种唤醒函数，那么<code>key &amp;&amp; !((unsigned long)key &amp; entry-&gt;key)</code>的判断条件一直都会是假，也就是说，只要设备的几类事件之一有发生，不管应用程序中是否对其有监测，都会在这里顺利通过，将应用程序唤醒，唤醒后，重新调用一遍fop-&gt;poll(注意：第一次和第二次调用该函数时少做了一件事，后面代码详解)函数，得到设备事件掩码。假如恰好在这次唤醒后的一轮调用fop-&gt;poll()函数的循环中，没有其他硬件设备就绪，那么可想而知，从源码上看，do_select()会直接返回0。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// mask是每一个fop-&gt;poll()程序返回的设备状态掩码。</span></span><br><span class="line"><span class="keyword">if</span> ((mask &amp; POLLIN_SET) &amp;&amp; (in &amp; bit)) &#123;</span><br><span class="line">       res_in |= bit;         <span class="comment">// fd对应的设备可读</span></span><br><span class="line">       retval++;</span><br><span class="line">       wait = <span class="literal">NULL</span>;              <span class="comment">// 后续有用，避免重复执行__pollwait()</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>(in &amp; bit)</code>这个条件就是用来确认用户程序有没有让你监测该事件的, 如果没有retval仍然是0，基于前面的假设，那么do_select()返回给上层的也是0。那又假如应用程序中调用select()的时候没有传入超时值，那岂不是和事实不相符合吗？没有传递超时值，那么select()函数会一直阻塞直到至少有1个fd的状态就绪。</p>
+<p>所以在这种情况下，设备驱动中唤醒函数需要用另外的一组：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> wake_up_poll(x, m)                            /</span></span><br><span class="line">       __wake_up(x, TASK_NORMAL, <span class="number">1</span>, (<span class="keyword">void</span> *) (m))</span><br><span class="line">       </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> wake_up_interruptible_poll(x, m)               /</span></span><br><span class="line">       __wake_up(x, TASK_INTERRUPTIBLE, <span class="number">1</span>, (<span class="keyword">void</span> *) (m))</span><br></pre></td></tr></table></figure></p>
+<p>上述的m值，应该和设备发生的事件相符合。设置poll_table_entry结构体key项的函数是：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> POLLIN_SET (POLLRDNORM | POLLRDBAND | POLLIN | POLLHUP | POLLERR)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> POLLOUT_SET (POLLWRBAND | POLLWRNORM | POLLOUT | POLLERR)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> POLLEX_SET (POLLPRI)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">wait_key_set</span><span class="params">(poll_table *wait, <span class="keyword">unsigned</span> <span class="keyword">long</span> in,</span></span></span><br><span class="line"><span class="function"><span class="params">                            <span class="keyword">unsigned</span> <span class="keyword">long</span> out, <span class="keyword">unsigned</span> <span class="keyword">long</span> bit)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="keyword">if</span> (wait) &#123;</span><br><span class="line">              wait-&gt;key = POLLEX_SET;</span><br><span class="line">              <span class="keyword">if</span> (in &amp; bit)</span><br><span class="line">                     wait-&gt;key |= POLLIN_SET;</span><br><span class="line">              <span class="keyword">if</span> (out &amp; bit)</span><br><span class="line">                     wait-&gt;key |= POLLOUT_SET;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里的m值，可以参考上面的宏来设置，注意传递的不是key的指针，而就是其值本身，只不过在wake_up_poll()到pollwake()的传递过程中是将其转换成指针的。</p>
+<p>如果唤醒函数使用后面一组的话，再加上合理设置key值，我相信pollwake()函数中的if一定会严格把关，不让应用程序没有监测的事件唤醒应用进程，从而避免了发生误唤醒。</p>
+<h2 id="4-fop-gt-poll"><a href="#4-fop-gt-poll" class="headerlink" title="4. fop-&gt;poll()"></a>4. fop-&gt;poll()</h2><p>fop-&gt;poll()函数就是file_operations结构体中的poll函数指针项，该函数相信很多人都知道怎么写，网上大把的文章介绍其模板，但是为什么要那么写，而且它做了什么具体的事情？本小节来揭开其神秘面纱，先贴一个模板上来。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="title">XXX_poll</span><span class="params">(struct file *filp, poll_table *wait)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> mask = <span class="number">0</span>;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">XXX_dev</span> *<span class="title">dev</span> = <span class="title">filp</span>-&gt;<span class="title">private_data</span>;</span></span><br><span class="line">    ...</span><br><span class="line">    poll_wait(filp, &amp;dev-&gt;r_wait, wait);</span><br><span class="line">    poll_wait(filp ,&amp;dev-&gt;w_wait, wait);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(...)<span class="comment">//读就绪</span></span><br><span class="line">    ｛</span><br><span class="line">          mask |= POLLIN | POLLRDNORM;</span><br><span class="line">     ｝</span><br><span class="line">    <span class="keyword">if</span>(...)<span class="comment">//写就绪</span></span><br><span class="line">    ｛</span><br><span class="line">          mask |= POLLOUT | POLLRDNORM;</span><br><span class="line">     ｝</span><br><span class="line">    ..</span><br><span class="line">    <span class="keyword">return</span> mask;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这个poll_wait()函数所做的工作挺简单，就是添加一个等待队列项到poll_wait ()函数传递进去的第二个参数，其代表的是驱动程序中的特定事件的等待队列头。</p>
+<p>下面以字符设备evdev为例，文件drivers/input/evdev.c<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="title">evdev_poll</span><span class="params">(struct file *file, poll_table *wait)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">evdev_client</span> *<span class="title">client</span> = <span class="title">file</span>-&gt;<span class="title">private_data</span>;</span></span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">evdev</span> *<span class="title">evdev</span> = <span class="title">client</span>-&gt;<span class="title">evdev</span>;</span></span><br><span class="line"></span><br><span class="line">       poll_wait(file, &amp;evdev-&gt;wait, wait);</span><br><span class="line">       <span class="keyword">return</span> ((client-&gt;head == client-&gt;tail) ? <span class="number">0</span> : (POLLIN | POLLRDNORM)) |</span><br><span class="line">              (evdev-&gt;exist ? <span class="number">0</span> : (POLLHUP | POLLERR));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">poll_wait</span><span class="params">(struct file * filp, <span class="keyword">wait_queue_head_t</span> * wait_address, poll_table *p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="keyword">if</span> (p &amp;&amp; wait_address)</span><br><span class="line">              p-&gt;qproc(filp, wait_address, p);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其中wait_address是驱动程序需要提供的等待队列头，来容纳后续等待该硬件设备就绪的进程对应的等待队列项。关键结构体poll_table, 这个结构体名字也取的不好，什么table？其实其中没有table的一丁点概念，容易让人误解呀！<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*poll_queue_proc)</span><span class="params">(struct file *, <span class="keyword">wait_queue_head_t</span> *, struct poll_table_struct *)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_struct</span> &#123;</span></span><br><span class="line">       poll_queue_proc qproc;</span><br><span class="line">       <span class="keyword">unsigned</span> <span class="keyword">long</span> key;</span><br><span class="line">&#125; poll_table;</span><br></pre></td></tr></table></figure></p>
+<p>fop-&gt;poll()函数的poll_table参数是从哪里传进来的？阅读代码就可以发现，do_select()函数中存在一个结构体struct poll_wqueues，其内嵌了一个poll_table的结构体，所以在后面的大循环中依次调用各个fd的fop-&gt;poll()传递的poll_table参数都是poll_wqueues.poll_table。</p>
+<p>poll_table结构体的定义其实蛮简单，就一个函数指针，一个key值。这个函数指针在整个select过程中一直不变，而key则会根据不同的fd的监测要求而变化。</p>
+<p>qproc函数初始化在函数<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">do_select()</span><br><span class="line">	poll_initwait()</span><br><span class="line">		init_poll_funcptr(&amp;pwq-&gt;pt, __pollwait)</span><br></pre></td></tr></table></figure></p>
+<p>中实现，回调函数就是<code>__pollwait()</code>。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">do_select</span><span class="params">(<span class="keyword">int</span> n, fd_set_bits *fds, struct timespec *end_time)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_wqueues</span> <span class="title">table</span>;</span></span><br><span class="line">       …</span><br><span class="line">       poll_initwait(&amp;table);</span><br><span class="line">       …</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">poll_initwait</span><span class="params">(struct poll_wqueues *pwq)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       init_poll_funcptr(&amp;pwq-&gt;pt, __pollwait);</span><br><span class="line">       …</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">init_poll_funcptr</span><span class="params">(poll_table *pt, poll_queue_proc qproc)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       pt-&gt;qproc = qproc;</span><br><span class="line">       pt-&gt;key   = ~<span class="number">0U</span>L; <span class="comment">/* all events enabled */</span></span><br><span class="line">&#125;  </span><br><span class="line"></span><br><span class="line"><span class="comment">/* Add a new entry */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __pollwait(struct file *filp, <span class="keyword">wait_queue_head_t</span> *wait_address, poll_table *p)</span><br><span class="line">&#123;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_wqueues</span> *<span class="title">pwq</span> = <span class="title">container_of</span>(<span class="title">p</span>, <span class="title">struct</span> <span class="title">poll_wqueues</span>, <span class="title">pt</span>);</span></span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> *<span class="title">entry</span> = <span class="title">poll_get_entry</span>(<span class="title">pwq</span>);</span></span><br><span class="line">       <span class="keyword">if</span> (!entry)</span><br><span class="line">              <span class="keyword">return</span>;</span><br><span class="line">       get_file(filp);</span><br><span class="line">       entry-&gt;filp = filp;         <span class="comment">// 保存对应的file结构体</span></span><br><span class="line">       entry-&gt;wait_address = wait_address;  <span class="comment">// 保存来自设备驱动程序的等待队列头</span></span><br><span class="line">       entry-&gt;key = p-&gt;key;   <span class="comment">// 保存对该fd关心的事件掩码</span></span><br><span class="line">       init_waitqueue_func_entry(&amp;entry-&gt;wait, pollwake);</span><br><span class="line">       <span class="comment">// 初始化等待队列项，pollwake是唤醒该等待队列项时候调用的函数</span></span><br><span class="line">       entry-&gt;wait.<span class="keyword">private</span> = pwq;</span><br><span class="line">       <span class="comment">// 将poll_wqueues作为该等待队列项的私有数据，后面使用</span></span><br><span class="line">       add_wait_queue(wait_address, &amp;entry-&gt;wait);</span><br><span class="line">       <span class="comment">// 将该等待队列项添加到从驱动程序中传递过来的等待队列头中去。</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>该函数首先通过container_of宏来得到结构体poll_wqueues的地址，然后调用poll_get_entry()函数来获得一个poll_table_entry结构体，这个结构体是用来连接驱动和应用进程的关键结构体，其实联系很简单，这个结构体中内嵌了一个等待队列项wait_queue_t，和一个等待队列头 wait_queue_head_t，它就是驱动程序中定义的等待队列头，应用进程就是在这里保存了每一个硬件设备驱动程序中的等待队列头(当然每一个fd都有一个poll_table_entry结构体)。</p>
+<p>很容易想到的是，如果这个设备在别的应用程序中也有使用，又恰好别的应用进程中也是用select()来访问该硬件设备，那么在另外一个应用进程的同一个地方也会调用同样的函数来初始化一个poll_table_entry结构体，然后将这个结构体中内嵌的等待队列项添加到同一份驱动程序的等待队列头中。此后，如果设备就绪了，那么驱动程序中将会唤醒这个对于等待队列头中所有的等待队列项(也就是等待在该设备上的所有应用进程，所有等待的应用进程将会得到同一份数据)。</p>
+<p>上面语句保存了一个应用程序select一个fd的硬件设备时最全的信息，方便在设备就绪的时候容易得到对应的数据。这里的entry-&gt;key值就是为了防止误唤醒而准备的。设置这个key值的地方在函数do_select()中。如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (file) &#123;</span><br><span class="line">       f_op = file-&gt;f_op;</span><br><span class="line">       mask = DEFAULT_POLLMASK;</span><br><span class="line">       <span class="keyword">if</span> (f_op &amp;&amp; f_op-&gt;poll) &#123;</span><br><span class="line">              wait_key_set(wait, in, out, bit);   </span><br><span class="line">      	      mask = (*f_op-&gt;poll)(file, wait);</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>fop-&gt;poll()函数的返回值都是有规定的，例如函数evdev_poll()中的返回值：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> ((client-&gt;head == client-&gt;tail) ? <span class="number">0</span> : (POLLIN | POLLRDNORM)) |</span><br><span class="line">              (evdev-&gt;exist ? <span class="number">0</span> : (POLLHUP | POLLERR));</span><br></pre></td></tr></table></figure></p>
+<p>会根据驱动程序中特定的buffer队列标志，来返回设备状态。这里的判断条件是读循环buffer的头尾指针是否相等：client-&gt;head == client-&gt;tail。</p>
+<h2 id="5-poll-wait-函数在select-睡眠前后调用的差异"><a href="#5-poll-wait-函数在select-睡眠前后调用的差异" class="headerlink" title="5. poll_wait()函数在select()睡眠前后调用的差异"></a>5. poll_wait()函数在select()睡眠前后调用的差异</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">poll_wait</span><span class="params">(struct file * filp, <span class="keyword">wait_queue_head_t</span> * wait_address, poll_table *p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="keyword">if</span> (p &amp;&amp; wait_address)</span><br><span class="line">              p-&gt;qproc(filp, wait_address, p);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里有一个if条件判断，如果驱动程序中没有提供等待队列头wait_address，那么将不会往下执行p-&gt;qproc，也就是不会将当前应用进程的等待队列项添加进驱动程序中对应的等待队列头中。</p>
+<p>如果select()中调用fop-&gt;poll()时传递进来的poll_table是NULL，通常情况下，只要在应用层传递进来的超时时间结构体值不为0，哪怕这个结构体指针你传递NULL，那么在函数do_select()中第一次睡眠之前的那次所有fd的大循环中，调用fop-&gt;poll()函数传递的poll_table是绝对不会为NULL的。但是第一次睡眠唤醒之后的又一次所有fd的大循环中，再次调用fop-&gt;poll()函数时，此时传递的poll_table是NULL，可想而知，这一次只是检查fop-&gt;poll()的返回状态值而已。如果从上层调用select时传递的超时值结构体赋值成0，那么do_select()函数的只会调用一次所有fd的大循环，之后不再进入睡眠，直接返回0给上层，基本上这种情况是没有得到任何有用的状态。</p>
+<p>为了避免应用进程被唤醒之后再次调用pollwait()的时，重复地调用函数<code>__pollwait()</code>，在传递poll_table结构体指针的时候，在睡眠之前保证其为有效地址，而在唤醒之后保证传入的poll_table地址是NULL，因为在唤醒之后，再次调用fop-&gt;poll()的作用只是为了再次检查设备的事件状态而已。具体详见代码。</p>
+<h2 id="6-唤醒应用进程"><a href="#6-唤醒应用进程" class="headerlink" title="6. 唤醒应用进程"></a>6. 唤醒应用进程</h2><p><a href="/2019/08/26/Some-details-about-select-implementation/#3-2-注意项">注意事项</a>中已经讨论过驱动程序唤醒进程的一点注意项，但这里再次介绍睡眠唤醒的整个流程。<br>睡眠时调用函数poll_schedule_timeout()来实现：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">poll_schedule_timeout</span><span class="params">(struct poll_wqueues *pwq, <span class="keyword">int</span> state,</span></span></span><br><span class="line"><span class="function"><span class="params"><span class="keyword">ktime_t</span> *expires, <span class="keyword">unsigned</span> <span class="keyword">long</span> slack)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="keyword">int</span> rc = -EINTR;</span><br><span class="line">       set_current_state(state);</span><br><span class="line">       <span class="keyword">if</span> (!pwq-&gt;triggered)  <span class="comment">// 这个triggered在什么时候被置1的呢?只要有一个fd</span></span><br><span class="line"><span class="comment">// 对应的设备将当前应用进程唤醒后将会把它设置成1</span></span><br><span class="line">              rc = schedule_hrtimeout_range(expires, slack, HRTIMER_MODE_ABS);</span><br><span class="line">       __set_current_state(TASK_RUNNING);</span><br><span class="line">  </span><br><span class="line">       set_mb(pwq-&gt;triggered, <span class="number">0</span>);</span><br><span class="line">       <span class="keyword">return</span> rc;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>唤醒的话会调用函数pollwake():<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">pollwake</span><span class="params">(<span class="keyword">wait_queue_t</span> *wait, <span class="keyword">unsigned</span> mode, <span class="keyword">int</span> sync, <span class="keyword">void</span> *key)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> *<span class="title">entry</span>;</span></span><br><span class="line">       entry = container_of(wait, struct poll_table_entry, wait);</span><br><span class="line">       <span class="keyword">if</span> (key &amp;&amp; !((<span class="keyword">unsigned</span> <span class="keyword">long</span>)key &amp; entry-&gt;key))</span><br><span class="line">              <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">       <span class="keyword">return</span> __pollwake(wait, mode, sync, key);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __pollwake(<span class="keyword">wait_queue_t</span> *wait, <span class="keyword">unsigned</span> mode, <span class="keyword">int</span> sync, <span class="keyword">void</span> *key)</span><br><span class="line">&#123;</span><br><span class="line">       <span class="class"><span class="keyword">struct</span> <span class="title">poll_wqueues</span> *<span class="title">pwq</span> = <span class="title">wait</span>-&gt;<span class="title">private</span>;</span></span><br><span class="line">       DECLARE_WAITQUEUE(dummy_wait, pwq-&gt;polling_task);</span><br><span class="line">       <span class="comment">/*</span></span><br><span class="line"><span class="comment">        * Although this function is called under waitqueue lock, LOCK</span></span><br><span class="line"><span class="comment">        * doesn't imply write barrier and the users expect write</span></span><br><span class="line"><span class="comment">        * barrier semantics on wakeup functions.  The following</span></span><br><span class="line"><span class="comment">        * smp_wmb() is equivalent to smp_wmb() in try_to_wake_up()</span></span><br><span class="line"><span class="comment">        * and is paired with set_mb() in poll_schedule_timeout.</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">       smp_wmb();</span><br><span class="line">       pwq-&gt;triggered = <span class="number">1</span>;</span><br><span class="line">       <span class="comment">// select()用户进程只要有被唤醒过，就不可能再次进入睡眠，因为这个标志在睡眠的时候有用          </span></span><br><span class="line">       <span class="keyword">return</span> default_wake_function(&amp;dummy_wait, mode, sync, key);</span><br><span class="line">       <span class="comment">// 默认通用的唤醒函数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><p><a href="https://blog.csdn.net/lizhiguo0532/article/details/6568964" target="_blank" rel="noopener">select(poll)系统调用实现解析(一)</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/lizhiguo0532/article/details/6568968" target="_blank" rel="noopener">select(poll)系统调用实现解析(二)</a></p>
+</li>
+<li><a href="https://blog.csdn.net/lizhiguo0532/article/details/6568969" target="_blank" rel="noopener">select(poll)系统调用实现解析(三)</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2019/08/30/Linux-kernel-ioremap-nocache-and-ioremap-function/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Linux kernel ioremap_nocache and ioremap function</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2019/08/26/file-operations-poll-function/">
+        <span class="next-text nav-default">file_operations poll function</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/08/26/Some-details-about-select-implementation/';
+        this.page.identifier = '2019/08/26/Some-details-about-select-implementation/';
+        this.page.title = 'Some details about select implementation';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

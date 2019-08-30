@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Linux kernel ioremap_nocache and ioremap function">
+
+
+
+
+  <meta name="keywords" content="Kernel, I/O系统, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/08/30/Linux-kernel-ioremap-nocache-and-ioremap-function/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Linux kernel ioremap_nocache and ioremap function - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Linux kernel ioremap_nocache and ioremap function
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-08-30
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/I-O系统/">I/O系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-背景知识"><span class="toc-text">1. 背景知识</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-物理地址空间"><span class="toc-text">1.1 物理地址空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-CPU-cache"><span class="toc-text">1.2 CPU cache</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-函数说明"><span class="toc-text">2. 函数说明</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>这两天都源码时，总是看到<code>ioremap_nocache</code>和<code>ioremap</code>这两个函数，本文就介绍总结一下吧。<br><a id="more"></a></p>
+<h2 id="1-背景知识"><a href="#1-背景知识" class="headerlink" title="1. 背景知识"></a>1. 背景知识</h2><h3 id="1-1-物理地址空间"><a href="#1-1-物理地址空间" class="headerlink" title="1.1 物理地址空间"></a>1.1 物理地址空间</h3><p>内容源于《系统虚拟化：原理与实现》2.2.1章节。<br><img src="/images/2019/8/26.png" alt><br><img src="/images/2019/8/27.png" alt><br><img src="/images/2019/8/28.png" alt></p>
+<h3 id="1-2-CPU-cache"><a href="#1-2-CPU-cache" class="headerlink" title="1.2 CPU cache"></a>1.2 CPU cache</h3><p>如果对<a href="/2019/04/20/CPU-cache/">CPU Cache</a>概念有遗忘，可以参考此文。<br>本文中，读者只需明白一点：内核可以让部分物理地址空间的内存不使用cpu cache。<br>ps:读者若想了解细节，可以参考<a href="https://software.intel.com/sites/default/files/managed/7c/f1/253668-sdm-vol-3a.pdf" target="_blank" rel="noopener">SDM</a>11.3METHODS OF CACHING AVAILABLE章节。</p>
+<h2 id="2-函数说明"><a href="#2-函数说明" class="headerlink" title="2. 函数说明"></a>2. 函数说明</h2><p>有了背景知识后，理解这些函数就变得简单了。<br>首先看下内核中<code>ioremap_nocache</code>函数。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * ioremap_nocache     -   map bus memory into CPU space</span></span><br><span class="line"><span class="comment"> * @phys_addr:    bus address of the memory</span></span><br><span class="line"><span class="comment"> * @size:      size of the resource to map</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * ioremap_nocache performs a platform specific sequence of operations to</span></span><br><span class="line"><span class="comment"> * make bus memory CPU accessible via the readb/readw/readl/writeb/</span></span><br><span class="line"><span class="comment"> * writew/writel functions and the other mmio helpers. The returned</span></span><br><span class="line"><span class="comment"> * address is not guaranteed to be usable directly as a virtual</span></span><br><span class="line"><span class="comment"> * address.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This version of ioremap ensures that the memory is marked uncachable</span></span><br><span class="line"><span class="comment"> * on the CPU. </span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Must be freed with iounmap.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">void</span> __<span class="function">iomem *<span class="title">ioremap_nocache</span><span class="params">(<span class="keyword">resource_size_t</span> phys_addr, <span class="keyword">unsigned</span> <span class="keyword">long</span> size)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>就比如图2-1，当我们需要映射512MB的I/O地址时，调用<code>ioremap_nocache(3GB, 512MB)</code>即可。</p>
+<p><code>ioremap</code>和<code>ioremap_nocache</code>的区别从名称中就可以看出区别：<code>ioremap</code>映射的物理地址空间使用CPU cache，而<code>ioremap_nocache</code>映射的物理地址空间不使用CPU cache。</p>
+<p>知道函数的作用后，就可以去慢慢啃内核了。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li>《系统虚拟化：原理与实现》</li>
+<li><a href="https://elixir.bootlin.com/linux/latest/source/arch/x86/mm/ioremap.c#L262" target="_blank" rel="noopener">LINUX kernel</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/I-O系统/">I/O系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2019/08/26/Some-details-about-select-implementation/">
+        <span class="next-text nav-default">Some details about select implementation</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2019
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/08/30/Linux-kernel-ioremap-nocache-and-ioremap-function/';
+        this.page.identifier = '2019/08/30/Linux-kernel-ioremap-nocache-and-ioremap-function/';
+        this.page.title = 'Linux kernel ioremap_nocache and ioremap function';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
