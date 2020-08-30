@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Linux Signals – Example C Program to Catch Signals">
+
+
+
+
+  <meta name="keywords" content="linux, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/09/01/Linux-Signals-–-Example-C-Program-to-Catch-Signals/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Linux Signals – Example C Program to Catch Signals - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Linux Signals – Example C Program to Catch Signals
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-09-01
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/linux/">linux</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Catching-a-Signal"><span class="toc-text">1. Catching a Signal</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Example-C-Program-to-Catch-a-Signal"><span class="toc-text">2. Example C Program to Catch a Signal</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-SIGKILL-SIGSTOP-and-User-Defined-Signals"><span class="toc-text">3. SIGKILL, SIGSTOP and User Defined Signals</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文转载自：<a href="https://www.thegeekstuff.com/2012/03/catch-signals-sample-c-code/" target="_blank" rel="noopener">Linux Signals – Example C Program to Catch Signals</a>，目的是为了展示如何使用Linux signal。</p>
+<a id="more"></a>
+<p>可以去看<a href="/2018/12/29/Understanding-the-Linux-Kernel-读书笔记-Signals/">Linux Kernel 读书笔记 Signals</a>的前半部分，建立起Linux signal的概念。</p>
+<p>In this article we will learn about how to catch signals in a process. </p>
+<h2 id="1-Catching-a-Signal"><a href="#1-Catching-a-Signal" class="headerlink" title="1. Catching a Signal"></a>1. Catching a Signal</h2><p>If a process wishes to handle certain signals,  then in the code, the process has to register a signal handling function to the kernel.</p>
+<p>The following is the prototype of a signal handling function :<br><code>void &lt;signal handler func name&gt; (int sig)</code></p>
+<p>The signal handler function has void return type and accepts a signal number corresponding to the signal that needs to be handled.</p>
+<p>To get the signal handler function registered to the kernel, the signal handler function pointer is passed as second argument to the ‘signal’ function. The prototype of the signal function is :<br><code>void (*signal(int signo, void (*func )(int)))(int);</code></p>
+<p>This might seems a complicated declaration. If we try to decode it :</p>
+<ul>
+<li>The function requires two arguments.</li>
+<li>The first argument is an integer (signo) depicting the signal number or signal value.</li>
+<li>The second argument is a pointer to the signal handler function that accepts an integer as argument and returns nothing (void).</li>
+<li>While the ‘signal’ function itself returns function pointer whose return type is void.</li>
+</ul>
+<p>Well, to make things easier, lets use typedef :<br><code>typedef void sigfunc(int)</code></p>
+<p>So, here we have made a new type ‘sigfunc’.  Now using this typedef, if we redesign the prototype of the signal handler :<br><code>sigfunc *signal(int, sigfunc*);</code></p>
+<p>Now we see that its easier to comprehend that the signal handler function accepts an integer and a sigfunc type function pointer while it returns a sigfunc type function pointer.</p>
+<h2 id="2-Example-C-Program-to-Catch-a-Signal"><a href="#2-Example-C-Program-to-Catch-a-Signal" class="headerlink" title="2. Example C Program to Catch a Signal"></a>2. Example C Program to Catch a Signal</h2><p>Most of the Linux users use the key combination Ctr+C to terminate processes in Linux.</p>
+<p>Have you ever thought of what goes behind this. Well, whenever ctrl+c is pressed, a signal <code>SIGINT</code> is sent to the process. The default action of this signal is to terminate the process. But this signal can also be handled. The following code demonstrates this :<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">sig_handler</span><span class="params">(<span class="keyword">int</span> signo)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (signo == SIGINT)</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"received SIGINT\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (signal(SIGINT, sig_handler) == SIG_ERR)</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">"\ncan't catch SIGINT\n"</span>);</span><br><span class="line">  <span class="comment">// A long long wait so that we can easily issue a signal to this process</span></span><br><span class="line">  <span class="keyword">while</span>(<span class="number">1</span>) </span><br><span class="line">    sleep(<span class="number">1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>In the code above, we have simulated a long running process using an infinite while loop.</p>
+<p>A function <code>sig_handler</code> is used a s a signal handler. This function is registered to the kernel by passing it as the second argument of the system call ‘signal’ in the main() function. The first argument to the function ‘signal’ is the signal we intend the signal handler to handle which is SIGINT in this case.</p>
+<p>On a side note, the use of function sleep(1) has a reason behind. This function has been used in the while loop so that while loop executes after some time (ie one second in this case). This becomes important because otherwise an infinite while loop running wildly may consume most of the CPU making the computer very very slow.</p>
+<p>Anyways, coming back , when the process is run and we try to terminate the process using Ctrl+C:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ ./sigfunc</span><br><span class="line">^Creceived SIGINT</span><br><span class="line">^Creceived SIGINT</span><br><span class="line">^Creceived SIGINT</span><br><span class="line">^Creceived SIGINT</span><br><span class="line">^Creceived SIGINT</span><br><span class="line">^Creceived SIGINT</span><br><span class="line">^Creceived SIGINT</span><br></pre></td></tr></table></figure>
+<p>We see in the above output that we tried the key combination ctrl+c several times but each time the process didn’t terminate. This is because the signal was handled in the code and this was confirmed from the print we got on each line.</p>
+<h2 id="3-SIGKILL-SIGSTOP-and-User-Defined-Signals"><a href="#3-SIGKILL-SIGSTOP-and-User-Defined-Signals" class="headerlink" title="3. SIGKILL, SIGSTOP and User Defined Signals"></a>3. SIGKILL, SIGSTOP and User Defined Signals</h2><p>Apart from handling the standard signal that are available. We can also have user defined signals that can be sent and handled. Following is the code handling a user defined signal USR1 :<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">sig_handler</span><span class="params">(<span class="keyword">int</span> signo)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (signo == SIGUSR1)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"received SIGUSR1\n"</span>);</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (signo == SIGKILL)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"received SIGKILL\n"</span>);</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (signo == SIGSTOP)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"received SIGSTOP\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (signal(SIGUSR1, sig_handler) == SIG_ERR)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"\ncan't catch SIGUSR1\n"</span>);</span><br><span class="line">    <span class="keyword">if</span> (signal(SIGKILL, sig_handler) == SIG_ERR)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"\ncan't catch SIGKILL\n"</span>);</span><br><span class="line">    <span class="keyword">if</span> (signal(SIGSTOP, sig_handler) == SIG_ERR)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"\ncan't catch SIGSTOP\n"</span>);</span><br><span class="line">    <span class="comment">// A long long wait so that we can easily issue a signal to this process</span></span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>) </span><br><span class="line">        sleep(<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>We see that in the above code, we have tried to handle a user defined signal USR1. Also, as we know that two signals KILL and STOP cannot be handled. So we have also tried to handle these two signals so as to see how the ‘signal’ system call responds in this case. </p>
+<p>When we run the above code :<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ ./sigfunc</span><br><span class="line"></span><br><span class="line">can't <span class="keyword">catch</span> SIGKILL</span><br><span class="line"></span><br><span class="line">can't <span class="keyword">catch</span> SIGSTOP</span><br></pre></td></tr></table></figure></p>
+<p>So the above output makes clear that as soon as the system call ‘signal’ tries to register handler for KILL and STOP signals, the signal function fails indicating that these two signals cannot be caught.</p>
+<p>Now we try to pass the signal USR1 to this process using the <a href="https://www.thegeekstuff.com/2009/12/4-ways-to-kill-a-process-kill-killall-pkill-xkill/" target="_blank" rel="noopener">kill command</a>:<br><code>$ kill -USR1 2678</code><br>and on the terminal where the above program is running we see :<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ ./sigfunc</span><br><span class="line"></span><br><span class="line">can&apos;t catch SIGKILL</span><br><span class="line"></span><br><span class="line">can&apos;t catch SIGSTOP</span><br><span class="line">received SIGUSR1</span><br></pre></td></tr></table></figure></p>
+<p>So we see that the user defined signal USR1 was received in the process and was handled properly.</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.thegeekstuff.com/2012/03/catch-signals-sample-c-code/" target="_blank" rel="noopener">Linux Signals – Example C Program to Catch Signals</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/linux/">linux</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2019/09/02/proc-entry-in-linux-kernel/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">proc entry in linux kernel</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2019/09/01/Introduction-to-Tomasulo-s-Algorithm/">
+        <span class="next-text nav-default">Introduction to Tomasulo's Algorithm</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/09/01/Linux-Signals-–-Example-C-Program-to-Catch-Signals/';
+        this.page.identifier = '2019/09/01/Linux-Signals-–-Example-C-Program-to-Catch-Signals/';
+        this.page.title = 'Linux Signals – Example C Program to Catch Signals';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

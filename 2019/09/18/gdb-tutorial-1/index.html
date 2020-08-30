@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="gdb tutorial(1)">
+
+
+
+
+  <meta name="keywords" content="工具, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/09/18/gdb-tutorial-1/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> gdb tutorial(1) - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          gdb tutorial(1)
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-09-18
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/工具/">工具</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#15-个-gdb-调试基础命令"><span class="toc-text">15 个 gdb 调试基础命令</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-编译可以调试的程序"><span class="toc-text">1. 编译可以调试的程序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-载入要调试的程序"><span class="toc-text">2. 载入要调试的程序</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#方法一-gdb-可执行文件"><span class="toc-text">方法一 - gdb 可执行文件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#方法二-使用-gdb-提供的-file-命令"><span class="toc-text">方法二 - 使用 gdb 提供的 file 命令</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-查看调试程序"><span class="toc-text">3. 查看调试程序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-添加断点"><span class="toc-text">4. 添加断点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-查看断点"><span class="toc-text">5. 查看断点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-禁用断点"><span class="toc-text">6. 禁用断点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-删除断点"><span class="toc-text">7. 删除断点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-运行程序"><span class="toc-text">8. 运行程序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-单步执行下一步"><span class="toc-text">9. 单步执行下一步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-跳入，跳出函数"><span class="toc-text">10. 跳入，跳出函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-打印变量"><span class="toc-text">11. 打印变量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#12-监控变量"><span class="toc-text">12. 监控变量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#13-查看变量类型"><span class="toc-text">13. 查看变量类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#14-在-gdb-中进入-shell"><span class="toc-text">14. 在 gdb 中进入 shell</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#15-在-gdb-中实现可视化调试"><span class="toc-text">15. 在 gdb 中实现可视化调试</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p><img src="/images/2019/9/25.PNG" alt></p>
+<a id="more"></a>
+<p><img src="/images/2019/9/26.PNG" alt></p>
+<p><img src="/images/2019/9/27.PNG" alt></p>
+<p><img src="/images/2019/9/28.PNG" alt></p>
+<h2 id="15-个-gdb-调试基础命令"><a href="#15-个-gdb-调试基础命令" class="headerlink" title="15 个 gdb 调试基础命令"></a>15 个 gdb 调试基础命令</h2><p>下面来正式介绍 gdb 常用的调试技术，都是调试命令，只看不做比较乏味，还是<strong>建议你跟我一起动手调试下面的程序</strong>，这样才能真正的学会，这是本次要调试的 <code>hello.c</code> 程序，非常简单：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> a = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">int</span> b = <span class="number">2</span>;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"a = %d\n"</span>, a);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"b = %d\n"</span>, b);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> c = add(a, b);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%d + %d = %d\n"</span>, a, b, c);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="1-编译可以调试的程序"><a href="#1-编译可以调试的程序" class="headerlink" title="1. 编译可以调试的程序"></a>1. 编译可以调试的程序</h3><p>我们平常使用 gcc 编译的程序如果不加 <code>[-g]</code> 选项：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">gcc</span> <span class="selector-tag">hello</span><span class="selector-class">.c</span> <span class="selector-tag">-o</span> <span class="selector-tag">hello</span></span><br></pre></td></tr></table></figure>
+<p>gdb 会提示该可执行文件<strong>没有调试符号</strong>，不能调试：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gdb hello</span><br><span class="line"><span class="meta"># gdb 提示信息</span></span><br><span class="line">Reading symbols <span class="keyword">from</span> a.<span class="keyword">out</span>...(no debugging symbols found)...done.</span><br></pre></td></tr></table></figure>
+<p>如果需要让程序可以调试，就<strong>必须在编译的时候加上 [-g] 参数</strong>：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">gcc</span> <span class="selector-tag">-g</span> <span class="selector-tag">hello</span><span class="selector-class">.c</span> <span class="selector-tag">-o</span> <span class="selector-tag">hello</span></span><br></pre></td></tr></table></figure>
+<h3 id="2-载入要调试的程序"><a href="#2-载入要调试的程序" class="headerlink" title="2. 载入要调试的程序"></a>2. 载入要调试的程序</h3><p>我们在命令行下需要手动载入待调试的程序，有 2 种方法：</p>
+<h4 id="方法一-gdb-可执行文件"><a href="#方法一-gdb-可执行文件" class="headerlink" title="方法一 - gdb 可执行文件"></a>方法一 - gdb 可执行文件</h4><p>使用如下的命令来载入可执行文件 <code>hello</code> 到 gdb 中：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gdb hello</span><br></pre></td></tr></table></figure>
+<p>载入成功，gdb 会打印一段提示信息，并且<strong>命令行前缀变为 (gdb)</strong>，下面是我的 <code>Ubuntu</code> 打印的信息：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">GNU gdb (Ubuntu <span class="number">7.11</span><span class="number">.90</span><span class="number">.20161005</span><span class="number">-0</span>ubuntu1) <span class="number">7.11</span><span class="number">.90</span><span class="number">.20161005</span>-git</span><br><span class="line">Copyright (C) <span class="number">2016</span> Free Software Foundation, Inc.</span><br><span class="line">License GPLv3+: GNU GPL version <span class="number">3</span> <span class="keyword">or</span> later &lt;http:<span class="comment">//gnu.org/licenses/gpl.html&gt;</span></span><br><span class="line">This is free software: you are free to change <span class="keyword">and</span> redistribute it.</span><br><span class="line">There is NO WARRANTY, to the extent permitted by law.  Type <span class="string">"show copying"</span></span><br><span class="line"><span class="keyword">and</span> <span class="string">"show warranty"</span> <span class="keyword">for</span> details.</span><br><span class="line">This GDB was configured <span class="keyword">as</span> <span class="string">"x86_64-linux-gnu"</span>.</span><br><span class="line">Type <span class="string">"show configuration"</span> <span class="keyword">for</span> configuration details.</span><br><span class="line"><span class="keyword">For</span> bug reporting instructions, please see:</span><br><span class="line">&lt;http:<span class="comment">//www.gnu.org/software/gdb/bugs/&gt;.</span></span><br><span class="line">Find the GDB manual <span class="keyword">and</span> other documentation resources online at:</span><br><span class="line">&lt;http:<span class="comment">//www.gnu.org/software/gdb/documentation/&gt;.</span></span><br><span class="line"><span class="keyword">For</span> help, type <span class="string">"help"</span>.</span><br><span class="line">Type <span class="string">"apropos word"</span> to search <span class="keyword">for</span> commands related to <span class="string">"word"</span>...</span><br><span class="line">Reading symbols from hello...done.</span><br><span class="line">(gdb) q</span><br></pre></td></tr></table></figure>
+<p>注：<strong>按 q 退出 gdb</strong></p>
+<h4 id="方法二-使用-gdb-提供的-file-命令"><a href="#方法二-使用-gdb-提供的-file-命令" class="headerlink" title="方法二 - 使用 gdb 提供的 file 命令"></a>方法二 - 使用 gdb 提供的 file 命令</h4><p>第二种方法是在 gdb 环境中使用 <code>file</code> 命令，我们需要先进入 gdb 环境下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gdb</span><br></pre></td></tr></table></figure>
+<p>使用 <code>file hello</code> 载入待调试程序：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">(gdb) file hello</span><br><span class="line">Reading symbols <span class="keyword">from</span> hello...done.</span><br><span class="line">(gdb) q</span><br></pre></td></tr></table></figure>
+<h3 id="3-查看调试程序"><a href="#3-查看调试程序" class="headerlink" title="3. 查看调试程序"></a>3. 查看调试程序</h3><p>在 gdb 下查看调试程序使用命令 <code>list</code> 或简写 <code>l</code>，「回车」列出后面程序：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">(gdb) <span class="built_in">list</span></span><br><span class="line"><span class="number">1</span>   <span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="number">2</span>   </span><br><span class="line"><span class="number">3</span>   <span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span> </span>&#123;</span><br><span class="line"><span class="number">4</span>       <span class="keyword">return</span> x + y;</span><br><span class="line"><span class="number">5</span>   &#125;</span><br><span class="line"><span class="number">6</span>   </span><br><span class="line"><span class="number">7</span>   </span><br><span class="line"><span class="number">8</span>   <span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line"><span class="number">9</span>       <span class="keyword">int</span> a = <span class="number">1</span>;</span><br><span class="line"><span class="number">10</span>      <span class="keyword">int</span> b = <span class="number">2</span>;</span><br><span class="line">(gdb) </span><br><span class="line"><span class="number">11</span>      <span class="built_in">printf</span>(<span class="string">"a = %d\n"</span>, a);</span><br><span class="line"><span class="number">12</span>      <span class="built_in">printf</span>(<span class="string">"b = %d\n"</span>, b);</span><br><span class="line"><span class="number">13</span>      </span><br><span class="line"><span class="number">14</span>      <span class="keyword">int</span> c = add(a, b);</span><br><span class="line"><span class="number">15</span>      <span class="built_in">printf</span>(<span class="string">"%d + %d = %d\n"</span>, a, b, c);</span><br><span class="line"><span class="number">16</span>      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"><span class="number">17</span>  &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="4-添加断点"><a href="#4-添加断点" class="headerlink" title="4. 添加断点"></a>4. 添加断点</h3><p>在 gdb 下添加断点使用命令 <code>break</code> 或简写 <code>b</code>，有下面几个常见用法（这里统一用 <code>b</code>）：</p>
+<ol>
+<li>b function_name</li>
+<li>b row_num</li>
+<li>b file_name:row_num</li>
+<li>b row_num if condition</li>
+</ol>
+<p>比如我们以第一个为例，在 <code>main</code> 函数上添加断点：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(<span class="selector-tag">gdb</span>) <span class="selector-tag">b</span> <span class="selector-tag">main</span></span><br><span class="line"><span class="selector-tag">Breakpoint</span> 1 <span class="selector-tag">at</span> 0<span class="selector-tag">x6e8</span>: <span class="selector-tag">file</span> <span class="selector-tag">hello</span><span class="selector-class">.c</span>, <span class="selector-tag">line</span> 4.</span><br></pre></td></tr></table></figure>
+<p>打印的信息告诉我们在 <code>hello.c</code> 文件的第 4 行，地址 <code>0x6e8</code> 处添加了一个断点，那如何查看断点呢？</p>
+<h3 id="5-查看断点"><a href="#5-查看断点" class="headerlink" title="5. 查看断点"></a>5. 查看断点</h3><p>在 gdb 下查看断点使用命令 <code>info break</code> 或简写 <code>i b</code>，比如查看刚才打的断点：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(<span class="selector-tag">gdb</span>) <span class="selector-tag">i</span> <span class="selector-tag">b</span></span><br><span class="line"><span class="selector-tag">Num</span>     <span class="selector-tag">Type</span>           <span class="selector-tag">Disp</span> <span class="selector-tag">Enb</span> <span class="selector-tag">Address</span>            <span class="selector-tag">What</span></span><br><span class="line">1       <span class="selector-tag">breakpoint</span>     <span class="selector-tag">keep</span> <span class="selector-tag">y</span>   0<span class="selector-tag">x00000000000006e8</span> <span class="selector-tag">in</span> <span class="selector-tag">main</span> <span class="selector-tag">at</span> <span class="selector-tag">hello</span><span class="selector-class">.c</span><span class="selector-pseudo">:4</span></span><br></pre></td></tr></table></figure>
+<p>可以看到打印出刚才添加的 <code>main</code> 函数的断点信息：编号，类型，显示状态，是否启用，地址，其他信息，那又如何删除这个断点呢？</p>
+<h3 id="6-禁用断点"><a href="#6-禁用断点" class="headerlink" title="6. 禁用断点"></a>6. 禁用断点</h3><p>在 gdb 下禁用断点使用命令 <code>disable Num</code>，比如禁用刚才打的断点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(gdb) <span class="built_in">disable</span> 1</span><br><span class="line">(gdb) i b</span><br><span class="line">Num     Type           Disp Enb Address            What</span><br><span class="line">1       breakpoint     keep n   0x00000000000006e8 <span class="keyword">in</span> main at hello.c:4</span><br></pre></td></tr></table></figure>
+<p>可以看到字段「Enb」已经变为 <code>n</code>，表示这个断点已经被禁用了。</p>
+<h3 id="7-删除断点"><a href="#7-删除断点" class="headerlink" title="7. 删除断点"></a>7. 删除断点</h3><p>在 gdb 下删除断点使用命令 <code>delete 断点 Num</code> 或简写 <code>d Num</code>，比如删除刚才的 <code>Num = 1</code> 的断点：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(gdb) d <span class="number">1</span></span><br><span class="line">(gdb) i b</span><br><span class="line">No breakpoints <span class="keyword">or</span> watchpoints.</span><br></pre></td></tr></table></figure>
+<p>删除后再次查看断点，提示当前没有断点，说明删除成功啦，下面来运行程序试试。</p>
+<h3 id="8-运行程序"><a href="#8-运行程序" class="headerlink" title="8. 运行程序"></a>8. 运行程序</h3><p>在 gdb 下使用命令 <code>run</code> 或简写 <code>r</code> 来运行当前载入的程序：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">(gdb) r</span><br><span class="line">Starting program: /home/orange/Desktop/gdb/hello </span><br><span class="line">a = <span class="number">1</span></span><br><span class="line">b = <span class="number">2</span></span><br><span class="line"><span class="number">1</span> + <span class="number">2</span> = <span class="number">3</span></span><br><span class="line">[<span class="meta">Inferior 1 (process 10415) exited normally</span>]</span><br></pre></td></tr></table></figure>
+<p>我这次没有添加断点，程序全速运行，然后正常退出了。</p>
+<h3 id="9-单步执行下一步"><a href="#9-单步执行下一步" class="headerlink" title="9. 单步执行下一步"></a>9. 单步执行下一步</h3><p>在 gdb 下使用命令 <code>next</code> 或简写 <code>n</code> 来单步执行下一步，假设我们在 <code>main</code> 打了断点：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b main</span><br><span class="line">Breakpoint <span class="number">1</span> at <span class="number">0x6e8</span>: file hello.c, line <span class="number">4.</span></span><br><span class="line">(gdb) r</span><br><span class="line">Starting program: /home/orange/Desktop/gdb/hello </span><br><span class="line"></span><br><span class="line">Breakpoint <span class="number">1</span>, main () at hello.c:<span class="number">4</span></span><br><span class="line"><span class="number">4</span>       <span class="keyword">int</span> a = <span class="number">1</span>;</span><br><span class="line">(gdb) n</span><br><span class="line"><span class="number">5</span>       <span class="built_in">printf</span>(<span class="string">"a = %d\n"</span>, a);</span><br></pre></td></tr></table></figure>
+<p>可以看到当前停在 <code>int a = 1;</code> 这一行，按 <code>n</code> 执行了下一句代码 <code>printf(&quot;a = %d\n&quot;, a);</code></p>
+<h3 id="10-跳入，跳出函数"><a href="#10-跳入，跳出函数" class="headerlink" title="10. 跳入，跳出函数"></a>10. 跳入，跳出函数</h3><p>在 gdb 下使用命令 <code>step</code> 或简写 <code>s</code> 来跳入一个函数，使用 <code>finish</code> 来跳出一个函数，我们在第 14 行 <code>int c = add(a, b);</code> 添加一个断点：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b <span class="number">14</span></span><br><span class="line">Breakpoint <span class="number">1</span> at <span class="number">0x6f6</span>: file hello.c, line <span class="number">14.</span></span><br><span class="line">(gdb) r</span><br><span class="line">Starting program: /home/orange/Desktop/gdb/hello </span><br><span class="line">a = <span class="number">1</span></span><br><span class="line">b = <span class="number">2</span></span><br><span class="line"></span><br><span class="line">Breakpoint <span class="number">1</span>, main () at hello.c:<span class="number">14</span></span><br><span class="line"><span class="number">14</span>      <span class="keyword">int</span> c = <span class="keyword">add</span>(a, b);</span><br><span class="line">(gdb) s</span><br><span class="line"><span class="keyword">add</span> (x=<span class="number">1</span>, y=<span class="number">2</span>) at hello.c:<span class="number">4</span></span><br><span class="line"><span class="number">4</span>       <span class="keyword">return</span> x + y;</span><br><span class="line">(gdb) finish</span><br><span class="line">Run till exit <span class="keyword">from</span> <span class="meta">#0  add (x=1, y=2) at hello.c:4</span></span><br><span class="line"><span class="number">0x0000555555554705</span> <span class="function"><span class="keyword">in</span> <span class="title">main</span> (<span class="params"></span>) at hello.c:14</span></span><br><span class="line"><span class="function">14      <span class="keyword">int</span> c </span>= <span class="keyword">add</span>(a, b);</span><br><span class="line">Value returned <span class="keyword">is</span> $<span class="number">1</span> = <span class="number">3</span></span><br><span class="line">(gdb) n</span><br><span class="line"><span class="number">15</span>      printf(<span class="string">"%d + %d = %d\n"</span>, a, b, c);</span><br></pre></td></tr></table></figure>
+<p>这个过程是这样的：</p>
+<ol>
+<li>在 14 行 <code>int c = add(a, b);</code> 添加断点</li>
+<li>程序运行并停到 <code>int c = add(a, b);</code> 这一行</li>
+<li><code>s</code> 跳入 add 函数</li>
+<li><code>finish</code> 跳出 add 函数，并输出一些函数返回的信息</li>
+</ol>
+<h3 id="11-打印变量"><a href="#11-打印变量" class="headerlink" title="11. 打印变量"></a>11. 打印变量</h3><p>在 gdb 中使用命令 <code>print var</code> 或简写 <code>p var</code> 来打印一个变量或者函数的返回值，我们在第 10 行 <code>int b = 2;</code> 添加一个断点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b 10</span><br><span class="line">Breakpoint 1 at 0x6c3: file hello.c, line 10.</span><br><span class="line">(gdb) r</span><br><span class="line">Starting program: /home/orange/Desktop/gdb/hello </span><br><span class="line"></span><br><span class="line">Breakpoint 1, main () at hello.c:10</span><br><span class="line">10      int b = 2;</span><br><span class="line">(gdb) p a</span><br><span class="line"><span class="variable">$1</span> = 1</span><br></pre></td></tr></table></figure>
+<p>我们打印出变量 a 的值为 1，在调试中比较频繁的操作是「监视变量」，在 gdb 中如何做呢？</p>
+<h3 id="12-监控变量"><a href="#12-监控变量" class="headerlink" title="12. 监控变量"></a>12. 监控变量</h3><p>Hardware watchpoints are special breakpoints that will trigger whenever an expression changes. Often you just want to know when a variable changes (is written to), and for that you can use the <strong>watch</strong> command.</p>
+<p>在 gdb 中使用命令 <code>watch var</code> 来监控一个变量，使用 <code>info watch</code> 来查看监控的变量，我们这里来监控变量 <code>c</code>：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b <span class="number">14</span></span><br><span class="line">Breakpoint <span class="number">1</span> at <span class="number">0x6f6</span>: file hello.c, line <span class="number">14.</span></span><br><span class="line">(gdb) r</span><br><span class="line">Starting program: /home/orange/Desktop/gdb/hello </span><br><span class="line">a = <span class="number">1</span></span><br><span class="line">b = <span class="number">2</span></span><br><span class="line"></span><br><span class="line">Breakpoint <span class="number">1</span>, main () at hello.c:<span class="number">14</span></span><br><span class="line"><span class="number">14</span>      <span class="keyword">int</span> c = <span class="keyword">add</span>(a, b);</span><br><span class="line">(gdb) watch c</span><br><span class="line">Hardware watchpoint <span class="number">2</span>: c</span><br><span class="line">(gdb) info watch</span><br><span class="line">Num     Type           Disp Enb Address            What</span><br><span class="line"><span class="number">2</span>       hw watchpoint  keep y                      c</span><br></pre></td></tr></table></figure>
+<p>注意：<strong>程序必须要先运行才能监控</strong>。</p>
+<h3 id="13-查看变量类型"><a href="#13-查看变量类型" class="headerlink" title="13. 查看变量类型"></a>13. 查看变量类型</h3><p>在 gdb 下使用命令 <code>whatis</code> 查看一个变量的类型：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b <span class="number">10</span></span><br><span class="line">Breakpoint <span class="number">1</span> at <span class="number">0x6c3</span>: file hello.c, line <span class="number">10.</span></span><br><span class="line">(gdb) r</span><br><span class="line">Starting program: /home/orange/Desktop/gdb/hello </span><br><span class="line"></span><br><span class="line">Breakpoint <span class="number">1</span>, main () at hello.c:<span class="number">10</span></span><br><span class="line"><span class="number">10</span>      <span class="keyword">int</span> b = <span class="number">2</span>;</span><br><span class="line">(gdb) whatis b</span><br><span class="line"><span class="keyword">type</span> = <span class="keyword">int</span></span><br></pre></td></tr></table></figure>
+<p>这里变量 <code>b</code> 是 <code>int</code> 类型。</p>
+<h3 id="14-在-gdb-中进入-shell"><a href="#14-在-gdb-中进入-shell" class="headerlink" title="14. 在 gdb 中进入 shell"></a>14. 在 gdb 中进入 shell</h3><p>在 gdb 下使用命令 <code>shell</code> 启动 shell ：</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(gdb) shell</span><br><span class="line">orange@ubuntu<span class="symbol">:~/Desktop/gdb</span>$ exit</span><br><span class="line">exit</span><br><span class="line">(gdb)</span><br></pre></td></tr></table></figure>
+<p>使用 <code>exit</code> 会再次退回到 gdb 中。</p>
+<h3 id="15-在-gdb-中实现可视化调试"><a href="#15-在-gdb-中实现可视化调试" class="headerlink" title="15. 在 gdb 中实现可视化调试"></a>15. 在 gdb 中实现可视化调试</h3><p>谁说 gdb 只能在命令行调试呢？gdb 也支持「图形界面」，不过这里的图形界面都是用字符显示的，当然不如 VS 那种好看，不过使用可视化相比直接看命令行更加直观了。</p>
+<p>在 gdb 下使用 <code>wi</code> 启动可视化调试：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) wi</span><br></pre></td></tr></table></figure>
+<p>有了图形界面，就<strong>再对照着图形界面将前面的命令再练习练习</strong>，看看自己手敲的命令背后到底做了些什么，加深下印象。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://blog.csdn.net/liigo/article/details/582231" target="_blank" rel="noopener">GDB十分钟教程</a></li>
+<li><a href="https://www.jianshu.com/p/08de5cef2de9" target="_blank" rel="noopener">从 0 开始学习 Linux 系列之「08.15 个 gdb 调试基础命令」</a></li>
+<li><a href="https://www.youtube.com/watch?v=bWH-nL7v5F4" target="_blank" rel="noopener">Debugging - GDB Tutorial</a></li>
+<li><a href="http://beej.us/guide/bggdb/" target="_blank" rel="noopener">Beej’s Quick Guide to GDB</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/工具/">工具</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2019/10/06/page-coloring的介绍/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">page coloring的介绍</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2019/09/03/linux-kernel-soft-lockup-and-hard-lockup/">
+        <span class="next-text nav-default">linux kernel soft lockup and hard lockup</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/09/18/gdb-tutorial-1/';
+        this.page.identifier = '2019/09/18/gdb-tutorial-1/';
+        this.page.title = 'gdb tutorial(1)';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

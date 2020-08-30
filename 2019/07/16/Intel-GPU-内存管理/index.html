@@ -292,15 +292,16 @@
 
     <div class="post-content">
       
-        <p>本文将会介绍Intel GPU的内存管理。<a id="more"></a>由于不同GPU的参数可能不一致，本文给出的参数是demo性质的，如果想要查看GPU的具体参数，请参考<a href="https://01.org/zh/linuxgraphics/documentation/hardware-specification-prms" target="_blank" rel="noopener">HARDWARE SPECIFICATION - PRMS</a>。</p>
-<p>PS:到目前为止，我司GPU的memory依然是system memory，而非on-die memory。</p>
+        <p>本文将会介绍Intel GPU的内存管理。<a id="more"></a>由于不同GPU的参数可能不一致，本文给出的参数是demo性质的，如果想要查看GPU的具体参数，请参考<a href="https://01.org/linuxgraphics/documentation/hardware-specification-prms" target="_blank" rel="noopener">HARDWARE SPECIFICATION - PRMS</a>。</p>
 <p>对于GPU的应用而言，GPU的virtual memory address space分为两部分，分别是global graphic memory和local graphic memory。在本文接下来的内容中，我们将global graphic memory和local graphic memory的大小设置为2GB。</p>
 <h2 id="global-graphic-memory"><a href="#global-graphic-memory" class="headerlink" title="global graphic memory"></a>global graphic memory</h2><p>对于GPU的global graphic memory，是所有进程共享的：即所有的进程共用这2GB的虚拟地址空间。</p>
 <p>当GPU访问global graphic memory时，利用global graphics translation table (GGTT) 来完成虚拟地址到物理地址的映射，过程如下图所示（可以将GGTT看作是GPU的页表，同时GGTT是一级页表，而寻址过程是由硬件来完成的）。</p>
 <p><img src="/images/2019/7/1.png" alt></p>
-<p>global graphic memory的部分内存，CPU是可以访问的，这样才能完成GPU与CPU的数据交互。对于CPU能访问的这部分内存，我们称之为<a href="https://www.wikiwand.com/en/Aperture_%28computer_memory%29" target="_blank" rel="noopener">aperture</a>。CPU的虚拟地址空间与GPU的虚拟地址空间是相互独立的，因此，CPU如果想要访问aperture，就需要将aperture mmap到CPU的虚拟地址空间。</p>
+<p>global graphic memory的部分内存，可以handle <a href="/2019/11/07/Understanding-GPU-Tiling/">tilling</a>的细节，我们称之为<a href="https://www.wikiwand.com/en/Aperture_%28computer_memory%29" target="_blank" rel="noopener">aperture</a>。CPU的虚拟地址空间与GPU的虚拟地址空间是相互独立的，因此，CPU如果想要访问aperture，就需要将aperture mmap到CPU的虚拟地址空间。</p>
 <p><img src="/images/2019/7/2.png" alt></p>
-<p>如上图所示，在GPU的global graphic memory中，0~FFFFFF的内容是aperture，而CPU将aperture内存mmap到C000000~CFFFFFF地址范围内，这样CPU就可以访问aperture了。对于global graphic memory的非aperture部分，CPU是无法访问的。</p>
+<p>如上图所示，在GPU的global graphic memory中，0~FFFFFF的内容是aperture，而CPU将aperture内存mmap到C000000~CFFFFFF地址范围内，这样CPU就可以访问aperture了。</p>
+<p>对于global graphic memory的访问， 如果没有tiling的要求，可以直接map mem page to CPU VA，并使用CPU VA就可以了。</p>
+<p>如果是有tiling的话，将aperture映射到CPU VA即可。（GPU aperture用来帮着handle tiling的细节）。 当然，非tiling的时候，也可以这样mapping aperture。</p>
 <h2 id="local-graphic-memory"><a href="#local-graphic-memory" class="headerlink" title="local graphic memory"></a>local graphic memory</h2><p>对于GPU的local graphic memory，每个进程都有2GB的虚拟地址空间。GPU通过per-process graphics translation table(PPGTT)来完成地址翻译，过程如下图所示。</p>
 <p><img src="/images/2019/7/3.png" alt></p>
 <p>值得注意的是：</p>
@@ -311,7 +312,7 @@
 <hr>
 <p>参考资料：</p>
 <ol>
-<li><a href="https://01.org/zh/linuxgraphics/documentation/hardware-specification-prms" target="_blank" rel="noopener">HARDWARE SPECIFICATION - PRMS</a></li>
+<li><a href="https://01.org/linuxgraphics/documentation/hardware-specification-prms" target="_blank" rel="noopener">HARDWARE SPECIFICATION - PRMS</a></li>
 </ol>
 
       
@@ -441,7 +442,7 @@
      
       2016 - 
     
-    2019
+    2020
 
     <span class="heart">
       <i class="iconfont icon-heart"></i>

@@ -22,7 +22,7 @@
 
 
 
-  <meta name="keywords" content="内存管理, Kernel, L">
+  <meta name="keywords" content="Kernel, 内存管理, L">
 
 
 
@@ -317,10 +317,6 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">  * 对于发生缺页异常的指针位于vmalloc区情况的处理，主要是将</span></span><br><span class="line"><span class="comment">  * 主内核页表向当前进程的内核页表同步。</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line"><span class="keyword">static</span> noinline __<span class="function">kprobes <span class="keyword">int</span> <span class="title">vmalloc_fault</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> address)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> pgd_paddr;</span><br><span class="line">    <span class="keyword">pmd_t</span> *pmd_k;</span><br><span class="line">    <span class="keyword">pte_t</span> *pte_k;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Make sure we are in vmalloc area: */</span></span><br><span class="line">    <span class="comment">/* 区域检查 */</span></span><br><span class="line">    <span class="keyword">if</span> (!(address &gt;= VMALLOC_START &amp;&amp; address &lt; VMALLOC_END))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">    WARN_ON_ONCE(in_nmi());</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Synchronize this task's top level page-table</span></span><br><span class="line"><span class="comment">     * with the 'reference' page table.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * Do _not_ use "current" here. We might be inside</span></span><br><span class="line"><span class="comment">     * an interrupt in the middle of a task switch..</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">     <span class="comment">/*获取pgd(最顶级页目录)地址，直接从CR3寄存器中读取。</span></span><br><span class="line"><span class="comment">     *不要通过current获取，因为缺页异常可能在上下文切换的过程中发生，</span></span><br><span class="line"><span class="comment">     *此时如果通过current获取，则可能会出问题*/</span></span><br><span class="line">    pgd_paddr = read_cr3();</span><br><span class="line">    <span class="comment">//从主内核页表中，同步vmalloc区发生缺页异常地址对应的页表</span></span><br><span class="line">    pmd_k = vmalloc_sync_one(__va(pgd_paddr), address);</span><br><span class="line">    <span class="keyword">if</span> (!pmd_k)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="comment">//如果同步后，相应的PTE还不存在，则说明该地址有问题了</span></span><br><span class="line">    pte_k = pte_offset_kernel(pmd_k, address);</span><br><span class="line">    <span class="keyword">if</span> (!pte_present(*pte_k))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>此时，问题来了，为什么需要内核页表呢？<br>详情可以参考<a href="http://bbs.chinaunix.net/thread-4190879-1-1.html" target="_blank" rel="noopener">关于内核页表初始化的问题</a>。</p>
 <h2 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h2><ul>
-<li>为了让cpu从real mode平稳过渡到protected mode</li>
-</ul>
-<p>read mode下分页尚未开启。更多细节请参考<a href="http://students.mimuw.edu.pl/ZSO/Wyklady/04_pamiec/4_pamiec_en.html#tablice_stron_jadra" target="_blank" rel="noopener">Kernel page tables</a></p>
-<ul>
 <li>deferred approach</li>
 </ul>
 <p><img src="/images/2018/12/66.png" alt><br>详情参考《Understanding the Linux Kernel》p357</p>
@@ -348,9 +344,9 @@
         
           <div class="post-tags">
             
-              <a href="/tags/内存管理/">内存管理</a>
-            
               <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/内存管理/">内存管理</a>
             
           </div>
         
@@ -459,7 +455,7 @@
      
       2016 - 
     
-    2019
+    2020
 
     <span class="heart">
       <i class="iconfont icon-heart"></i>

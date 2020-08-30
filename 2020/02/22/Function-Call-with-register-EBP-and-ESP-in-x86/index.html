@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Function Call with register EBP and ESP in x86">
+
+
+
+
+  <meta name="keywords" content="体系结构, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2020/02/22/Function-Call-with-register-EBP-and-ESP-in-x86/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Function Call with register EBP and ESP in x86 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Function Call with register EBP and ESP in x86
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2020-02-22
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/体系结构/">体系结构</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-基本概念"><span class="toc-text">1. 基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-structure"><span class="toc-text">1.1 structure</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-Stack-Frame"><span class="toc-text">1.2 Stack-Frame</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-EBP-and-ESP"><span class="toc-text">1.3 EBP and ESP</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-example"><span class="toc-text">2. example</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-enter、leave、call、和ret"><span class="toc-text">3. enter、leave、call、和ret</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文主要介绍stack中的EBP、ESP寄存器以及<code>enter</code>、<code>leave</code>、<code>call</code>、和<code>ret</code>这四个指令。<br><a id="more"></a>本文多数内容转载自：<a href="https://blog.csdn.net/wangkr111/article/details/41315629" target="_blank" rel="noopener">对寄存器ESP和EBP的一些理解</a>。</p>
+<h2 id="1-基本概念"><a href="#1-基本概念" class="headerlink" title="1. 基本概念"></a>1. 基本概念</h2><h3 id="1-1-structure"><a href="#1-1-structure" class="headerlink" title="1.1 structure"></a>1.1 structure</h3><p><img src="/images/2020/02/20.PNG" alt><br><code>push</code>时，地址减小；<code>pop</code>时，地址增大。</p>
+<h3 id="1-2-Stack-Frame"><a href="#1-2-Stack-Frame" class="headerlink" title="1.2 Stack-Frame"></a>1.2 Stack-Frame</h3><p>The stack is typically divided into frames. Each stack frame can then contain local variables, parameters to be passed to another procedure, and procedure linking information. </p>
+<h3 id="1-3-EBP-and-ESP"><a href="#1-3-EBP-and-ESP" class="headerlink" title="1.3 EBP and ESP"></a>1.3 EBP and ESP</h3><p>In x86 architecure, register EBP means base pointer which always pointing to the base address of a stack frame. And register ESP means stack pointer which always pointing to the top of the stack frame. EIP as a program counter, storing the address of next instruction should be executed.</p>
+<p>ESP has a special function, which is to act as the stack pointer, and it gets implicitly modified by certain instructions (e.g. <code>push</code>, <code>pop</code>, <code>call</code>).</p>
+<h2 id="2-example"><a href="#2-example" class="headerlink" title="2. example"></a>2. example</h2><p>下面是caller调用函数<code>test(int p1,int p2)</code>的汇编代码<br>假设caller前堆栈指针ESP为0xAAAAAAA ；EBP为0xAAAAAB0.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">push   p2    ;参数2入栈,ESP-=4h,ESP=0xAAAAAA6</span><br><span class="line">push   p1    ;参数1入栈,ESP-=4h,ESP=0xAAAAAA2</span><br><span class="line">call test    ;压入caller的EIP,ESP-=4h,ESP=0xAAAAA9E</span><br><span class="line">	     ;//进入函数内</span><br><span class="line">&#123;</span><br><span class="line">    push   ebp                        ;保存caller的EBP指针,EBP入栈(即0xAAAAAB0入栈),ESP-=4h,ESP=0xAAAAA9A</span><br><span class="line">    mov    ebp, esp                   ;设置EBP指针指向栈顶,EBP=0xAAAAA9A</span><br><span class="line">    mov    eax, dword ptr  [ebp+0ch]  ;ebp+0ch为0xAAAAAA6即参数2的位置</span><br><span class="line">    mov    ebx, dword ptr  [ebp+08h]  ;ebp+08h为0xAAAAAA2,即参数1的位置</span><br><span class="line">    sub    esp, 8                     ;局部变量所占空间ESP-=8h,ESP=0xAAAAA92</span><br><span class="line">    ...</span><br><span class="line">    add    esp, 8                     ;释放局部变量,ESP+=8h,ESP=0xAAAAA9A</span><br><span class="line">    pop    ebp                        ;出栈,恢复EBP,ESP+=4h,ESP=0xAAAAA9E,EBP=0xAAAAAB0</span><br><span class="line">    ret    8                          ;ret返回,弹出EIP,ESP+=4h,ESP=0xAAAAAA2</span><br><span class="line">    add    esp, 8                     ;ESP+=8h,ESP=0xAAAAAAA,恢复caller进入test函数前的堆栈.</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="3-enter、leave、call、和ret"><a href="#3-enter、leave、call、和ret" class="headerlink" title="3. enter、leave、call、和ret"></a>3. <code>enter</code>、<code>leave</code>、<code>call</code>、和<code>ret</code></h2><p>In AT&amp;T x86 assembly, there’re four instructions: <code>call</code>, <code>ret</code>, <code>enter</code> and <code>leave</code> participated in function call.</p>
+<p><code>call</code> and <code>ret</code> equal to the following logics respectively:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CALL: push %eip		#store the return address on stack frame</span><br><span class="line">      mov  f, %eip	#reset the value of EIP for safety</span><br><span class="line">      jmp  LABEL    	#jump to subroutine</span><br><span class="line"></span><br><span class="line">RET:  pop  %eip		#restore the return address to EIP</span><br><span class="line">      jmp  %eip		#jump back to where the subroutine call ends</span><br></pre></td></tr></table></figure></p>
+<p><code>enter</code> and <code>leave</code> equal to the following instructions respectively:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ENTER: push %ebp	#store the old EBP</span><br><span class="line">       mov  %esp, %ebp	#set new EBP pointing to current ESP </span><br><span class="line"></span><br><span class="line">LEAVE: mov  %ebp, %esp	#set ESP pointing to current EBP (return to the point before function call happened)</span><br><span class="line">       pop  %ebp	#restore the old EBP</span><br></pre></td></tr></table></figure></p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li>sdm vol1 Chapter6</li>
+<li><a href="https://blog.csdn.net/wangkr111/article/details/41315629" target="_blank" rel="noopener">对寄存器ESP和EBP的一些理解</a></li>
+<li><a href="http://www.renyujie.net/articles/article_ca_x86_2.php" target="_blank" rel="noopener">Function Call with register EBP and ESP in x86</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/体系结构/">体系结构</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2020/02/22/Interrupt-GSI/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Interrupt GSI</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2020/02/22/Introduction-about-MPX/">
+        <span class="next-text nav-default">Introduction about MPX</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2020/02/22/Function-Call-with-register-EBP-and-ESP-in-x86/';
+        this.page.identifier = '2020/02/22/Function-Call-with-register-EBP-and-ESP-in-x86/';
+        this.page.title = 'Function Call with register EBP and ESP in x86';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

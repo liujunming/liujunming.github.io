@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="snoop control in VT-d">
+
+
+
+
+  <meta name="keywords" content="虚拟化, VT-d, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2020/01/19/snoop-control-in-VT-d/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> snoop control in VT-d - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          snoop control in VT-d
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2020-01-19
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#背景"><span class="toc-text">背景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#No-snoop-attribute-in-PCI-e-request"><span class="toc-text">No-snoop attribute in PCI-e request</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#snoop-control-in-VT-d"><span class="toc-text">snoop control in VT-d</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将会介绍VT-d下，cpu cache的snoop control问题。<br><a id="more"></a></p>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p><a href="/2019/04/29/CPU-cache一致性问题/">CPU Cache一致性问题</a></p>
+<p>snoop针对cpu cache。snoop会保证cpu cache的一致性，但是该操作比较费时。</p>
+<h2 id="No-snoop-attribute-in-PCI-e-request"><a href="#No-snoop-attribute-in-PCI-e-request" class="headerlink" title="No-snoop attribute in PCI-e request"></a>No-snoop attribute in PCI-e request</h2><p>在PCI-e request中，<code>No Snoop Attribute</code>位可以设置snoop的行为。</p>
+<p>当一个PCIe设备对memory进行DMA读操作时，如果传送的数据非常大，比如512MB，Cache的一致性操作不但不会提高DMA写的效率，反而会降低。因为这个DMA读访问的数据在绝大多数情况下，并不会在Cache中命中。同时，由于snoop操作比较费时，因此会降低效率。</p>
+<p>对于这类情况，一个较好的做法是，首先使用软件指令保证Cache与memory的一致性，并置“No Snoop Attribute”位为1，然后再进行DMA读操作。同理，使用这种方法对一段较大的数据区域进行DMA写时，也可以提高效率。</p>
+<p>除此之外，当软件已知某些内存区域肯定不会被cache时（如被系统事先标注为uncacheable），就不需要snoop了。</p>
+<p>下面也是一个无需设置snoop的例子：</p>
+<blockquote>
+<p>An example use case is a GPU that needs to “borrow” extra memory from the processor(s) for “spill” and “restore” traffic.  Only the GPU will be accessing that memory, so it does not need to look in the processor caches to see if any of them has modified copies of the cache lines.   The improvement in bandwidth due to the elimination of snooping can improve graphics frame rates.</p>
+</blockquote>
+<h2 id="snoop-control-in-VT-d"><a href="#snoop-control-in-VT-d" class="headerlink" title="snoop control in VT-d"></a>snoop control in VT-d</h2><p>If VT-d hardware supports snoop control(SC), it allows VT-d to control to ignore the “no-snoop attribute” in PCI-E transactions.</p>
+<p>The following table shows the snoop behavior of DMA operation controlled by the combination of:</p>
+<ul>
+<li>Snoop Control capability of VT-d DMAR unit</li>
+<li>The setting of SNP filed in leaf PTE</li>
+<li>No-snoop attribute in PCI-e request</li>
+</ul>
+<p><img src="/images/2020/01/4.PNG" alt></p>
+<p>ACRN enable Snoop Control by default if all enabled VT-d DMAR units support Snoop Control by setting bit 11 of leaf PTE of EPT table. Bit 11 of leaf PTE of EPT is ignored by MMU. So no side effect for MMU.</p>
+<p>If one of the enabled VT-d DMAR units doesn’t support Snoop Control, then Bit 11 of leaf PET of EPT is not set since the field is treated as reserved(0) by VT-d hardware implementations not supporting Snoop Control.</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://projectacrn.github.io/latest/developer-guides/hld/hv-vt-d.html" target="_blank" rel="noopener">Hypervisor high-level design VT-d</a></li>
+<li><a href="https://software.intel.com/en-us/forums/software-tuning-performance-optimization-platform-monitoring/topic/401498" target="_blank" rel="noopener">non-snoop read and non-snoop write. meaning</a></li>
+<li><a href="https://example61560.wordpress.com/2016/06/30/pcipcie-%E6%80%BB%E7%BA%BF%E6%A6%82%E8%BF%B05/" target="_blank" rel="noopener">PCIE总线事务层</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/VT-d/">VT-d</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2020/01/20/浅谈spinlock/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">浅谈spinlock的实现</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2020/01/18/每周分享第2期/">
+        <span class="next-text nav-default">每周分享第2期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2020/01/19/snoop-control-in-VT-d/';
+        this.page.identifier = '2020/01/19/snoop-control-in-VT-d/';
+        this.page.title = 'snoop control in VT-d';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

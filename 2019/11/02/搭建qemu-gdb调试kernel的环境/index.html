@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="搭建qemu gdb调试kernel的环境">
+
+
+
+
+  <meta name="keywords" content="工具, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/11/02/搭建qemu-gdb调试kernel的环境/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 搭建qemu gdb调试kernel的环境 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          搭建qemu gdb调试kernel的环境
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-11-02
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/工具/">工具</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-内核的编译"><span class="toc-text">1. 内核的编译</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-下载内核"><span class="toc-text">1.1 下载内核</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-编译选项"><span class="toc-text">1.2 编译选项</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#make-menuconfig"><span class="toc-text">make menuconfig</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-编译内核"><span class="toc-text">1.3 编译内核</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-构建initrd文件"><span class="toc-text">2. 构建initrd文件</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-准备"><span class="toc-text">2.1 准备</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-下载和解压BusyBox"><span class="toc-text">2.2 下载和解压BusyBox</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-configure-busybox"><span class="toc-text">2.3 configure busybox</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-build-busybox"><span class="toc-text">2.4 build busybox</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-5-build-the-directory-structure-for-our-initramfs"><span class="toc-text">2.5 build the directory structure for our initramfs</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-利用gdb调试内核"><span class="toc-text">3. 利用gdb调试内核</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-qemu主要选项解释"><span class="toc-text">3.1 qemu主要选项解释</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-启动"><span class="toc-text">3.2 启动</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍搭建qemu gdb调试kernel的环境。<br><a id="more"></a></p>
+<h2 id="1-内核的编译"><a href="#1-内核的编译" class="headerlink" title="1. 内核的编译"></a>1. 内核的编译</h2><h3 id="1-1-下载内核"><a href="#1-1-下载内核" class="headerlink" title="1.1 下载内核"></a>1.1 下载内核</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl https://mirrors.edge.kernel.org/pub/linux/kernel/v3.x/linux-3.14.69.tar.gz -o linux-3.14.69.tar.gz</span><br></pre></td></tr></table></figure>
+<h3 id="1-2-编译选项"><a href="#1-2-编译选项" class="headerlink" title="1.2 编译选项"></a>1.2 编译选项</h3><h3 id="make-menuconfig"><a href="#make-menuconfig" class="headerlink" title="make menuconfig"></a><code>make menuconfig</code></h3><p>这里需要开启内核参数<code>CONFIG_DEBUG_INFO</code>。</p>
+<h3 id="1-3-编译内核"><a href="#1-3-编译内核" class="headerlink" title="1.3 编译内核"></a>1.3 编译内核</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make -j8</span><br></pre></td></tr></table></figure>
+<p>解释下两个文件：</p>
+<ol>
+<li>linux-3.14.69/arch/x86/boot/bzImage ：是一个压缩的，可以bootable的Linux kernel文件</li>
+<li>linux-3.14.69/vmlinux：一个非压缩的，不可以bootable的Linux kernel文件。是用来生成bzImage的中间文件。debug时需要用到该文件。</li>
+</ol>
+<h2 id="2-构建initrd文件"><a href="#2-构建initrd文件" class="headerlink" title="2. 构建initrd文件"></a>2. 构建initrd文件</h2><p>启动系统的时候需要指定bzImage与initrd(init ram disk)文件。本节我们将介绍怎么把BusyBox打包成initrd文件。</p>
+<h3 id="2-1-准备"><a href="#2-1-准备" class="headerlink" title="2.1 准备"></a>2.1 准备</h3><p>统一下目录，把环境变量TOP设置为这个目录<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">TOP=/home/ljm/qemu-kernel</span><br><span class="line">cd $TOP</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-2-下载和解压BusyBox"><a href="#2-2-下载和解压BusyBox" class="headerlink" title="2.2 下载和解压BusyBox"></a>2.2 下载和解压BusyBox</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl https://busybox.net/downloads/busybox-1.27.2.tar.bz2 -o busybox-1.27.2.tar.bz2</span><br><span class="line">tar -xf busybox-1.27.2.tar.bz2</span><br></pre></td></tr></table></figure>
+<h3 id="2-3-configure-busybox"><a href="#2-3-configure-busybox" class="headerlink" title="2.3 configure busybox"></a>2.3 configure busybox</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd $TOP/busybox-1.27.2</span><br><span class="line">mkdir -pv ../obj/busybox-x86</span><br><span class="line">make O=../obj/busybox-x86 defconfig</span><br><span class="line">make O=../obj/busybox-x86 menuconfig</span><br></pre></td></tr></table></figure>
+<p>type <code>/</code>, search for “static”. You’ll see that the option is located at:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-&gt; Busybox Settings</span><br><span class="line">  -&gt; Build Options</span><br><span class="line">[ ] Build BusyBox as a static binary (no shared libs)</span><br></pre></td></tr></table></figure></p>
+<p>选择yes。</p>
+<h3 id="2-4-build-busybox"><a href="#2-4-build-busybox" class="headerlink" title="2.4 build busybox"></a>2.4 build busybox</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ../obj/busybox-x86</span><br><span class="line">make -j8</span><br><span class="line">make install</span><br></pre></td></tr></table></figure>
+<h3 id="2-5-build-the-directory-structure-for-our-initramfs"><a href="#2-5-build-the-directory-structure-for-our-initramfs" class="headerlink" title="2.5 build the directory structure for our initramfs"></a>2.5 build the directory structure for our initramfs</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">mkdir -pv $TOP/initramfs/x86-busybox</span><br><span class="line">cd $TOP/initramfs/x86-busybox</span><br><span class="line">mkdir -pv &#123;bin,sbin,etc,proc,sys,usr/&#123;bin,sbin&#125;&#125;</span><br><span class="line">cp -av $TOP/obj/busybox-x86/_install/* .</span><br></pre></td></tr></table></figure>
+<p><code>vim init</code><br>填入如下内容：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">!/bin/sh</span></span><br><span class="line">mount -t proc none /proc</span><br><span class="line">mount -t sysfs none /sys</span><br><span class="line">echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n"</span><br><span class="line">exec /bin/sh</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">chmod +x init</span><br><span class="line"></span><br><span class="line">find . -print0 \</span><br><span class="line">    | cpio --null -ov --format=newc \</span><br><span class="line">    | gzip -9 &gt; $TOP/obj/initramfs-busybox-x86.cpio.gz</span><br></pre></td></tr></table></figure>
+<p>We now have a minimal userland in <code>$TOP/obj/initramfs-busybox-x86.cpio.gz</code> that we can pass to <code>qemu</code> as an <code>initrd</code> (using the <code>-initrd</code> option).</p>
+<h2 id="3-利用gdb调试内核"><a href="#3-利用gdb调试内核" class="headerlink" title="3. 利用gdb调试内核"></a>3. 利用gdb调试内核</h2><h3 id="3-1-qemu主要选项解释"><a href="#3-1-qemu主要选项解释" class="headerlink" title="3.1 qemu主要选项解释"></a>3.1 qemu主要选项解释</h3><ul>
+<li>kernel bzImage: Use bzImage as kernel image. The kernel can be either a Linux kernel or in multiboot format. // 指定可以bootable的内核压缩文件</li>
+<li>initrd file: use ‘file’ as initial ram disk // 指定initramdisk</li>
+<li>append cmdline: use ‘cmdline’ as kernel command line // 指定kernel cmdline</li>
+<li>S: Do not start CPU at startup (you must type ‘c’ in the monitor). // 用于调试代码</li>
+<li>s: Shorthand for -gdb tcp::1234, i.e. open a gdbserver on TCP port 1234. // 开启一个gdbserver, 可以通过TCP端口1234连接</li>
+<li>nographic:  默认qemu使用图形方式，该选项可以启用非图形方式</li>
+</ul>
+<h3 id="3-2-启动"><a href="#3-2-启动" class="headerlink" title="3.2 启动"></a>3.2 启动</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -kernel linux-3.14.69/arch/x86/boot/bzImage -initrd initramfs-busybox-x86.cpio.gz -s -S -append "console=ttyS0" -nographic</span><br></pre></td></tr></table></figure>
+<p>在本机另一个terminal利用gdb连接本地的gdbserver 1234端口<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">gdb</span><br><span class="line">file linux-3.14.69/vmlinux //load Linux符号表</span><br><span class="line">target remote:1234 //远程连接监听在TCP 1234的gdb server</span><br><span class="line">b start_kernel //在start_kernel函数设置断点</span><br><span class="line">c //continue,继续执行代码</span><br></pre></td></tr></table></figure></p>
+<p>启动后console打印启动信息，随后进入init程序指定的shell中:<br><img src="/images/2019/11/3.PNG" alt></p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.cnblogs.com/wipan/p/9264979.html" target="_blank" rel="noopener"><a href="https://www.cnblogs.com/wipan/p/9264979.html" target="_blank" rel="noopener">在qemu环境中用gdb调试Linux内核</a></a></li>
+<li><a href="https://www.cnblogs.com/wipan/p/9269505.html" target="_blank" rel="noopener"><a href="https://www.cnblogs.com/wipan/p/9269505.html" target="_blank" rel="noopener">Initramfs 原理和实践</a></a></li>
+<li><a href="https://www.cnblogs.com/wipan/p/9272255.html" target="_blank" rel="noopener"><a href="https://www.cnblogs.com/wipan/p/9272255.html" target="_blank" rel="noopener">在qemu上运行BusyBox</a></a></li>
+<li><a href="http://mgalgs.github.io/2015/05/16/how-to-build-a-custom-linux-kernel-for-qemu-2015-edition.html" target="_blank" rel="noopener">How to Build A Custom Linux Kernel For Qemu </a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/工具/">工具</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2019/11/02/use-qemu-and-gdb-to-debug-kernel/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">use qemu and gdb to debug kernel</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2019/11/01/Introduction-to-qemu/">
+        <span class="next-text nav-default">Introduction to qemu</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/11/02/搭建qemu-gdb调试kernel的环境/';
+        this.page.identifier = '2019/11/02/搭建qemu-gdb调试kernel的环境/';
+        this.page.title = '搭建qemu gdb调试kernel的环境';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

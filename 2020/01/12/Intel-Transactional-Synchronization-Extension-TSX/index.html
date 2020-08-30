@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Introduction to Intel Transactional Synchronization Extension (TSX)">
+
+
+
+
+  <meta name="keywords" content="体系结构, Concurrency, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2020/01/12/Intel-Transactional-Synchronization-Extension-TSX/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Introduction to Intel Transactional Synchronization Extension (TSX) - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Introduction to Intel Transactional Synchronization Extension (TSX)
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2020-01-12
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Concurrency/">Concurrency</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-没有TSX时"><span class="toc-text">1 没有TSX时</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-1-粗粒度锁"><span class="toc-text">1.1 粗粒度锁</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-2-细粒度锁"><span class="toc-text">1.2 细粒度锁</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-TSX的motivation"><span class="toc-text">2 TSX的motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-编程接口"><span class="toc-text">3 编程接口</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-HLE"><span class="toc-text">3.1 HLE</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-RTM"><span class="toc-text">3.2 RTM</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍TSX的相关知识。包含TSX的motivation与使用接口。</p>
+<a id="more"></a>
+<h2 id="1-没有TSX时"><a href="#1-没有TSX时" class="headerlink" title="1 没有TSX时"></a>1 没有TSX时</h2><p>如果多线程对Excel表格操作时，需要加锁。但是，可以采用不同粒度的锁。</p>
+<h4 id="1-1-粗粒度锁"><a href="#1-1-粗粒度锁" class="headerlink" title="1.1 粗粒度锁"></a>1.1 粗粒度锁</h4><p>对整个Excel表格加锁。这种方式实现容易，但是却存在如下问题：</p>
+<p>线程1操作第1行与第2行数据；线程2操作第3和第4行数据。<strong>(1)</strong></p>
+<p>线程1与线程2操作的数据没有冲突，但是由于是对整个Excel表格加锁的，因此线程1和线程2无法并发。由此可见粗粒度锁可能会降低并发度。</p>
+<h4 id="1-2-细粒度锁"><a href="#1-2-细粒度锁" class="headerlink" title="1.2 细粒度锁"></a>1.2 细粒度锁</h4><p>粗粒度锁可能会降低并发度，因此，可以采用细粒度锁。例如，可以以Excel表格中的每一行为粒度进行加锁，从而提高并发度。但是，细粒度的锁却会带来其他问题：</p>
+<p>线程1操作第1行和第2行数据；线程2操作第2行和第1行数据。<strong>(2)</strong></p>
+<p>在这种场景下，可能会产生死锁。所以细粒度锁的加锁解锁方案需要仔细设计，避免死锁和其他很多问题。</p>
+<h3 id="2-TSX的motivation"><a href="#2-TSX的motivation" class="headerlink" title="2 TSX的motivation"></a>2 TSX的motivation</h3><p>针对粗粒度锁与细粒度锁存在的问题，TSX应运而生。</p>
+<p>当硬件支持TSX，程序开发人员以Excel表格为粒度进行加锁时；当出现<strong>(1)</strong>所示的情况，硬件保证线程1和线程2可以并发访问，从而提高并发度。</p>
+<p>逻辑上TSX是一把粗粒度的锁，将包含事务性的操作的critical section包起来；<strong>由硬件自动检测操作中的数据冲突，保证事务性操作的正确性，发掘操作间的并行性</strong>，实现上类似每个条目都有细粒度的锁，这被称作lock elision。</p>
+<h3 id="3-编程接口"><a href="#3-编程接口" class="headerlink" title="3 编程接口"></a>3 编程接口</h3><p>TSX的模型类似传统的临界区。提供两种编程接口：HLE(Hardware Lock Elision)和RTM(Restricted Transactional Memory)。</p>
+<h4 id="3-1-HLE"><a href="#3-1-HLE" class="headerlink" title="3.1 HLE"></a>3.1 HLE</h4><p> 事务性操作失败（abort）的结果是重新执行传统的有锁代码。</p>
+<h4 id="3-2-RTM"><a href="#3-2-RTM" class="headerlink" title="3.2 RTM"></a>3.2 RTM</h4><p>(1)   事务性操作失败（abort）的后续操作入口由xbegin指定。</p>
+<p>(2)   xabort指令通过eax返回一个错误码，用于后续分原因处理。</p>
+<p>由此可见，RTM的模型更加灵活。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://blog.csdn.net/yongjiao124/article/details/44460657" target="_blank" rel="noopener">Intel Transactional Synchronization Extension</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/92258404" target="_blank" rel="noopener">为防止Zombieload v2攻击，Windows和Linux 引入选项关闭英特尔 TSX</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/体系结构/">体系结构</a>
+            
+              <a href="/tags/Concurrency/">Concurrency</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2020/01/14/Introduction-to-meltdown/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Introduction to meltdown</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2020/01/11/每周分享第1期/">
+        <span class="next-text nav-default">每周分享第1期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2020/01/12/Intel-Transactional-Synchronization-Extension-TSX/';
+        this.page.identifier = '2020/01/12/Intel-Transactional-Synchronization-Extension-TSX/';
+        this.page.title = 'Introduction to Intel Transactional Synchronization Extension (TSX)';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

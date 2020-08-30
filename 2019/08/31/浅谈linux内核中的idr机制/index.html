@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="浅谈linux内核中的idr机制">
+
+
+
+
+  <meta name="keywords" content="Kernel, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/08/31/浅谈linux内核中的idr机制/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 浅谈linux内核中的idr机制 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          浅谈linux内核中的idr机制
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-08-31
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-idr的使用场景"><span class="toc-text">1. idr的使用场景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-idr的使用方法"><span class="toc-text">2. idr的使用方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-获得idr"><span class="toc-text">2.1 获得idr</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-为idr分配内存"><span class="toc-text">2.2 为idr分配内存</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-分配ID号并将ID号和指针关联"><span class="toc-text">2.3 分配ID号并将ID号和指针关联</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-通过ID号搜索对应的指针"><span class="toc-text">2.4 通过ID号搜索对应的指针</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-5-删除ID"><span class="toc-text">2.5 删除ID</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-idr的使用示例"><span class="toc-text">3. idr的使用示例</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>idr在linux内核中指的就是整数ID管理机制，从本质上来说，这就是一种将整数ID号和特定指针关联在一起的机制。本文将从如下几个方面进行内容的介绍：</p>
+<ol>
+<li>idr的使用场景</li>
+<li>idr的使用方法</li>
+<li>idr的使用示例</li>
+</ol>
+<a id="more"></a>
+<p>本文内容转载自网络，很不幸找不到原文了，就当作是自己的笔记吧。</p>
+<h2 id="1-idr的使用场景"><a href="#1-idr的使用场景" class="headerlink" title="1. idr的使用场景"></a>1. idr的使用场景</h2><p> idr机制适用在那些需要把某个整数和特定指针关联在一起的地方。举个例子，在I2C总线中，每个设备都有自己的地址，要想在总线上找到特定的设备，就必须要先发送该设备的地址。如果我们的PC是一个I2C总线上的主节点，那么要访问总线上的其他设备，首先要知道他们的ID号，同时要在pc的驱动程序中建立一个用于描述该设备的结构体。</p>
+<p>此时，问题来了，我们怎么才能将这个设备的ID号和他的设备结构体联系起来呢？最简单的方法当然是通过数组进行索引，但如果ID号的范围很大(比如32位的ID号)，则用数组索引显然不可能；第二种方法是用链表，但如果网络中实际存在的设备较多，则链表的查询效率会很低。遇到这种清况，我们就可以采用idr机制，该机制内部采用<a href="/2018/03/20/数据结构-树的归纳总结/#基数树-Radix-Tree">radix树</a>实现，可以很方便地将整数和指针关联起来，并且具有很高的搜索效率。</p>
+<h2 id="2-idr的使用方法"><a href="#2-idr的使用方法" class="headerlink" title="2. idr的使用方法"></a>2. idr的使用方法</h2><h3 id="2-1-获得idr"><a href="#2-1-获得idr" class="headerlink" title="2.1 获得idr"></a>2.1 获得idr</h3><p>要在代码中使用idr，首先要包括<code>&lt;linux/idr.h&gt;</code>。接下来，我们要在代码中分配<code>idr</code>结构体，并初始化：<br>    <code>void idr_init(struct idr *idp)</code>;<br>其中idr定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">idr</span> &#123;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">idr_layer</span> *<span class="title">top</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">idr_layer</span> *<span class="title">id_free</span>;</span></span><br><span class="line">        <span class="keyword">int</span>               layers;</span><br><span class="line">        <span class="keyword">int</span>               id_free_cnt;</span><br><span class="line">        <span class="keyword">spinlock_t</span>        lock;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>idr</code>是idr机制的核心结构体。</p>
+<h3 id="2-2-为idr分配内存"><a href="#2-2-为idr分配内存" class="headerlink" title="2.2 为idr分配内存"></a>2.2 为idr分配内存</h3><p><code>int idr_pre_get(struct idr *idp, unsigned int gfp_mask);</code><br>每次通过idr获得ID号之前，需要先分配内存。<br>返回0表示错误，非零值代表正常</p>
+<h3 id="2-3-分配ID号并将ID号和指针关联"><a href="#2-3-分配ID号并将ID号和指针关联" class="headerlink" title="2.3 分配ID号并将ID号和指针关联"></a>2.3 分配ID号并将ID号和指针关联</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">idr_get_new</span><span class="params">(struct idr *idp, <span class="keyword">void</span> *ptr, <span class="keyword">int</span> *id)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">idr_get_new_above</span><span class="params">(struct idr *idp, <span class="keyword">void</span> *ptr, <span class="keyword">int</span> start_id, <span class="keyword">int</span> *id)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>idp: 之前通过idr_init初始化的idr指针<br>id:  由内核自动分配的ID号<br>ptr: 和ID号相关联的指针<br>start_id: 起始ID号。内核在分配ID号时，会从start_id开始。如果为I2C节点分配ID号，可以将设备地址作为start_id。<br>函数调用正常返回0，如果没有ID可以分配，则返回-ENOSPC<br>在实际中，上述函数常常采用如下方式使用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">again:</span><br><span class="line">  <span class="keyword">if</span> (idr_pre_get(&amp;my_idr, GFP_KERNEL) == <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="comment">/* No memory, give up entirely */</span></span><br><span class="line">  &#125;</span><br><span class="line">  spin_lock(&amp;my_lock);</span><br><span class="line">  result = idr_get_new(&amp;my_idr, &amp;target, &amp;id);</span><br><span class="line">  <span class="keyword">if</span> (result == -EAGAIN) &#123;</span><br><span class="line">    sigh();</span><br><span class="line">    spin_unlock(&amp;my_lock);</span><br><span class="line">    <span class="keyword">goto</span> again;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-4-通过ID号搜索对应的指针"><a href="#2-4-通过ID号搜索对应的指针" class="headerlink" title="2.4 通过ID号搜索对应的指针"></a>2.4 通过ID号搜索对应的指针</h3><p><code>void *idr_find(struct idr *idp, int id);</code><br>返回值是和给定id相关联的指针，如果没有，则返回NULL</p>
+<h3 id="2-5-删除ID"><a href="#2-5-删除ID" class="headerlink" title="2.5 删除ID"></a>2.5 删除ID</h3><p>要删除一个ID，使用：<br><code>void idr_remove(struct idr *idp, int id);</code></p>
+<p>通过上面这些方法，内核代码可以为子设备，inode生成对应的ID号。</p>
+<h2 id="3-idr的使用示例"><a href="#3-idr的使用示例" class="headerlink" title="3. idr的使用示例"></a>3. idr的使用示例</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line">&lt;linux/idr.h&gt;   <span class="comment">/* idr头文件 */</span></span><br><span class="line">...</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">DEFINE_IDR</span><span class="params">(i2c_adapter_idr)</span></span>; <span class="comment">/* 声明idr */</span></span><br><span class="line">...</span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment">  采用动态总线号声明并注册一个i2c适配器(adapter)，可睡眠</span></span><br><span class="line"><span class="comment">  针对总线号可动态指定的设备，如基于USB的i2c设备或pci卡</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">i2c_add_adapter</span><span class="params">(struct i2c_adapter *adapter)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">int</span>     id, res = <span class="number">0</span>;</span><br><span class="line">retry:</span><br><span class="line">        <span class="keyword">if</span> (idr_pre_get(&amp;i2c_adapter_idr, GFP_KERNEL) == <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">        mutex_lock(&amp;core_lists);</span><br><span class="line">        <span class="comment">/* __i2c_first_dynamic_bus_num是当前系统允许的动态总线号的最大值 */</span></span><br><span class="line">        res = idr_get_new_above(&amp;i2c_adapter_idr, adapter,                 __i2c_first_dynamic_bus_num, &amp;id);</span><br><span class="line">        mutex_unlock(&amp;core_lists);</span><br><span class="line">        <span class="keyword">if</span> (res &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (res == -EAGAIN)</span><br><span class="line">                        <span class="keyword">goto</span> retry;</span><br><span class="line">                <span class="keyword">return</span> res;</span><br><span class="line">        &#125;</span><br><span class="line">        adapter-&gt;nr = id;</span><br><span class="line">        <span class="keyword">return</span> i2c_register_adapter(adapter);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(i2c_add_adapter);</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment">  采用静态总线号声明并注册一个i2c适配器(adapter)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">i2c_add_numbered_adapter</span><span class="params">(struct i2c_adapter *adap)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">int</span>     id;</span><br><span class="line">        <span class="keyword">int</span>     status;</span><br><span class="line">        <span class="keyword">if</span> (adap-&gt;nr &amp; ~MAX_ID_MASK)</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">retry:</span><br><span class="line">        <span class="keyword">if</span> (idr_pre_get(&amp;i2c_adapter_idr, GFP_KERNEL) == <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">        mutex_lock(&amp;core_lists);</span><br><span class="line">        <span class="comment">/* "above" here means "above or equal to", sigh;</span></span><br><span class="line"><span class="comment">         * we need the "equal to" result to force the result</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        status = idr_get_new_above(&amp;i2c_adapter_idr, adap, adap-&gt;nr, &amp;id);</span><br><span class="line">        <span class="keyword">if</span> (status == <span class="number">0</span> &amp;&amp; id != adap-&gt;nr) &#123;</span><br><span class="line">                status = -EBUSY;</span><br><span class="line">                idr_remove(&amp;i2c_adapter_idr, id);</span><br><span class="line">        &#125;</span><br><span class="line">        mutex_unlock(&amp;core_lists);</span><br><span class="line">        <span class="keyword">if</span> (status == -EAGAIN)</span><br><span class="line">                <span class="keyword">goto</span> retry;</span><br><span class="line">        <span class="keyword">if</span> (status == <span class="number">0</span>)</span><br><span class="line">                status = i2c_register_adapter(adap);</span><br><span class="line">        <span class="keyword">return</span> status;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(i2c_add_numbered_adapter);</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* 注销一个i2c适配器 */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">i2c_del_adapter</span><span class="params">(struct i2c_adapter *adap)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">/* free bus id */</span></span><br><span class="line">  idr_remove(&amp;i2c_adapter_idr, adap-&gt;nr);</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(i2c_del_adapter);</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* 通过ID号获得i2c_adapter设备结构体 */</span></span><br><span class="line"><span class="function">struct i2c_adapter* <span class="title">i2c_get_adapter</span><span class="params">(<span class="keyword">int</span> id)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">i2c_adapter</span> *<span class="title">adapter</span>;</span></span><br><span class="line">        mutex_lock(&amp;core_lists);</span><br><span class="line">        adapter = (struct i2c_adapter *)idr_find(&amp;i2c_adapter_idr, id);</span><br><span class="line">        <span class="keyword">if</span> (adapter &amp;&amp; !try_module_get(adapter-&gt;owner))</span><br><span class="line">                adapter = <span class="literal">NULL</span>;</span><br><span class="line">        mutex_unlock(&amp;core_lists);</span><br><span class="line">        <span class="keyword">return</span> adapter;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(i2c_get_adapter);</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://www.kernel.org/doc/html/v4.18/core-api/idr.html" target="_blank" rel="noopener">ID Allocation</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2019/09/01/Introduction-to-Tomasulo-s-Algorithm/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Introduction to Tomasulo's Algorithm</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2019/08/31/CMA/">
+        <span class="next-text nav-default">CMA</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/08/31/浅谈linux内核中的idr机制/';
+        this.page.identifier = '2019/08/31/浅谈linux内核中的idr机制/';
+        this.page.title = '浅谈linux内核中的idr机制';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

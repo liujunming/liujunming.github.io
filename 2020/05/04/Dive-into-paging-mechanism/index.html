@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Dive into paging mechanism">
+
+
+
+
+  <meta name="keywords" content="内存管理, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2020/05/04/Dive-into-paging-mechanism/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Dive into paging mechanism - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Dive into paging mechanism
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2020-05-04
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/内存管理/">内存管理</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#背景"><span class="toc-text">背景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Code"><span class="toc-text">Code</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将结合<a href="https://github.com/cirosantilli/x86-bare-metal-examples#536-paging" target="_blank" rel="noopener">x86-bare-metal-examples</a>与SDM，展示Intel IA32架构下paging的具体用法。<a id="more"></a></p>
+<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>MMU使用页表，将虚拟地址转为物理地址。</p>
+<p><img src="/images/2020/05/3.PNG" alt><br><img src="/images/2020/05/4.PNG" alt></p>
+<h3 id="Code"><a href="#Code" class="headerlink" title="Code"></a>Code</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">BEGIN</span><br><span class="line">    CLEAR</span><br><span class="line">    STAGE2</span><br><span class="line">    PROTECTED_MODE</span><br><span class="line">    SETUP_PAGING_4M</span><br><span class="line"></span><br><span class="line">    /* Setup a test canary value. */</span><br><span class="line">    movl $0x1234, 0x1000</span><br><span class="line"></span><br><span class="line">    /* Print the canary to make sure it is really there. */</span><br><span class="line">    VGA_PRINT_HEX_4 0x1000</span><br><span class="line"></span><br><span class="line">    /* Make page 0 point to page frame 1(i.e. virtual address 0 points to physical address 4KB)</span><br><span class="line">     * by setting bit 12 of the Page Table Entry structure.</span><br><span class="line">     *</span><br><span class="line">     * At SETUP_PAGING_4M, page_table has been setup to</span><br><span class="line">     * point page frame 0(i.e. page 0 point to page frame 0).</span><br><span class="line">     * Bit 12 is the lowest bit of the &quot;Address of 4KB page frame&quot; field,</span><br><span class="line">     * By setting it, can relocate page 0 point to page frame 1.</span><br><span class="line">     */</span><br><span class="line">    orw $0x1000, page_table</span><br><span class="line"></span><br><span class="line">    PAGING_ON</span><br><span class="line"></span><br><span class="line">    /* THIS is what we&apos;ve been working for!!!</span><br><span class="line">     * Even though we mov to 0, the paging circuit reads that as physical address 0x1000,</span><br><span class="line">     * so the canary value 0x1234 should be modified to 0x5678.</span><br><span class="line">     **/</span><br><span class="line">    movl $0x5678, 0</span><br><span class="line"></span><br><span class="line">    /* Turn paging back off to prevent it from messing with us. */</span><br><span class="line">    PAGING_OFF</span><br><span class="line"></span><br><span class="line">    /* Print the (hopefully) modified value 0x5678. */</span><br><span class="line">    VGA_PRINT_HEX_4 0x1000</span><br></pre></td></tr></table></figure>
+<p>第5行代码调用宏<code>SETUP_PAGING_4M</code>来建立4MB 内存区域的页表，后面会详细分析该宏。</p>
+<p>第8行代码往物理地址4KB处写入0x1234。</p>
+<p>第21行代码让page 0指向page frame 1(即：virtual address 0 points to physical address 4KB)。</p>
+<p>第23行代码调用宏<code>PAGING_ON</code>来开启分页，后面会详细分析该宏。</p>
+<p>第29行代码是往虚拟地址0写入0x5678，此时，物理地址4KB处的内容被更改为0x5678。</p>
+<p>第32行代码调用宏<code>PAGING_OFF</code>来关闭分页。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">/* Setup the first Page Directory entry, which gives us a 4MB(2^10 * 2^12) memory region.</span><br><span class="line"> * The memory region starts at 0, and the virtual address and physical address are identical.</span><br><span class="line"> * </span><br><span class="line"> * The currently executing code is inside that range, or else we&apos;d jump somewhere and die.</span><br><span class="line"> */</span><br><span class="line">.equ page_directory, __end_align_4k</span><br><span class="line">.equ page_table, __end_align_4k + 0x1000</span><br><span class="line">.macro SETUP_PAGING_4M</span><br><span class="line">    LOCAL page_setup_start page_setup_end</span><br><span class="line">    PUSH_EADX</span><br><span class="line"></span><br><span class="line">    /* Page Directory setup. */</span><br><span class="line">    mov $page_table, %eax</span><br><span class="line">    /* Clear the low 12 bits of the first Page Directory entry. */</span><br><span class="line">    and $0xF000, %ax</span><br><span class="line">    /* Set the P, R/W, U/S, and A bits of the first Page Directory entry. */</span><br><span class="line">    orb $0b00100111, %al</span><br><span class="line">    /* Setup the first Page Directory entry. */</span><br><span class="line">    mov %eax, page_directory</span><br><span class="line"></span><br><span class="line">    /* Page table setup. */</span><br><span class="line">    mov $0, %eax</span><br><span class="line">    mov $page_table, %ebx</span><br><span class="line">page_setup_start:</span><br><span class="line">    cmp $0x400, %eax</span><br><span class="line">    je page_setup_end</span><br><span class="line">    /* Top 20 address bits. */</span><br><span class="line">    mov %eax, %edx</span><br><span class="line">    shl $12, %edx</span><br><span class="line">    /* For flag bits 0-7. We only set bit 0 and bit 1:</span><br><span class="line">     * - bit 0: Page present</span><br><span class="line">     * - bit 1: Page is writable.</span><br><span class="line">     *  Might work without this as the permission also depends on CR0.WP.</span><br><span class="line">     */</span><br><span class="line">    mov $0b00000011, %dl</span><br><span class="line">    /* Zero flag bits 8-11 */</span><br><span class="line">    and $0xF0, %dh</span><br><span class="line">    /* Setup the PTE(Page Table Entry). */</span><br><span class="line">    mov %edx, (%ebx)</span><br><span class="line">    inc %eax</span><br><span class="line">    add $4, %ebx</span><br><span class="line">    jmp page_setup_start</span><br><span class="line">page_setup_end:</span><br><span class="line">    POP_EDAX</span><br><span class="line">.endm</span><br></pre></td></tr></table></figure>
+<p><code>page_directory</code>是Page Directory的物理地址。</p>
+<p><code>page_table</code>是Page Directory第一个entry指向的Page Table的物理地址。</p>
+<p>该宏只置Page Directory第一个entry的present位为1。同时，设置Page Table，使得page 0指向page frame 0， page 1指向page frame 1…，page 1023指向page frame 1023。这样，就配置好了4MB(2^10 * 2^12)大小的内存区域。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">/* * Turn paging on.</span><br><span class="line"> * The cr3 register does have a format, it is not simply the address of the page directory:</span><br><span class="line"> *</span><br><span class="line"> * Many tutorials simply ignore bits 3 and 4, and do a direct address mov to `cr3`.</span><br><span class="line"> *</span><br><span class="line"> * This sets the 20 top address bits to their correct value, and puts trash in bits 3 and 4,</span><br><span class="line"> * but it generally works.</span><br><span class="line"> */</span><br><span class="line">.macro PAGING_ON</span><br><span class="line">    /* Tell the CPU where the page directory is. */</span><br><span class="line">    mov $page_directory, %eax</span><br><span class="line">    mov %eax, %cr3</span><br><span class="line"></span><br><span class="line">    /* Turn paging on. */</span><br><span class="line">    mov %cr0, %eax</span><br><span class="line">    or $0x80000000, %eax</span><br><span class="line">    mov %eax, %cr0</span><br><span class="line">.endm</span><br><span class="line"></span><br><span class="line">/* Turn paging off. */</span><br><span class="line">.macro PAGING_OFF</span><br><span class="line">    mov %cr0, %eax</span><br><span class="line">    and $0x7FFFFFFF, %eax</span><br><span class="line">    mov  %eax, %cr0</span><br><span class="line">.endm</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2020/05/5.PNG" alt></p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/内存管理/">内存管理</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2020/05/06/QEMU-usage-notes/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">QEMU usage notes</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2020/05/03/每周分享第11期/">
+        <span class="next-text nav-default">每周分享第11期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2020/05/04/Dive-into-paging-mechanism/';
+        this.page.identifier = '2020/05/04/Dive-into-paging-mechanism/';
+        this.page.title = 'Dive into paging mechanism';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

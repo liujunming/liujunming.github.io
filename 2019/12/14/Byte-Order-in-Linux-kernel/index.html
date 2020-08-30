@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Byte Order in Linux kernel">
+
+
+
+
+  <meta name="keywords" content="Kernel, C语言, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2019/12/14/Byte-Order-in-Linux-kernel/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Byte Order in Linux kernel - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Byte Order in Linux kernel
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2019-12-14
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Why-Worry-About-Byte-Order"><span class="toc-text">Why Worry About Byte Order</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Interfaces"><span class="toc-text">Interfaces</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>在内核源码中，看到了<code>typedef __u16 __bitwise __le16;</code>那么，<code>__le16</code>是什么类型呢？<br><a id="more"></a><br>本文主要记录内核中处理大小端相关的内容。</p>
+<h2 id="Why-Worry-About-Byte-Order"><a href="#Why-Worry-About-Byte-Order" class="headerlink" title="Why Worry About Byte Order"></a>Why Worry About Byte Order</h2><p>In general, the underlying byte order of the processor is completely transparent to the programmer. However, there can be a problem, for example, when data is exchanged with another system, since the other system may interpret multi-byte values differently.</p>
+<p>For example, since it is not possible to predict the type of system at either end of the network, network protocols must define the byte order that is used for multi-byte values in their headers. This is called the network byte order, and for TCP/IP, it is big endian. Thus, the sending system converts the data from it local byte order to the network byte order. Then, the receiving system converts the data from network byte order to its local byte order. In practice, if either system uses the same byte order as the network byte order, the conversion operation is optimized out and no conversion takes place.</p>
+<p>Another example is the USB protocol, which defines that multi-byte values will use the little endian byte order.</p>
+<h2 id="Interfaces"><a href="#Interfaces" class="headerlink" title="Interfaces"></a>Interfaces</h2><p>The following type identifiers correspond to the <code>u16</code>, <code>u32</code>, and <code>u64</code> types, except they are defined with the <code>bitwise</code> attribute, which is used to restrict their use as integers. The bitwise attribute is used by the sparse utility to make sure the variable is converted to the local processor type before other (unsafe) operations are performed on the variable.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">__le16</span><br><span class="line">__le32  </span><br><span class="line">__le64</span><br><span class="line"></span><br><span class="line">__be16</span><br><span class="line">__be32</span><br><span class="line">__be64</span><br></pre></td></tr></table></figure>
+<p>其中，<code>be</code>代表big end，<code>le</code>代表low end。</p>
+<p>For example, if you want to add a constant to a<code>__le16</code>  type, you can do so, but you have to use the proper sequence:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">__le16 sum, a, b; </span><br><span class="line">sum = a + b;    <span class="comment">/* INVALID! "warning: incompatible types for operation \(+)" */</span> </span><br><span class="line">sum = cpu_to_le16(le16_to_cpu(a) + le16_to_cpu(b));     <span class="comment">/* Ok */</span></span><br></pre></td></tr></table></figure>
+<p>The following macros return the value after it has been converted.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"></span><br><span class="line">__<span class="function">u16	<span class="title">le16_to_cpu</span><span class="params">(<span class="keyword">const</span> __le16)</span></span>;</span><br><span class="line">__<span class="function">u32	<span class="title">le32_to_cpu</span><span class="params">(<span class="keyword">const</span> __le32)</span></span>;</span><br><span class="line">__<span class="function">u64	<span class="title">le64_to_cpu</span><span class="params">(<span class="keyword">const</span> __le64)</span></span>;</span><br><span class="line"></span><br><span class="line">__<span class="function">le16	<span class="title">cpu_to_le16</span><span class="params">(<span class="keyword">const</span> __u16)</span></span>;</span><br><span class="line">__<span class="function">le32	<span class="title">cpu_to_le32</span><span class="params">(<span class="keyword">const</span> __u32)</span></span>;</span><br><span class="line">__<span class="function">le64	<span class="title">cpu_to_le64</span><span class="params">(<span class="keyword">const</span> __u64)</span></span>;</span><br><span class="line"></span><br><span class="line">__<span class="function">u16	<span class="title">be16_to_cpu</span><span class="params">(<span class="keyword">const</span> __be16)</span></span>;</span><br><span class="line">__<span class="function">u32	<span class="title">be32_to_cpu</span><span class="params">(<span class="keyword">const</span> __be32)</span></span>;</span><br><span class="line">__<span class="function">u64	<span class="title">be64_to_cpu</span><span class="params">(<span class="keyword">const</span> __be64)</span></span>;</span><br><span class="line"></span><br><span class="line">__<span class="function">be16	<span class="title">cpu_to_be16</span><span class="params">(<span class="keyword">const</span> __u16)</span></span>;</span><br><span class="line">__<span class="function">be32	<span class="title">cpu_to_be32</span><span class="params">(<span class="keyword">const</span> __u32)</span></span>;</span><br><span class="line">__<span class="function">be64	<span class="title">cpu_to_be64</span><span class="params">(<span class="keyword">const</span> __u64)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://stackoverflow.com/questions/9680399/what-does-typedef-u16-bitwise-le16-mean-in-linux-kernel" target="_blank" rel="noopener">stackoverflow</a></li>
+<li><a href="http://bruceblinn.com/linuxinfo/ByteOrder.html" target="_blank" rel="noopener">Byte Order</a></li>
+<li><a href="http://www.gelato.unsw.edu.au/IA64wiki/SparseAnnotations" target="_blank" rel="noopener">SparseAnnotations</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/C语言/">C语言</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2019/12/15/Rethinking-about-radix-tree/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Rethinking about radix tree</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2019/12/14/pragma-pack-effect/">
+        <span class="next-text nav-default">#pragma pack effect</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2019/12/14/Byte-Order-in-Linux-kernel/';
+        this.page.identifier = '2019/12/14/Byte-Order-in-Linux-kernel/';
+        this.page.title = 'Byte Order in Linux kernel';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
