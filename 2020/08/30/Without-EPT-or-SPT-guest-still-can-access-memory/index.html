@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="Without EPT or SPT, guest still can access memory?">
 
 
 
+
+  <meta name="keywords" content="虚拟化, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2020/">
+<link rel="canonical" href="http://liujunming.github.io/2020/08/30/Without-EPT-or-SPT-guest-still-can-access-memory/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> Without EPT or SPT, guest still can access memory? - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,244 +256,95 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Without EPT or SPT, guest still can access memory?
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 304 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2020-08-30
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+
+
+    <div class="post-content">
+      
+        <p>Without EPT or SPT(shadow page table), guest can access memory?<br><a id="more"></a><br>在看kvm-unit-test时，发现：没有为guest创建EPT or SPT，但是，guest依然可以访问memory，这是怎么做到的呢？</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">init_vmcs_guest</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/* 26.3 CHECKING AND LOADING GUEST STATE */</span></span><br><span class="line">	ulong guest_cr3;</span><br><span class="line">	<span class="comment">/* 26.3.1.1 */</span></span><br><span class="line">	guest_cr3 = read_cr3();</span><br><span class="line">	...</span><br><span class="line">	vmcs_write(GUEST_CR3, guest_cr3);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>答案便在上述代码片段中：将host的cr3赋值给guest的cr3。这样，直接将MMU pass-thru给guest，并且guest和host复用相同的页表。</p>
+<p>这样比较tricky做法的缺点是:失去了隔离性。</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2020</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            08-30
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/08/30/Without-EPT-or-SPT-guest-still-can-access-memory/" class="archive-post-link">
-            Without EPT or SPT, guest still can access memory?
-          </a>
-        </span>
-      </div>
-    
-      
         
         
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            08-29
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/08/29/Some-notes-about-Queued-Invalidaion-in-VT-d/" class="archive-post-link">
-            Some notes about Queued Invalidation in VT-d
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-12
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/07/12/Introduction-to-ept-misconfig/" class="archive-post-link">
-            Introduction to ept misconfig
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-12
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/07/12/每周分享第17期/" class="archive-post-link">
-            每周分享第17期
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            07-05
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/07/05/每周分享第16期/" class="archive-post-link">
-            每周分享第16期
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            06-14
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/06/14/每周分享第15期/" class="archive-post-link">
-            每周分享第15期
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            05-24
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/05/24/每周分享第14期/" class="archive-post-link">
-            每周分享第14期
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            05-18
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/05/18/xv6-lab1-notes/" class="archive-post-link">
-            xv6 lab1 notes
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            05-17
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/05/17/每周分享第13期/" class="archive-post-link">
-            每周分享第13期
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            05-10
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/05/10/每周分享第12期/" class="archive-post-link">
-            每周分享第12期
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
+  <nav class="post-nav">
     
     
-      <a class="next" href="/archives/2020/page/2/">
-        <span class="next-text">下一页</span>
+      <a class="next" href="/2020/08/29/Some-notes-about-Queued-Invalidaion-in-VT-d/">
+        <span class="next-text nav-default">Some notes about Queued Invalidation in VT-d</span>
+        <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -579,6 +428,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2020/08/30/Without-EPT-or-SPT-guest-still-can-access-memory/';
+        this.page.identifier = '2020/08/30/Without-EPT-or-SPT-guest-still-can-access-memory/';
+        this.page.title = 'Without EPT or SPT, guest still can access memory?';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
