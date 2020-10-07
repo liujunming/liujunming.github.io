@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2020-09-30T14:23:55.820Z</updated>
+  <updated>2020-10-07T17:01:32.902Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -17,11 +17,59 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Introduction to Posted-interrupt</title>
+    <link href="http://liujunming.github.io/2020/10/07/Introduction-to-Posted-interrupt/"/>
+    <id>http://liujunming.github.io/2020/10/07/Introduction-to-Posted-interrupt/</id>
+    <published>2020-10-07T12:46:55.000Z</published>
+    <updated>2020-10-07T17:01:32.902Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文主要是对SDM <a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/#posted-interrupt" target="_blank" rel="noopener">Posted Interrupt</a>做相关补充。对于VT-d的Posted-interrupt，本文并不涉及。</p><a id="more"></a><h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><p>Virtual-Interrupt Delivery利用硬件功能解决了如下两个问题：第一个是需要Hypervisor手动模拟Interrupt Acknowledgement(要先从IRR中取出最高优先级的中断，设置ISR中对应位)、Interrupt Delivery(EOI)；第二个是有时需要产生<strong>Interrupt Window</strong> VM Exit以正确注入中断。</p><p>Posted Interrupt是对Virtual-Interrupt Delivery的进一步发展，让我们可以省略Interrupt Acceptance的过程，直接令正在运行的vCPU收到一个虚假中断，而不产生VM Exit。它可以向正在运行的vCPU注入中断，配合VT-d的Posted Interrupt功能，还可以实现Passthrough设备的中断直接发给vCPU而不引起VM Exit。</p><h3 id="Posted-Interrupt-Processing"><a href="#Posted-Interrupt-Processing" class="headerlink" title="Posted-Interrupt Processing"></a>Posted-Interrupt Processing</h3><p><img src="/images/2020/10/1.PNG" alt><br><img src="/images/2020/10/2.PNG" alt></p><h3 id="Usage-Examples-and-Enabling-PostedInterrupt-Processing-in-KVM"><a href="#Usage-Examples-and-Enabling-PostedInterrupt-Processing-in-KVM" class="headerlink" title="Usage Examples and Enabling PostedInterrupt Processing in KVM"></a>Usage Examples and Enabling PostedInterrupt Processing in KVM</h3><p><img src="/images/2020/10/3.PNG" alt><br>Send the event notification:给vCPU所在的CPU发送一个Notification Event，即中断向量号为Posted-Interrupt Notification Vector的中断。</p><blockquote><p>假设现在想给一个正在运行的vCPU注入中断，除非该vCPU正在处理中断，否则仅凭Virtual-Interrupt Delivery，仍需要令其VM Exit并设置RVI，以便在VM Entry时触发Virtual-Interrupt Delivery。若使用Posted Interrupt，则可以设置PIR中对应位，然后给vCPU所在的CPU发送一个Notification Event，即中断向量号为Posted-Interrupt Notification Vector的中断，这样vCPU无需VM Exit就可以被注入一个甚至多个中断。</p></blockquote><hr><p>参考链接：</p><ol><li><a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/" target="_blank" rel="noopener">Intel SDM Chapter 29: APIC Virtualizaton &amp; Virtual Interrupts</a></li><li><a href="https://www.linux-kvm.org/images/7/70/2012-forum-nakajima_apicv.pdf" target="_blank" rel="noopener">Enabling Optimized Interrupt/APIC Virtualization in KVM </a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文主要是对SDM &lt;a href=&quot;https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/#posted-interrupt&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Posted Interrupt&lt;/a&gt;做相关补充。对于VT-d的Posted-interrupt，本文并不涉及。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Some notes about CVE-2016-5195</title>
+    <link href="http://liujunming.github.io/2020/10/05/Some-notes-about-CVE-2016-5195/"/>
+    <id>http://liujunming.github.io/2020/10/05/Some-notes-about-CVE-2016-5195/</id>
+    <published>2020-10-05T05:51:00.000Z</published>
+    <updated>2020-10-07T17:01:32.903Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文主要是对<a href="https://github.com/dirtycow/dirtycow.github.io/wiki/VulnerabilityDetails" target="_blank" rel="noopener">CVE-2016-5195</a>做相关的notes。<a id="more"></a><br><a href="http://huntcve.github.io/2017/07/04/dirtycow/" target="_blank" rel="noopener">DirtyCow 漏洞分析2</a>分析的较好。</p><h3 id="detail"><a href="#detail" class="headerlink" title="detail"></a>detail</h3><ol><li>强行写入的内容被写到<strong>内核COW出来的拷贝页</strong>中，供进程使用。</li><li>If CR0.WP = 0, data may be written to any supervisor-mode address. <em>生成一个新的可写COW页面，并标记为脏页面，同时保留其只读属性</em></li></ol><h3 id="material"><a href="#material" class="headerlink" title="material"></a>material</h3><ol><li><a href="https://github.com/dirtycow/dirtycow.github.io/wiki/VulnerabilityDetails" target="_blank" rel="noopener">VulnerabilityDetails</a></li><li><a href="http://huntcve.github.io/2017/07/04/dirtycow/" target="_blank" rel="noopener">DirtyCow 漏洞分析2</a></li><li><a href="https://www.anquanke.com/post/id/84851" target="_blank" rel="noopener">深入解读脏牛Linux本地提权漏洞</a></li><li><a href="http://pwn4.fun/2017/07/14/Dirty-COW%EF%BC%88CVE-2016-5195%EF%BC%89%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" target="_blank" rel="noopener">Dirty COW（CVE-2016-5195）漏洞分析</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文主要是对&lt;a href=&quot;https://github.com/dirtycow/dirtycow.github.io/wiki/VulnerabilityDetails&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;CVE-2016-5195&lt;/a&gt;做相关的notes。
+    
+    </summary>
+    
+      <category term="Security" scheme="http://liujunming.github.io/categories/Security/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Some notes about CVE-2018-12207</title>
     <link href="http://liujunming.github.io/2020/09/30/Some-notes-about-CVE-2018-12207/"/>
     <id>http://liujunming.github.io/2020/09/30/Some-notes-about-CVE-2018-12207/</id>
     <published>2020-09-30T12:10:05.000Z</published>
-    <updated>2020-09-30T14:23:55.820Z</updated>
+    <updated>2020-10-07T17:01:32.903Z</updated>
     
     <content type="html"><![CDATA[<p>本文主要是对<a href="https://software.intel.com/security-software-guidance/api-app/insights/deep-dive-machine-check-error-avoidance-page-size-change" target="_blank" rel="noopener">CVE-2018-12207</a>做相关的background补充。原文写的相当好，建议详读。<a id="more"></a></p><h3 id="Description-of-errata"><a href="#Description-of-errata" class="headerlink" title="Description of errata"></a>Description of errata</h3><p>Software sequences that may lead to machine check error code 0150H can be summarized as follows:</p><ol><li>Code is fetched from a linear address translated using a 4 KB translation cached in the ITLB.</li><li>Software modifies the paging structures so that the same linear address is translated using a large page (2 MB, 4 MB, or 1 GB) with a different physical address or memory type.</li><li>After the paging structure modification, but before software invalidates any ITLB entries for the linear address, code fetch happens again on the same linear address.</li><li>This may cause a machine-check error (IA32_MCi_STATUS.MCACOD=150H), which can result in a system hang or shutdown.</li></ol><h3 id="extension1"><a href="#extension1" class="headerlink" title="extension1"></a>extension1</h3><p>The VMM can use Extended Page Tables (EPT) to enforce that each guest physical address is 4 KB in size and that guest software cannot change the hardware page size for translations.</p><blockquote><p>For correctness, the TLB must consider the page size for a given translation to be the smaller of the nested and guest page sizes.</p></blockquote><p>From ASPLOS’08 《Accelerating Two-Dimensional Page Walks》2.4 Large Page Size。</p><h3 id="extension2"><a href="#extension2" class="headerlink" title="extension2"></a>extension2</h3><p>The sequence above requires bit 10 (Execute access for user-mode linear address) to be treated in the same manner as bit 2 when mode-based execution controls are active (the mode-based execute control for EPT feature is present and the VM execution control is set to 1).</p><ul><li><p>各级页表项的第2位为X (eXecute)，取1表示可执行</p><ul><li>若Secondary Processor-Based VM-Execution Controls.Mode-based execute control for EPT[bit 22]取1，则该位取1仅表示对于Guest的内核页可执行，不表示对于Guest的用户页可执行</li></ul></li><li><p>各级页表项的第10位为XU (eXecute for User)，取1表示对于Guest的用户页可执行</p><ul><li>仅当Secondary Processor-Based VM-Execution Controls.Mode-based execute control for EPT[bit 22]取1时有效，否则该位会被忽略</li></ul></li></ul><p>From <a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch28/" target="_blank" rel="noopener">Intel SDM Chapter 28: VMX Support for Address Translation</a></p>]]></content>
     
@@ -34,7 +82,7 @@
       <category term="Security" scheme="http://liujunming.github.io/categories/Security/"/>
     
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+      <category term="内存管理" scheme="http://liujunming.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
     
       <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
     
@@ -423,50 +471,6 @@
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
       <category term="Concurrency" scheme="http://liujunming.github.io/tags/Concurrency/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>汇编学习笔记</title>
-    <link href="http://liujunming.github.io/2020/04/30/%E6%B1%87%E7%BC%96%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    <id>http://liujunming.github.io/2020/04/30/汇编学习笔记/</id>
-    <published>2020-04-30T13:19:22.000Z</published>
-    <updated>2020-08-30T01:17:15.262Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要记录汇编学习笔记。<a id="more"></a></p><h3 id="RAX-EAX-AX-AH-AL"><a href="#RAX-EAX-AX-AH-AL" class="headerlink" title="RAX,EAX,AX,AH,AL"></a>RAX,EAX,AX,AH,AL</h3><ol><li><p>RAX是64位的寄存器</p></li><li><p>EAX是32位的寄存器，而AX是EAX的低16位。</p></li><li><p>AH是AX的高8位，而AL是AX的低8位</p></li></ol><h3 id="操作数前缀"><a href="#操作数前缀" class="headerlink" title="操作数前缀"></a>操作数前缀</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">movl   $8,%eax </span><br><span class="line">movl   $0xffff,%ebx </span><br><span class="line">int     $0x80</span><br></pre></td></tr></table></figure><p>看到在AT%T汇编中诸如”%eax”、”%ebx”之类的寄存器名字前都要加上”%”；”$8”、”$0xffff”这样的立即数之前都要加上”$”。</p><h3 id="源-目的操作数顺序"><a href="#源-目的操作数顺序" class="headerlink" title="源/目的操作数顺序"></a>源/目的操作数顺序</h3><p>在Intel语法中，第一个操作数是目的操作数，第二个操作数源操作数。而在AT&amp;T中，第一个数是源操作数，第二个数是目的操作数。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// INTEL语法</span><br><span class="line">MOV EAX,8 //EAX是目的操作数， 8是源操作数</span><br><span class="line">// AT&amp;T语法</span><br><span class="line">movl   $8,%eax //8是源操作数 EAX是目的操作数</span><br></pre></td></tr></table></figure><h3 id="标识长度的操作码后缀"><a href="#标识长度的操作码后缀" class="headerlink" title="标识长度的操作码后缀"></a>标识长度的操作码后缀</h3><p>在AT&amp;T的操作码后面有时还会有一个后缀，其含义就是指出操作码的大小。“l”表示长整数（32位），“w”表示字（16位），“b”表示字节（8位）。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">movb    %bl,%al</span><br><span class="line">movw   %bx,%ax</span><br><span class="line">movl     %ebx,%eax</span><br><span class="line">movl     (%ebx),%eax</span><br></pre></td></tr></table></figure></p><hr><p>参考资料：</p><ol><li><a href="https://zhuanlan.zhihu.com/p/105616727" target="_blank" rel="noopener">内嵌汇编学习</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要记录汇编学习笔记。
-    
-    </summary>
-    
-      <category term="计算机编程" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BC%96%E7%A8%8B/"/>
-    
-    
-      <category term="计算机编程" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BC%96%E7%A8%8B/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>每周分享第10期</title>
-    <link href="http://liujunming.github.io/2020/04/26/%E6%AF%8F%E5%91%A8%E5%88%86%E4%BA%AB%E7%AC%AC10%E6%9C%9F/"/>
-    <id>http://liujunming.github.io/2020/04/26/每周分享第10期/</id>
-    <published>2020-04-26T12:27:46.000Z</published>
-    <updated>2020-08-30T01:17:15.259Z</updated>
-    
-    <content type="html"><![CDATA[<h3 id="映射主机的目录到容器的目录中"><a href="#映射主机的目录到容器的目录中" class="headerlink" title="映射主机的目录到容器的目录中"></a>映射主机的目录到容器的目录中</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -it -v /home/ljm/fusa/:/home/ljm/fusa/ -w /home/ljm/fusa/ ubuntu:v1.0</span><br></pre></td></tr></table></figure><a id="more"></a><p><a href="https://www.runoob.com/docker/docker-run-command.html" target="_blank" rel="noopener">Docker run 命令</a></p><h3 id="line-rate"><a href="#line-rate" class="headerlink" title="line rate"></a>line rate</h3><p>The line rate is a physical layer term that has nothing to do with the line cards or switching fabrics. It indicates the actual speed with which the bits are sent onto the wire.<br><a href="https://blog.ipspace.net/2009/03/line-rate-and-bit-rate.html" target="_blank" rel="noopener">https://blog.ipspace.net/2009/03/line-rate-and-bit-rate.html</a></p><p><img src="/images/2020/04/4.PNG" alt><br><a href="https://www.fmad.io/blog-what-is-10g-line-rate.html" target="_blank" rel="noopener">https://www.fmad.io/blog-what-is-10g-line-rate.html</a></p><h3 id="bandwidth-vs-throughput"><a href="#bandwidth-vs-throughput" class="headerlink" title="bandwidth vs throughput"></a>bandwidth vs throughput</h3><p><a href="https://www.youtube.com/watch?v=TVpg7StOxgg" target="_blank" rel="noopener">https://www.youtube.com/watch?v=TVpg7StOxgg</a></p><h3 id="openEuler-峰会-2020-设计峰会-Virtualization-SIG-会议"><a href="#openEuler-峰会-2020-设计峰会-Virtualization-SIG-会议" class="headerlink" title="openEuler 峰会 2020 设计峰会 - Virtualization SIG 会议"></a>openEuler 峰会 2020 设计峰会 - Virtualization SIG 会议</h3><p><a href="https://www.bilibili.com/video/BV1q54y197CX" target="_blank" rel="noopener">https://www.bilibili.com/video/BV1q54y197CX</a></p><h3 id="coding-style"><a href="#coding-style" class="headerlink" title="coding style"></a>coding style</h3><p>coding style要加强，包括命名规则，模块化抽象，什么场合需要用什么实现方式（比如callbacks）等等。<br><a href="https://lists.projectacrn.org/g/acrn-dev/message/28122" target="_blank" rel="noopener">https://lists.projectacrn.org/g/acrn-dev/message/28122</a></p><h3 id="Microsoft-Teams-Syncing-files-to-your-computer"><a href="#Microsoft-Teams-Syncing-files-to-your-computer" class="headerlink" title="Microsoft Teams - Syncing files to your computer"></a>Microsoft Teams - Syncing files to your computer</h3><p><a href="https://www.youtube.com/watch?v=Xe_HT5Lv7jg" target="_blank" rel="noopener">https://www.youtube.com/watch?v=Xe_HT5Lv7jg</a></p><h3 id="git-patch"><a href="#git-patch" class="headerlink" title="git patch"></a>git patch</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git format-patch -10 --cover-letter -v2</span><br><span class="line"></span><br><span class="line">git send-email --to=acrn-dev@lists.projectacrn.org  *.patch</span><br></pre></td></tr></table></figure><h3 id="Linux读写CPU-MSR寄存器命令rdmsr-wrmsr"><a href="#Linux读写CPU-MSR寄存器命令rdmsr-wrmsr" class="headerlink" title="Linux读写CPU MSR寄存器命令rdmsr/wrmsr"></a>Linux读写CPU MSR寄存器命令rdmsr/wrmsr</h3><p><a href="http://ilinuxkernel.com/?p=255" target="_blank" rel="noopener">http://ilinuxkernel.com/?p=255</a></p><p><a href="https://github.com/intel/msr-tools" target="_blank" rel="noopener">msr-tools</a></p><h3 id="神龙技术架构演进及实践"><a href="#神龙技术架构演进及实践" class="headerlink" title="神龙技术架构演进及实践"></a>神龙技术架构演进及实践</h3><p><a href="https://xw.qq.com/cmsid/20200415A0IXUQ00" target="_blank" rel="noopener">张献涛演讲实录</a><br><a href="https://yq.aliyun.com/live/2523" target="_blank" rel="noopener">张献涛：神龙技术架构演进及实践</a></p><p>神龙：软硬件融合的虚拟化技术<br>要点：</p><ol><li>passthru CPU and memory to VM</li><li>offload virtio BE service into FPGA(MOC卡)</li><li>可以和虚拟机无缝兼容，可以和虚拟机在同样的VPC里、可以挂载云盘，跟虚拟机使用体验一样<br><img src="/images/2020/04/641.PNG" alt></li></ol><h3 id="Virtual-Machine-Device-Queues-VMDq"><a href="#Virtual-Machine-Device-Queues-VMDq" class="headerlink" title="Virtual Machine Device Queues(VMDq)"></a>Virtual Machine Device Queues(VMDq)</h3><p><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/virtual-machine-device-queues-paper.pdf" target="_blank" rel="noopener">https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/virtual-machine-device-queues-paper.pdf</a></p><p>Virtual Machine Device Queues (VMDq) is breakthrough technology from<br>Intel that helps offload network I/O data processing from the virtual machine monitor<br>software to the network silicon.<br><img src="/images/2020/04/5.PNG" alt><br><img src="/images/2020/04/6.PNG" alt></p><h3 id="如何才能获得退税？关于个人所得税汇算清缴的一切"><a href="#如何才能获得退税？关于个人所得税汇算清缴的一切" class="headerlink" title="如何才能获得退税？关于个人所得税汇算清缴的一切"></a>如何才能获得退税？关于个人所得税汇算清缴的一切</h3><p><a href="https://www.bilibili.com/video/BV1Mt4y127NT" target="_blank" rel="noopener">https://www.bilibili.com/video/BV1Mt4y127NT</a></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;h3 id=&quot;映射主机的目录到容器的目录中&quot;&gt;&lt;a href=&quot;#映射主机的目录到容器的目录中&quot; class=&quot;headerlink&quot; title=&quot;映射主机的目录到容器的目录中&quot;&gt;&lt;/a&gt;映射主机的目录到容器的目录中&lt;/h3&gt;&lt;figure class=&quot;highlight shell&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;docker run -it -v /home/ljm/fusa/:/home/ljm/fusa/ -w /home/ljm/fusa/ ubuntu:v1.0&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
-    
-    </summary>
-    
-      <category term="经验" scheme="http://liujunming.github.io/categories/%E7%BB%8F%E9%AA%8C/"/>
-    
-    
-      <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
     
   </entry>
   
