@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2020-10-08T03:56:52.747Z</updated>
+  <updated>2020-10-08T14:04:17.109Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>The motivation of APICv</title>
+    <link href="http://liujunming.github.io/2020/10/08/The-motivation-of-APICv/"/>
+    <id>http://liujunming.github.io/2020/10/08/The-motivation-of-APICv/</id>
+    <published>2020-10-08T10:35:32.000Z</published>
+    <updated>2020-10-08T14:04:17.109Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文内容转载自:<a href="https://software.intel.com/content/www/us/en/develop/blogs/apic-virtualization-performance-testing-and-iozone.html" target="_blank" rel="noopener">APIC Virtualization Performance Testing and Iozone*</a>。</p><a id="more"></a><p>Virtual machine monitors (VMM) emulate most guest access to interrupts and the advanced programmable interrupt controller (APIC) in a virtual environment.  They also virtualize all guest interrupts. These activities require the exit and reentry of the virtual machines (VM), but they are time consuming and are a major source of overhead.  in order to minimize that effect, the latest Intel(R) Xeon(R) processors, such as the Intel(R) Xeon(R) E5-2600 v2 Product Family, emulate those activities in the hardware. </p><p><img src="/images/2020/10/4.jpg" alt></p><center>Figure 1 - VM-VMM interaction with and without APICv</center><p>Figure 1 shows that all virtualized activities relating interrupts and APIC to and from the guest OS have to go through VMM in systems without APICv; however, in systems with APICv, they are executed in the hardware, not in the VMM.  This way all activities can stay inside the VM, thus eliminating the need to issue the “VM exit” command; this change results in reduced overhead and increased I/O throughput.</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文内容转载自:&lt;a href=&quot;https://software.intel.com/content/www/us/en/develop/blogs/apic-virtualization-performance-testing-and-iozone.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;APIC Virtualization Performance Testing and Iozone*
+&lt;/a&gt;。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
   
   <entry>
     <title>Introduction to Posted-interrupt</title>
@@ -447,30 +472,6 @@
     
     
       <category term="计算机系统" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Introduction to hlt/pause/monitor/mwait instruction</title>
-    <link href="http://liujunming.github.io/2020/05/01/Introduction-to-halt-pause-monitor-mwait-instruction/"/>
-    <id>http://liujunming.github.io/2020/05/01/Introduction-to-halt-pause-monitor-mwait-instruction/</id>
-    <published>2020-05-01T13:16:50.000Z</published>
-    <updated>2020-08-30T01:17:15.245Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将介绍<code>hlt</code>、<code>pause</code>、<code>monitor</code>和<code>mwait</code> 这四个指令的相关知识点。<a id="more"></a></p><h3 id="hlt"><a href="#hlt" class="headerlink" title="hlt"></a>hlt</h3><p>X86架构中，<code>hlt</code>指令使CPU进入HALT状态，在Linux的进程调度模块中，当某CPU处于idle状态时，可能会执行<code>hlt</code>命令使其进入HALT状态，目的显而易见，是为了节能。</p><p>那CPU进入HALT状态后，如何Resume呢？谁来将其唤醒？<br>答案是：中断(包括NMI和SMI)，debug exception，BINIT# signal，INIT# signal，或者RESET# signal。</p><h3 id="pause"><a href="#pause" class="headerlink" title="pause"></a>pause</h3><p>先阅读<a href="https://stackoverflow.com/a/12904645" target="_blank" rel="noopener">What is the purpose of the “PAUSE” instruction in x86?</a></p><blockquote><p>Improves the performance of spin-wait loops. When executing a “spin-wait loop,” processors will suffer a severe performance penalty when exiting the loop because it detects a possible memory order violation. The PAUSE instruction provides a hint to the processor that the code sequence is a spin-wait loop. The processor uses this hint to avoid the memory order violation in most situations, which greatly improves processor performance. For this reason, it is recommended that a PAUSE instruction be placed in all spin-wait loops.<br>An additional function of the PAUSE instruction is to reduce the power consumed by a processor while executing a spin loop. A processor can execute a spin-wait loop extremely quickly, causing the processor to consume a lot of power while it waits for the resource it is spinning on to become available. Inserting a pause instruction in a spinwait loop greatly reduces the processor’s power consumption.</p></blockquote><h3 id="monitor-and-mwait"><a href="#monitor-and-mwait" class="headerlink" title="monitor and mwait"></a>monitor and mwait</h3><p>Executing the HLT instruction on a idle logical processor puts the  targeted processor in a non-execution state. This requires another processor (when posting work for the halted  logical processor) to wake up the halted processor using an inter-processor interrupt. The posting and servicing of  such an interrupt introduces a delay in the servicing of new work requests. </p><p>MONITOR sets up an effective address  range that is monitored for write-to-memory activities; MWAIT places the processor in an optimized state (this may vary between different implementations) until a write to the monitored address range occurs. </p><p>引入了<code>monitor</code> 和 <code>mwait</code>指令后，避免了<code>hlt</code>导致的<strong>the posting and servicing of  such an interrupt introduces a delay in the servicing of new work requests</strong>. </p><p><a href="https://github.com/projectacrn/acrn-hypervisor/blob/v1.6/hypervisor/arch/x86/cpu.c#L468" target="_blank" rel="noopener">acrn-hypervisor</a>中的用法如下:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* wait until *sync == wake_sync */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">wait_sync_change</span><span class="params">(<span class="keyword">volatile</span> <span class="keyword">const</span> <span class="keyword">uint64_t</span> *sync, <span class="keyword">uint64_t</span> wake_sync)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="keyword">if</span> (has_monitor_cap()) &#123;</span><br><span class="line"><span class="comment">/* Wait for the event to be set using monitor/mwait */</span></span><br><span class="line"><span class="keyword">while</span> ((*sync) != wake_sync) &#123;</span><br><span class="line">asm_monitor(sync, <span class="number">0U</span>L, <span class="number">0U</span>L);</span><br><span class="line"><span class="keyword">if</span> ((*sync) != wake_sync) &#123;</span><br><span class="line">asm_mwait(<span class="number">0U</span>L, <span class="number">0U</span>L);</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span></span><br><span class="line"><span class="keyword">inline</span> <span class="keyword">void</span> asm_monitor(<span class="keyword">volatile</span> <span class="keyword">const</span> <span class="keyword">uint64_t</span> *addr, <span class="keyword">uint64_t</span> ecx, <span class="keyword">uint64_t</span> edx)</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">asm</span> <span class="keyword">volatile</span>(<span class="string">"monitor\n"</span> : : <span class="string">"a"</span> (addr), <span class="string">"c"</span> (ecx), <span class="string">"d"</span> (edx));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span></span><br><span class="line"><span class="function"><span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">asm_mwait</span><span class="params">(<span class="keyword">uint64_t</span> eax, <span class="keyword">uint64_t</span> ecx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">asm volatile("mwait\n" : : "a" (eax), "c" (ecx));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p>Uses of <code>monitor</code>/<code>mwait</code> in the Linux kernel请参考<a href="https://stackoverflow.com/a/57485714" target="_blank" rel="noopener">Uses of the monitor/mwait instructions</a>。</p><hr><p>参考资料：</p><ol><li>Intel SDM</li><li><a href="http://blog.chinaunix.net/uid-14528823-id-4444611.html" target="_blank" rel="noopener">X86 HLT指令相关</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将介绍&lt;code&gt;hlt&lt;/code&gt;、&lt;code&gt;pause&lt;/code&gt;、&lt;code&gt;monitor&lt;/code&gt;和&lt;code&gt;mwait&lt;/code&gt; 这四个指令的相关知识点。
-    
-    </summary>
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-      <category term="Concurrency" scheme="http://liujunming.github.io/tags/Concurrency/"/>
     
   </entry>
   
