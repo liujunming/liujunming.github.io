@@ -17,7 +17,7 @@
 
 
 
-  <meta name="description" content="Introduction to Posted-interrupt">
+  <meta name="description" content="Introduction to CPU-based Posted-interrupt">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Introduction to Posted-interrupt - L </title>
+    <title> Introduction to CPU-based Posted-interrupt - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,7 +260,7 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Introduction to Posted-interrupt
+          Introduction to CPU-based Posted-interrupt
         
       </h1>
 
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Background"><span class="toc-text">Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Posted-Interrupt-Processing"><span class="toc-text">Posted-Interrupt Processing</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Usage-Examples-and-Enabling-Posted-Interrupt-Processing-in-KVM"><span class="toc-text">Usage Examples and Enabling Posted-Interrupt Processing in KVM</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Background"><span class="toc-text">Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CPU-based-Posted-Interrupt-Processing"><span class="toc-text">CPU-based Posted-Interrupt Processing</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Usage-Examples-and-Enabling-Posted-Interrupt-Processing-in-KVM"><span class="toc-text">Usage Examples and Enabling Posted-Interrupt Processing in KVM</span></a></li></ol>
     </div>
   </div>
 
@@ -292,11 +292,11 @@
 
     <div class="post-content">
       
-        <p>本文主要是对SDM <a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/#posted-interrupt" target="_blank" rel="noopener">Posted Interrupt</a>做相关补充。对于VT-d的Posted-interrupt，本文并不涉及。</p>
+        <p>本文主要是对SDM CPU-based <a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/#posted-interrupt" target="_blank" rel="noopener">Posted Interrupt</a>做相关补充。对于VT-d的Posted-interrupt，本文并不涉及。</p>
 <a id="more"></a>
 <h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><p>Virtual-Interrupt Delivery利用硬件功能解决了如下两个问题：第一个是需要Hypervisor手动模拟Interrupt Acknowledgement(要先从IRR中取出最高优先级的中断，设置ISR中对应位)、Interrupt Delivery(EOI)；第二个是有时需要产生<strong>Interrupt Window</strong> VM Exit以正确注入中断。</p>
 <p>Posted Interrupt是对Virtual-Interrupt Delivery的进一步发展，让我们可以省略Interrupt Acceptance的过程，直接令正在运行的vCPU收到一个虚假中断，而不产生VM Exit。它可以向正在运行的vCPU注入中断，配合VT-d的Posted Interrupt功能，还可以实现Passthrough设备的中断直接发给vCPU而不引起VM Exit。</p>
-<h3 id="Posted-Interrupt-Processing"><a href="#Posted-Interrupt-Processing" class="headerlink" title="Posted-Interrupt Processing"></a>Posted-Interrupt Processing</h3><p><img src="/images/2020/10/1.PNG" alt><br><img src="/images/2020/10/2.PNG" alt></p>
+<h3 id="CPU-based-Posted-Interrupt-Processing"><a href="#CPU-based-Posted-Interrupt-Processing" class="headerlink" title="CPU-based Posted-Interrupt Processing"></a>CPU-based Posted-Interrupt Processing</h3><p><img src="/images/2020/10/1.PNG" alt><br><img src="/images/2020/10/2.PNG" alt></p>
 <h3 id="Usage-Examples-and-Enabling-Posted-Interrupt-Processing-in-KVM"><a href="#Usage-Examples-and-Enabling-Posted-Interrupt-Processing-in-KVM" class="headerlink" title="Usage Examples and Enabling Posted-Interrupt Processing in KVM"></a>Usage Examples and Enabling Posted-Interrupt Processing in KVM</h3><p><img src="/images/2020/10/3.PNG" alt><br>Send the event notification:给vCPU所在的CPU发送一个Notification Event，即中断向量号为Posted-Interrupt Notification Vector的中断。</p>
 <blockquote>
 <p>假设现在想给一个正在运行的vCPU注入中断，除非该vCPU正在处理中断，否则仅凭Virtual-Interrupt Delivery，仍需要令其VM Exit并设置RVI，以便在VM Entry时触发Virtual-Interrupt Delivery。若使用Posted Interrupt，则可以设置PIR中对应位，然后给vCPU所在的CPU发送一个Notification Event，即中断向量号为Posted-Interrupt Notification Vector的中断，这样vCPU无需VM Exit就可以被注入一个甚至多个中断。</p>
@@ -459,7 +459,7 @@
     var disqus_config = function () {
         this.page.url = 'http://liujunming.github.io/2020/10/07/Introduction-to-Posted-interrupt/';
         this.page.identifier = '2020/10/07/Introduction-to-Posted-interrupt/';
-        this.page.title = 'Introduction to Posted-interrupt';
+        this.page.title = 'Introduction to CPU-based Posted-interrupt';
     };
     (function() {
     var d = document, s = d.createElement('script');
