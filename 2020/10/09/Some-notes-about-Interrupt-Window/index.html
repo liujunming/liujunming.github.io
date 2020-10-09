@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="Some notes about Interrupt Window">
 
 
 
+
+  <meta name="keywords" content="虚拟化, 中断, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2016/06/">
+<link rel="canonical" href="http://liujunming.github.io/2020/10/09/Some-notes-about-Interrupt-Window/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> Some notes about Interrupt Window - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,59 +256,112 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Some notes about Interrupt Window
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 310 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2020-10-09
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/中断/">中断</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Background"><span class="toc-text">Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Interrupt-Window"><span class="toc-text">Interrupt Window</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文主要介绍Interrupt Window的相关知识点。<a id="more"></a></p>
+<h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><ol>
+<li>IRR不受IF(RFLAGS.IF)位的影响。</li>
+<li>事件注入控制:<br><img src="/images/2020/10/5.PNG" alt></li>
+</ol>
+<h3 id="Interrupt-Window"><a href="#Interrupt-Window" class="headerlink" title="Interrupt Window"></a>Interrupt Window</h3><p>如果Guest正处在屏蔽外部中断的状态，即Guest的<code>RFLAGS.IF = 0</code>或<em>Guest Non-Register State.Interruptibility State</em>（<code>VMCS[0x4824](32 bit)</code>）的Bit 0 (Blocking by STI)和Bit 1 (Blocking by MOV-SS)不全为零，将不允许在VM Entry时进行Event Injection。为了向vCPU注入中断，可以临时设置<em>Primary Processor-Based VM-Execution Controls.Interrupt-Window Exiting</em> = 1，然后主动VM Entry进入Non-root模式。一旦CPU进入能够接收中断的状态，即<code>RFLAGS.IF = 1</code>且<em>Interruptibility State</em>[1:0] = 0，便会产生一个VM Exit（<code>VM Exit No.7</code> <strong>Interrupt Window</strong>），此时Hypervisor便可注入刚才无法注入的中断，并将<em>Interrupt-Window Exiting</em>重置为0。</p>
+<p>值得注意的是：即使Guest的<code>RFLAGS.IF = 0</code>,Guest的IRR寄存器依然会置位，这个行为需要与native保持一致。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/" target="_blank" rel="noopener">Intel SDM Chapter 29: APIC Virtualizaton &amp; Virtual Interrupts</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2016</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/中断/">中断</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            06-30
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2016/06/30/理解inode/" class="archive-post-link">
-            理解inode
-          </a>
-        </span>
-      </div>
+        
+        
+  <nav class="post-nav">
     
-  </section>
-
-  
-  <nav class="pagination">
     
+      <a class="next" href="/2020/10/09/Some-notes-about-x86-interrupt-preemption/">
+        <span class="next-text nav-default">Some notes about x86 interrupt preemption</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -394,6 +445,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2020/10/09/Some-notes-about-Interrupt-Window/';
+        this.page.identifier = '2020/10/09/Some-notes-about-Interrupt-Window/';
+        this.page.title = 'Some notes about Interrupt Window';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     

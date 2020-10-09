@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2020-10-08T14:04:17.109Z</updated>
+  <updated>2020-10-09T03:43:15.063Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,53 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Some notes about Interrupt Window</title>
+    <link href="http://liujunming.github.io/2020/10/09/Some-notes-about-Interrupt-Window/"/>
+    <id>http://liujunming.github.io/2020/10/09/Some-notes-about-Interrupt-Window/</id>
+    <published>2020-10-09T03:25:32.000Z</published>
+    <updated>2020-10-09T03:43:15.063Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文主要介绍Interrupt Window的相关知识点。<a id="more"></a></p><h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><ol><li>IRR不受IF(RFLAGS.IF)位的影响。</li><li>事件注入控制:<br><img src="/images/2020/10/5.PNG" alt></li></ol><h3 id="Interrupt-Window"><a href="#Interrupt-Window" class="headerlink" title="Interrupt Window"></a>Interrupt Window</h3><p>如果Guest正处在屏蔽外部中断的状态，即Guest的<code>RFLAGS.IF = 0</code>或<em>Guest Non-Register State.Interruptibility State</em>（<code>VMCS[0x4824](32 bit)</code>）的Bit 0 (Blocking by STI)和Bit 1 (Blocking by MOV-SS)不全为零，将不允许在VM Entry时进行Event Injection。为了向vCPU注入中断，可以临时设置<em>Primary Processor-Based VM-Execution Controls.Interrupt-Window Exiting</em> = 1，然后主动VM Entry进入Non-root模式。一旦CPU进入能够接收中断的状态，即<code>RFLAGS.IF = 1</code>且<em>Interruptibility State</em>[1:0] = 0，便会产生一个VM Exit（<code>VM Exit No.7</code> <strong>Interrupt Window</strong>），此时Hypervisor便可注入刚才无法注入的中断，并将<em>Interrupt-Window Exiting</em>重置为0。</p><p>值得注意的是：即使Guest的<code>RFLAGS.IF = 0</code>,Guest的IRR寄存器依然会置位，这个行为需要与native保持一致。</p><hr><p>参考资料：</p><ol><li><a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/" target="_blank" rel="noopener">Intel SDM Chapter 29: APIC Virtualizaton &amp; Virtual Interrupts</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文主要介绍Interrupt Window的相关知识点。
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Some notes about x86 interrupt preemption</title>
+    <link href="http://liujunming.github.io/2020/10/09/Some-notes-about-x86-interrupt-preemption/"/>
+    <id>http://liujunming.github.io/2020/10/09/Some-notes-about-x86-interrupt-preemption/</id>
+    <published>2020-10-09T00:05:47.000Z</published>
+    <updated>2020-10-09T03:43:15.063Z</updated>
+    
+    <content type="html"><![CDATA[<p>x86 disables all local interrupts (except NMI of course) before jumping to the interrupt vector. </p><p>NMI可以打断除NMI以外的任意中断的处理。<br><a id="more"></a><br>结论说完了，介绍下background吧。</p><blockquote><p>If an interrupt or exception handler is called through an interrupt gate, the processor clears the interrupt enable (IF) flag in the EFLAGS register to prevent subsequent interrupts from interfering with the execution of the handler. </p></blockquote><p>From SDM Volume 1</p><blockquote><p>While an NMI interrupt handler is executing, the processor blocks delivery of subsequent NMIs until the next execution of the IRET instruction. This blocking of NMIs prevents nested execution of the NMI handler</p></blockquote><p>From SDM Volume 3</p><hr><p>参考资料：</p><ol><li><a href="https://stackoverflow.com/questions/11403915/can-an-interrupt-handler-be-preempted-by-the-same-interrupt-handler" target="_blank" rel="noopener">Can an interrupt handler be preempted by the same interrupt handler?</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;x86 disables all local interrupts (except NMI of course) before jumping to the interrupt vector. &lt;/p&gt;
+&lt;p&gt;NMI可以打断除NMI以外的任意中断的处理。&lt;br&gt;
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
   
   <entry>
     <title>The motivation of APICv</title>
@@ -428,50 +475,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>深入理解RTC</title>
-    <link href="http://liujunming.github.io/2020/05/02/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3RTC/"/>
-    <id>http://liujunming.github.io/2020/05/02/深入理解RTC/</id>
-    <published>2020-05-02T08:31:24.000Z</published>
-    <updated>2020-08-30T01:17:15.263Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将深入介绍RTC(Real Time Clock)，并结合代码进行解析。<a id="more"></a></p><h3 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h3><p>A real-time clock (RTC) is a computer clock (most often in the form of an integrated circuit) that keeps track of the current time.</p><p>RTC can only be accessed through IO Ports 0x70 and 0x71.</p><h3 id="Shortage"><a href="#Shortage" class="headerlink" title="Shortage"></a>Shortage</h3><p>The RTC cannot give accuracy greater than seconds. For that, consider the PIT, or the HPET.</p><h3 id="Code"><a href="#Code" class="headerlink" title="Code"></a>Code</h3><p>代码源于<a href="/2020/05/02/x86-bare-metal-examples-Project/">x86-bare-metal-examples</a></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> * Reference: https://wiki.osdev.org/CMOS</span><br><span class="line">Register  Contents            Range</span><br><span class="line">0x00      Seconds             0–59</span><br><span class="line">0x02      Minutes             0–59</span><br><span class="line">0x04      Hours               0–23 in 24-hour mode, </span><br><span class="line">      1–12 in 12-hour mode, highest bit set if pm</span><br><span class="line">0x07      Day of Month        1–31</span><br><span class="line">0x08      Month               1–12</span><br><span class="line">0x09      Year                0–99</span><br><span class="line"></span><br><span class="line">0x0A      Status Register A</span><br><span class="line">RTC has an &quot;Update in progress&quot; flag (bit 7 of Status Register A). </span><br><span class="line">To read the time and date properly you have to wait until </span><br><span class="line">the &quot;Update in progress&quot; flag goes from &quot;set&quot; to &quot;clear&quot;. </span><br><span class="line">*/ </span><br><span class="line">.equ RTCaddress, 0x70</span><br><span class="line">.equ RTCdata, 0x71</span><br><span class="line"></span><br><span class="line">#include &quot;common.h&quot;</span><br><span class="line">BEGIN</span><br><span class="line">update_in_progress:</span><br><span class="line">    mov $0x0A, %al</span><br><span class="line">    out %al, $RTCaddress</span><br><span class="line">    in $RTCdata, %al</span><br><span class="line">    testb $0x80, %al</span><br><span class="line">    jne update_in_progress</span><br><span class="line"></span><br><span class="line">    /* Second. */</span><br><span class="line">    mov $0x00, %al</span><br><span class="line">    out %al, $RTCaddress</span><br><span class="line">    in $RTCdata, %al</span><br><span class="line"></span><br><span class="line">    /* Only print if second changed. */</span><br><span class="line">    cmp %al, %cl</span><br><span class="line">    je update_in_progress</span><br><span class="line">    mov %al, %cl</span><br><span class="line"></span><br><span class="line">    PRINT_HEX &lt;%al&gt;</span><br><span class="line">    PUTC</span><br><span class="line"></span><br><span class="line">    /* Minute. */</span><br><span class="line">    mov $0x02, %al</span><br><span class="line">    out %al, $RTCaddress</span><br><span class="line">    in $RTCdata, %al</span><br><span class="line">    PRINT_HEX &lt;%al&gt;</span><br><span class="line">    PUTC</span><br><span class="line"></span><br><span class="line">    /* Hour. */</span><br><span class="line">    mov $0x04, %al</span><br><span class="line">    out %al, $RTCaddress</span><br><span class="line">    in $RTCdata, %al</span><br><span class="line">    PRINT_HEX &lt;%al&gt;</span><br><span class="line">    PUTC</span><br><span class="line"></span><br><span class="line">    /* Day. */</span><br><span class="line">    mov $0x07, %al</span><br><span class="line">    out %al, $RTCaddress</span><br><span class="line">    in $RTCdata, %al</span><br><span class="line">    PRINT_HEX &lt;%al&gt;</span><br><span class="line">    PUTC</span><br><span class="line"></span><br><span class="line">    /* Month. */</span><br><span class="line">    mov $0x08, %al</span><br><span class="line">    out %al, $RTCaddress</span><br><span class="line">    in $RTCdata, %al</span><br><span class="line">    PRINT_HEX &lt;%al&gt;</span><br><span class="line">    PUTC</span><br><span class="line"></span><br><span class="line">    /* Year. */</span><br><span class="line">    mov $0x09, %al</span><br><span class="line">    out %al, $RTCaddress</span><br><span class="line">    in $RTCdata, %al</span><br><span class="line">    PRINT_HEX &lt;%al&gt;</span><br><span class="line">    PRINT_NEWLINE</span><br><span class="line"></span><br><span class="line">    jmp update_in_progress</span><br></pre></td></tr></table></figure><p>第23~27行代码解析：<br>When the chip updates the time and date (once per second) it increases “seconds” and checks if it rolled over. If “seconds” did roll over it increases “minutes” and checks if that rolled over. This can continue through all the time and date registers (e.g. all the way up to “if year rolled over, increase century”). However, it’s entirely possible to read the time and date while an update is in progress and get inconsistent values (for example, at 9:00 o’clock you might read 8:59, or 8:60, or 8:00, or 9:00).</p><p>To help guard against this problem the RTC has an “Update in progress” flag (bit 7 of Status Register A). To read the time and date properly you have to wait until the “Update in progress” flag goes from “set” to “clear”. </p><p>剩余代码比较容易理解。<br>往PIO 0x70写入0x00后，从PIO 0x71寄存器中读到的就是当前的秒数。<br>往PIO 0x70写入0x02后，从PIO 0x71寄存器中读到的就是当前的分钟数。<br>往PIO 0x70写入0x04后，从PIO 0x71寄存器中读到的就是当前的小时数。<br>…</p><hr><p>参考资料：</p><ol><li><a href="https://wiki.osdev.org/CMOS" target="_blank" rel="noopener">CMOS</a></li><li><a href="https://en.wikipedia.org/wiki/Real-time_clock" target="_blank" rel="noopener">Real-time clock</a></li><li><a href="https://wiki.osdev.org/RTC" target="_blank" rel="noopener">RTC</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将深入介绍RTC(Real Time Clock)，并结合代码进行解析。
-    
-    </summary>
-    
-      <category term="I/O系统" scheme="http://liujunming.github.io/categories/I-O%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-      <category term="I/O系统" scheme="http://liujunming.github.io/tags/I-O%E7%B3%BB%E7%BB%9F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>x86-bare-metal-examples 环境搭建</title>
-    <link href="http://liujunming.github.io/2020/05/02/x86-bare-metal-examples-Project/"/>
-    <id>http://liujunming.github.io/2020/05/02/x86-bare-metal-examples-Project/</id>
-    <published>2020-05-02T02:55:40.000Z</published>
-    <updated>2020-08-30T01:17:15.255Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要介绍<a href="https://github.com/cirosantilli/x86-bare-metal-examples" target="_blank" rel="noopener">x86-bare-metal-examples</a>的环境搭建。<a id="more"></a><br>远程主机环境：Ubuntu。</p><h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./configure</span><br><span class="line">make</span><br></pre></td></tr></table></figure><h3 id="运行"><a href="#运行" class="headerlink" title="运行"></a>运行</h3><p>首先在主机中<code>sudo apt-get install vinagre</code>。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./run rtc</span><br></pre></td></tr></table></figure><p>另一个session：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vinagre localhost:5900</span><br></pre></td></tr></table></figure></p><p><img src="/images/2020/05/2.PNG" alt></p><h3 id="debug"><a href="#debug" class="headerlink" title="debug"></a>debug</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./run rtc debug</span><br></pre></td></tr></table></figure>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要介绍&lt;a href=&quot;https://github.com/cirosantilli/x86-bare-metal-examples&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;x86-bare-metal-examples&lt;/a&gt;的环境搭建。
-    
-    </summary>
-    
-      <category term="计算机系统" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-      <category term="计算机系统" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
