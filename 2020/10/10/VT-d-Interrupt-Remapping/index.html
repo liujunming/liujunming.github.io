@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#motivation"><span class="toc-text">motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#details"><span class="toc-text">details</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#demo-usage"><span class="toc-text">demo usage</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#motivation"><span class="toc-text">motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#details"><span class="toc-text">details</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#demo-usage"><span class="toc-text">demo usage</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#rethinking-the-motivation"><span class="toc-text">rethinking the motivation</span></a></li></ol>
     </div>
   </div>
 
@@ -297,22 +297,6 @@
 <li>Supporting isolation and routing of interrupts from devices and external interrupt controllers to appropriate VMs.</li>
 <li>Supporting x2APIC</li>
 </ol>
-<p>以MSI interrupt为例。</p>
-<p>需要注意的是：<strong>MSI事务是由设备发起的</strong>，software配置好MSI Address和MSI Data之后，设备就会按照配置信息来发送MSI事务。<strong>在pass-thru情况下，是无法trap设备发送MSI事务这一动作的</strong>。</p>
-<p>MSI事务的Address和Data中会包含如下两个域：</p>
-<ol>
-<li>Destination ID，在Physical Mode下，该域表示目标CPU的APIC ID。<ul>
-<li>没有interrupt remapping的话，在设备直通的情况下，Destination ID为vCPU的APIC ID。</li>
-<li>假设vCPU的APIC ID为1，运行vCPU的物理CPU的APIC ID为2。没有interrupt remapping的话，直通设备会发送中断给APIC ID为1的物理CPU。这样就出错了。</li>
-</ul>
-</li>
-<li>Vector表示目标CPU收到的中断向量号。<ul>
-<li>没有interrupt remapping的话，在设备直通的情况下，Vector为virtual interrupt中断向量号。</li>
-<li>假设physical interrupt的中断向量号为60，virtual interrupt中断向量号为30。没有interrupt remapping的话，直通设备会发送中断向量号为30的physical interrupt。这样就出错了。</li>
-</ul>
-</li>
-</ol>
-<p>正因为存在上述问题，VT-d Interrupt Remapping应运而生。</p>
 <h3 id="details"><a href="#details" class="headerlink" title="details"></a>details</h3><p>可以详细阅读此文。<br><a href="https://kernelgo.org/interrupt-remapping.html" target="_blank" rel="noopener">https://kernelgo.org/interrupt-remapping.html</a></p>
 <h3 id="demo-usage"><a href="#demo-usage" class="headerlink" title="demo usage"></a>demo usage</h3><p><img src="/images/2020/10/6.PNG" alt></p>
 <p>以上图为例，将展示VT-d Interrupt Remapping的具体过程。</p>
@@ -323,6 +307,22 @@
 <li>设置VMCS(configured to cause vmexit on external interrupt)。当物理CPU收到vector为60的中断时，会发生VM-Exit。</li>
 <li>hv处理VM-Exit，根据physical interrupt到virtual interrupt的映射(vector 60 -&gt; vector 30)关系，为guest注入vector为30的interrupt。</li>
 <li>VM-Entry到guest VM，process vector为30的interrupt。</li>
+</ol>
+<h3 id="rethinking-the-motivation"><a href="#rethinking-the-motivation" class="headerlink" title="rethinking the motivation"></a>rethinking the motivation</h3><p><img src="/images/2020/10/19.PNG" alt></p>
+<p><img src="/images/2020/10/20.PNG" alt></p>
+<p>两者可以完成相同的功能。那么为什么还要有VT-d Interrupt Remapping呢？</p>
+<p>在<a href="https://invisiblethingslab.com/resources/2011/Software%20Attacks%20on%20Intel%20VT-d.pdf" target="_blank" rel="noopener">Following the White Rabbit:Software attacks against Intel(R) VT-d technology</a>一文中找到了答案：vulnerable to the BDF spoofing attack。</p>
+<blockquote>
+<p>Even though the interrupt remapping seems vulnerable to the BDF spoofing attack (just like DMA<br>remapping is), still we believe it has a potential to prevent all the above-mentioned MSI attacks, because we anticipate that none of the interrupt vector used in our attacks should be allowed to any devices in the system. In that case, BDF spoofing would not bring any advantage to the attacker, as there should be no device at all that the attacker might want to impersonate, which could deliver those dangerous interrupts, such as SIPI, syscall interrupts, or the #AC exception.</p>
+</blockquote>
+<blockquote>
+<p>BDF spoofing is a type of a hardware attack against VT-d, where a malicious device generates PCIe packets with spoofed BDF address. </p>
+</blockquote>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://compas.cs.stonybrook.edu/~nhonarmand/courses/sp17/cse506/slides/hw_io_virtualization.pdf" target="_blank" rel="noopener">I/O Virtualization with Hardware Support</a></li>
+<li><a href="https://invisiblethingslab.com/resources/2011/Software%20Attacks%20on%20Intel%20VT-d.pdf" target="_blank" rel="noopener">Following the White Rabbit:Software attacks against Intel(R) VT-d technology</a></li>
 </ol>
 
       
