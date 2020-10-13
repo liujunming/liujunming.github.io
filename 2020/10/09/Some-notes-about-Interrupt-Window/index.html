@@ -17,7 +17,7 @@
 
 
 
-  <meta name="description" content="Some notes about Interrupt Window">
+  <meta name="description" content="Some notes about Interrupt Window and NMI Window">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Some notes about Interrupt Window - L </title>
+    <title> Some notes about Interrupt Window and NMI Window - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,7 +260,7 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Some notes about Interrupt Window
+          Some notes about Interrupt Window and NMI Window
         
       </h1>
 
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Background"><span class="toc-text">Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Interrupt-Window"><span class="toc-text">Interrupt Window</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Background"><span class="toc-text">1. Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Interrupt-Window"><span class="toc-text">2. Interrupt Window</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-NMI-Windows"><span class="toc-text">3. NMI Windows</span></a></li></ol>
     </div>
   </div>
 
@@ -292,13 +292,21 @@
 
     <div class="post-content">
       
-        <p>本文主要介绍Interrupt Window的相关知识点。<a id="more"></a></p>
-<h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><ol>
+        <p>本文主要介绍Interrupt Window和NMI Window的相关知识点。<a id="more"></a></p>
+<p>强烈建议在<a href="http://mmc.geofisica.unam.mx/acl/Textos/MaquinasVirtuales/CursoMaquinasVirtuales/Bibliograf%C3%ADaMaquinasVirtuales/Vtx.pdf" target="_blank" rel="noopener">Vtx.pdf</a>搜索Interrupt-window Exiting。</p>
+<blockquote>
+<p>Interrupt-window Exiting. The interrupt-window exiting control bit in the VM-execution controls causes VM exits when guest RFLAGS.IF is 1 and no other conditions block external interrupts. If the control is 1, a VM exit occurs at the beginning of any instruction at which RFLAGS.IF = 1 and on which the interruptibility state of the guest would allow delivery of an interrupt. For example: when the guest executes an STI instruction, RFLAGS = 1, and if at the completion of next instruction the interruptibility state masking due to STI is removed; a VM exit occurs if interruptwindow exiting control is 1. The interrupt-window exiting feature allows a VMM to queue a virtual interrupt to the guest when the guest is not in an interruptible state. The VMM can set the interrupt-window exiting control for the guest and depend on a VM exit to know when the guest becomes interruptible (and, therefore, when it can inject a virtual interrupt). The VMM can detect such VM exits by checking for the basic exit reason ‘interrupt-window’ (value = 7). Without interrupt-window exiting support, the VMM will need to poll and check the interruptibility state of the guest to deliver virtual interrupts.</p>
+</blockquote>
+<h3 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h3><ol>
 <li>IRR不受IF(RFLAGS.IF)位的影响。</li>
 <li>事件注入控制:<br><img src="/images/2020/10/5.PNG" alt></li>
 </ol>
-<h3 id="Interrupt-Window"><a href="#Interrupt-Window" class="headerlink" title="Interrupt Window"></a>Interrupt Window</h3><p>如果Guest正处在屏蔽外部中断的状态，即Guest的<code>RFLAGS.IF = 0</code>或<em>Guest Non-Register State.Interruptibility State</em>（<code>VMCS[0x4824](32 bit)</code>）的Bit 0 (Blocking by STI)和Bit 1 (Blocking by MOV-SS)不全为零，将不允许在VM Entry时进行Event Injection。为了向vCPU注入中断，可以临时设置<em>Primary Processor-Based VM-Execution Controls.Interrupt-Window Exiting</em> = 1，然后主动VM Entry进入Non-root模式。一旦CPU进入能够接收中断的状态，即<code>RFLAGS.IF = 1</code>且<em>Interruptibility State</em>[1:0] = 0，便会产生一个VM Exit（<code>VM Exit No.7</code> <strong>Interrupt Window</strong>），此时Hypervisor便可注入刚才无法注入的中断，并将<em>Interrupt-Window Exiting</em>重置为0。</p>
+<h3 id="2-Interrupt-Window"><a href="#2-Interrupt-Window" class="headerlink" title="2. Interrupt Window"></a>2. Interrupt Window</h3><p>如果Guest正处在屏蔽外部中断的状态，即Guest的<code>RFLAGS.IF = 0</code>或<em>Guest Non-Register State.Interruptibility State</em>（<code>VMCS[0x4824](32 bit)</code>）的Bit 0 (Blocking by STI)和Bit 1 (Blocking by MOV-SS)不全为零，将不允许在VM Entry时进行Event Injection。为了向vCPU注入中断，可以临时设置<em>Primary Processor-Based VM-Execution Controls.Interrupt-Window Exiting</em> = 1，然后主动VM Entry进入Non-root模式。一旦CPU进入能够接收中断的状态，即<code>RFLAGS.IF = 1</code>且<em>Interruptibility State</em>[1:0] = 0，便会产生一个VM Exit（<code>VM Exit No.7</code> <strong>Interrupt Window</strong>），此时Hypervisor便可注入刚才无法注入的中断，并将<em>Interrupt-Window Exiting</em>重置为0。</p>
 <p>值得注意的是：即使Guest的<code>RFLAGS.IF = 0</code>,Guest的IRR寄存器依然会置位，这个行为需要与native保持一致。</p>
+<h3 id="3-NMI-Windows"><a href="#3-NMI-Windows" class="headerlink" title="3. NMI Windows"></a>3. NMI Windows</h3><p>Background可以参考<a href="/2020/10/09/Some-notes-about-x86-interrupt-preemption/">Some notes about x86 interrupt preemption</a>。</p>
+<blockquote>
+<p>NMI-window Exiting. If the “virtual NMIs” VM-execution is set, the processor tracks virtual-NMI blocking. The NMI-window exiting control bit in VM-execution controls causes VM exits when there is no virtualNMI blocking. For example, after execution of the IRET instruction, a VM exit occurs if NMIwindow exiting control is 1. The NMI-window exiting feature allows a VMM to queue a virtual NMI to a guest when the guest is not ready to receive NMIs. The VMM can set the NMI-window exiting control for the guest and depend on a VM exit to know when the guest becomes ready for NMIs (and, therefore, when it can inject a virtual NMI). The VMM can detect such VM exits by checking for the basic exit reason ‘NMI window’ (value = 8). Without NMI-window exiting support, the VMM will need to poll and check the interruptibility state of the guest to deliver virtual NMIs.</p>
+</blockquote>
 <hr>
 <p>参考资料：</p>
 <ol>
@@ -456,7 +464,7 @@
     var disqus_config = function () {
         this.page.url = 'http://liujunming.github.io/2020/10/09/Some-notes-about-Interrupt-Window/';
         this.page.identifier = '2020/10/09/Some-notes-about-Interrupt-Window/';
-        this.page.title = 'Some notes about Interrupt Window';
+        this.page.title = 'Some notes about Interrupt Window and NMI Window';
     };
     (function() {
     var d = document, s = d.createElement('script');
