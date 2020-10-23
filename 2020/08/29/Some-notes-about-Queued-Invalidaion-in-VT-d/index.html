@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#概念"><span class="toc-text">概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#usage"><span class="toc-text">usage</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#概念"><span class="toc-text">概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#usage"><span class="toc-text">usage</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#details"><span class="toc-text">details</span></a></li></ol>
     </div>
   </div>
 
@@ -308,6 +308,8 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">invalidate_desc_ptr-&gt;hi_64 = hva2hpa(&amp;qi_status);</span><br><span class="line">invalidate_desc_ptr-&gt;lo_64 = DMAR_INV_WAIT_DESC_LOWER;</span><br><span class="line">dmar_unit-&gt;qi_tail = (dmar_unit-&gt;qi_tail + DMAR_QI_INV_ENTRY_SIZE) % DMAR_INVALIDATION_QUEUE_SIZE;</span><br><span class="line"></span><br><span class="line">qi_status = DMAR_INV_STATUS_INCOMPLETE;</span><br><span class="line">iommu_write32(dmar_unit, DMAR_IQT_REG, dmar_unit-&gt;qi_tail);</span><br><span class="line"></span><br><span class="line">start = rdtsc();</span><br><span class="line"><span class="keyword">while</span> (qi_status != DMAR_INV_STATUS_COMPLETED) &#123;</span><br><span class="line">	<span class="keyword">if</span> ((rdtsc() - start) &gt; CYCLES_PER_MS) &#123;</span><br><span class="line">		pr_err(<span class="string">"DMAR OP Timeout! @ %s"</span>, __func__);</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	asm_pause();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>将<code>&amp;qi_status</code>写入Addr,将<code>DMAR_INV_STATUS_COMPLETED</code>写入Status Data(见上图)，这意味着：当硬件处理完invalidation requests 时，会将<code>qi_status</code>的值赋值为<code>DMAR_INV_STATUS_COMPLETED</code>。</p>
 <p>软件先将<code>qi_status</code>赋值为<code>DMAR_INV_STATUS_INCOMPLETE</code>，然后loop，直至硬件将<code>qi_status</code>的值赋值为<code>DMAR_INV_STATUS_COMPLETED</code>。</p>
+<h2 id="details"><a href="#details" class="headerlink" title="details"></a>details</h2><p>Since information from the context-cache may be used to tag entries in the PASID-cache, IOTLB and paging-structure caches, software must always follow a context-cache invalidation with a PASID cache invalidation (if context-cache entry supports requests-with-PASID, or if Scalable Mode Translation is enabled), followed by an IOTLB invalidation. </p>
+<p>context-cache invalidation and IOTLB invalidation has dependency relationship.</p>
 
       
     </div>
