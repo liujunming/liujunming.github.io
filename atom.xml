@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2020-10-25T08:45:21.038Z</updated>
+  <updated>2020-12-01T11:31:02.531Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>VT-x:Information for VM Exits During Event Delivery</title>
+    <link href="http://liujunming.github.io/2020/12/01/VT-x-Information-for-VM-Exits-During-Event-Delivery/"/>
+    <id>http://liujunming.github.io/2020/12/01/VT-x-Information-for-VM-Exits-During-Event-Delivery/</id>
+    <published>2020-12-01T05:11:55.000Z</published>
+    <updated>2020-12-01T11:31:02.531Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文主要记录SDM中<code>Information for VM Exits During Event Delivery</code>一节的相关笔记。<a id="more"></a></p><h3 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h3><p><code>Information for VM Exits That Occur During Event Delivery</code> defined fields containing information for VM exits that occur while delivering an event through the IDT and as a result of any of the following cases:</p><ul><li>A fault occurs during event delivery and causes a VM exit (because the bit associated with the fault is set to 1 in the exception bitmap).</li><li>A task switch is invoked through a task gate in the IDT. The VM exit occurs due to the task switch only after the initial checks of the task switch pass.</li><li>Event delivery causes an APIC-access VM exit.</li><li>An EPT violation, EPT misconfiguration, page-modification log-full event, or SPP-related event that occurs during event delivery.</li></ul><h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><p>ACRN中的<a href="https://github.com/projectacrn/acrn-hypervisor/blob/v2.2/hypervisor/arch/x86/guest/vmexit.c#L183" target="_blank" rel="noopener">实现</a>如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">vcpu-&gt;arch.idt_vectoring_info = exec_vmread32(VMX_IDT_VEC_INFO_FIELD);</span><br><span class="line"><span class="keyword">if</span> ((vcpu-&gt;arch.idt_vectoring_info &amp; VMX_INT_INFO_VALID) != <span class="number">0U</span>) &#123;</span><br><span class="line"><span class="keyword">uint32_t</span> vector_info = vcpu-&gt;arch.idt_vectoring_info;</span><br><span class="line"><span class="keyword">uint32_t</span> <span class="built_in">vector</span> = vector_info &amp; <span class="number">0xff</span>U;</span><br><span class="line"><span class="keyword">uint32_t</span> type = (vector_info &amp; VMX_INT_TYPE_MASK) &gt;&gt; <span class="number">8U</span>;</span><br><span class="line"><span class="keyword">uint32_t</span> err_code = <span class="number">0U</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (type == VMX_INT_TYPE_HW_EXP) &#123;</span><br><span class="line"><span class="keyword">if</span> ((vector_info &amp; VMX_INT_INFO_ERR_CODE_VALID) != <span class="number">0U</span>) &#123;</span><br><span class="line">err_code = exec_vmread32(VMX_IDT_VEC_ERROR_CODE);</span><br><span class="line">&#125;</span><br><span class="line">(<span class="keyword">void</span>)vcpu_queue_exception(vcpu, <span class="built_in">vector</span>, err_code);</span><br><span class="line">vcpu-&gt;arch.idt_vectoring_info = <span class="number">0U</span>;</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (type == VMX_INT_TYPE_NMI) &#123;</span><br><span class="line"><span class="keyword">if</span> (is_notification_nmi(vcpu-&gt;vm)) &#123;</span><br><span class="line">pr_dbg(<span class="string">"This NMI is used as notification signal. So ignore it."</span>);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">vcpu_make_request(vcpu, ACRN_REQUEST_NMI);</span><br><span class="line">vcpu-&gt;arch.idt_vectoring_info = <span class="number">0U</span>;</span><br><span class="line">&#125;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line"><span class="comment">/* No action on EXT_INT or SW exception. */</span></span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p>hardware exception的定义:<br><img src="/images/2020/12/1.PNG" alt></p><h3 id="测试用例"><a href="#测试用例" class="headerlink" title="测试用例"></a>测试用例</h3><p>对于<code>A fault occurs during event delivery and causes a VM exit</code> case，可以利用如下测试用例复现：</p><ol><li>设置guest IDT中Divide Error vector项的present位为0(to trigger NP fault)；</li><li>设置VMCS  exception bitmap field中的NP falut位为1(to trigger VM exit)；</li><li>guest执行divide 0指令。</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文主要记录SDM中&lt;code&gt;Information for VM Exits During Event Delivery&lt;/code&gt;一节的相关笔记。
+    
+    </summary>
+    
+      <category term="VT-x" scheme="http://liujunming.github.io/categories/VT-x/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="VT-x" scheme="http://liujunming.github.io/tags/VT-x/"/>
+    
+  </entry>
   
   <entry>
     <title>Introduction to SR-IOV</title>
@@ -45,7 +69,7 @@
     <link href="http://liujunming.github.io/2020/10/23/Some-notes-about-pause-loop-exiting/"/>
     <id>http://liujunming.github.io/2020/10/23/Some-notes-about-pause-loop-exiting/</id>
     <published>2020-10-23T00:59:55.000Z</published>
-    <updated>2020-10-23T15:18:20.488Z</updated>
+    <updated>2020-12-01T11:31:02.531Z</updated>
     
     <content type="html"><![CDATA[<h3 id="1-background"><a href="#1-background" class="headerlink" title="1. background"></a>1. background</h3><p>Spin-locking code typically uses <code>PAUSE</code> instructions in a loop.<a id="more"></a></p><p>For more details, please refer to <a href="/2020/05/01/Introduction-to-halt-pause-monitor-mwait-instruction/#pause">pause</a>.</p><h3 id="2-motivation"><a href="#2-motivation" class="headerlink" title="2. motivation"></a>2. motivation</h3><p>为什么需要pause loop exiting(ple)这一feature呢?<br><img src="/images/2020/10/21.PNG" alt></p><p><img src="/images/2020/10/22.PNG" alt></p><p><img src="/images/2020/10/23.PNG" alt></p><p><img src="/images/2020/10/24.PNG" alt></p><h3 id="3-details"><a href="#3-details" class="headerlink" title="3. details"></a>3. details</h3><p>Basic Exit Reason 40<br><img src="/images/2020/10/18.PNG" alt></p><p>PLE_Gap - upper bound on the amount of time between two successive executions of PAUSE in a loop.<br>PLE_Window - upper bound on the amount of time a guest is allowed to execute in a PAUSE loop</p><p>If the time, between this execution of PAUSE and previous one, exceeds the PLE_Gap, processor consider this PAUSE belongs to a new loop. Otherwise, processor determins the the total execution time of this loop(since 1st PAUSE in this loop), and triggers a VM exit if total time exceeds the PLE_Window.</p><p>Pause-Loop Exiting can be used to detect Lock-Holder Preemption, where one VCPU is sched-out after hold a spinlock, then other VCPUs for same lock are sched-in to waste the CPU time.</p><p>个人感觉PLE_Gap与PLE_Window的设置，就是调参吧。</p><hr><p>参考资料：</p><ol><li><a href="https://surriel.com/system/files/riel_t_1620_kvm_performance.pdf" target="_blank" rel="noopener">riel_t_1620_kvm_performance.pdf</a></li><li><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/linux-containers-hypervisor-based-vms-paper.pdf" target="_blank" rel="noopener">linux-containers-hypervisor-based-vms-paper.pdf</a></li><li><a href="https://kernel-team.narkive.com/x1rgNbzk/patch-0-2-kvm-add-support-for-pause-loop-exit" target="_blank" rel="noopener">KVM: add support for Pause-Loop exit</a></li></ol>]]></content>
     
@@ -55,12 +79,14 @@
     
     </summary>
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+      <category term="VT-x" scheme="http://liujunming.github.io/categories/VT-x/"/>
     
     
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="Concurrency" scheme="http://liujunming.github.io/tags/Concurrency/"/>
+    
+      <category term="VT-x" scheme="http://liujunming.github.io/tags/VT-x/"/>
     
   </entry>
   
@@ -468,28 +494,6 @@
       <category term="操作系统" scheme="http://liujunming.github.io/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
     
       <category term="xv6" scheme="http://liujunming.github.io/tags/xv6/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>每周分享第13期</title>
-    <link href="http://liujunming.github.io/2020/05/17/%E6%AF%8F%E5%91%A8%E5%88%86%E4%BA%AB%E7%AC%AC13%E6%9C%9F/"/>
-    <id>http://liujunming.github.io/2020/05/17/每周分享第13期/</id>
-    <published>2020-05-17T00:31:14.000Z</published>
-    <updated>2020-08-30T01:17:15.259Z</updated>
-    
-    <content type="html"><![CDATA[<h3 id="The-motivation-of-ebp-register"><a href="#The-motivation-of-ebp-register" class="headerlink" title="The motivation of ebp register"></a>The motivation of ebp register</h3><p>The <code>ebp</code> (base pointer) register is associated with the stack primarily by software convention. On entry to a C function, the function’s <em>prologue</em> code normally saves the previous function’s base pointer by pushing it onto the stack, and then copies the current <code>esp</code> value into <code>ebp</code> for the duration of the function. If all the functions in a program obey this convention, then at any given point during the program’s execution, it is possible to trace back through the stack by following the chain of saved <code>ebp</code> pointers and determining exactly what nested sequence of function calls caused this particular point in the program to be reached. This capability can be particularly useful, for example, when a particular function causes an <code>assert</code> failure or <code>panic</code> because bad arguments were passed to it, but you aren’t sure <em>who</em> passed the bad arguments. A stack backtrace lets you find the offending function.<br><a id="more"></a><br><a href="https://pdos.csail.mit.edu/6.828/2018/labs/lab1/#The-Stack" target="_blank" rel="noopener">https://pdos.csail.mit.edu/6.828/2018/labs/lab1/#The-Stack</a></p><h3 id="ANSI-escape-code"><a href="#ANSI-escape-code" class="headerlink" title="ANSI escape code"></a>ANSI escape code</h3><p>在linux console显示各种颜色的信息可以使用特殊的符号串：escape  sequence code.通过使用escape sequence code可以在linux终端以高亮，粗体，闪烁、多种颜色等方式展示消息。</p><p><a href="https://blog.csdn.net/lano2088/article/details/51985563" target="_blank" rel="noopener">https://blog.csdn.net/lano2088/article/details/51985563</a><br><a href="https://en.wikipedia.org/wiki/ANSI_escape_code" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/ANSI_escape_code</a><br><a href="http://rrbrandt.dee.ufcg.edu.br/en/docs/ansi/" target="_blank" rel="noopener">http://rrbrandt.dee.ufcg.edu.br/en/docs/ansi/</a></p><h3 id="Carbon-Create-and-share-beautiful-images-of-your-source-code"><a href="#Carbon-Create-and-share-beautiful-images-of-your-source-code" class="headerlink" title="Carbon: Create and share beautiful images of your source code"></a>Carbon: Create and share beautiful images of your source code</h3><p><a href="https://github.com/carbon-app/carbon" target="_blank" rel="noopener">https://github.com/carbon-app/carbon</a></p><h3 id="silicon"><a href="#silicon" class="headerlink" title="silicon"></a>silicon</h3><p><a href="https://github.com/Aloxaf/silicon" target="_blank" rel="noopener">https://github.com/Aloxaf/silicon</a><br>功能和Carbon基本一致，无需浏览器和网络</p><h3 id="openAPI"><a href="#openAPI" class="headerlink" title="openAPI"></a>openAPI</h3><p>举个例子：<br>现在的互联网充满了一个又一个信息孤岛和大量的碎片化的数据，用户想知道一些资讯，必须在不同的网站上跑来跑去.比如看电影，首先去google map查看周围的电影院，然后去大众点评网查看对这家电影院的评论，然后去电影院的网站上看看今天有什么电影上映。然后支付网站进行电子购票.整个过程非常繁琐，数据之间没有关联.充斥着大量的异构系统.<br>为了解决这些问题.我们引入了openapi的概念.通过openapi,数据提供商开放了自己的数据，通过mashup将信息孤岛连接起来.整合这些信息碎片. </p><p>如果google,大众点评网，电影院，支付宝均开放自己的openapi.然后有一个mashup程序将他们整合起来.那么用户就能体验一站式购物.进这个网站，找到电影院，查看电影院评价，如果评价好，查看电影院上映什么节目。电子订票.然后就能直接杀过去了。省时省力 。</p><p><a href="https://blog.csdn.net/sinat_37529938/article/details/89098454" target="_blank" rel="noopener">https://blog.csdn.net/sinat_37529938/article/details/89098454</a><br><a href="https://www.youtube.com/watch?v=s9u3mXQZbXI" target="_blank" rel="noopener">https://www.youtube.com/watch?v=s9u3mXQZbXI</a></p><h3 id="Linux-containers-in-a-few-lines-of-code"><a href="#Linux-containers-in-a-few-lines-of-code" class="headerlink" title="Linux containers in a few lines of code"></a>Linux containers in a few lines of code</h3><p><a href="https://zserge.com/posts/containers/" target="_blank" rel="noopener">https://zserge.com/posts/containers/</a></p><h3 id="《如何阅读一本书》"><a href="#《如何阅读一本书》" class="headerlink" title="《如何阅读一本书》"></a>《如何阅读一本书》</h3><p>作者：莫提默•J•艾德勒/查尔斯•范多伦<br><a href="http://t.cn/A6AUGPrb?m=4503332151139449&amp;u=6610719877" target="_blank" rel="noopener">http://t.cn/A6AUGPrb?m=4503332151139449&amp;u=6610719877</a></p><h3 id="platuml"><a href="#platuml" class="headerlink" title="platuml"></a>platuml</h3><p><a href="https://plantuml.com/zh/" target="_blank" rel="noopener">https://plantuml.com/zh/</a></p><h3 id="multiboot"><a href="#multiboot" class="headerlink" title="multiboot"></a>multiboot</h3><p>Every operating system ever created tends to have its own boot loader. Installing a new operating system on a machine generally involves installing a whole new set of boot mechanisms, each with completely different install-time and boot-time user interfaces. Getting multiple operating systems to coexist reliably on one machine through typical chaining mechanisms can be a nightmare. There is little or no choice of boot loaders for a particular operating system — if the one that comes with the operating system doesn’t do exactly what you want, or doesn’t work on your machine, you’re screwed.</p><p>While we may not be able to fix this problem in existing proprietary operating systems, it shouldn’t be too difficult for a few people in the free operating system communities to put their heads together and solve this problem for the popular free operating systems. That’s what this specification aims for. Basically, it specifies an interface between a boot loader and a operating system, such that any complying boot loader should be able to load any complying operating system. This specification does not specify how boot loaders should work — only how they must interface with the operating system being loaded.</p><p><a href="https://www.gnu.org/software/grub/manual/multiboot/multiboot.html" target="_blank" rel="noopener">https://www.gnu.org/software/grub/manual/multiboot/multiboot.html</a></p><h3 id="Jenkins"><a href="#Jenkins" class="headerlink" title="Jenkins"></a>Jenkins</h3><p><a href="https://www.youtube.com/watch?v=LFDrDnKPOTg" target="_blank" rel="noopener">https://www.youtube.com/watch?v=LFDrDnKPOTg</a></p><h3 id="OAuth-2-0-的一个简单解释"><a href="#OAuth-2-0-的一个简单解释" class="headerlink" title="OAuth 2.0 的一个简单解释"></a>OAuth 2.0 的一个简单解释</h3><p><a href="http://www.ruanyifeng.com/blog/2019/04/oauth_design.html" target="_blank" rel="noopener">http://www.ruanyifeng.com/blog/2019/04/oauth_design.html</a></p><h3 id="EDA工具"><a href="#EDA工具" class="headerlink" title="EDA工具"></a>EDA工具</h3><p>EDA技术就是以计算机为工具，设计者在EDA软件平台上，用硬件描述语言VerilogHDL完成设计文件，然后由计算机自动地完成逻辑编译、化简、分割、综合、优化、布局、布线和仿真，直至对于特定目标芯片的适配编译、逻辑映射和编程下载等工作。EDA技术的出现，极大地提高了电路设计的效率和可操作性，减轻了设计者的劳动强度。</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;h3 id=&quot;The-motivation-of-ebp-register&quot;&gt;&lt;a href=&quot;#The-motivation-of-ebp-register&quot; class=&quot;headerlink&quot; title=&quot;The motivation of ebp register&quot;&gt;&lt;/a&gt;The motivation of ebp register&lt;/h3&gt;&lt;p&gt;The &lt;code&gt;ebp&lt;/code&gt; (base pointer) register is associated with the stack primarily by software convention. On entry to a C function, the function’s &lt;em&gt;prologue&lt;/em&gt; code normally saves the previous function’s base pointer by pushing it onto the stack, and then copies the current &lt;code&gt;esp&lt;/code&gt; value into &lt;code&gt;ebp&lt;/code&gt; for the duration of the function. If all the functions in a program obey this convention, then at any given point during the program’s execution, it is possible to trace back through the stack by following the chain of saved &lt;code&gt;ebp&lt;/code&gt; pointers and determining exactly what nested sequence of function calls caused this particular point in the program to be reached. This capability can be particularly useful, for example, when a particular function causes an &lt;code&gt;assert&lt;/code&gt; failure or &lt;code&gt;panic&lt;/code&gt; because bad arguments were passed to it, but you aren’t sure &lt;em&gt;who&lt;/em&gt; passed the bad arguments. A stack backtrace lets you find the offending function.&lt;br&gt;
-    
-    </summary>
-    
-      <category term="经验" scheme="http://liujunming.github.io/categories/%E7%BB%8F%E9%AA%8C/"/>
-    
-    
-      <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
     
   </entry>
   
