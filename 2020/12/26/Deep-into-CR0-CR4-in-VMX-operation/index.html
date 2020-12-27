@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Deep into CR0/CR4 in VMX operation">
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2020/12/26/Deep-into-CR0-CR4-in-VMX-operation/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Deep into CR0/CR4 in VMX operation - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Deep into CR0/CR4 in VMX operation
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2020-12-26
+        </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+
+
+    <div class="post-content">
+      
+        <p>In VMX operation, the value of guest CR0/CR4 need to consider the following cases:</p>
+<ol>
+<li>processors may fix certain bits in CR0 and CR4 to specific values and not support other values. </li>
+<li>Guest/Host Masks and Read Shadows for CR0 and CR4</li>
+</ol>
+<a id="more"></a>
+<p>For the first case, you can refer to intel SDM Vol. 3D A.7(<strong>VMX-FIXED BITS IN CR0</strong>) and A.8(<strong>VMX-FIXED BITS IN CR4</strong>).</p>
+<p>We’ll deep into the second case.</p>
+<p><img src="/images/2020/12/3.PNG" alt></p>
+<p>From the description, please try to answer this question: Why needs the <strong>guest/host masks</strong>  and <strong>read shadow</strong>?</p>
+<p>Let’s consider this example:</p>
+<p><img src="/images/2020/12/4.PNG" alt></p>
+<p>From SDM description, CR4.VMXE must be 1 in VMX operation. Without <strong>guest/host masks</strong> and <strong>read shadow</strong>, if guest is a normal operating system, not a VMM, when guest want to get CR4.VMXE value, it would be 1. That’s the wrong information for guest. But we still need to ensure CR4.VMXE is1 in non-root mode!</p>
+<p>How can we satisfy all the above requirements?</p>
+<p><strong>guest/host masks</strong> and <strong>read shadow</strong> help us solve the issues.</p>
+<ol>
+<li><p>set VMCS Guest CR4(00006804H ) filed VMXE bit to be 1;</p>
+</li>
+<li><p>set CR4 guest/host masks(00006002H ) filed VMXE bit to be 1, means VMXE bit is owned by host;</p>
+</li>
+<li>set CR4 read shadow(00006006H ) field VMXE bit to be 0.</li>
+</ol>
+<p>When guest reads CR4.VMXE value, hardware will return value for this bit from the corresponding read shadow(the value is 0 here). While physical CR4.VMXE value still is 1 in non-root mode.</p>
+<p>Let’s take <a href="https://github.com/projectacrn/acrn-hypervisor/blob/acrn-2020w51.5-180000p/hypervisor/arch/x86/guest/virtual_cr.c" target="_blank" rel="noopener">ACRN virtual_cr.c</a> as an example.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Physical CR4 bits in VMX operation may be either flexible or fixed.</span></span><br><span class="line"><span class="comment"> * Guest CR4 bits may be operatable or reserved.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * All the guest reserved bits should be TRAPed and EMULATed by HV</span></span><br><span class="line"><span class="comment"> * (inject #GP).</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * For guest operatable bits, it may be:</span></span><br><span class="line"><span class="comment"> * CR4_PASSTHRU_BITS:</span></span><br><span class="line"><span class="comment"> *	Bits that may be passed through to guest. The actual passthru bits</span></span><br><span class="line"><span class="comment"> *	should be masked by flexible bits.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * CR4_TRAP_AND_PASSTHRU_BITS:</span></span><br><span class="line"><span class="comment"> *	The bits are trapped by HV and HV emulation will eventually write</span></span><br><span class="line"><span class="comment"> *	the guest value to physical CR4 (GUEST_CR4) too. The actual bits</span></span><br><span class="line"><span class="comment"> *	should be masked by flexible bits.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * CR4_TRAP_AND_EMULATE_BITS:</span></span><br><span class="line"><span class="comment"> *	The bits are trapped by HV and emulated, but HV updates vCR4 only</span></span><br><span class="line"><span class="comment"> *	(no update to physical CR4), i.e. pure software emulation.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * CR4_EMULATED_RESERVE_BITS:</span></span><br><span class="line"><span class="comment"> *	The bits are trapped, but are emulated by injecting a #GP.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">NOTE:</span> Above bits should not overlap.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CR0_TRAP_AND_PASSTHRU_BITS	(CR0_PE | CR0_PG | CR0_WP)</span></span><br></pre></td></tr></table></figure>
+<p>CR0_PG is trapped by HV and HV emulation will eventually write the guest value to physical CR0 (GUEST_CR0) too. Can we pass through CR0_PG to guest? The answer is no!</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> ((cr0_changed_bits &amp; CR0_PG) != <span class="number">0U</span>L) &#123;</span><br><span class="line">	<span class="comment">/* PG bit changes */</span></span><br><span class="line">	<span class="keyword">if</span> ((effective_cr0 &amp; CR0_PG) != <span class="number">0U</span>L) &#123;</span><br><span class="line">		<span class="comment">/* Enable paging */</span></span><br><span class="line">		<span class="keyword">if</span> ((vcpu_get_efer(vcpu) &amp; MSR_IA32_EFER_LME_BIT) != <span class="number">0U</span>L) &#123;</span><br><span class="line">			<span class="comment">/* Enable long mode */</span></span><br><span class="line">			pr_dbg(<span class="string">"VMM: Enable long mode"</span>);</span><br><span class="line">			entry_ctrls = exec_vmread32(VMX_ENTRY_CONTROLS);</span><br><span class="line">			entry_ctrls |= VMX_ENTRY_CTLS_IA32E_MODE;</span><br><span class="line">			exec_vmwrite32(VMX_ENTRY_CONTROLS, entry_ctrls);</span><br><span class="line"></span><br><span class="line">			vcpu_set_efer(vcpu, vcpu_get_efer(vcpu) | MSR_IA32_EFER_LMA_BIT);</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure>
+<p>Here’s the reason why we set the<code>VMX_ENTRY_CTLS_IA32E_MODE</code> and <code>MSR_IA32_EFER_LMA_BIT</code>.</p>
+<p><img src="/images/2020/12/5.PNG" alt></p>
+<p>Because the clear and set of CR0_PG bit has <strong>side effects</strong>, so need to trap CR0_PG bit.</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2020/12/01/VT-x-Relative-Priority-of-Faults-and-VM-Exits/">
+        <span class="next-text nav-default">VT-x:Relative Priority of Faults and VM Exits</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2020
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2020/12/26/Deep-into-CR0-CR4-in-VMX-operation/';
+        this.page.identifier = '2020/12/26/Deep-into-CR0-CR4-in-VMX-operation/';
+        this.page.title = 'Deep into CR0/CR4 in VMX operation';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
