@@ -322,7 +322,7 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> ((cr0_changed_bits &amp; CR0_PG) != <span class="number">0U</span>L) &#123;</span><br><span class="line">	<span class="comment">/* PG bit changes */</span></span><br><span class="line">	<span class="keyword">if</span> ((effective_cr0 &amp; CR0_PG) != <span class="number">0U</span>L) &#123;</span><br><span class="line">		<span class="comment">/* Enable paging */</span></span><br><span class="line">		<span class="keyword">if</span> ((vcpu_get_efer(vcpu) &amp; MSR_IA32_EFER_LME_BIT) != <span class="number">0U</span>L) &#123;</span><br><span class="line">			<span class="comment">/* Enable long mode */</span></span><br><span class="line">			pr_dbg(<span class="string">"VMM: Enable long mode"</span>);</span><br><span class="line">			entry_ctrls = exec_vmread32(VMX_ENTRY_CONTROLS);</span><br><span class="line">			entry_ctrls |= VMX_ENTRY_CTLS_IA32E_MODE;</span><br><span class="line">			exec_vmwrite32(VMX_ENTRY_CONTROLS, entry_ctrls);</span><br><span class="line"></span><br><span class="line">			vcpu_set_efer(vcpu, vcpu_get_efer(vcpu) | MSR_IA32_EFER_LMA_BIT);</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure>
 <p>Here’s the reason why we set the<code>VMX_ENTRY_CTLS_IA32E_MODE</code> and <code>MSR_IA32_EFER_LMA_BIT</code>.</p>
 <p><img src="/images/2020/12/5.PNG" alt></p>
-<p>If pass through CR0_PG to guest, while guest runs in non-root mode, hardware couldn’t update<code>VMX_ENTRY_CONTROLS</code> field. So we should trap CR0_PG, and HV(hypervisor) will  update<code>VMX_ENTRY_CONTROLS</code> field in root mode.</p>
+<p>If pass through CR0_PG to guest, while guest runs in non-root mode, hardware couldn’t update<code>VMX_ENTRY_CONTROLS</code> field. So we should trap CR0_PG, and HV will  update<code>VMX_ENTRY_CONTROLS</code> field in root mode.</p>
 <h3 id="3-Conclusion"><a href="#3-Conclusion" class="headerlink" title="3. Conclusion"></a>3. Conclusion</h3><p>If one bit has restriction in VMX operation or needs to do some operations in root mode, It’s better to trap(owned by host) this bit. </p>
 
       
@@ -352,6 +352,12 @@
         
         
   <nav class="post-nav">
+    
+      <a class="prev" href="/2021/01/21/每周分享第18期/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">每周分享第18期</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
     
     
       <a class="next" href="/2020/12/01/VT-x-Relative-Priority-of-Faults-and-VM-Exits/">
@@ -448,7 +454,7 @@
      
       2016 - 
     
-    2020
+    2021
 
     <span class="heart">
       <i class="iconfont icon-heart"></i>
