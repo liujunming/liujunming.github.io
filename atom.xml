@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-02-03T14:12:58.274Z</updated>
+  <updated>2021-02-04T16:52:15.138Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>虚拟化学习心得:learn from native</title>
+    <link href="http://liujunming.github.io/2021/02/04/%E8%99%9A%E6%8B%9F%E5%8C%96%E5%AD%A6%E4%B9%A0%E5%BF%83%E5%BE%97-learn-from-native/"/>
+    <id>http://liujunming.github.io/2021/02/04/虚拟化学习心得-learn-from-native/</id>
+    <published>2021-02-04T15:35:28.000Z</published>
+    <updated>2021-02-04T16:52:15.138Z</updated>
+    
+    <content type="html"><![CDATA[<p>在虚拟化场景下，遇到复杂的case，可能不知道如何处理。learn from native可能是一个突破口。何为native呢？本文指的是非虚拟化场景下，硬件的行为。<a id="more"></a></p><p>读者可能会觉得上面的话很抽象，本文将以一个例子阐述该思想。</p><h3 id="1-Background-behavior-in-native"><a href="#1-Background-behavior-in-native" class="headerlink" title="1. Background(behavior in native)"></a>1. Background(behavior in native)</h3><p>读者需要阅读<a href="/2021/02/03/Notes-about-instruction-boundaries/">Notes about instruction boundaries</a>。</p><blockquote><p>If more than one exception or interrupt is pending at an instruction boundary, the processor services them in a predictable order. Table 6-2 shows the priority among classes of exception and interrupt sources. </p></blockquote><p><img src="/images/2021/01/2.PNG" alt></p><p><img src="/images/2021/01/3.PNG" alt></p><blockquote><p>The processor first services a pending exception or interrupt from the class which has the highest priority, transferring execution to the first instruction of the handler. Lower priority exceptions are discarded; lower priority interrupts are held pending. Discarded exceptions are re-generated when the interrupt handler returns execution to the point in the program or task where the exceptions and/or interrupts occurred. </p></blockquote><p>SDM对于Simultaneous Exceptions and Interrupts 给出了描述。接下来将以一个具体的例子阐述相关知识点。</p><p>在native环境下，假设当前CPU会执行<code>rdmsr</code>指令，<code>rdmsr</code>指令的执行时间为5个cycle，并且<code>rmsmr</code>指令会产生#GP。当CPU执行<code>rdmsr</code>到第3个cycle时，外部设备向该CPU发送了一个Maskable Hardware Interrupt。那么，接下来的硬件行为是什么呢？</p><p>当CPU执行完<code>rdmsr</code>指令后，由于Maskable Hardware Interrupt的优先级高于#GP，因此CPU会丢弃#GP,优先处理Maskable Hardware Interrupt。当Maskable Hardware Interrupt处理完之后，硬件会re-generate  #GP。</p><h3 id="2-Is-Simultaneous-Exceptions-and-Interrupts-behavior-in-virtualization"><a href="#2-Is-Simultaneous-Exceptions-and-Interrupts-behavior-in-virtualization" class="headerlink" title="2. Is Simultaneous Exceptions and Interrupts?(behavior  in virtualization)"></a>2. Is Simultaneous Exceptions and Interrupts?(behavior  in virtualization)</h3><p>假设在虚拟化场景下：</p><ol><li>当前CPU只运行一个vCPU thread</li><li>当前CPU的LAPIC pass-thru给vCPU</li><li>在root mode下，hv会关中断</li><li>在non-root mode下，当vCPU执行<code>rdmsr</code>时，会发生VM Exit，hv将为vCPU注入#GP</li><li>在root下，当hv为vCPU注入#GP时，外部设备向该CPU发送了一个Maskable Hardware Interrupt</li></ol><p>那么，读者可以尝试回答如下问题：</p><p>在guest看来，Maskable Hardware Interrupt和#GP是Simultaneous Exceptions and Interrupts吗？</p><p>实验结果如下：当进入non-root mode后，vCPU会先处理#GP，然后处理Maskable Hardware Interrupt。由此可见，在guest看来，Maskable Hardware Interrupt和#GP<strong>不是</strong>Simultaneous Exceptions and Interrupts。</p><p>为什么？此时，learn from native的方案就派上用场了。在native环境下，Maskable Hardware Interrupt和#GP pending at an instruction boundary时，硬件才会将Maskable Hardware Interrupt和#GP当作Simultaneous Exceptions and Interrupts。在我们的这个例子中，当guest执行完<code>rdmsr</code>指令后，根据instruction boundary，以guest的视角来看，硬件会立刻为其注入#GP，而Maskable Hardware Interrupt是在guest执行完<code>rdmsr</code>指令后产生的，因此，在guest看来，Maskable Hardware Interrupt和#GP<strong>不是</strong>Simultaneous Exceptions and Interrupts。</p><h3 id="3-Rethinking"><a href="#3-Rethinking" class="headerlink" title="3. Rethinking"></a>3. Rethinking</h3><p>假设在虚拟化场景下：</p><ol><li>当前CPU只运行一个vCPU thread</li><li>当前CPU的LAPIC pass-thru给vCPU</li><li>在non-root mode下，当vCPU执行<code>rdmsr</code>时（执行时间为5个cycle），会发生VM Exit，hv将为vCPU注入#GP</li><li>在non-root mode下，当vCPU执行<code>rdmsr</code>到第3个cycle时时，外部设备向该CPU发送了一个Maskable Hardware Interrupt</li></ol><p>那么，读者可以尝试回答如下问题：</p><p>在guest看来，Maskable Hardware Interrupt和#GP是Simultaneous Exceptions and Interrupts吗？</p><p>利用learn from native的方案可知，在guest看来，Maskable Hardware Interrupt和#GP是Simultaneous Exceptions and Interrupts。</p><p>问题又来了，在虚拟化环境下，是如何保证Discarded exceptions are re-generated when the interrupt handler returns execution to the point in the program or task where the exceptions and/or interrupts occurred？</p><p>在non-root mode下，当vCPU处理完Maskable Hardware Interrupt后，RIP寄存器会保证vCPU再执行一次<code>rdmsr</code>指令，那么，就会发生VM Exit，hv会给vCPU 注入#GP。</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;在虚拟化场景下，遇到复杂的case，可能不知道如何处理。learn from native可能是一个突破口。何为native呢？本文指的是非虚拟化场景下，硬件的行为。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about instruction boundaries</title>
@@ -478,28 +502,6 @@
       <category term="VT-d" scheme="http://liujunming.github.io/tags/VT-d/"/>
     
       <category term="acrn" scheme="http://liujunming.github.io/tags/acrn/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Introduction to ept misconfig</title>
-    <link href="http://liujunming.github.io/2020/07/12/Introduction-to-ept-misconfig/"/>
-    <id>http://liujunming.github.io/2020/07/12/Introduction-to-ept-misconfig/</id>
-    <published>2020-07-12T09:01:48.000Z</published>
-    <updated>2020-08-30T01:17:15.245Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要记录ept misconfig的相关笔记。内容主要转载自<a href="http://happyseeker.github.io/kernel/2018/05/29/ept-misconfig.html" target="_blank" rel="noopener">EPT misconfig</a>。<br><a id="more"></a></p><h3 id="EPT-Voilation"><a href="#EPT-Voilation" class="headerlink" title="EPT Voilation"></a>EPT Voilation</h3><p>相当于EPT(扩展页表)的page fault，是一种特殊的硬件异常。当EPT中不存在指定GPA-&gt;HPA的映射时触发，硬件触发。</p><h3 id="EPT-misconfig"><a href="#EPT-misconfig" class="headerlink" title="EPT misconfig"></a>EPT misconfig</h3><p>本质上也是一种page fault，与EPT voilation不同(当page not present时触发)，EPT misconfig类似于 reserved bit set page fault，也就是说当页表项中的保留位设置时触发，也是硬件触发。</p><p>SDM中关于EPT misconfig的描述：</p><blockquote><p>An EPT misconfiguration occurs when, in the course of translating a guest-physical address, the logical processor encounters an EPT paging-structure entry that contains an unsupported value. An EPT violation occurs when there is no EPT misconfiguration but the EPT paging-structure entries disallow an access using the guest physical address.</p></blockquote><h3 id="EPT-misconfig用途"><a href="#EPT-misconfig用途" class="headerlink" title="EPT misconfig用途"></a>EPT misconfig用途</h3><p>EPT misconfig可以用来处理没有passed-through给Guest的mmio区域。</p><p>当首次访问某mmio page时，会触发EPT violation，KVM在EPT violation的处理过程中设置相应EPT entry中的保留位，然后在下一次再访问该page时，即会触发EPT misconfig。</p><p>详细步骤如下：</p><ol><li>QEMU declares a memory region(but not allocate ram or commit it to kvm)</li><li>Guest first access the MMIO address, cause a EPT violation VM-exit</li><li>KVM construct the EPT page table and marks the page table entry with special mark(110b)</li><li>Later the guest access these MMIO, it will be processed by EPT misconfig VM-exit handler</li></ol><hr><p>参考资料：</p><ol><li><a href="http://happyseeker.github.io/kernel/2018/05/29/ept-misconfig.html" target="_blank" rel="noopener">EPT misconfig</a></li><li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2018/09/03/kvm-mmio" target="_blank" rel="noopener">KVM MMIO implementation</a></li><li><a href="http://ningfxkvm.blogspot.com/2015/11/kvmept-exception.html" target="_blank" rel="noopener">KVM中的EPT Exception</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要记录ept misconfig的相关笔记。内容主要转载自&lt;a href=&quot;http://happyseeker.github.io/kernel/2018/05/29/ept-misconfig.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;EPT misconfig&lt;/a&gt;。&lt;br&gt;
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
