@@ -292,7 +292,7 @@
 
     <div class="post-content">
       
-        <p>在虚拟化场景下，遇到复杂的case，可能不知道如何处理。learn from native可能是一个突破口。何为native呢？本文指的是非虚拟化场景下，硬件的行为。<a id="more"></a></p>
+        <p>在虚拟化场景下，遇到复杂的case，可能不知道如何处理。learn from native可能是一个突破口。何为native呢？本文指的是非虚拟化场景下，该case的行为（读者需要清楚：什么operation由硬件完成，什么operation由软件完成）。<a id="more"></a></p>
 <p>读者可能会觉得上面的话很抽象，本文将以一个例子阐述该思想。</p>
 <h3 id="1-Background-behavior-in-native"><a href="#1-Background-behavior-in-native" class="headerlink" title="1. Background(behavior in native)"></a>1. Background(behavior in native)</h3><p>读者需要阅读<a href="/2021/02/03/Notes-about-instruction-boundaries/">Notes about instruction boundaries</a>。</p>
 <blockquote>
@@ -304,7 +304,7 @@
 <p>The processor first services a pending exception or interrupt from the class which has the highest priority, transferring execution to the first instruction of the handler. Lower priority exceptions are discarded; lower priority interrupts are held pending. Discarded exceptions are re-generated when the interrupt handler returns execution to the point in the program or task where the exceptions and/or interrupts occurred. </p>
 </blockquote>
 <p>SDM对于Simultaneous Exceptions and Interrupts 给出了描述。接下来将以一个具体的例子阐述相关知识点。</p>
-<p>在native环境下，假设当前CPU会执行<code>rdmsr</code>指令，<code>rdmsr</code>指令的执行时间为5个cycle，并且<code>rmsmr</code>指令会产生#GP。当CPU执行<code>rdmsr</code>到第3个cycle时，外部设备向该CPU发送了一个Maskable Hardware Interrupt。那么，接下来的硬件行为是什么呢？</p>
+<p>在native环境下，假设当前CPU会执行<code>rdmsr</code>指令，<code>rdmsr</code>指令的执行时间为5个cycle，并且<code>rdsmr</code>指令会产生#GP。当CPU执行<code>rdmsr</code>到第3个cycle时，外部设备向该CPU发送了一个Maskable Hardware Interrupt。那么，接下来的硬件行为是什么呢？</p>
 <p>当CPU执行完<code>rdmsr</code>指令后，由于Maskable Hardware Interrupt的优先级高于#GP，因此CPU会丢弃#GP,优先处理Maskable Hardware Interrupt。当Maskable Hardware Interrupt处理完之后，硬件会re-generate  #GP。</p>
 <h3 id="2-Is-Simultaneous-Exceptions-and-Interrupts-behavior-in-virtualization"><a href="#2-Is-Simultaneous-Exceptions-and-Interrupts-behavior-in-virtualization" class="headerlink" title="2. Is Simultaneous Exceptions and Interrupts?(behavior  in virtualization)"></a>2. Is Simultaneous Exceptions and Interrupts?(behavior  in virtualization)</h3><p>假设在虚拟化场景下：</p>
 <ol>
