@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-02-18T13:44:19.018Z</updated>
+  <updated>2021-03-20T12:19:16.876Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>虚拟化学习心得:three context</title>
+    <link href="http://liujunming.github.io/2021/03/20/%E8%99%9A%E6%8B%9F%E5%8C%96%E5%AD%A6%E4%B9%A0%E5%BF%83%E5%BE%97-three-context/"/>
+    <id>http://liujunming.github.io/2021/03/20/虚拟化学习心得-three-context/</id>
+    <published>2021-03-20T11:40:49.000Z</published>
+    <updated>2021-03-20T12:19:16.876Z</updated>
+    
+    <content type="html"><![CDATA[<p>在虚拟化的学习过程中，对于特权资源，必须知道三个 context: virtual context, shadow context and physical context。同时需要具有如下两个mindsets:</p><ol><li>Know what is done by hardware, what is done by software</li><li>Know what is done in root mode, what is done in non-root mode<a id="more"></a></li></ol><p>详细的讲解可以参考<a href="/pdf/virtualization_basic_concept_discussion.pdf">Basic Concepts of Virtualization</a>。若有疑问，可邮箱联系作者：<a href="mailto:ljm0910@mail.ustc.edu.cn" target="_blank" rel="noopener">ljm0910@mail.ustc.edu.cn</a>。</p><p>看完slides后，读者可以尝试回答:The motivation of MSR area mechanism?</p><p>Answer:<br>Let’s take MSR_IA32_TSC_AUX as an example. We need its virtual context is different from physical context. If shadow context equals physical context, Each time guest wants to read this MSR, VM Exit needs to happen(read MSR maybe a frequent operation). This method may impact system performance.</p><p>So it is better to use guest/host field in the MSR area for performance. BTW, use guest/host field in the MSR area, the shadow context can be different from the physical context. So we don’t need to trap MSR_IA32_TSC_AUX.  So, MSR area mechanism is to provide host/guest field to the MSR, the hypervisor can use this host/guest field to separate shadow context from physical context.</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;在虚拟化的学习过程中，对于特权资源，必须知道三个 context: virtual context, shadow context and physical context。同时需要具有如下两个mindsets:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Know what is done by hardware, what is done by software&lt;/li&gt;
+&lt;li&gt;Know what is done in root mode, what is done in non-root mode
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
+    
+  </entry>
   
   <entry>
     <title>高级操作系统-清华大学-陈渝</title>
@@ -472,30 +499,6 @@
     
     
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Some notes about CVE-2018-12207</title>
-    <link href="http://liujunming.github.io/2020/09/30/Some-notes-about-CVE-2018-12207/"/>
-    <id>http://liujunming.github.io/2020/09/30/Some-notes-about-CVE-2018-12207/</id>
-    <published>2020-09-30T12:10:05.000Z</published>
-    <updated>2020-10-07T17:01:32.903Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要是对<a href="https://software.intel.com/security-software-guidance/api-app/insights/deep-dive-machine-check-error-avoidance-page-size-change" target="_blank" rel="noopener">CVE-2018-12207</a>做相关的background补充。原文写的相当好，建议详读。<a id="more"></a></p><h3 id="Description-of-errata"><a href="#Description-of-errata" class="headerlink" title="Description of errata"></a>Description of errata</h3><p>Software sequences that may lead to machine check error code 0150H can be summarized as follows:</p><ol><li>Code is fetched from a linear address translated using a 4 KB translation cached in the ITLB.</li><li>Software modifies the paging structures so that the same linear address is translated using a large page (2 MB, 4 MB, or 1 GB) with a different physical address or memory type.</li><li>After the paging structure modification, but before software invalidates any ITLB entries for the linear address, code fetch happens again on the same linear address.</li><li>This may cause a machine-check error (IA32_MCi_STATUS.MCACOD=150H), which can result in a system hang or shutdown.</li></ol><h3 id="extension1"><a href="#extension1" class="headerlink" title="extension1"></a>extension1</h3><p>The VMM can use Extended Page Tables (EPT) to enforce that each guest physical address is 4 KB in size and that guest software cannot change the hardware page size for translations.</p><blockquote><p>For correctness, the TLB must consider the page size for a given translation to be the smaller of the nested and guest page sizes.</p></blockquote><p>From ASPLOS’08 《Accelerating Two-Dimensional Page Walks》2.4 Large Page Size。</p><h3 id="extension2"><a href="#extension2" class="headerlink" title="extension2"></a>extension2</h3><p>The sequence above requires bit 10 (Execute access for user-mode linear address) to be treated in the same manner as bit 2 when mode-based execution controls are active (the mode-based execute control for EPT feature is present and the VM execution control is set to 1).</p><ul><li><p>各级页表项的第2位为X (eXecute)，取1表示可执行</p><ul><li>若Secondary Processor-Based VM-Execution Controls.Mode-based execute control for EPT[bit 22]取1，则该位取1仅表示对于Guest的内核页可执行，不表示对于Guest的用户页可执行</li></ul></li><li><p>各级页表项的第10位为XU (eXecute for User)，取1表示对于Guest的用户页可执行</p><ul><li>仅当Secondary Processor-Based VM-Execution Controls.Mode-based execute control for EPT[bit 22]取1时有效，否则该位会被忽略</li></ul></li></ul><p>From <a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch28/" target="_blank" rel="noopener">Intel SDM Chapter 28: VMX Support for Address Translation</a></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要是对&lt;a href=&quot;https://software.intel.com/security-software-guidance/api-app/insights/deep-dive-machine-check-error-avoidance-page-size-change&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;CVE-2018-12207&lt;/a&gt;做相关的background补充。原文写的相当好，建议详读。
-    
-    </summary>
-    
-      <category term="Security" scheme="http://liujunming.github.io/categories/Security/"/>
-    
-    
-      <category term="内存管理" scheme="http://liujunming.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
     
       <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
     
