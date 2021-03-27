@@ -315,7 +315,7 @@
 </li>
 </ol>
 <h3 id="tss-介绍"><a href="#tss-介绍" class="headerlink" title="tss 介绍"></a>tss 介绍</h3><blockquote>
-<p>tss保存不同特权级别下任务所使用的寄存器，特别重要的是esp，因为比如中断后，涉及特权级切换时(一个任务切换)，首先要切换栈，这个栈显然是内核栈，那么如何找到该栈的地址呢，这需要从tss段中得到，这样后续的执行才有所依托(在x86机器上，c语言的函数调用是通过栈实现的)。只要涉及地特权环到高特权环的任务切换，都需要找到高特权环对应的栈，因此需要esp2，esp1，esp0起码三个esp，然而linux只使用esp0。</p>
+<p>tss保存不同特权级别下任务所使用的寄存器，特别重要的是esp，因为比如中断后，涉及特权级切换时(一个任务切换)，首先要切换栈，这个栈显然是内核栈，那么如何找到该栈的地址呢，这需要从tss段中得到，这样后续的执行才有所依托(在x86机器上，c语言的函数调用是通过栈实现的)。只要涉及低特权环到高特权环的任务切换，都需要找到高特权环对应的栈，因此需要esp2，esp1，esp0起码三个esp，然而linux只使用esp0。</p>
 </blockquote>
 <h3 id="Intel-sdm-vs-linux-kernel"><a href="#Intel-sdm-vs-linux-kernel" class="headerlink" title="Intel sdm vs linux kernel"></a>Intel sdm vs linux kernel</h3><h4 id="intel"><a href="#intel" class="headerlink" title="intel"></a>intel</h4><p>intel的建议：为每一个进程准备一个独立的tss段，进程切换的时候切换tr寄存器使之指向该进程对应的tss段，然后在任务切换时(比如涉及特权级切换的中断)使用该段保留所有的寄存器。</p>
 <h4 id="linux-kernel"><a href="#linux-kernel" class="headerlink" title="linux kernel"></a>linux kernel</h4><p>linux的做法：</p>
