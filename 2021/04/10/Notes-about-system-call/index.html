@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about system call">
+
+
+
+
+  <meta name="keywords" content="操作系统, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/04/10/Notes-about-system-call/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about system call - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about system call
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-04-10
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/操作系统/">操作系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-基础知识"><span class="toc-text">1. 基础知识</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-syscall-vs-sysenter-vs-int-0x80"><span class="toc-text">2. syscall vs sysenter vs int 0x80</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-vDSO-virtual-dynamic-shared-object"><span class="toc-text">3. vDSO(virtual dynamic shared object)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-Introduction"><span class="toc-text">3.1 Introduction</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-Virtual-dynamic-shared-object"><span class="toc-text">3.2 Virtual dynamic shared object</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-Vsyscall"><span class="toc-text">3.3 Vsyscall</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-extension"><span class="toc-text">4. extension</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文主要汇总system call相关资料。<a id="more"></a></p>
+<h3 id="1-基础知识"><a href="#1-基础知识" class="headerlink" title="1. 基础知识"></a>1. 基础知识</h3><p>建议阅读<a href="https://cs.lmu.edu/~ray/notes/syscalls/" target="_blank" rel="noopener">ray的notes</a>，并编译运行里面的程序。</p>
+<p><a href="/pdf/syscall/System Calls.pdf">ray’s notes</a></p>
+<p><a href="/pdf/syscall/Linux System Call Table for x86 64 · Ryan A. Chapman.pdf">LINUX SYSTEM CALL TABLE FOR X86 64</a></p>
+<h3 id="2-syscall-vs-sysenter-vs-int-0x80"><a href="#2-syscall-vs-sysenter-vs-int-0x80" class="headerlink" title="2. syscall vs sysenter vs int 0x80"></a>2. syscall vs sysenter vs int 0x80</h3><blockquote>
+<ul>
+<li><code>syscall</code> is the default way of entering kernel mode on <code>x86-64</code>. This instruction is not available in 32 bit modes of operation <em>on Intel processors</em>.</li>
+<li><code>sysenter</code> is an instruction most frequently used to invoke system calls in 32 bit modes of operation. It is similar to <code>syscall</code>, a bit more difficult to use though, but that is the kernel’s concern.</li>
+<li><code>int 0x80</code> is a legacy way to invoke a system call and should be avoided.</li>
+</ul>
+</blockquote>
+<p><a href="https://stackoverflow.com/questions/12806584/what-is-better-int-0x80-or-syscall-in-32-bit-code-on-linux" target="_blank" rel="noopener">What is better “int 0x80” or “syscall” in 32-bit code on Linux?</a></p>
+<p>传统的int 0x80有点慢, Intel实现了sysenter和syscall, 即所谓的快速系统调用指令, 使用它们更快。</p>
+<h3 id="3-vDSO-virtual-dynamic-shared-object"><a href="#3-vDSO-virtual-dynamic-shared-object" class="headerlink" title="3. vDSO(virtual dynamic shared object)"></a>3. vDSO(virtual dynamic shared object)</h3><p>首先运行几个指令，给读者直观地展示vDSO，测试环境为64-bit Linux。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">acrn@acrn:/proc$ cat /proc/self/maps | tail -2</span><br><span class="line">7ffe0ce1b000-7ffe0ce1d000 r-xp 00000000 00:00 0                          [vdso]</span><br><span class="line">ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]</span><br><span class="line">acrn@acrn:/proc$ cat /proc/self/maps | tail -2</span><br><span class="line">7ffc9c356000-7ffc9c358000 r-xp 00000000 00:00 0                          [vdso]</span><br><span class="line">ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]</span><br></pre></td></tr></table></figure>
+<p>Note that the vDSO area has moved, while the vsyscall page remains at the same location. The location of the vsyscall page is nailed down in the kernel ABI, but the vDSO area - like most other areas in the user-space memory layout - has its location randomized every time it is mapped.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">acrn@acrn:/proc$ ldd /bin/sh</span><br><span class="line">        linux-vdso.so.1 =&gt;  (0x00007ffc03ffd000)</span><br><span class="line">        libc.so.6 =&gt; /lib/x86_64-linux-gnu/libc.so.6 (0x00007f2d40401000)</span><br><span class="line">        /lib64/ld-linux-x86-64.so.2 (0x00007f2d409f3000)</span><br></pre></td></tr></table></figure>
+<p><code>linux-vdso.so.1</code> is a virtual shared object that doesn’t have any physical file on the disk; it’s a part of the kernel that’s exported into every program’s address space when it’s loaded.</p>
+<p>For a more detailed description, <code>man vdso</code></p>
+<p><a href="https://en.wikipedia.org/wiki/VDSO" target="_blank" rel="noopener">wikipedia</a>较好地介绍了vDSO。</p>
+<h4 id="3-1-Introduction"><a href="#3-1-Introduction" class="headerlink" title="3.1 Introduction"></a>3.1 Introduction</h4><blockquote>
+<p><strong>vDSO (virtual dynamic shared object)</strong> is a kernel mechanism for exporting a carefully selected set of kernel space routines to user space applications so that applications can call these kernel space routines in-process, without incurring the performance penalty of a mode switch from user mode to kernel mode that is inherent when calling these same kernel space routines by means of the system call interface.</p>
+</blockquote>
+<h4 id="3-2-Virtual-dynamic-shared-object"><a href="#3-2-Virtual-dynamic-shared-object" class="headerlink" title="3.2 Virtual dynamic shared object"></a>3.2 Virtual dynamic shared object</h4><blockquote>
+<p>vDSO uses standard mechanisms for linking and loading i.e. standard Executable and Linkable Format (ELF) format. vDSO is a memory area allocated in user space which exposes some kernel functionalities. vDSO is dynamically allocated, offers improved safety through address space layout randomization, and supports more than 4 system calls. Some C standard libraries, like glibc, may provide vDSO links so that if the kernel does not have vDSO support, a traditional syscall is made. vDSO helps to reduce the calling overhead on simple kernel routines, and it also can work as a way to select the best system-call method on some computer architectures such as IA-32. </p>
+</blockquote>
+<h4 id="3-3-Vsyscall"><a href="#3-3-Vsyscall" class="headerlink" title="3.3 Vsyscall"></a>3.3 Vsyscall</h4><blockquote>
+<p>DSO was developed to offer the vsyscall features while overcoming its limitations: a small amount of statically allocated memory, which allows only 4 system calls, and the same addresses application binary interface (ABI) in each process, which compromises security. This security issue has been mitigated by emulating a virtual system call, but the emulation introduces additional latency.</p>
+</blockquote>
+<h3 id="4-extension"><a href="#4-extension" class="headerlink" title="4. extension"></a>4. extension</h3><p>Linux内核中system call的实现，以及vDSO的具体实现较为复杂，本文不会介绍相关内容。读者若有兴趣，可以参阅本文引用的链接。当然，读者可以结合源码以及相关资料去学习具体的实现细节。</p>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://lwn.net/Articles/446528/" target="_blank" rel="noopener">On vsyscalls and the vDSO</a></li>
+<li><a href="https://stackoverflow.com/questions/58657036/where-is-linux-vdso-so-1-present-on-the-file-system" target="_blank" rel="noopener">Where is linux-vdso.so.1 present on the file system</a></li>
+<li><a href="https://stackoverflow.com/questions/19938324/what-are-vdso-and-vsyscall" target="_blank" rel="noopener">What are vdso and vsyscall?</a></li>
+<li><a href="https://blog.csdn.net/luozhaotian/article/details/79609077" target="_blank" rel="noopener">VDSO与vsyscall</a></li>
+<li><a href="https://blog.packagecloud.io/eng/2017/03/08/system-calls-are-much-slower-on-ec2/" target="_blank" rel="noopener">Two frequently used system calls are ~77% slower on AWS EC2</a></li>
+<li><a href="https://blog.packagecloud.io/eng/2016/04/05/the-definitive-guide-to-linux-system-calls/" target="_blank" rel="noopener">The Definitive Guide to Linux System Calls</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/操作系统/">操作系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/04/01/The-usage-of-byte-in-GAS/">
+        <span class="next-text nav-default">The usage of .byte in GAS</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/04/10/Notes-about-system-call/';
+        this.page.identifier = '2021/04/10/Notes-about-system-call/';
+        this.page.title = 'Notes about system call';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
