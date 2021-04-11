@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="How to use x64 RIP-relative addressing">
+  <meta name="description" content="每周分享第22期">
 
 
 
 
-  <meta name="keywords" content="计算机编程, L">
+  <meta name="keywords" content="经验, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2021/04/11/How-to-use-x64-RIP-addressing/">
+<link rel="canonical" href="http://liujunming.github.io/2021/04/11/每周分享第22期/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> How to use x64 RIP-relative addressing - L </title>
+    <title> 每周分享第22期 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,7 +260,7 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          How to use x64 RIP-relative addressing
+          每周分享第22期
         
       </h1>
 
@@ -271,7 +271,7 @@
         
           <span class="post-category">
             
-              <a href="/categories/计算机编程/">计算机编程</a>
+              <a href="/categories/经验/">经验</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Introduction"><span class="toc-text">1. Introduction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Example"><span class="toc-text">2. Example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Extension"><span class="toc-text">3. Extension</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#gitub-代码片段链接"><span class="toc-text">gitub 代码片段链接</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#hard-copy"><span class="toc-text">hard-copy</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#IT-圈里有哪些经常被读错的词？"><span class="toc-text">IT 圈里有哪些经常被读错的词？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#操作系统实验最全学习资料（xv6、ucore）等"><span class="toc-text">操作系统实验最全学习资料（xv6、ucore）等</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#rfc-patch"><span class="toc-text">rfc patch</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#使用VGA显示字符串"><span class="toc-text">使用VGA显示字符串</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#社会工程学"><span class="toc-text">社会工程学</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#城市规划局"><span class="toc-text">城市规划局</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#海天一洲"><span class="toc-text">海天一洲</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#职场心得：灵性，悟性，积极性"><span class="toc-text">职场心得：灵性，悟性，积极性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#舟山旅游心得"><span class="toc-text">舟山旅游心得</span></a></li></ol>
     </div>
   </div>
 
@@ -292,28 +292,19 @@
 
     <div class="post-content">
       
-        <p>本文将介绍x64 RIP-relative addressing的使用方法。<a id="more"></a></p>
-<h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><blockquote>
-<p>RIP-relative addressing: this is new for x64 and allows accessing data tables and such in the code relative to the current instruction pointer, making position independent code easier to implement.</p>
-</blockquote>
-<p>position independent code的相关内容较为复杂，本文不会介绍，后续会推出系列文章介绍该部分内容。</p>
-<h3 id="2-Example"><a href="#2-Example" class="headerlink" title="2. Example"></a>2. Example</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"># ----------------------------------------------------------------------------------------</span><br><span class="line"># Writes &quot;Hello, World&quot; to the console using only system calls. Runs on 64-bit Linux only.</span><br><span class="line"># To assemble and run:</span><br><span class="line">#</span><br><span class="line">#     gcc -c hello.s &amp;&amp; ld hello.o &amp;&amp; ./a.out</span><br><span class="line">#</span><br><span class="line"># or</span><br><span class="line">#</span><br><span class="line">#     gcc -nostdlib hello.s &amp;&amp; ./a.out</span><br><span class="line"># ----------------------------------------------------------------------------------------</span><br><span class="line"></span><br><span class="line">        .global _start</span><br><span class="line"></span><br><span class="line">        .text</span><br><span class="line">_start:</span><br><span class="line">        # write(1, message, 13)</span><br><span class="line">        mov     $1, %rax                # system call 1 is write</span><br><span class="line">        mov     $1, %rdi                # file handle 1 is stdout</span><br><span class="line">        lea 	message(%rip), %rsi	# address of string to output</span><br><span class="line">        mov     $13, %rdx               # number of bytes</span><br><span class="line">        syscall                         # invoke operating system to do the write</span><br><span class="line"></span><br><span class="line">        # exit(0)</span><br><span class="line">        mov     $60, %rax               # system call 60 is exit</span><br><span class="line">        xor     %rdi, %rdi              # we want return code 0</span><br><span class="line">        syscall                         # invoke operating system to exit</span><br><span class="line">message:</span><br><span class="line">        .ascii  &quot;Hello, world\n&quot;</span><br></pre></td></tr></table></figure>
-<p><code>lea     message(%rip), %rsi</code>就使用了x64 RIP-relative addressing。</p>
-<blockquote>
-<p>AT&amp;T: ‘symbol(%rip)’, Intel: ‘[rip + symbol]’<br>Points to the symbol in RIP relative way.</p>
-</blockquote>
-<h3 id="3-Extension"><a href="#3-Extension" class="headerlink" title="3. Extension"></a>3. Extension</h3><p>Intel SDM Vol2 2.2.1.6 RIP-Relative Addressing</p>
-<blockquote>
-<p>A new addressing form, RIP-relative (relative instruction-pointer) addressing, is implemented in 64-bit mode. An effective address is formed by adding displacement to the 64-bit RIP of the next instruction.</p>
-</blockquote>
-<p>想了解更多细节的话，请查阅SDM。</p>
-<hr>
-<p>参考资料:</p>
-<ol>
-<li><a href="https://sourceware.org/binutils/docs/as/i386_002dMemory.html" target="_blank" rel="noopener">Memory References</a></li>
-<li><a href="https://software.intel.com/content/www/us/en/develop/articles/introduction-to-x64-assembly.html" target="_blank" rel="noopener">Introduction to x64 Assembly</a></li>
-<li><a href="https://stackoverflow.com/questions/3250277/how-to-use-rip-relative-addressing-in-a-64-bit-assembly-program" target="_blank" rel="noopener">How to use RIP Relative Addressing in a 64-bit assembly program?</a></li>
-<li><a href="https://www.polarxiong.com/archives/x64%E4%B8%8BPIC%E7%9A%84%E6%96%B0%E5%AF%BB%E5%9D%80%E6%96%B9%E5%BC%8F-RIP%E7%9B%B8%E5%AF%B9%E5%AF%BB%E5%9D%80.html" target="_blank" rel="noopener">x64下PIC的新寻址方式：RIP相对寻址</a></li>
+        <h3 id="gitub-代码片段链接"><a href="#gitub-代码片段链接" class="headerlink" title="gitub 代码片段链接"></a>gitub 代码片段链接</h3><p><a href="https://github.com/projectacrn/acrn-hypervisor/blob/master/devicemodel/hw/pci/gvt.c#L53-L65" target="_blank" rel="noopener">https://github.com/projectacrn/acrn-hypervisor/blob/master/devicemodel/hw/pci/gvt.c#L53-L65</a><a id="more"></a></p>
+<h3 id="hard-copy"><a href="#hard-copy" class="headerlink" title="hard-copy"></a>hard-copy</h3><p>A hard copy (or “hardcopy”) is a printed copy of information from a computer.</p>
+<h3 id="IT-圈里有哪些经常被读错的词？"><a href="#IT-圈里有哪些经常被读错的词？" class="headerlink" title="IT 圈里有哪些经常被读错的词？"></a>IT 圈里有哪些经常被读错的词？</h3><p><a href="https://www.zhihu.com/question/19739907" target="_blank" rel="noopener">https://www.zhihu.com/question/19739907</a></p>
+<h3 id="操作系统实验最全学习资料（xv6、ucore）等"><a href="#操作系统实验最全学习资料（xv6、ucore）等" class="headerlink" title="操作系统实验最全学习资料（xv6、ucore）等"></a>操作系统实验最全学习资料（xv6、ucore）等</h3><p><a href="https://mp.weixin.qq.com/s?__biz=Mzg4NjUxMzg5MA==&amp;mid=100004327&amp;idx=1&amp;sn=f0354f86bc655e7998cf3ccc735add3e&amp;chksm=4f99d86a78ee517c252dce904796640d5edc0f3abc0567939df02bf3a395d92d21cde42910b8#rd" target="_blank" rel="noopener">https://mp.weixin.qq.com/s?__biz=Mzg4NjUxMzg5MA==&amp;mid=100004327&amp;idx=1&amp;sn=f0354f86bc655e7998cf3ccc735add3e&amp;chksm=4f99d86a78ee517c252dce904796640d5edc0f3abc0567939df02bf3a395d92d21cde42910b8#rd</a></p>
+<h3 id="rfc-patch"><a href="#rfc-patch" class="headerlink" title="rfc patch"></a>rfc patch</h3><p><a href="https://git-scm.com/docs/git-format-patch" target="_blank" rel="noopener">https://git-scm.com/docs/git-format-patch</a></p>
+<p>RFC means “Request For Comments”; use this when sending an experimental patch for discussion rather than application.</p>
+<h3 id="使用VGA显示字符串"><a href="#使用VGA显示字符串" class="headerlink" title="使用VGA显示字符串"></a>使用VGA显示字符串</h3><p><a href="https://blog.csdn.net/whimewcm/article/details/83155026" target="_blank" rel="noopener">https://blog.csdn.net/whimewcm/article/details/83155026</a></p>
+<h3 id="社会工程学"><a href="#社会工程学" class="headerlink" title="社会工程学"></a>社会工程学</h3><p><a href="https://zh.wikipedia.org/wiki/%E7%A4%BE%E4%BC%9A%E5%B7%A5%E7%A8%8B%E5%AD%A6" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/%E7%A4%BE%E4%BC%9A%E5%B7%A5%E7%A8%8B%E5%AD%A6</a></p>
+<h3 id="城市规划局"><a href="#城市规划局" class="headerlink" title="城市规划局"></a>城市规划局</h3><p><a href="http://www.zgghw.org.cn/" target="_blank" rel="noopener">http://www.zgghw.org.cn/</a></p>
+<h3 id="海天一洲"><a href="#海天一洲" class="headerlink" title="海天一洲"></a>海天一洲</h3><p><a href="https://baike.baidu.com/item/%E6%B5%B7%E5%A4%A9%E4%B8%80%E6%B4%B2" target="_blank" rel="noopener">https://baike.baidu.com/item/%E6%B5%B7%E5%A4%A9%E4%B8%80%E6%B4%B2</a></p>
+<h3 id="职场心得：灵性，悟性，积极性"><a href="#职场心得：灵性，悟性，积极性" class="headerlink" title="职场心得：灵性，悟性，积极性"></a>职场心得：灵性，悟性，积极性</h3><h3 id="舟山旅游心得"><a href="#舟山旅游心得" class="headerlink" title="舟山旅游心得"></a>舟山旅游心得</h3><ol>
+<li>若想去东极岛，提前三天，早上五点，公众号(舟山海星轮船)上抢票</li>
+<li>舟山新区交通公众号可以购买不少船票</li>
 </ol>
 
       
@@ -334,7 +325,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/计算机编程/">计算机编程</a>
+              <a href="/tags/经验/">经验</a>
             
           </div>
         
@@ -342,15 +333,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2021/04/11/每周分享第22期/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">每周分享第22期</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2021/04/10/Notes-about-system-call/">
-        <span class="next-text nav-default">Notes about system call</span>
+      <a class="next" href="/2021/04/11/How-to-use-x64-RIP-addressing/">
+        <span class="next-text nav-default">How to use x64 RIP-relative addressing</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -463,9 +448,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2021/04/11/How-to-use-x64-RIP-addressing/';
-        this.page.identifier = '2021/04/11/How-to-use-x64-RIP-addressing/';
-        this.page.title = 'How to use x64 RIP-relative addressing';
+        this.page.url = 'http://liujunming.github.io/2021/04/11/每周分享第22期/';
+        this.page.identifier = '2021/04/11/每周分享第22期/';
+        this.page.title = '每周分享第22期';
     };
     (function() {
     var d = document, s = d.createElement('script');
