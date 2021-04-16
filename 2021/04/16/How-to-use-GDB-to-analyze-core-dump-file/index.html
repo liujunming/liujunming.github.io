@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="How to use GDB to analyze core dump file">
+
+
+
+
+  <meta name="keywords" content="debug, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/04/16/How-to-use-GDB-to-analyze-core-dump-file/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> How to use GDB to analyze core dump file - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          How to use GDB to analyze core dump file
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-04-16
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/debug/">debug</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-core-dump的基本概念"><span class="toc-text">1. core dump的基本概念</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-启用core-dump"><span class="toc-text">2. 启用core dump</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-设置-core-文件的存储目录和命名格式"><span class="toc-text">3. 设置 core 文件的存储目录和命名格式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-如何判断一个文件是coredump文件？"><span class="toc-text">4. 如何判断一个文件是coredump文件？</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-method1"><span class="toc-text">4.1 method1</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-method2"><span class="toc-text">4.2 method2</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Example"><span class="toc-text">5. Example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-material"><span class="toc-text">6. material</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍core dump的相关内容，最后以一个具体的例子来展示:使用GDB解析core dump的基本用法。<br><a id="more"></a></p>
+<h3 id="1-core-dump的基本概念"><a href="#1-core-dump的基本概念" class="headerlink" title="1. core dump的基本概念"></a>1. core dump的基本概念</h3><blockquote>
+<p>A core dump is the recorded state of the working memory of a computer program at a specific time, generally when the program has terminated abnormally (crashed). In practice, other key pieces of program state are usually dumped at the same time, including the processor registers, which may include the program counter and stack pointer, memory management information, and other processor and operating system flags and information. </p>
+</blockquote>
+<h3 id="2-启用core-dump"><a href="#2-启用core-dump" class="headerlink" title="2. 启用core dump"></a>2. 启用core dump</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">acrn@acrn:~$ help ulimit</span><br><span class="line">    Options:</span><br><span class="line">      -c        the maximum size of core files created</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ulimit -c unlimited</span><br></pre></td></tr></table></figure>
+<h3 id="3-设置-core-文件的存储目录和命名格式"><a href="#3-设置-core-文件的存储目录和命名格式" class="headerlink" title="3. 设置 core 文件的存储目录和命名格式"></a>3. 设置 core 文件的存储目录和命名格式</h3><p>设置 core 的存储目录和命名格式，主要是修改配置文件 <code>/proc/sys/kernel/core_pattern</code>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> 1. 默认在当前程序执行目录下生成，core-程序名-程序pid-时间 [core-test-3451-1516257740]</span><br><span class="line">echo "core-%e-%p-%t" &gt; /proc/sys/kernel/core_pattern</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span> 2. 添加路径，可以把所有的 core 集中到一个文件夹里 [把所有的core文件放到 /root/core-file 目录下]</span><br><span class="line">echo "/root/core-file/core-%e-%p-%t" &gt; /proc/sys/kernel/core_pattern</span><br></pre></td></tr></table></figure>
+<p>为什么会有设置core文件存储目录这个需求呢？答案是：如果程序中调用了<code>chdir</code>函数，则有可能改变了当前工作目录。这时core文件创建在<code>chdir</code>指定的路径下。</p>
+<p>为什么会有设置core文件命名格式的需求呢？答案是：内核在coredump时所产生的core文件放在与该程序相同的目录中，并且文件名固定为<em>core</em>。很显然，如果有多个程序产生core文件，或者同一个程序多次崩溃，就会重复覆盖同一个core文件，因此我们有必要对不同程序生成的core文件分别命名。</p>
+<h3 id="4-如何判断一个文件是coredump文件？"><a href="#4-如何判断一个文件是coredump文件？" class="headerlink" title="4. 如何判断一个文件是coredump文件？"></a>4. 如何判断一个文件是coredump文件？</h3><h4 id="4-1-method1"><a href="#4-1-method1" class="headerlink" title="4.1 method1"></a>4.1 method1</h4><p>在Linux系统下，coredump文件本身是ELF格式的，因此，我们可以通过<code>readelf</code>命令进行判断。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">acrn@acrn:~/test$ readelf -h core</span><br><span class="line">ELF Header:</span><br><span class="line">  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00</span><br><span class="line">  Class:                             ELF64</span><br><span class="line">  Data:                              2&apos;s complement, little endian</span><br><span class="line">  Version:                           1 (current)</span><br><span class="line">  OS/ABI:                            UNIX - System V</span><br><span class="line">  ABI Version:                       0</span><br><span class="line">  Type:                              CORE (Core file)</span><br></pre></td></tr></table></figure>
+<p>可以看到ELF文件头的Type字段的类型是：<code>CORE (Core file)</code></p>
+<h4 id="4-2-method2"><a href="#4-2-method2" class="headerlink" title="4.2 method2"></a>4.2 method2</h4><p>通过简单的file命令进行快速判断：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">acrn@acrn:~/test$ file core</span><br><span class="line">core: ELF 64-bit LSB core file x86-64, version 1 (SYSV), SVR4-style, from &apos;./a.out&apos;</span><br></pre></td></tr></table></figure>
+<p><code>core file</code></p>
+<h3 id="5-Example"><a href="#5-Example" class="headerlink" title="5. Example"></a>5. Example</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// FILE：test.c</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">repeatFree</span><span class="params">(<span class="keyword">char</span> *p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="literal">NULL</span> != p)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">free</span>(p);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">char</span>* pstr =(<span class="keyword">char</span>*) <span class="built_in">malloc</span>(<span class="number">10</span>);</span><br><span class="line"></span><br><span class="line">    repeatFree(pstr); <span class="comment">// 第一次释放</span></span><br><span class="line"></span><br><span class="line">    repeatFree(pstr); <span class="comment">// 第二次释放</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">acrn@acrn:~/test$ gcc -g test.c -o test</span><br><span class="line">acrn@acrn:~/test$ ./test</span><br><span class="line">*** Error in `./test&apos;: double free or corruption (fasttop): 0x000000000164c010 ***</span><br><span class="line">======= Backtrace: =========</span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6(+0x777e5)[0x7fb1be3fb7e5]</span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6(+0x8037a)[0x7fb1be40437a]</span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6(cfree+0x4c)[0x7fb1be40853c]</span><br><span class="line">./test[0x400585]</span><br><span class="line">./test[0x4005b6]</span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf0)[0x7fb1be3a4830]</span><br><span class="line">./test[0x400499]</span><br><span class="line">======= Memory map: ========</span><br><span class="line">00400000-00401000 r-xp 00000000 103:02 3938165                           /home/acrn/test/test</span><br><span class="line">00600000-00601000 r--p 00000000 103:02 3938165                           /home/acrn/test/test</span><br><span class="line">00601000-00602000 rw-p 00001000 103:02 3938165                           /home/acrn/test/test</span><br><span class="line">0164c000-0166d000 rw-p 00000000 00:00 0                                  [heap]</span><br><span class="line">7fb1b8000000-7fb1b8021000 rw-p 00000000 00:00 0</span><br><span class="line">7fb1b8021000-7fb1bc000000 ---p 00000000 00:00 0</span><br><span class="line">7fb1be16e000-7fb1be184000 r-xp 00000000 103:02 8917652                   /lib/x86_64-linux-gnu/libgcc_s.so.1</span><br><span class="line">7fb1be184000-7fb1be383000 ---p 00016000 103:02 8917652                   /lib/x86_64-linux-gnu/libgcc_s.so.1</span><br><span class="line">7fb1be383000-7fb1be384000 rw-p 00015000 103:02 8917652                   /lib/x86_64-linux-gnu/libgcc_s.so.1</span><br><span class="line">7fb1be384000-7fb1be544000 r-xp 00000000 103:02 8913417                   /lib/x86_64-linux-gnu/libc-2.23.so</span><br><span class="line">7fb1be544000-7fb1be744000 ---p 001c0000 103:02 8913417                   /lib/x86_64-linux-gnu/libc-2.23.so</span><br><span class="line">7fb1be744000-7fb1be748000 r--p 001c0000 103:02 8913417                   /lib/x86_64-linux-gnu/libc-2.23.so</span><br><span class="line">7fb1be748000-7fb1be74a000 rw-p 001c4000 103:02 8913417                   /lib/x86_64-linux-gnu/libc-2.23.so</span><br><span class="line">7fb1be74a000-7fb1be74e000 rw-p 00000000 00:00 0</span><br><span class="line">7fb1be74e000-7fb1be774000 r-xp 00000000 103:02 8913403                   /lib/x86_64-linux-gnu/ld-2.23.so</span><br><span class="line">7fb1be955000-7fb1be958000 rw-p 00000000 00:00 0</span><br><span class="line">7fb1be972000-7fb1be973000 rw-p 00000000 00:00 0</span><br><span class="line">7fb1be973000-7fb1be974000 r--p 00025000 103:02 8913403                   /lib/x86_64-linux-gnu/ld-2.23.so</span><br><span class="line">7fb1be974000-7fb1be975000 rw-p 00026000 103:02 8913403                   /lib/x86_64-linux-gnu/ld-2.23.so</span><br><span class="line">7fb1be975000-7fb1be976000 rw-p 00000000 00:00 0</span><br><span class="line">7fff6edaa000-7fff6edcb000 rw-p 00000000 00:00 0                          [stack]</span><br><span class="line">7fff6edf8000-7fff6edfb000 r--p 00000000 00:00 0                          [vvar]</span><br><span class="line">7fff6edfb000-7fff6edfd000 r-xp 00000000 00:00 0                          [vdso]</span><br><span class="line">ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]</span><br><span class="line">Aborted (core dumped)</span><br><span class="line">acrn@acrn:~/test$ ls</span><br><span class="line">core-test-14363-1618606735  test  test.c</span><br></pre></td></tr></table></figure>
+<p>gdb 调试，找出出错的位置 <code>gdb 程序名 core文件名</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">acrn@acrn:~/test$ gdb test core-test-14363-1618606735</span><br><span class="line">Reading symbols from test...done.</span><br><span class="line">[New LWP 14363]</span><br><span class="line">Core was generated by `./test&apos;.</span><br><span class="line">Program terminated with signal SIGABRT, Aborted.</span><br><span class="line">#0  0x00007fb1be3b9428 in __GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:54</span><br><span class="line">54      ../sysdeps/unix/sysv/linux/raise.c: No such file or directory.</span><br><span class="line">(gdb) bt</span><br><span class="line">#0  0x00007fb1be3b9428 in __GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:54</span><br><span class="line">#1  0x00007fb1be3bb02a in __GI_abort () at abort.c:89</span><br><span class="line">#2  0x00007fb1be3fb7ea in __libc_message (do_abort=do_abort@entry=2, fmt=fmt@entry=0x7fb1be514ed8 &quot;*** Error in `%s&apos;: %s: 0x%s ***\n&quot;) at ../sysdeps/posix/libc_fatal.c:175</span><br><span class="line">#3  0x00007fb1be40437a in malloc_printerr (ar_ptr=&lt;optimized out&gt;, ptr=&lt;optimized out&gt;, str=0x7fb1be514fa0 &quot;double free or corruption (fasttop)&quot;, action=3) at malloc.c:5006</span><br><span class="line">#4  _int_free (av=&lt;optimized out&gt;, p=&lt;optimized out&gt;, have_lock=0) at malloc.c:3867</span><br><span class="line">#5  0x00007fb1be40853c in __GI___libc_free (mem=&lt;optimized out&gt;) at malloc.c:2968</span><br><span class="line">#6  0x0000000000400585 in repeatFree (p=0x164c010 &quot;&quot;) at test.c:8</span><br><span class="line">#7  0x00000000004005b6 in main () at test.c:18</span><br></pre></td></tr></table></figure>
+<p>在 gdb 内，输入 <code>where</code> 或者<code>bt</code>可以看出， 我们写的程序出错的两行：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#6  0x0000000000400585 in repeatFree (p=0x164c010 &quot;&quot;) at test.c:8</span><br><span class="line">#7  0x00000000004005b6 in main () at test.c:18</span><br></pre></td></tr></table></figure>
+<p>在 repeatFree 函数中，test.c 文件的第 8 行错啦，释放了两次内存。</p>
+<p>还有一个值得挖掘的信息是:<code>Program terminated with signal SIGABRT, Aborted.</code></p>
+<p>signal的详细信息请查询<a href="https://man7.org/linux/man-pages/man7/signal.7.html" target="_blank" rel="noopener">signal(7)</a>。</p>
+<h3 id="6-material"><a href="#6-material" class="headerlink" title="6. material"></a>6. material</h3><p>如果想要了解更加详细的内容，推荐阅读<a href="https://averageradical.github.io/Linux_Core_Dumps.pdf" target="_blank" rel="noopener">https://averageradical.github.io/Linux_Core_Dumps.pdf</a> 中对于core dump的介绍。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.jianshu.com/p/dc7e7bd7d1a2" target="_blank" rel="noopener">Linux 下生成 core dump 配置和用法</a></li>
+<li><a href="https://blog.csdn.net/tenfyguo/article/details/8159176" target="_blank" rel="noopener">详解coredump</a></li>
+<li><a href="https://man7.org/linux/man-pages/man7/signal.7.html" target="_blank" rel="noopener">signal(7)</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Core_dump" target="_blank" rel="noopener">wikipedia Core dump</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/debug/">debug</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/04/11/每周分享第22期/">
+        <span class="next-text nav-default">每周分享第22期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/04/16/How-to-use-GDB-to-analyze-core-dump-file/';
+        this.page.identifier = '2021/04/16/How-to-use-GDB-to-analyze-core-dump-file/';
+        this.page.title = 'How to use GDB to analyze core dump file';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
