@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="What is the -fPIE option for position-independent executables in gcc and ld?">
+
+
+
+
+  <meta name="keywords" content="计算机编程, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/04/17/What-is-the-fPIE-option-for-position-independent-executables-in-gcc-and-ld/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> What is the -fPIE option for position-independent executables in gcc and ld? - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          What is the -fPIE option for position-independent executables in gcc and ld?
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-04-17
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机编程/">计算机编程</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Overview"><span class="toc-text">1. Overview</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Example"><span class="toc-text">2. Example</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-Minimal-runnable-example-GDB-the-executable-twice"><span class="toc-text">2.1 Minimal runnable example: GDB the executable twice</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-Minimal-assembly-example"><span class="toc-text">2.2 Minimal assembly example</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>在stackoverflow上看了<a href="https://stackoverflow.com/questions/2463150/what-is-the-fpie-option-for-position-independent-executables-in-gcc-and-ld" target="_blank" rel="noopener">What is the -fPIE option for position-independent executables in gcc and ld?</a>，对其中的答案甚是满意，所以转载到博客中。<a id="more"></a></p>
+<h3 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h3><p>PIE(position-independent executables) is to support <a href="http://en.wikipedia.org/wiki/Address_space_layout_randomization" target="_blank" rel="noopener">address space layout randomization (ASLR)</a> in executable files.</p>
+<p>Before the PIE mode was created, the program’s executable could not be placed at a random address in memory, only position independent code (PIC) dynamic libraries could be relocated to a random offset. It works very much like what PIC does for dynamic libraries, the difference is that a Procedure Linkage Table (PLT) is not created, instead PC-relative relocation is used.</p>
+<p>After enabling PIE support in gcc/linkers, the body of program is compiled and linked as position-independent code. A dynamic linker does full relocation processing on the program module, just like dynamic libraries. Any usage of global data is converted to access via the Global Offsets Table (GOT) and GOT relocations are added.</p>
+<h3 id="2-Example"><a href="#2-Example" class="headerlink" title="2. Example"></a>2. Example</h3><h4 id="2-1-Minimal-runnable-example-GDB-the-executable-twice"><a href="#2-1-Minimal-runnable-example-GDB-the-executable-twice" class="headerlink" title="2.1 Minimal runnable example: GDB the executable twice"></a>2.1 Minimal runnable example: GDB the executable twice</h4><p>Let’s see ASLR work on the PIE executable and change addresses across runs:</p>
+<p>main.c</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">"hello"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>main.sh</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>!/usr/bin/env bash</span><br><span class="line">echo 2 | sudo tee /proc/sys/kernel/randomize_va_space</span><br><span class="line">for pie in no-pie pie; do</span><br><span class="line">  exe="$&#123;pie&#125;.out"</span><br><span class="line">  gcc -O0 -std=c99 "-$&#123;pie&#125;" "-f$&#123;pie&#125;" -ggdb3 -o "$exe" main.c</span><br><span class="line">  gdb -batch -nh -q \</span><br><span class="line">    -ex 'set disable-randomization off' \</span><br><span class="line">    -ex 'break main' \</span><br><span class="line">    -ex 'run' \</span><br><span class="line">    -ex 'printf "pc = 0x%llx\n", (long  long unsigned)$pc' \</span><br><span class="line">    -ex 'run' \</span><br><span class="line">    -ex 'printf "pc = 0x%llx\n", (long  long unsigned)$pc' \</span><br><span class="line">    "./$exe" \</span><br><span class="line">  ;</span><br><span class="line">  echo</span><br><span class="line">  echo</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+<p>For the one with <code>-no-pie</code>, everything is boring:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Breakpoint 1 at 0x40052a: file main.c, line 4.</span><br><span class="line"></span><br><span class="line">Breakpoint 1, main () at main.c:4</span><br><span class="line">4           puts(&quot;hello&quot;);</span><br><span class="line">pc = 0x40052a</span><br><span class="line"></span><br><span class="line">Breakpoint 1, main () at main.c:4</span><br><span class="line">4           puts(&quot;hello&quot;);</span><br><span class="line">pc = 0x40052a</span><br></pre></td></tr></table></figure>
+<p>Before starting execution, <code>break main</code> sets a breakpoint at <code>0x40052a</code>.</p>
+<p>Then, during both executions, <code>run</code> stops at address <code>0x40052a</code>.</p>
+<p>The one with <code>-pie</code> however is much more interesting:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Breakpoint 1 at 0x754: file main.c, line 4.</span><br><span class="line"></span><br><span class="line">Breakpoint 1, main () at main.c:4</span><br><span class="line">4           puts(&quot;hello&quot;);</span><br><span class="line">pc = 0x56093aa99754</span><br><span class="line"></span><br><span class="line">Breakpoint 1, main () at main.c:4</span><br><span class="line">4           puts(&quot;hello&quot;);</span><br><span class="line">pc = 0x55615b05e754</span><br></pre></td></tr></table></figure>
+<p>Before starting execution, GDB just takes a “dummy” address that is present in the executable: <code>0x754</code>.</p>
+<p>After it starts however, GDB intelligently notices that the dynamic loader placed the program in a different location, and the first break stopped at <code>0x56093aa99754</code>.</p>
+<p>Then, the second run also intelligently noticed that the executable moved again, and ended up breaking at <code>0x55615b05e754</code>.</p>
+<p><code>echo 2 | sudo tee /proc/sys/kernel/randomize_va_space</code> ensures that ASLR is on: <a href="https://askubuntu.com/questions/318315/how-can-i-temporarily-disable-aslr-address-space-layout-randomization" target="_blank" rel="noopener">How can I temporarily disable ASLR (Address space layout randomization)? | Ask Ubuntu</a>.</p>
+<p><code>set disable-randomization off</code> is needed otherwise GDB, as the name suggests, turns off ASLR for the process by default to give fixed addresses across runs to improve the debugging experience: <a href="https://stackoverflow.com/questions/10061475/difference-between-gdb-addresses-and-real-addresses" target="_blank" rel="noopener">Difference between gdb addresses and “real” addresses? | Stack Overflow</a>.</p>
+<p><strong>readelf analysis</strong></p>
+<p>Furthermore, we can also observe that:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -s ./no-pie.out | grep main</span><br></pre></td></tr></table></figure>
+<p>gives the actual runtime load address (pc pointed to the following instruction 4 bytes after):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">68: 0000000000400526    21 FUNC    GLOBAL DEFAULT   14 main</span><br></pre></td></tr></table></figure>
+<p>while:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -s ./pie.out | grep main</span><br></pre></td></tr></table></figure>
+<p>gives just an offset:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">68: 0000000000000750    23 FUNC    GLOBAL DEFAULT   14 main</span><br></pre></td></tr></table></figure>
+<p>By turning ASLR off (with either <code>randomize_va_space</code> or <code>set disable-randomization off</code>), GDB always gives <code>main</code> the address: <code>0x555555554754</code>, so we deduce that the <code>-pie</code> address is composed from:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0x555555554000 + random offset + symbol offset (750)</span><br></pre></td></tr></table></figure>
+<h4 id="2-2-Minimal-assembly-example"><a href="#2-2-Minimal-assembly-example" class="headerlink" title="2.2 Minimal assembly example"></a>2.2 Minimal assembly example</h4><p>Another cool thing we can do is to play around with some assembly code to understand more concretely what PIE means.</p>
+<p>We can do that with a Linux x86_64 freestanding assembly hello world:</p>
+<p>main.S</p>
+<figure class="highlight as"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">        .global _start</span><br><span class="line"></span><br><span class="line">        .text</span><br><span class="line">_start:</span><br><span class="line">        # write(1, message, 13)</span><br><span class="line">        mov     $1, %rax                # system call 1 is write</span><br><span class="line">        mov     $1, %rdi                # file handle 1 is stdout</span><br><span class="line">        mov     $message, %rsi          # address of string to output</span><br><span class="line">        mov     $13, %rdx               # number of bytes</span><br><span class="line">        syscall                         # invoke operating system to do the write</span><br><span class="line"></span><br><span class="line">        # exit(0)</span><br><span class="line">        mov     $60, %rax               # system call 60 is exit</span><br><span class="line">        xor     %rdi, %rdi              # we want return code 0</span><br><span class="line">        syscall                         # invoke operating system to exit</span><br><span class="line">message:</span><br><span class="line">        .ascii  <span class="string">"Hello, world\n"</span></span><br></pre></td></tr></table></figure>
+<p>and it assembles and runs fine with:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">as -o main.o main.S</span><br><span class="line">ld -o main.out main.o</span><br><span class="line">./main.out</span><br></pre></td></tr></table></figure>
+<p>However, if we try to link it as PIE with (<code>--no-dynamic-linker</code> is required as explained at: <a href="https://stackoverflow.com/questions/55664494/how-to-create-a-statically-linked-position-independent-executable-elf-in-linux" target="_blank" rel="noopener">How to create a statically linked position independent executable ELF in Linux?</a>):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ld --no-dynamic-linker -pie -o main.out main.o</span><br></pre></td></tr></table></figure>
+<p>then link will fail with:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ld: main.o: relocation R_X86_64_32S against `.text&apos; can not be used when making a shared object; recompile with -fPIC</span><br><span class="line">main.o: error adding symbols: Bad value</span><br></pre></td></tr></table></figure>
+<p>Because the line:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov     $message, %rsi          # address of string to output</span><br></pre></td></tr></table></figure>
+<p>hardcodes the message address in the <code>mov</code> operand, and is therefore not position independent.</p>
+<p>If we instead write it in a position independent way:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lea 	message(%rip), %rsi	# address of string to output</span><br></pre></td></tr></table></figure>
+<p>then PIE link works fine, and GDB shows us that the executable does get loaded at a different location in memory every time.</p>
+<p>The difference here is that <code>lea</code> encoded the address of <code>msg</code> relative to the current PC address due to the <code>rip</code> syntax, see also:<a href="/2021/04/11/How-to-use-x64-RIP-addressing/">How to use x64 RIP-relative addressing</a></p>
+<p>Another fun thing that we can do is to put the <code>msg</code> in the data section instead of <code>.text</code> with:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">		.data</span><br><span class="line">message:</span><br><span class="line">        .ascii  &quot;Hello, world\n&quot;</span><br></pre></td></tr></table></figure>
+<p>Now the <code>.o</code> assembles to:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">e:   48 8d 35 00 00 00 00    lea    0x0(%rip),%rsi        # 15 &lt;_start+0x15&gt;</span><br></pre></td></tr></table></figure>
+<p>so the RIP offset is now <code>0</code>, and we guess that a relocation has been requested by the assembler. We confirm that with:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -r main.o</span><br></pre></td></tr></table></figure>
+<p>which gives:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Relocation section &apos;.rela.text&apos; at offset 0x118 contains 1 entries:</span><br><span class="line">  Offset          Info           Type           Sym. Value    Sym. Name + Addend</span><br><span class="line">000000000011  000200000002 R_X86_64_PC32     0000000000000000 .data - 4</span><br></pre></td></tr></table></figure>
+<p>so clearly <code>R_X86_64_PC32</code> is a PC relative relocation that <code>ld</code> can handle for PIE executables.</p>
+<p>This experiment taught us that the linker itself checks the program can be PIE and marks it as such.</p>
+<p>Then when compiling with GCC, <code>-pie</code> tells GCC to generate position independent assembly.</p>
+<p>But if we write assembly ourselves, we must manually ensure that we have achieved position independence.</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/计算机编程/">计算机编程</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/04/16/How-to-use-GDB-to-analyze-core-dump-file/">
+        <span class="next-text nav-default">How to use GDB to analyze core dump file</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/04/17/What-is-the-fPIE-option-for-position-independent-executables-in-gcc-and-ld/';
+        this.page.identifier = '2021/04/17/What-is-the-fPIE-option-for-position-independent-executables-in-gcc-and-ld/';
+        this.page.title = 'What is the -fPIE option for position-independent executables in gcc and ld?';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
