@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-05-08T23:34:33.634Z</updated>
+  <updated>2021-05-09T08:59:09.229Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Introduction to Mutt</title>
+    <link href="http://liujunming.github.io/2021/05/09/Introduction-to-Mutt/"/>
+    <id>http://liujunming.github.io/2021/05/09/Introduction-to-Mutt/</id>
+    <published>2021-05-09T00:24:10.000Z</published>
+    <updated>2021-05-09T08:59:09.229Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文内容转载自:<a href="https://fancyseeker.github.io/2015/08/19/mutt/" target="_blank" rel="noopener">Mutt: 阅读邮件列表</a>。对该文甚是喜欢，个人收获是：不仅仅学到了Mutt这个tools，还可以借鉴作者学习工具的思路。<a id="more"></a></p><blockquote><p> 我需要用Mutt来阅读邮件列表, 之所以选Mutt而不使用传统的邮件客户端或是常用的邮箱是因为其在阅读邮件列表时表现不佳, 缺乏效率. 而当我要着手配置Mutt的时候, 网络上的诸多文章仅仅只能起到参考的作用, 我希望能做到自己来定制Mutt并且是真的了解为什么这么配才去配, 而不是随手拿来一个配置文件就用. 再者, 就是本人有些许强迫症, 像Mutt和其它的一些在Unix-like环境下运行的Tools具有极强定制性的工具, 总是希望能将其尽可能的配置到顺手为止. 因此, 我才花时间来写下这篇文章, 一方面记录自己的配置过程, 方便以后回顾用, 另一方面, 若能顺便帮助下有需要的人, 那也算是意外收获了吧.</p></blockquote><h3 id="1-Why-为什么使用Mutt"><a href="#1-Why-为什么使用Mutt" class="headerlink" title="1. Why: 为什么使用Mutt"></a>1. Why: 为什么使用Mutt</h3><p>从阅读邮件的角度来说, 有很多很好用的邮箱, Gmail就是本人很喜欢的邮箱, 并且一直在用, 除了一些不可控的原因影响其用户体验外, 其它方面确实表现的很好. 那为什么我还要花这么大的力气去配置Mutt呢? Mutt跟其它的邮箱相比, 到底有哪些好处呢? 接下来我们来对比下集中应用场景(主要针对邮件列表阅读).</p><h4 id="1-1-Thread视图"><a href="#1-1-Thread视图" class="headerlink" title="1.1 Thread视图"></a>1.1 Thread视图</h4><p><img src="/images/2021/05/02.jpg" alt><br>Gmail中的邮件列表视图</p><p><img src="/images/2021/05/03.png" alt><br>Mutt中的邮件列表视图</p><p>从上图的对比中可以看到, Gmail中的邮件列表视图是基于发信时间的, 虽然这样可以查看到最新的邮件, 但是邮件列表的上下文逻辑就看不清楚了. Mutt则是基于邮件主题的模式进行排列的, 每封邮件都按照Thread的前后回复逻辑组织在一起, 一眼看去回复关系非常清楚, 而且Mutt还能设置高亮, 例如在上图的配置中, 将未读的邮件设置成高亮的蓝色, 已读的邮件设置成白色, 未读的Thread设置成高亮蓝色, 部分已读部分未读的Thread设置成紫色, 这些高亮都是可以自定义的, 因此打开Mutt的邮件列表视图, 一眼看去就知道哪些邮件是已经看过的, 哪些邮件是完全没看过的以及哪些邮件是只看一部分未看全的.</p><h4 id="1-2-嵌套引用"><a href="#1-2-嵌套引用" class="headerlink" title="1.2 嵌套引用"></a>1.2 嵌套引用</h4><p><img src="/images/2021/05/04.png" alt><br>Gmail中的嵌套引用</p><p><img src="/images/2021/05/05.png" alt><br>Mutt中的嵌套引用</p><p>在邮件列表的阅读中, 经常会出现多层的嵌套引用, 从上图的对比中可以看出, Gmail并未对嵌套的引文做任何处理, 而Mutt则可以使用不同的颜色区分不同层的引文, 引用次序非常清晰明了.</p><h4 id="1-3-Patch邮件"><a href="#1-3-Patch邮件" class="headerlink" title="1.3 Patch邮件"></a>1.3 Patch邮件</h4><p><img src="/images/2021/05/06.png" alt><br>Gmail中的Patch邮件</p><p><img src="/images/2021/05/07.png" alt><br>Mutt中的Patch邮件</p><p>在开源社区, 在发送Patch的时候常常使用<code>git sendmail</code>来发送Patch, 而不是以附件的形式. 我们可以看到, 在Gmail中将Patch中代码的部分直接当做正文来处理, 因此很难看清楚到底Patch中对哪里做了修改, 而在Mutt中, 可以通过正则表达式的方式来匹配正文中的任意字段实现高亮, 将其应用到Patch邮件的正文中, 将增减的行高亮出来, 这样就能很清楚的看明白Patch到底对哪里进行了修改.</p><p>以上例子仅仅只是针对邮件列表阅读这种特殊的应用场景而言, 之所以拿Gmail来比较是因为Gmail本身非常优秀, 也是本人最喜欢的邮箱, 并没有贬低Gmail的意思, 只是应用场景不同罢了. 事实上, 除了邮件列表和工作邮件, 本人的其它私人邮件使用的都是Gmail, 一方面UI设计简洁大方, 另一方面, 邮件搜索过滤对于日常应用来说确实非常好~</p><p>在弄清楚了应用场合之后, 我们来进入正文…</p><h3 id="2-What-Mutt是什么"><a href="#2-What-Mutt是什么" class="headerlink" title="2. What: Mutt是什么"></a>2. What: Mutt是什么</h3><h4 id="2-1-Mutt简介"><a href="#2-1-Mutt简介" class="headerlink" title="2.1 Mutt简介"></a>2.1 Mutt简介</h4><p>Mutt是什么? 或者说Mutt是什么样子的? 根据<a href="http://www.mutt.org/" target="_blank" rel="noopener">Mutt官网</a>上的介绍, Mutt是Unix系统环境下一个小巧但是强大的文本邮件客户端. 小是显而易见的, 功能强大对于本人而言主要体现在以下几个<a href="http://www.mutt.org/#Features" target="_blank" rel="noopener">Mutt Features</a>:</p><ul><li>支持配色</li><li>对邮件列表支持很好</li><li>高度可定制, 支持键绑定和宏</li><li>支持正则表达式以及内部模式匹配等多种搜索</li><li>高效</li></ul><p>此外, Mutt还支持其它很多特性, 比如MIME(这是什么我并不知道, 估计也不会用到), PGP(没有加密邮件的习惯), 支持POP3和IMAP协议(是个邮箱都支持), 完全控制邮件头部等等等等…但是这些特性其它的邮箱也有, 有的甚至做的更好.</p><p>因此, 对于Mutt, 我最看重的还是其它邮箱所没有的特性.</p><ol><li>高度可定制化, 键位绑定和宏对于习惯了Vim和CLI的人来说能提高不少效率;</li><li>对邮件列表支持完善, 这也是我之所以选用Mutt最关键的原因, Mutt针对邮件列表添加了很多很方便的设置和操作, 极大的提高了阅读和回复邮件列表的效率;</li><li>邮件内容支持配色, 这对于阅读带有代码或是多层嵌套引用的邮件来说简直是神技.</li><li>高效, 主要反应在打开一个1000+邮件的信箱只需要1s不到时间, 很快.</li></ol><p>诚然Mutt有很多优点, 但是Mutt仅仅只是一个邮件客户端, 那么问题来了, 什么是邮件客户端(Mail Client)? 通常我们认为一个邮件客户端应该像Outlook和Thunderbird那样, 能收能发能整理能查找. 但是很遗憾的, Mutt跟他们并不一样, Mutt是Unix环境下的small and powerful的邮件客户端, 按照Unix大多工具的尿性, 一般只会提供小而精的功能, 并不会做大而全的封装. Mutt也是一样, <strong>Mutt只管理邮件, 而不负责邮件的收发</strong>. 详细点说, Mutt做的事情只是从本机上的某个位置读取邮件, 或是把邮件存放到本机上的某个位置, 此外, 还负责邮件的阅读, 查找, 标记等事务, 与其说Mutt是一个邮件客户端, 不如说<strong>Mutt是一个邮件管理工具</strong>.</p><h4 id="2-2-Email工作原理"><a href="#2-2-Email工作原理" class="headerlink" title="2.2 Email工作原理"></a>2.2 <a href="/2021/05/08/Email工作原理/">Email工作原理</a></h4><h4 id="2-3-Mutt与msmtp-getmail和procmail的关系"><a href="#2-3-Mutt与msmtp-getmail和procmail的关系" class="headerlink" title="2.3 Mutt与msmtp, getmail和procmail的关系"></a>2.3 Mutt与msmtp, getmail和procmail的关系</h4><p>解释了半天, 相信大家已经被各种M*A给整懵了吧. 以下对邮件发送过程中的各个部分(Agent)做下简要的解释:</p><ul><li><strong>MUA(Mail User Agent)</strong>: 邮件客户端, 负责邮件的管理, 阅读等. 一些集成度较高的MUA会带有收发邮件乃至过滤邮件的功能如Outlook和Thunderbird, Mutt也带有简单的发送邮件功能, 不过一般不采用.</li><li><strong>MTA(Mail Transfer Agent)</strong>: 邮件传送代理, 负责邮件的发送, 处理发送过程中的主机识别, 路由跳转等问题. 对于用户而言MTA就是负责从本地发送邮件的部件. 常见的MTA有sendmail, emstp, msmtp.</li><li><strong>MRA(Mail Retrieval Agent)</strong>: 邮件收取代理, 负责从远端的邮件服务器收取邮件至本地文件夹. 常见的MRA有fetchmail, getmail.</li><li><strong>MDA(Mail Delivery Agent)</strong>: 邮件分发代理, 负责根据规则过滤邮件并将邮件投放到不同的文件夹中. 常见的MDA有procmail.</li></ul><p>之所以讲了这么多Email的工作原理, 主要是为了两件事情.</p><ol><li>明确Mutt在整个邮件收发过程中的位置.</li><li>解释为什么在配置Mutt的时候需要额外安装配置msmtp, getmail乃至procmail.</li></ol><p>当弄明白了Email的工作原理后, 其实也就不难理解为什么在网上搜索Mutt相关资料的时候, 跳出来的都是mutt+getmail+msmtp+procmail之类的文章了. 因为光一个Mutt, 根本无法完成最基本的邮件收发功能啊, 必须需要靠msmtp来发邮件, 靠getmail来收邮件, 如果还需要自定义一些邮件分类过滤行为的话, 还需要procmail来帮忙. 因此, 现在我们在谈论Mutt的时候, 我们其实实在谈论mutt+getmail+msmtp这一串东西.</p><p>然后, 我想再来看看以下这张图, 就明白Mutt与getmail, msmtp以及procmail之间的关系了.</p><p><img src="/images/2021/05/08.jpg" alt><br>Mutt与相关工具的关系(图片版权为tekkamanninja所有)</p><hr><p>参考资料：</p><ol><li><a href="/pdf/Mutt_ 阅读邮件列表 _ FancySeeker.pdf">Mutt: 阅读邮件列表</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文内容转载自:&lt;a href=&quot;https://fancyseeker.github.io/2015/08/19/mutt/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Mutt: 阅读邮件列表&lt;/a&gt;。对该文甚是喜欢，个人收获是：不仅仅学到了Mutt这个tools，还可以借鉴作者学习工具的思路。
+    
+    </summary>
+    
+      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
+    
+    
+      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
+    
+  </entry>
   
   <entry>
     <title>Email工作原理</title>
@@ -449,28 +471,6 @@
     <summary type="html">
     
       &lt;h3 id=&quot;Intel-Appoints-Sunil-Shenoy-as-Senior-Vice-President-of-Design-Engineering-Group&quot;&gt;&lt;a href=&quot;#Intel-Appoints-Sunil-Shenoy-as-Senior-Vice-President-of-Design-Engineering-Group&quot; class=&quot;headerlink&quot; title=&quot;Intel Appoints Sunil Shenoy as Senior Vice President of Design Engineering Group&quot;&gt;&lt;/a&gt;Intel Appoints Sunil Shenoy as Senior Vice President of Design Engineering Group&lt;/h3&gt;&lt;p&gt;&lt;a href=&quot;https://newsroom.intel.com/news-releases/intel-appoints-sunil-shenoy-senior-vice-president-design-engineering-group/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https://newsroom.intel.com/news-releases/intel-appoints-sunil-shenoy-senior-vice-president-design-engineering-group/&lt;/a&gt;&lt;br&gt;
-    
-    </summary>
-    
-      <category term="经验" scheme="http://liujunming.github.io/categories/%E7%BB%8F%E9%AA%8C/"/>
-    
-    
-      <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>每周分享第18期</title>
-    <link href="http://liujunming.github.io/2021/01/21/%E6%AF%8F%E5%91%A8%E5%88%86%E4%BA%AB%E7%AC%AC18%E6%9C%9F/"/>
-    <id>http://liujunming.github.io/2021/01/21/每周分享第18期/</id>
-    <published>2021-01-21T08:02:20.000Z</published>
-    <updated>2021-01-24T07:38:51.961Z</updated>
-    
-    <content type="html"><![CDATA[<h3 id="Nvidia为什么收购Mellanox？"><a href="#Nvidia为什么收购Mellanox？" class="headerlink" title="Nvidia为什么收购Mellanox？"></a>Nvidia为什么收购Mellanox？</h3><p><a href="https://www.jiqizhixin.com/articles/2019-03-15-13" target="_blank" rel="noopener">https://www.jiqizhixin.com/articles/2019-03-15-13</a></p><a id="more"></a><h3 id="AMD收购赛灵思（Xilinx）"><a href="#AMD收购赛灵思（Xilinx）" class="headerlink" title="AMD收购赛灵思（Xilinx）"></a>AMD收购赛灵思（Xilinx）</h3><p><a href="https://www.sdnlab.com/24506.html" target="_blank" rel="noopener">https://www.sdnlab.com/24506.html</a></p><h3 id="xilinx-和-altera-两家公司的主要区别和各自优势分别是什么？"><a href="#xilinx-和-altera-两家公司的主要区别和各自优势分别是什么？" class="headerlink" title="xilinx 和 altera 两家公司的主要区别和各自优势分别是什么？"></a>xilinx 和 altera 两家公司的主要区别和各自优势分别是什么？</h3><p><a href="https://www.zhihu.com/question/31440109" target="_blank" rel="noopener">https://www.zhihu.com/question/31440109</a></p><h3 id="HW-hardware-accelerator"><a href="#HW-hardware-accelerator" class="headerlink" title="HW(hardware) accelerator"></a>HW(hardware) accelerator</h3><p><a href="https://blog.mellanox.com/2018/08/defining-smartnic/" target="_blank" rel="noopener">https://blog.mellanox.com/2018/08/defining-smartnic/</a></p><p>Mellanox,Huawei,Xilinx,Intel</p><h3 id="Chrome-tracing"><a href="#Chrome-tracing" class="headerlink" title="Chrome tracing"></a>Chrome tracing</h3><p><a href="https://www.chromium.org/developers/how-tos/trace-event-profiling-tool" target="_blank" rel="noopener">https://www.chromium.org/developers/how-tos/trace-event-profiling-tool</a></p><h3 id="specVirt"><a href="#specVirt" class="headerlink" title="specVirt"></a>specVirt</h3><p><a href="https://www.spec.org/virt_sc2013/" target="_blank" rel="noopener">https://www.spec.org/virt_sc2013/</a><br>The SPEC virt_sc ® 2013 benchmark suites are used to measure performance of virtualized platforms. </p><h3 id="self-contained-meaning"><a href="#self-contained-meaning" class="headerlink" title="self-contained meaning"></a>self-contained meaning</h3><p><a href="https://www.yourdictionary.com/self-contained" target="_blank" rel="noopener">https://www.yourdictionary.com/self-contained</a><br>The definition of self contained refers to something or someone that is complete on its own and that doesn’t need anything else.</p><h3 id="Zhaorong-Hou-Intel公司资深工程经理"><a href="#Zhaorong-Hou-Intel公司资深工程经理" class="headerlink" title="Zhaorong Hou, Intel公司资深工程经理"></a>Zhaorong Hou, Intel公司资深工程经理</h3><p><a href="https://www.youtube.com/watch?v=yKVG9jYOwz8" target="_blank" rel="noopener">https://www.youtube.com/watch?v=yKVG9jYOwz8</a></p><h3 id="经济机器是怎样运行的"><a href="#经济机器是怎样运行的" class="headerlink" title="经济机器是怎样运行的"></a>经济机器是怎样运行的</h3><p><a href="https://www.youtube.com/watch?v=rFV7wdEX-Mo" target="_blank" rel="noopener">https://www.youtube.com/watch?v=rFV7wdEX-Mo</a></p><h3 id="x2APIC-Virtualization-and-Posted-Interrupt-Processing"><a href="#x2APIC-Virtualization-and-Posted-Interrupt-Processing" class="headerlink" title="x2APIC Virtualization and Posted Interrupt Processing"></a>x2APIC Virtualization and Posted Interrupt Processing</h3><p><a href="https://cs.stanford.edu/~jhumphri/documents/x2apic-posted-ipi.pdf" target="_blank" rel="noopener">https://cs.stanford.edu/~jhumphri/documents/x2apic-posted-ipi.pdf</a></p><p><a href="/pdf/x2apic-posted-ipi.pdf">x2APIC Virtualization and Posted Interrupt Processing</a></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;h3 id=&quot;Nvidia为什么收购Mellanox？&quot;&gt;&lt;a href=&quot;#Nvidia为什么收购Mellanox？&quot; class=&quot;headerlink&quot; title=&quot;Nvidia为什么收购Mellanox？&quot;&gt;&lt;/a&gt;Nvidia为什么收购Mellanox？&lt;/h3&gt;&lt;p&gt;&lt;a href=&quot;https://www.jiqizhixin.com/articles/2019-03-15-13&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https://www.jiqizhixin.com/articles/2019-03-15-13&lt;/a&gt;&lt;/p&gt;
     
     </summary>
     
