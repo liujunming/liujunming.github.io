@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#编译内核"><span class="toc-text">编译内核</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#make-menuconfig"><span class="toc-text">make menuconfig</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#make-j4"><span class="toc-text">make -j4</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#sudo-make-modules-install-j4"><span class="toc-text">sudo make modules_install -j4</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#sudo-make-install-j4"><span class="toc-text">sudo make install -j4</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#sudo-reboot"><span class="toc-text">sudo reboot</span></a></li></ol></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#make-menuconfig"><span class="toc-text">make menuconfig</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#make-j4"><span class="toc-text">make -j4</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#sudo-make-modules-install-j4"><span class="toc-text">sudo make modules_install -j4</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#sudo-make-install-j4"><span class="toc-text">sudo make install -j4</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#sudo-reboot"><span class="toc-text">sudo reboot</span></a></li></ol>
     </div>
   </div>
 
@@ -292,17 +292,21 @@
 
     <div class="post-content">
       
-        <p>在第一次编译内核的时候，我尝试去youtube上看视频，查询技术博客，但是，直到看到实验室师兄的博客，那叫一个简单啊<a href="http://blog.csdn.net/chenyouxu/article/details/46985909" target="_blank" rel="noopener">点击查看博客</a>，下面我将其内容搬到自己博客中来，方便以后查看。<a id="more"></a></p>
-<h2 id="编译内核"><a href="#编译内核" class="headerlink" title="编译内核"></a>编译内核</h2><p>首先来说下编译内核是怎么实现的，其实这方面网上有很多教程，也有很多博客讲到来这点，但是就我个人经验而言，我会将最简洁但又实用的办法分享出来，大概就几条命令的事吧(以下命令均在root下运行)。</p>
+        <p>本文主要记录内核编译的步骤<a id="more"></a></p>
+<p>首先来说下编译内核是怎么实现的，其实这方面网上有很多教程，也有很多博客讲到来这点，但是就我个人经验而言，我会将最简洁但又实用的办法分享出来，大概就几条命令的事吧(以下命令均在root下运行)。</p>
 <h4 id="make-menuconfig"><a href="#make-menuconfig" class="headerlink" title="make menuconfig"></a>make menuconfig</h4><p>选择需要模块化的地方，正确的话会出现下述画面。</p>
 <p><img src="/images/2016/4/28/20150721145658916.png" alt="这里写图片描述"></p>
 <p>如果出现错误，则缺少相应的文件，此时执行  <code>apt-get install libncurses5-dev libncursesw5-dev</code>，然后再执行<code>make menuconfig</code>即可。</p>
 <p>此时需要选择需要模块化的地方，我当时是为将文件系统模块化，所以进入file system，通过空格来选‘M’还是‘*’,M表示模块化，*表示编译内核时就将该模块编译进去，后期无法自由删除修改。所以，在file system上面对所有条目而言，能选‘M’的都选‘M’，不能选的再选‘*’。最后保存下结果即可。</p>
-<h4 id="make-j4"><a href="#make-j4" class="headerlink" title="make -j4"></a>make -j4</h4><h4 id="sudo-make-modules-install-j4"><a href="#sudo-make-modules-install-j4" class="headerlink" title="sudo make modules_install -j4"></a>sudo make modules_install -j4</h4><h4 id="sudo-make-install-j4"><a href="#sudo-make-install-j4" class="headerlink" title="sudo make install -j4"></a>sudo make install -j4</h4><h4 id="sudo-reboot"><a href="#sudo-reboot" class="headerlink" title="sudo reboot"></a>sudo reboot</h4><p>上面命令的后面加上 -j4 表示分成4个任务运行，只为了加快速度。大概等半个小时吧，内核编译应该就结束了。</p>
+<h4 id="make-j4"><a href="#make-j4" class="headerlink" title="make -j4"></a>make -j4</h4><p>编译5.4内核时需要签名文件。<br>在.config中注释掉如下两行:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">#CONFIG_MODULE_SIG_KEY=&quot;certs/signing_key.pem&quot;</span><br><span class="line">CONFIG_SYSTEM_TRUSTED_KEYRING=y</span><br><span class="line">#CONFIG_SYSTEM_TRUSTED_KEYS=&quot;certs/rhel.pem&quot;</span><br></pre></td></tr></table></figure></p>
+<p>进行<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">make -j</span><br><span class="line"></span><br><span class="line">File name or PKCS#11 URI of module signing key (MODULE_SIG_KEY) [certs/signing_key.pem] (NEW)</span><br><span class="line">Provide system-wide ring of trusted keys (SYSTEM_TRUSTED_KEYRING) [Y/?] y</span><br><span class="line">  Additional X.509 keys for default system keyring (SYSTEM_TRUSTED_KEYS) [] (NEW)</span><br><span class="line">  Reserve area for inserting a certificate without recompiling (SYSTEM_EXTRA_CERTIFICATE) [N/y/?] n</span><br><span class="line">  Provide a keyring to which extra trustable keys may be added (SECONDARY_TRUSTED_KEYRING) [N/y/?] n</span><br><span class="line">Provide system-wide ring of blacklisted keys (SYSTEM_BLACKLIST_KEYRING) [Y/n/?] y</span><br><span class="line">  Hashes to be preloaded into the system blacklist keyring (SYSTEM_BLACKLIST_HASH_LIST) []</span><br><span class="line">  HOSTCC  arch/x86/tools/relocs_32.o</span><br><span class="line">  HOSTCC  arch/x86/tools/relocs_64.o</span><br></pre></td></tr></table></figure></p>
+<p>全部回车默认</p>
+<h4 id="sudo-make-modules-install-j4"><a href="#sudo-make-modules-install-j4" class="headerlink" title="sudo make modules_install -j4"></a>sudo make modules_install -j4</h4><h4 id="sudo-make-install-j4"><a href="#sudo-make-install-j4" class="headerlink" title="sudo make install -j4"></a>sudo make install -j4</h4><h4 id="sudo-reboot"><a href="#sudo-reboot" class="headerlink" title="sudo reboot"></a>sudo reboot</h4><p>上面命令的后面加上 -j4 表示分成4个任务运行，只为了加快速度。大概等半个小时吧，内核编译应该就结束了。</p>
 <hr>
 <p>参考资料：</p>
 <ol>
 <li><a href="http://blog.csdn.net/chenyouxu/article/details/46985909" target="_blank" rel="noopener">小表弟皮卡丘</a></li>
+<li><a href="https://blog.csdn.net/qq_22418329/article/details/111299788" target="_blank" rel="noopener">编译内核是需要签名</a></li>
 </ol>
 
       

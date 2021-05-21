@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-05-18T14:20:07.370Z</updated>
+  <updated>2021-05-21T15:49:21.429Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,50 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>如何将grub输出到串口</title>
+    <link href="http://liujunming.github.io/2021/05/21/%E5%A6%82%E4%BD%95%E5%B0%86grub%E8%BE%93%E5%87%BA%E5%88%B0%E4%B8%B2%E5%8F%A3/"/>
+    <id>http://liujunming.github.io/2021/05/21/如何将grub输出到串口/</id>
+    <published>2021-05-21T09:55:56.000Z</published>
+    <updated>2021-05-21T15:49:21.429Z</updated>
+    
+    <content type="html"><![CDATA[<p>edit <code>/etc/default/grub</code> and enable serial input and output support:<a id="more"></a></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">GRUB_TERMINAL_INPUT=&quot;console serial&quot;</span><br><span class="line">...</span><br><span class="line">GRUB_TERMINAL_OUTPUT=&quot;gfxterm serial&quot;</span><br><span class="line">...</span><br></pre></td></tr></table></figure><p>Next add the <code>GRUB_SERIAL_COMMAND</code> variable and set the options for the serial connection. For COM1 (<code>/dev/ttyS0</code>) with baud rate of 115200 bit/s:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">GRUB_SERIAL_COMMAND=&quot;serial --unit=0 --speed=115200&quot;</span><br></pre></td></tr></table></figure><p>Then <code>update-grub</code> </p><hr><p>参考资料:</p><ol><li><a href="https://wiki.archlinux.org/title/Working_with_the_serial_console" target="_blank" rel="noopener">Working with the serial console</a></li><li><a href="http://emmoblin.github.io/blog/2013/03/02/grub-output-to-serial/" target="_blank" rel="noopener">Grub重定向到串口</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;edit &lt;code&gt;/etc/default/grub&lt;/code&gt; and enable serial input and output support:
+    
+    </summary>
+    
+      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
+    
+    
+      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>How to dump OpRegion and analyze its content</title>
+    <link href="http://liujunming.github.io/2021/05/20/How-to-dump-OpRegion-and-analyze-its-content/"/>
+    <id>http://liujunming.github.io/2021/05/20/How-to-dump-OpRegion-and-analyze-its-content/</id>
+    <published>2021-05-20T13:51:18.000Z</published>
+    <updated>2021-05-21T15:49:21.428Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将介绍dump OpRegion的方法以及OpRegion内容的含义。<a id="more"></a></p><h3 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h3><p><a href="/2019/11/23/gpu-display-in-uefi-phase/">gpu display in uefi bios phase</a></p><h3 id="2-How-to-dump-OpRegion"><a href="#2-How-to-dump-OpRegion" class="headerlink" title="2. How to dump OpRegion"></a>2. How to dump OpRegion</h3><p>在i915 driver的debugfs中，<code>hexdump</code>出OpRegion的具体内容。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@junming:/sys/kernel/debug/dri/0# pwd</span><br><span class="line">/sys/kernel/debug/dri/0</span><br><span class="line">root@junming:/sys/kernel/debug/dri/0# hexdump -C i915_opregion</span><br><span class="line">00000000  49 6e 74 65 6c 47 72 61  70 68 69 63 73 4d 65 6d  |IntelGraphicsMem|</span><br><span class="line">00000010  08 00 00 00 00 00 00 02  00 00 00 00 00 00 00 00  |................|</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p><p>i915 driver中的源码如下:</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">i915_opregion</span><span class="params">(struct seq_file *m, <span class="keyword">void</span> *unused)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">intel_opregion</span> *<span class="title">opregion</span> = &amp;<span class="title">node_to_i915</span>(<span class="title">m</span>-&gt;<span class="title">private</span>)-&gt;<span class="title">opregion</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (opregion-&gt;header)</span><br><span class="line">seq_write(m, opregion-&gt;header, OPREGION_SIZE);</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h3 id="3-How-to-analyze-OpRegion-content"><a href="#3-How-to-analyze-OpRegion-content" class="headerlink" title="3. How to analyze OpRegion content"></a>3. How to analyze OpRegion content</h3><p>spec: <a href="https://01.org/sites/default/files/documentation/skl_opregion_rev0p5.pdf" target="_blank" rel="noopener">IGD OpRegion/Software SCI/_DSM for Skylake Processors</a></p><p><img src="/images/2021/05/16.PNG" alt></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">00000000  49 6e 74 65 6c 47 72 61  70 68 69 63 73 4d 65 6d  |IntelGraphicsMem|</span><br></pre></td></tr></table></figure><p>由此可见，解析出来的内容与spec一致。</p><p><img src="/images/2021/05/17.PNG" alt></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">00000010  08 00 00 00 00 00 00 02  00 00 00 00 00 00 00 00  |................|</span><br></pre></td></tr></table></figure><p>根据spec，从<code>00 00 00 02</code>可知，OpRegion的version是2.0。</p><p>人肉解析OpRegion的内容，OpRegion一般也就看关键几个位置，不用全部解析。</p><hr><p>参考资料：</p><ol><li><a href="https://lists.freedesktop.org/archives/intel-gfx/2015-December/082667.html" target="_blank" rel="noopener">how to use i915 debugfs interface</a></li><li><a href="https://01.org/sites/default/files/documentation/skl_opregion_rev0p5.pdf" target="_blank" rel="noopener">IGD OpRegion/Software SCI/_DSM for Skylake Processors</a></li><li><a href="https://elixir.bootlin.com/linux/v5.12.4/source/drivers/gpu/drm/i915/display" target="_blank" rel="noopener">Linux kernel i915 driver</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将介绍dump OpRegion的方法以及OpRegion内容的含义。
+    
+    </summary>
+    
+      <category term="GPU" scheme="http://liujunming.github.io/categories/GPU/"/>
+    
+    
+      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
+    
+  </entry>
   
   <entry>
     <title>Introduction to minicom</title>
@@ -425,55 +469,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>虚拟化学习心得:three context</title>
-    <link href="http://liujunming.github.io/2021/03/20/%E8%99%9A%E6%8B%9F%E5%8C%96%E5%AD%A6%E4%B9%A0%E5%BF%83%E5%BE%97-three-context/"/>
-    <id>http://liujunming.github.io/2021/03/20/虚拟化学习心得-three-context/</id>
-    <published>2021-03-20T11:40:49.000Z</published>
-    <updated>2021-04-09T23:46:59.117Z</updated>
-    
-    <content type="html"><![CDATA[<p>在虚拟化的学习过程中，对于特权资源，必须知道三个 context: virtual context, shadow context and physical context。同时需要具有如下两个mindsets:</p><ol><li>Know what is done by hardware, what is done by software</li><li>Know what is done in root mode, what is done in non-root mode<a id="more"></a></li></ol><p>详细的讲解可以参考<a href="/pdf/virtualization_basic_concept_discussion.pdf">Basic Concepts of Virtualization</a>。若有疑问，可邮箱联系作者：<a href="mailto:ljm0910@mail.ustc.edu.cn" target="_blank" rel="noopener">ljm0910@mail.ustc.edu.cn</a>。</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;在虚拟化的学习过程中，对于特权资源，必须知道三个 context: virtual context, shadow context and physical context。同时需要具有如下两个mindsets:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Know what is done by hardware, what is done by software&lt;/li&gt;
-&lt;li&gt;Know what is done in root mode, what is done in non-root mode
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>高级操作系统-清华大学-陈渝</title>
-    <link href="http://liujunming.github.io/2021/02/09/%E9%AB%98%E7%BA%A7%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F-%E6%B8%85%E5%8D%8E%E5%A4%A7%E5%AD%A6-%E9%99%88%E6%B8%9D/"/>
-    <id>http://liujunming.github.io/2021/02/09/高级操作系统-清华大学-陈渝/</id>
-    <published>2021-02-09T14:24:39.000Z</published>
-    <updated>2021-02-18T13:44:19.018Z</updated>
-    
-    <content type="html"><![CDATA[<h3 id="课程主页"><a href="#课程主页" class="headerlink" title="课程主页"></a>课程主页</h3><p><a href="http://os.cs.tsinghua.edu.cn/oscourse/AOS2020" target="_blank" rel="noopener">http://os.cs.tsinghua.edu.cn/oscourse/AOS2020</a><br><a id="more"></a></p><h3 id="b站资源"><a href="#b站资源" class="headerlink" title="b站资源"></a>b站资源</h3><p><a href="https://www.bilibili.com/video/BV1pC4y1x7iw" target="_blank" rel="noopener">https://www.bilibili.com/video/BV1pC4y1x7iw</a></p><h3 id="OS2020-video"><a href="#OS2020-video" class="headerlink" title="OS2020-video"></a>OS2020-video</h3><p><a href="https://cloud.tsinghua.edu.cn/d/339de5f93d8c420ebbb7/?p=%2F&amp;mode=list" target="_blank" rel="noopener">https://cloud.tsinghua.edu.cn/d/339de5f93d8c420ebbb7/?p=%2F&amp;mode=list</a></p><h3 id="云学堂"><a href="#云学堂" class="headerlink" title="云学堂"></a>云学堂</h3><p><a href="https://www.xuetangx.com/course/thu080917777/3234209" target="_blank" rel="noopener">https://www.xuetangx.com/course/thu080917777/3234209</a><br>本课程主要围绕操作系统相关研究领域的经典和前沿论文和研究成果进行讲解。大致课程内容如下：</p><p>Lec 1 Advanced OS Overview:</p><ol><li>Course Overview</li><li>Course Scheduling</li><li>Rethink OS Components</li><li>Tendency of OS – Performance</li><li>Tendency of OS – Reliability</li><li>Tendency of OS – Correctness</li><li>Summary</li></ol><p>Lec 2 OS Architecture</p><ol><li>History of OS Architecture – THE</li><li>Monolithic Kernel – UNIX</li><li>Micro Kernel – L4</li><li>ExoKernel</li><li>Extensible Kernel</li><li>Summary</li></ol><p>Lec 3+4 System Virtualization Overview</p><ol><li>Introduction</li><li>Traditional Virtualization Challenges</li><li>Virtualization Technologies -CPU</li><li>Virtualization Technologies -Mmeory</li><li>Virtualization Technologies -I/O</li><li>Some VMMs</li><li>Summary</li></ol><p>Lec 5+6 OS/System API/Interface</p><ol><li>Introduction</li><li>Rethinking the Library OS from the Top Down</li><li>DPDK: Accelerating the I/O Path</li><li>Dune: Safe User-level Access to Privileged CPU Features</li><li>Safe and Secure Drivers in High-Level Languages</li><li>Summary</li></ol><p>Lec 7+8 OS for MultiCore Architecture</p><ol><li>Introduction</li><li>How to analyze the OS bottleneck for multicore arch</li><li>How to optimize the OS for multicore arch</li><li>Optimizing the OS performance from MIT’s research</li><li>Scalable Kernel TCP Design and Implementation for Short-Lived Connections</li><li>Summary</li></ol><p>Lec 9+10 OS/System Security</p><ol><li>Introduction</li><li>Improving Integer Security for Systems with KINT</li><li>PF-Miner: A new paired functions mining method for Android kernel in error paths</li><li>RID: Finding Reference Count Bugs with Inconsistent Path Pair Checking</li><li>Summary</li></ol><p>Lec 11+12 Correctness: OS/System Verification</p><ol><li>Introduction</li><li>seL4: Formal Verification of an OS Kernel</li><li>Jitk: A trustworthy in-kernel interpreter infrastructure</li><li>Hyperkernel: Push-Button Verification of an OS Kernel</li><li>Summary</li></ol><p>Lec 13+14 OS Kernel and HLL</p><ol><li>Introduction</li><li>Multiprogramming a 64 kB Computer Safely and Efficiently</li><li>The benefits and costs of writing a POSIX kernel in a high-level language</li><li>Summary</li></ol><p>Lec 15+16 Invited Talks From Visitors &amp; Students</p><ol><li>High-Performance Network Optimization on Data Center</li><li>Security OS Design for  Multi-tenancy</li><li>OS Performance Optimization for Serverless Service</li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;h3 id=&quot;课程主页&quot;&gt;&lt;a href=&quot;#课程主页&quot; class=&quot;headerlink&quot; title=&quot;课程主页&quot;&gt;&lt;/a&gt;课程主页&lt;/h3&gt;&lt;p&gt;&lt;a href=&quot;http://os.cs.tsinghua.edu.cn/oscourse/AOS2020&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;http://os.cs.tsinghua.edu.cn/oscourse/AOS2020&lt;/a&gt;&lt;br&gt;
-    
-    </summary>
-    
-      <category term="操作系统" scheme="http://liujunming.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-      <category term="操作系统" scheme="http://liujunming.github.io/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
