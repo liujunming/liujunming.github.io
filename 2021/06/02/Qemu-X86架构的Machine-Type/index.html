@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="QEMU x86架构的Machine:Q35 vs. I440FX">
+
+
+
+
+  <meta name="keywords" content="虚拟化, QEMU, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/06/02/Qemu-X86架构的Machine-Type/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> QEMU x86架构的Machine:Q35 vs. I440FX - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          QEMU x86架构的Machine:Q35 vs. I440FX
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-06-02
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/QEMU/">QEMU</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Q35-vs-I440FX"><span class="toc-text">1. Q35 vs. I440FX</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-i440fx-PIIX架构"><span class="toc-text">2. i440fx/PIIX架构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Q35架构"><span class="toc-text">3. Q35架构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-list-QEMU-supported-machines"><span class="toc-text">4. list QEMU supported machines</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文内容转载自:<a href="https://remimin.github.io/2019/07/09/qemu_machine_type/" target="_blank" rel="noopener">Qemu X86架构的Machine Type</a>。</p>
+<p>QEMU支持的X86架构非常少，在Q35出现之前，就只有诞生于1996年的I440FX/PIIX一个架构。Intel不断推出新的芯片组， 加入了PCIe、AHCI等等。I440FX已经无法满足需求，为此，在 KVM Forum 2012 上，Jason Baron带来了 <a href="https://www.linux-kvm.org/images/0/06/2012-forum-Q35.pdf" target="_blank" rel="noopener">A New Chipset For Qemu - Intel’s Q35</a>。<a id="more"></a></p>
+<h3 id="1-Q35-vs-I440FX"><a href="#1-Q35-vs-I440FX" class="headerlink" title="1. Q35 vs. I440FX"></a>1. Q35 vs. I440FX</h3><p>Q35是Intel在2007年9月推出的芯片组。</p>
+<p>Topology of I440FX/PIIX4 Vs. Q35</p>
+<ul>
+<li>Q35 has IOMMU</li>
+<li>Q35 has PCIe</li>
+<li>Q35 has Super I/O chip with LPC interconnect</li>
+<li>Q35 has 12 USB ports</li>
+<li>Q35 SATA vs. PATA</li>
+</ul>
+<p>IRQ Routing I440FX/PIIX4 Vs. Q35</p>
+<ul>
+<li>Q35 PIRQ has 8 pins - PIRQ A-H</li>
+<li>Q35 has two PIC modes – legacy PIC vs I/O APIC</li>
+<li>Q35 runs in I/O APIC mode</li>
+<li>Slots 0-24 are mapped to PIRQ E-H round robin</li>
+<li>PCIe Bus to PIRQ mappings can be programmed<ul>
+<li>Slots 25-31</li>
+</ul>
+</li>
+<li>Q35 has 8 PCI IRQ vectors available, I440FX/PIIX4 only 2</li>
+</ul>
+<p>I440FX/PIIX4 vs. Q35 devices</p>
+<ul>
+<li>AHCI vs. Legacy IDE</li>
+<li>PCI addresses</li>
+<li>Populate slots using flags</li>
+<li>Default slots</li>
+</ul>
+<h3 id="2-i440fx-PIIX架构"><a href="#2-i440fx-PIIX架构" class="headerlink" title="2. i440fx/PIIX架构"></a>2. i440fx/PIIX架构</h3><p>Intel 440FX是北桥芯片，用于连接主板上的高速设备。向上可以连接多个处理器；向下则主要提供了连接DRAM的接口和连接PCI总线的接口(通过PCI Host Bridge)， 通过该PCI root port扩展出整个PCI设备树，包括PIIX南桥芯片。</p>
+<p>PIIX是南桥芯片，用于连接主板上的低速设备，主要包括IDE控制器、DMA控制器，USB控制器， SMBus总线控制器，X-Bus控制器，USB控制，PIT（Programmable Interval Timer）， RTC（Real Time Clock，实时时钟)， PIC（可编程中断控制器）等，并且提供ISA bridge连接ISA总线，用于连接更多的低速设备。</p>
+<p><img src="/images/2021/06/2.PNG" alt></p>
+<h3 id="3-Q35架构"><a href="#3-Q35架构" class="headerlink" title="3. Q35架构"></a>3. Q35架构</h3><p>北桥为GMCH(Graphics and Memory Controller Hub)，南桥为ICH9(I/O Controller Hub)。CPU 通过前端总线(FSB)连接到GMCH；GMCH连接内存，显卡，高速PCIe接口等；南桥芯片则为USB，低速PCI / SATA 等提供接入。</p>
+<p><img src="/images/2021/06/3.PNG" alt></p>
+<h3 id="4-list-QEMU-supported-machines"><a href="#4-list-QEMU-supported-machines" class="headerlink" title="4. list QEMU supported machines"></a>4. list QEMU supported machines</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">kvm@kvm:~$ qemu-system-x86_64 -machine help</span><br><span class="line">Supported machines are:</span><br><span class="line">pc                   Standard PC (i440FX + PIIX, 1996) (alias of pc-i440fx-4.0)</span><br><span class="line">pc-i440fx-4.0        Standard PC (i440FX + PIIX, 1996) (default)</span><br><span class="line">pc-i440fx-3.1        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-3.0        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.9        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.8        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.7        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.6        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.5        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.4        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.3        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.2        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.12       Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.11       Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.10       Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.1        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-2.0        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-1.7        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-1.6        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-1.5        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-i440fx-1.4        Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-1.3               Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-1.2               Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-1.1               Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-1.0               Standard PC (i440FX + PIIX, 1996)</span><br><span class="line">pc-0.15              Standard PC (i440FX + PIIX, 1996) (deprecated)</span><br><span class="line">pc-0.14              Standard PC (i440FX + PIIX, 1996) (deprecated)</span><br><span class="line">pc-0.13              Standard PC (i440FX + PIIX, 1996) (deprecated)</span><br><span class="line">pc-0.12              Standard PC (i440FX + PIIX, 1996) (deprecated)</span><br><span class="line">q35                  Standard PC (Q35 + ICH9, 2009) (alias of pc-q35-4.0.1)</span><br><span class="line">pc-q35-4.0.1         Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-4.0           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-3.1           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-3.0           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.9           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.8           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.7           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.6           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.5           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.4           Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.12          Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.11          Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">pc-q35-2.10          Standard PC (Q35 + ICH9, 2009)</span><br><span class="line">isapc                ISA-only PC</span><br><span class="line">none                 empty machine</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.linux-kvm.org/images/0/06/2012-forum-Q35.pdf" target="_blank" rel="noopener">A New Chipset For Qemu - Intel’s Q35</a></li>
+<li><a href="https://www.binss.me/blog/qemu-note-of-Q35-machine/" target="_blank" rel="noopener">QEMU学习笔记——Q35</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/06/01/Introduction-to-netplan/">
+        <span class="next-text nav-default">Introduction to netplan</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/06/02/Qemu-X86架构的Machine-Type/';
+        this.page.identifier = '2021/06/02/Qemu-X86架构的Machine-Type/';
+        this.page.title = 'QEMU x86架构的Machine:Q35 vs. I440FX';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
