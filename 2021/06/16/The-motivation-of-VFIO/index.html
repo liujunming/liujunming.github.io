@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="The motivation of VFIO">
+
+
+
+
+  <meta name="keywords" content="VFIO, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/06/16/The-motivation-of-VFIO/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> The motivation of VFIO - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          The motivation of VFIO
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-06-16
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/VFIO/">VFIO</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Background"><span class="toc-text">1. Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-VFIO-vs-UIO"><span class="toc-text">2. VFIO vs UIO</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-Basic-target-of-UIO-Enable-userspace-device-drivers"><span class="toc-text">2.1 Basic target of UIO: Enable userspace device drivers:</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-What-is-missing"><span class="toc-text">2.2 What is missing:</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3-Why-DMA-capability-not-provided"><span class="toc-text">2.3 Why DMA capability not provided?</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4-Why-VFIO-is-different"><span class="toc-text">2.4 Why VFIO is different?</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-VFIO-vs-Legacy-PCI-Assignment"><span class="toc-text">3. VFIO vs Legacy PCI Assignment</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-Legacy-Assignment-the-Pros"><span class="toc-text">3.1 Legacy Assignment: the Pros</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-Legacy-Assignment-the-Cons"><span class="toc-text">3.2 Legacy Assignment: the Cons</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-Why-VFIO-is-different"><span class="toc-text">3.3 Why VFIO is different?</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>这一年多以来陆陆续续听到了VFIO这个技术，知道它可以用来：(1)虚拟化下pass-thru device；(2)实现用户态驱动，如DPDK，SPDK等。但是，从未深入研究过VFIO。接下来，准备写一系列的博客来介绍这项技术。本文将介绍the motivation of VFIO。<a id="more"></a>本文内容主要源于大佬的slides。</p>
+<h3 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h3><blockquote>
+<p>The VFIO driver is an IOMMU/device agnostic framework for exposing direct device access to userspace, in a secure, IOMMU protected environment.  In other words, this allows safe , non-privileged, userspace drivers.</p>
+<p>Why do we want that?  Virtual machines often make use of direct device access (“device assignment”) when configured for the highest possible I/O performance.  From a device and host perspective, this simply turns the VM into a userspace driver, with the benefits of significantly reduced latency, higher bandwidth, and direct use of bare-metal device drivers.</p>
+<p>Some applications, particularly in the high performance computing field, also benefit from low-overhead, direct device access from userspace.  Examples include network adapters (often non-TCP/IP based) and compute accelerators.  Prior to VFIO, these drivers had to either go through the full development cycle to become proper upstream driver, be maintained out of tree, or make use of the UIO framework, which has no notion of IOMMU protection, limited interrupt support, and requires root privileges to access things like PCI configuration space.</p>
+<p>The VFIO driver framework intends to unify these, replacing both the KVM PCI specific device assignment code as well as provide a more secure, more featureful userspace driver environment than UIO.</p>
+</blockquote>
+<p>The use cases of VFIO are straightforward. Both of them need to directly access device:</p>
+<ul>
+<li><p>Virtualization guest OS</p>
+</li>
+<li><p>High performance user-level IO stacks such as DPDK</p>
+</li>
+</ul>
+<p>VFIO claims that it replaced two exsiting things:</p>
+<ul>
+<li>UIO</li>
+<li>KVM Legacy PCI Assignment</li>
+</ul>
+<h3 id="2-VFIO-vs-UIO"><a href="#2-VFIO-vs-UIO" class="headerlink" title="2. VFIO vs UIO"></a>2. VFIO vs UIO</h3><p>UIO, i.e. Userspace I/O.</p>
+<h4 id="2-1-Basic-target-of-UIO-Enable-userspace-device-drivers"><a href="#2-1-Basic-target-of-UIO-Enable-userspace-device-drivers" class="headerlink" title="2.1 Basic target of UIO: Enable userspace device drivers:"></a>2.1 Basic target of UIO: Enable userspace device drivers:</h4><ul>
+<li>Remap device MMIO to userspace</li>
+<li>Remap kernel physical memory to userspace</li>
+<li>Remap kernel virtual memory to userspace</li>
+</ul>
+<h4 id="2-2-What-is-missing"><a href="#2-2-What-is-missing" class="headerlink" title="2.2 What is missing:"></a>2.2 What is missing:</h4><ul>
+<li>IRQ (partial support, polling mostly)</li>
+<li>DMA</li>
+</ul>
+<h4 id="2-3-Why-DMA-capability-not-provided"><a href="#2-3-Why-DMA-capability-not-provided" class="headerlink" title="2.3 Why DMA capability not provided?"></a>2.3 Why DMA capability not provided?</h4><ul>
+<li>IOMMU not considered from the beginning</li>
+</ul>
+<h4 id="2-4-Why-VFIO-is-different"><a href="#2-4-Why-VFIO-is-different" class="headerlink" title="2.4 Why VFIO is different?"></a>2.4 Why VFIO is different?</h4><ul>
+<li>Full DMA capability from userspace</li>
+<li>Full interrupt support to userspace</li>
+</ul>
+<h3 id="3-VFIO-vs-Legacy-PCI-Assignment"><a href="#3-VFIO-vs-Legacy-PCI-Assignment" class="headerlink" title="3. VFIO vs Legacy PCI Assignment"></a>3. VFIO vs Legacy PCI Assignment</h3><h4 id="3-1-Legacy-Assignment-the-Pros"><a href="#3-1-Legacy-Assignment-the-Pros" class="headerlink" title="3.1 Legacy Assignment: the Pros"></a>3.1 Legacy Assignment: the Pros</h4><ul>
+<li>straight forward implementation</li>
+</ul>
+<h4 id="3-2-Legacy-Assignment-the-Cons"><a href="#3-2-Legacy-Assignment-the-Cons" class="headerlink" title="3.2 Legacy Assignment: the Cons"></a>3.2 Legacy Assignment: the Cons</h4><ul>
+<li>the minimum granularity is PCI BDF<ul>
+<li>How about a PCIe-to-PCI Bridge?</li>
+<li>A device capable of Peer-to-Peer, but without ACS capability?</li>
+</ul>
+</li>
+</ul>
+<p><strong>“How about a PCIe-to-PCI Bridge?”的解释:</strong></p>
+<p>设备利用自己的Source Identifier(包含Bus、Device、Func)来找到页表项以完成地址映射，不过如下特殊情况需要考虑:<br>对于由PCIe switch扩展出的PCI桥及桥下设备，在发送DMA请求时，Source Identifier是PCIe switch的，这样的话该PCI桥及桥下所有设备都会使用PCIe switch的Source Identifier去定位Context Entry，找到的页表也是同一个，如果将这个PCI桥下的不同设备分给不同虚机，由于会使用同一份页表，这样会产生问题。针对这种情况，当前PCI桥及桥下的所有设备必须分配给同一个虚机，这就是VFIO中group的概念。</p>
+<p><strong>“A device capable of Peer-to-Peer, but without ACS capability?”的解释:</strong></p>
+<p><a href="/2019/11/24/Introduction-to-PCIe-Access-Control-Services/#2-What-is-ACS">ACS的基本介绍</a></p>
+<blockquote>
+<p>This isolation is not always at the granularity of a single device though.  Even when an IOMMU is capable of this, properties of devices, interconnects, and IOMMU topologies can each reduce this isolation. For instance, an individual device may be part of a larger multi-function enclosure.  While the IOMMU may be able to distinguish between devices within the enclosure, the enclosure may not require transactions between devices to reach the IOMMU.  Examples of this could be anything from a multi-function PCI device with backdoors between functions to a non-PCI-ACS (Access Control Services) capable bridge allowing redirection without reaching the IOMMU. </p>
+</blockquote>
+<h4 id="3-3-Why-VFIO-is-different"><a href="#3-3-Why-VFIO-is-different" class="headerlink" title="3.3 Why VFIO is different?"></a>3.3 Why VFIO is different?</h4><ul>
+<li>the minimum granularity is vfio_group, which is derived from iommu_group</li>
+<li>A PCIe-to-PCI hierarchy belongs to one group</li>
+<li>Modular design &amp; implementation, not limited to PCI</li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://gdoc.pub/doc/e/2PACX-1vSsskD0A2XgHoZhaYLAkS7lmCOrfxkGXk1WTovWEAyeoELVdBjrE-NzD8h-NvJfKhxMpUg2aXzaD-XG" target="_blank" rel="noopener">Notes about Virtualization Yizhou Shan</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/vfio.txt" target="_blank" rel="noopener">Kernel documentation: VFIO</a></li>
+<li><a href="https://blog.csdn.net/hx_op/article/details/104029622" target="_blank" rel="noopener">VFIO概述</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/VFIO/">VFIO</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2021/06/17/DMA-Remapping-Memory-Type/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">DMA Remapping:Memory Type</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2021/06/09/常用的英文缩写/">
+        <span class="next-text nav-default">常用的英文缩写</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/06/16/The-motivation-of-VFIO/';
+        this.page.identifier = '2021/06/16/The-motivation-of-VFIO/';
+        this.page.title = 'The motivation of VFIO';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
