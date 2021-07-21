@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Introduction to nested virtualization">
+
+
+
+
+  <meta name="keywords" content="虚拟化, 嵌套虚拟化, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/07/21/Introduction-to-nested-virtualization/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Introduction to nested virtualization - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Introduction to nested virtualization
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-07-21
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化-more/">虚拟化<!-- more --></a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Introduction"><span class="toc-text">1. Introduction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-CPU-Nested-VMX-Virtualization"><span class="toc-text">2. CPU: Nested VMX Virtualization</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-VMX-Trap-and-Emulate"><span class="toc-text">2.1 VMX Trap and Emulate</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-VMCS-Shadowing"><span class="toc-text">2.2 VMCS Shadowing</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3-VMEntry-and-VMExit-Emulation"><span class="toc-text">2.3 VMEntry and VMExit Emulation</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4-summary"><span class="toc-text">2.4 summary</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-MMU-Multi-dimensional-Paging"><span class="toc-text">3. MMU: Multi-dimensional Paging</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-I-O-Multi-level-Device-Assignment"><span class="toc-text">4. I/O: Multi-level Device Assignment</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Summary"><span class="toc-text">5. Summary</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>一直听闻嵌套虚拟化这一技术，但是从未深入研究过其底层原理。借此机会，本文将一探嵌套虚拟化。</p>
+<p>嵌套虚拟化的绝佳入门材料为ODSI’10上的论文<a href="https://www.usenix.org/conference/osdi10/turtles-project-design-and-implementation-nested-virtualization" target="_blank" rel="noopener">The Turtles Project: Design and Implementation of Nested Virtualization</a>。本文内容主要是<a href="https://www.usenix.org/legacy/events/osdi10/tech/full_papers/Ben-Yehuda.pdf" target="_blank" rel="noopener">paper</a>和<a href="https://www.usenix.org/legacy/events/osdi10/tech/slides/ben-yehuda.pdf" target="_blank" rel="noopener">slides</a>的notes。<a id="more"></a></p>
+<h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>In nested virtualization, a hypervisor can run multiple other hypervisors with their associated virtual machines. 通俗地来说，套娃。</p>
+<p>接下来将从CPU虚拟化，内存虚拟化，IO虚拟化这三个方面去介绍嵌套虚拟化的原理。</p>
+<h3 id="2-CPU-Nested-VMX-Virtualization"><a href="#2-CPU-Nested-VMX-Virtualization" class="headerlink" title="2. CPU: Nested VMX Virtualization"></a>2. CPU: Nested VMX Virtualization</h3><p>Approach for nested virtualization <em>multiplexes</em> multiple levels of virtualization (multiple hypervisors) on the single level of architectural support available. </p>
+<p><img src="/images/2021/07/3.PNG" alt></p>
+<p><img src="/images/2021/07/4.PNG" alt></p>
+<p><img src="/images/2021/07/5.PNG" alt></p>
+<p><img src="/images/2021/07/6.PNG" alt></p>
+<p><img src="/images/2021/07/7.PNG" alt></p>
+<h4 id="2-1-VMX-Trap-and-Emulate"><a href="#2-1-VMX-Trap-and-Emulate" class="headerlink" title="2.1 VMX Trap and Emulate"></a>2.1 VMX Trap and Emulate</h4><p><img src="/images/2021/07/15.PNG" alt></p>
+<h4 id="2-2-VMCS-Shadowing"><a href="#2-2-VMCS-Shadowing" class="headerlink" title="2.2 VMCS Shadowing"></a>2.2 VMCS Shadowing</h4><p><img src="/images/2021/07/16.PNG" alt></p>
+<p><img src="/images/2021/07/17.PNG" alt></p>
+<h4 id="2-3-VMEntry-and-VMExit-Emulation"><a href="#2-3-VMEntry-and-VMExit-Emulation" class="headerlink" title="2.3 VMEntry and VMExit Emulation"></a>2.3 VMEntry and VMExit Emulation</h4><p><img src="/images/2021/07/18.PNG" alt></p>
+<h4 id="2-4-summary"><a href="#2-4-summary" class="headerlink" title="2.4 summary"></a>2.4 summary</h4><p><img src="/images/2021/07/8.PNG" alt></p>
+<p><img src="/images/2021/07/9.PNG" alt></p>
+<h3 id="3-MMU-Multi-dimensional-Paging"><a href="#3-MMU-Multi-dimensional-Paging" class="headerlink" title="3. MMU: Multi-dimensional Paging"></a>3. MMU: Multi-dimensional Paging</h3><p><img src="/images/2021/07/10.PNG" alt></p>
+<p><img src="/images/2021/07/11.PNG" alt></p>
+<p><img src="/images/2021/07/12.PNG" alt></p>
+<h3 id="4-I-O-Multi-level-Device-Assignment"><a href="#4-I-O-Multi-level-Device-Assignment" class="headerlink" title="4. I/O: Multi-level Device Assignment"></a>4. I/O: Multi-level Device Assignment</h3><p><img src="/images/2021/07/13.PNG" alt></p>
+<p><img src="/images/2021/07/14.PNG" alt></p>
+<h3 id="5-Summary"><a href="#5-Summary" class="headerlink" title="5. Summary"></a>5. Summary</h3><ol>
+<li><p>Approach for CPU virtualization works by having the lowest hypervisor inspect the trap and forward it to the hypervisors above it for emulation.  </p>
+</li>
+<li><p>For efficient memory virtualization, we developed multi-dimensional paging, which collapses the different memory translation tables into the one or two tables provided by the MMU.</p>
+</li>
+<li><p>For efficient I/O virtualization, we bypass multiple levels of hypervisor I/O stacks to provide nested guests with direct assignment of I/O devices via multilevel device assignment. </p>
+</li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/嵌套虚拟化/">嵌套虚拟化</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/07/02/Notes-about-extended-PCIE-configuration-space/">
+        <span class="next-text nav-default">Notes about PCI Express Configuration Space</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/07/21/Introduction-to-nested-virtualization/';
+        this.page.identifier = '2021/07/21/Introduction-to-nested-virtualization/';
+        this.page.title = 'Introduction to nested virtualization';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
