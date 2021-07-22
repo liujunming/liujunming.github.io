@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-07-21T12:33:26.463Z</updated>
+  <updated>2021-07-22T12:47:52.756Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -17,11 +17,35 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Introduction to Intel VMCS Shadowing technology</title>
+    <link href="http://liujunming.github.io/2021/07/22/Introduction-to-Intel-VMCS-Shadowing-technology/"/>
+    <id>http://liujunming.github.io/2021/07/22/Introduction-to-Intel-VMCS-Shadowing-technology/</id>
+    <published>2021-07-22T01:46:58.000Z</published>
+    <updated>2021-07-22T12:47:52.756Z</updated>
+    
+    <content type="html"><![CDATA[<p><a href="/2021/07/21/Introduction-to-nested-virtualization/">Introduction to nested virtualization</a>一文介绍了嵌套虚拟化的基本概念。本文介绍的Intel VMCS Shadowing technology这一硬件技术，正是为了提高嵌套虚拟化系统的性能而应运而生的。<a id="more"></a></p><h3 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h3><p>The motivation of VMCS Shadowing: Eliminate VM Exits on guest VMCS accesses</p><p><img src="/images/2021/07/19.PNG" alt></p><p><img src="/images/2021/07/20.PNG" alt></p><p><img src="/images/2021/07/21.PNG" alt></p><h3 id="2-implementation"><a href="#2-implementation" class="headerlink" title="2. implementation"></a>2. implementation</h3><ul><li>Shadow VMCS is processor-dependent and must be accessed by L0 or L1 using VMREAD and VMWRITE instructions only</li><li>To avoid hardware dependencies:<ul><li>Software defined VMCS1→2 format is part of L1 address space</li><li>Processor-specific shadow VMCS format is part of L0 address space</li></ul></li><li>L0 synchronize the shadow VMCS content with the software-controlled VMCS1→2 format</li><li>Design simplifies live migration of L1, which does not depended on the shadow VMCS layout</li></ul><h3 id="3-sync-process"><a href="#3-sync-process" class="headerlink" title="3. sync process"></a>3. sync process</h3><ul><li>Before running L2 after switching from L1 we need to update all the changes L1 did, from the shadow VMCS to VMCS1→2</li><li>Before switching back to L1 after running L2 we need to sync from VMCS1→2 to the shadow VMCS</li></ul><h3 id="4-reducing-syncing-cost"><a href="#4-reducing-syncing-cost" class="headerlink" title="4. reducing syncing cost"></a>4. reducing syncing cost</h3><p>When Intel VMCS shadowing is used, the L0 VMM has no idea which of the more than 130 VMCS fields were accessed, since it was not involved in those accessed. The L0 VMM must therefore synchronize every filed that could have possibly been accessed, even though most of the fields are never touched.</p><p>Results from Intel Labs profiling across a wide variety of VMMs, show that approximately 90% of VMCS fields are never read and more than 95% percent are never written. As a result, for most VMMs, a full VMCS synchronization can take approximately 15 times longer than necessary.</p><p><strong>Idea: Shadow only the necessary fields</strong></p><p>To reduce this synchronization overhead, Intel incorporated an addtional feature into Intel VMCS Shadowing called VMREAD and VMWRITE bitmaps. These bitmaps allow for selective access to the shadow VMCS. The L0 VMM can tune the bitmaps so that the 5-10 percent of VMCS fields that are commonly accessed are written directly to the shadow VMCS, while the very rarely accessed fields are synchronized through the slower path that is managed by the L0 VMM.</p><p>By using the VMREAD/VMWRITE bitmaps, the L0 VMM gets the best of both worlds. Nearly all of the accesses go directly to the fast shadow VMCS and very few extraneous fields need to be synchronized. </p><hr><p>参考资料:</p><ol><li><a href="https://events.static.linuxfound.org/sites/events/files/cojp13_nakajima.pdf" target="_blank" rel="noopener">Making Nested Virtualization Real by Using Hardware Virtualization Features</a></li><li><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/intel-vmcs-shadowing-paper.pdf" target="_blank" rel="noopener">intel-vmcs-shadowing-paper</a></li><li><a href="https://events19.linuxfoundation.org/wp-content/uploads/2017/12/Improving-KVM-x86-Nested-Virtualization-Liran-Alon-Oracle.pdf" target="_blank" rel="noopener">Improving-KVM-x86-Nested-Virtualization-Liran-Alon-Oracle</a></li><li><a href="https://docs.google.com/file/d/0BzyAwvVlQckeMTd2T2RBT2cweDg/edit?resourcekey=0-FfuT4IueJf7OFC4KmykJdA" target="_blank" rel="noopener">KVM forum 2013 Nested virtualization:shadow turtles</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;a href=&quot;/2021/07/21/Introduction-to-nested-virtualization/&quot;&gt;Introduction to nested virtualization&lt;/a&gt;一文介绍了嵌套虚拟化的基本概念。本文介绍的Intel VMCS Shadowing technology这一硬件技术，正是为了提高嵌套虚拟化系统的性能而应运而生的。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="嵌套虚拟化" scheme="http://liujunming.github.io/tags/%E5%B5%8C%E5%A5%97%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Introduction to nested virtualization</title>
     <link href="http://liujunming.github.io/2021/07/21/Introduction-to-nested-virtualization/"/>
     <id>http://liujunming.github.io/2021/07/21/Introduction-to-nested-virtualization/</id>
     <published>2021-07-21T11:20:41.000Z</published>
-    <updated>2021-07-21T12:33:26.463Z</updated>
+    <updated>2021-07-22T12:47:52.757Z</updated>
     
     <content type="html"><![CDATA[<p>一直听闻嵌套虚拟化这一技术，但是从未深入研究过其底层原理。借此机会，本文将一探嵌套虚拟化。</p><p>嵌套虚拟化的绝佳入门材料为ODSI’10上的论文<a href="https://www.usenix.org/conference/osdi10/turtles-project-design-and-implementation-nested-virtualization" target="_blank" rel="noopener">The Turtles Project: Design and Implementation of Nested Virtualization</a>。本文内容主要是<a href="https://www.usenix.org/legacy/events/osdi10/tech/full_papers/Ben-Yehuda.pdf" target="_blank" rel="noopener">paper</a>和<a href="https://www.usenix.org/legacy/events/osdi10/tech/slides/ben-yehuda.pdf" target="_blank" rel="noopener">slides</a>的notes。<a id="more"></a></p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>In nested virtualization, a hypervisor can run multiple other hypervisors with their associated virtual machines. 通俗地来说，套娃。</p><p>接下来将从CPU虚拟化，内存虚拟化，IO虚拟化这三个方面去介绍嵌套虚拟化的原理。</p><h3 id="2-CPU-Nested-VMX-Virtualization"><a href="#2-CPU-Nested-VMX-Virtualization" class="headerlink" title="2. CPU: Nested VMX Virtualization"></a>2. CPU: Nested VMX Virtualization</h3><p>Approach for nested virtualization <em>multiplexes</em> multiple levels of virtualization (multiple hypervisors) on the single level of architectural support available. </p><p><img src="/images/2021/07/3.PNG" alt></p><p><img src="/images/2021/07/4.PNG" alt></p><p><img src="/images/2021/07/5.PNG" alt></p><p><img src="/images/2021/07/6.PNG" alt></p><p><img src="/images/2021/07/7.PNG" alt></p><h4 id="2-1-VMX-Trap-and-Emulate"><a href="#2-1-VMX-Trap-and-Emulate" class="headerlink" title="2.1 VMX Trap and Emulate"></a>2.1 VMX Trap and Emulate</h4><p><img src="/images/2021/07/15.PNG" alt></p><h4 id="2-2-VMCS-Shadowing"><a href="#2-2-VMCS-Shadowing" class="headerlink" title="2.2 VMCS Shadowing"></a>2.2 VMCS Shadowing</h4><p><img src="/images/2021/07/16.PNG" alt></p><p><img src="/images/2021/07/17.PNG" alt></p><h4 id="2-3-VMEntry-and-VMExit-Emulation"><a href="#2-3-VMEntry-and-VMExit-Emulation" class="headerlink" title="2.3 VMEntry and VMExit Emulation"></a>2.3 VMEntry and VMExit Emulation</h4><p><img src="/images/2021/07/18.PNG" alt></p><h4 id="2-4-summary"><a href="#2-4-summary" class="headerlink" title="2.4 summary"></a>2.4 summary</h4><p><img src="/images/2021/07/8.PNG" alt></p><p><img src="/images/2021/07/9.PNG" alt></p><h3 id="3-MMU-Multi-dimensional-Paging"><a href="#3-MMU-Multi-dimensional-Paging" class="headerlink" title="3. MMU: Multi-dimensional Paging"></a>3. MMU: Multi-dimensional Paging</h3><p><img src="/images/2021/07/10.PNG" alt></p><p><img src="/images/2021/07/11.PNG" alt></p><p><img src="/images/2021/07/12.PNG" alt></p><h3 id="4-I-O-Multi-level-Device-Assignment"><a href="#4-I-O-Multi-level-Device-Assignment" class="headerlink" title="4. I/O: Multi-level Device Assignment"></a>4. I/O: Multi-level Device Assignment</h3><p><img src="/images/2021/07/13.PNG" alt></p><p><img src="/images/2021/07/14.PNG" alt></p><h3 id="5-Summary"><a href="#5-Summary" class="headerlink" title="5. Summary"></a>5. Summary</h3><ol><li><p>Approach for CPU virtualization works by having the lowest hypervisor inspect the trap and forward it to the hypervisors above it for emulation.  </p></li><li><p>For efficient memory virtualization, we developed multi-dimensional paging, which collapses the different memory translation tables into the one or two tables provided by the MMU.</p></li><li><p>For efficient I/O virtualization, we bypass multiple levels of hypervisor I/O stacks to provide nested guests with direct assignment of I/O devices via multilevel device assignment. </p></li></ol>]]></content>
     
@@ -32,7 +56,7 @@
     
     </summary>
     
-      <category term="虚拟化&lt;!-- more --&gt;" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96-more/"/>
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
     
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
@@ -438,28 +462,6 @@
     </summary>
     
       <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
-    
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>lspci usage</title>
-    <link href="http://liujunming.github.io/2021/05/31/lspci-usage/"/>
-    <id>http://liujunming.github.io/2021/05/31/lspci-usage/</id>
-    <published>2021-05-31T12:29:50.000Z</published>
-    <updated>2021-06-01T14:12:08.829Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将简单介绍下PCI ID database和Class Codes相关知识，然后分享<code>lspci</code>的常用操作。<a id="more"></a></p><h3 id="PCI-ID-database"><a href="#PCI-ID-database" class="headerlink" title="PCI ID database"></a>PCI ID database</h3><p><a href="https://pci-ids.ucw.cz/" target="_blank" rel="noopener">https://pci-ids.ucw.cz/</a></p><p>tools: <a href="https://www.pcilookup.com/" target="_blank" rel="noopener">PCI Lookup</a></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ lspci -n -s 00:02.0</span><br><span class="line">00:02.0 0300: 8086:5a85 (rev 0b)</span><br></pre></td></tr></table></figure><p>查询结果<a href="https://www.pcilookup.com/?ven=8086&amp;dev=5a85&amp;action=submit" target="_blank" rel="noopener">HD Graphics 500</a>.</p><h3 id="Class-Codes"><a href="#Class-Codes" class="headerlink" title="Class Codes"></a>Class Codes</h3><p><a href="https://blog.ladsai.com/pci-configuration-space-class-code.html" target="_blank" rel="noopener">https://blog.ladsai.com/pci-configuration-space-class-code.html</a><br>The Class Code, Subclass, and Prog IF registers are used to identify the device’s type, the device’s function, and the device’s register-level programming interface, respectively. </p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ lspci -n -s 00:02.0</span><br><span class="line">00:02.0 0300: 8086:5a85 (rev 0b)</span><br></pre></td></tr></table></figure><p>0300: VGA-Compatible Controller</p><h3 id="常用操作"><a href="#常用操作" class="headerlink" title="常用操作"></a>常用操作</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">lspci -n</span><br><span class="line"></span><br><span class="line">lspci -t</span><br><span class="line"></span><br><span class="line">lspci -v</span><br><span class="line"></span><br><span class="line">lspci -s 03:00.0</span><br><span class="line"></span><br><span class="line">lspci -k</span><br><span class="line"></span><br><span class="line">lspci -vxxx -s 0:02.0</span><br><span class="line"></span><br><span class="line">lspci -nxxx -s 0:02.0</span><br><span class="line"></span><br><span class="line">lspci -vmm</span><br><span class="line"></span><br><span class="line">lspci -D</span><br></pre></td></tr></table></figure><p>Each device is given a bus number, a device number and a function number. On Linux, PCI devices are also given domain numbers, but they are usually omitted by lspci since very often all devices have the same domain number (usually zero).</p><p>For more detailed guideline, please type <code>man lspci</code> or <code>info lspci</code>.同时可以参考<a href="https://diego.assencio.com/?index=649b7a71b35fc7ad41e03b6d0e825f07" target="_blank" rel="noopener">Interpreting the output of lspci</a>.</p><hr><p>参考资料:</p><ol><li><a href="https://wiki.osdev.org/PCI" target="_blank" rel="noopener">osdev PCI</a></li><li><a href="https://www.thegeekstuff.com/2014/04/lspci-examples/" target="_blank" rel="noopener">7 Linux lspci Command Examples to Get PCI Bus Hardware Device Info</a></li><li><a href="https://diego.assencio.com/?index=649b7a71b35fc7ad41e03b6d0e825f07" target="_blank" rel="noopener">Interpreting the output of lspci</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将简单介绍下PCI ID database和Class Codes相关知识，然后分享&lt;code&gt;lspci&lt;/code&gt;的常用操作。
-    
-    </summary>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
     
     
       <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
