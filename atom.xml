@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-07-22T12:47:52.756Z</updated>
+  <updated>2021-07-29T13:17:17.549Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about guest memory pinning when direct assignment of I/O devices</title>
+    <link href="http://liujunming.github.io/2021/07/29/Notes-about-guest-memory-pinning-when-direct-assignment-of-I-0-devices/"/>
+    <id>http://liujunming.github.io/2021/07/29/Notes-about-guest-memory-pinning-when-direct-assignment-of-I-0-devices/</id>
+    <published>2021-07-29T11:36:36.000Z</published>
+    <updated>2021-07-29T13:17:17.549Z</updated>
+    
+    <content type="html"><![CDATA[<p>当pass-thru device时，Hypervisor会建立dma remapping，但是存在一个问题就是:it requires the hypervisor to statically pin the entire guest memory.<a id="more"></a> 原因如下:</p><p><img src="/images/2021/07/24.PNG" alt><br>[ATC’11 vIOMMU: Efficient IOMMU Emulation]</p><p><img src="/images/2021/07/22.PNG" alt></p><p><img src="/images/2021/07/23.PNG" alt><br><a href="http://awilliam.github.io/presentations/KVM-Forum-2016/#/2/19" target="_blank" rel="noopener">http://awilliam.github.io/presentations/KVM-Forum-2016/#/2/19</a></p><p>优化的工作有:</p><ol><li>ATC’11 vIOMMU: Efficient IOMMU Emulation</li><li>ATC’20 coIOMMU: A Virtual IOMMU with Cooperative DMA Buffer Tracking for Efficient Memory Management in Direct I/O</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;当pass-thru device时，Hypervisor会建立dma remapping，但是存在一个问题就是:it requires the hypervisor to statically pin the entire guest memory.
+    
+    </summary>
+    
+      <category term="VT-d" scheme="http://liujunming.github.io/categories/VT-d/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="VT-d" scheme="http://liujunming.github.io/tags/VT-d/"/>
+    
+  </entry>
   
   <entry>
     <title>Introduction to Intel VMCS Shadowing technology</title>
@@ -443,28 +467,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="QEMU" scheme="http://liujunming.github.io/tags/QEMU/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Introduction to netplan</title>
-    <link href="http://liujunming.github.io/2021/06/01/Introduction-to-netplan/"/>
-    <id>http://liujunming.github.io/2021/06/01/Introduction-to-netplan/</id>
-    <published>2021-05-31T22:37:56.000Z</published>
-    <updated>2021-06-02T13:03:16.215Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文内容源于<a href="https://netplan.io/" target="_blank" rel="noopener">netplan</a>，并展示一个作者用到的配置。<a id="more"></a></p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>Netplan is a utility for easily configuring networking on a linux system. You simply create a YAML description of the required network interfaces and what each should be configured to do. From this description Netplan will generate all the necessary configuration for your chosen renderer tool.</p><h3 id="2-How-does-it-work"><a href="#2-How-does-it-work" class="headerlink" title="2. How does it work?"></a>2. How does it work?</h3><p><img src="/images/2021/06/1.PNG" alt></p><p>Netplan reads network configuration from <code>/etc/netplan/*.yaml</code> which are written by administrators, installers, cloud image instantiations, or other OS deployments. During early boot, Netplan generates backend specific configuration files in <code>/run</code> to hand off control of devices to a particular networking daemon.</p><p>Netplan currently works with these supported renderers</p><ul><li><a href="https://help.ubuntu.com/community/NetworkManager" target="_blank" rel="noopener">NetworkManager</a></li><li><a href="http://manpages.ubuntu.com/manpages/bionic/man5/systemd.network.5.html" target="_blank" rel="noopener">Systemd-networkd</a></li></ul><h3 id="3-How-do-I-use-it"><a href="#3-How-do-I-use-it" class="headerlink" title="3. How do I use it?"></a>3. How do I use it?</h3><h4 id="3-1-Configuration"><a href="#3-1-Configuration" class="headerlink" title="3.1 Configuration"></a>3.1 Configuration</h4><p>Obviously, without configuration, netplan will not do anything. The most useful configuration snippet (to bring up things via dhcp) is as follows:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: NetworkManager</span><br></pre></td></tr></table></figure><p>This will make NetworkManager manage all devices (and by default, any ethernet device will come up with DHCP once carrier is detected).</p><p>Using networkd as a renderer does not let devices automatically come up using DHCP; each interface needs to be specified in a file in <code>/etc/netplan</code> for its configuration to be written and for it to be used in networkd.</p><h5 id="3-1-1-One-example"><a href="#3-1-1-One-example" class="headerlink" title="3.1.1 One example"></a>3.1.1 One example</h5><p>个人使用的一个配置: <strong>Configuring network bridges</strong><br><a href="https://github.com/liujunming/qemu_usage/tree/master/0002-set-net-on-kvm" target="_blank" rel="noopener">https://github.com/liujunming/qemu_usage/tree/master/0002-set-net-on-kvm</a></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">   version: 2</span><br><span class="line">   renderer: networkd</span><br><span class="line">   ethernets:</span><br><span class="line">       eno1:</span><br><span class="line">           dhcp4: no</span><br><span class="line">   bridges:</span><br><span class="line">       br0:</span><br><span class="line">           dhcp4: yes</span><br><span class="line">           interfaces: [eno1]</span><br></pre></td></tr></table></figure><p><strong>eno1</strong> should be you network interface name</p><p><a href="https://netplan.io/reference/" target="_blank" rel="noopener">netplan reference</a></p><p>如果想了解更多的配置，请参考<a href="https://netplan.io/examples/" target="_blank" rel="noopener">https://netplan.io/examples/</a> 。</p><h4 id="3-2-Commands"><a href="#3-2-Commands" class="headerlink" title="3.2 Commands"></a>3.2 Commands</h4><p>Netplan uses a set of subcommands to drive its behavior:</p><ul><li><strong>netplan generate</strong>: Use <code>/etc/netplan</code> to generate the required configuration for the renderers.</li><li><strong>netplan apply</strong>: Apply all configuration for the renderers, restarting them as necessary.</li><li><strong>netplan try</strong>: Apply configuration and wait for user confirmation; will roll back if network is broken or no confirmation is given.</li></ul><hr><p>参考资料:</p><ol><li><a href="https://netplan.io/" target="_blank" rel="noopener">https://netplan.io/</a></li><li><a href="https://netplan.io/examples/" target="_blank" rel="noopener">https://netplan.io/examples/</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文内容源于&lt;a href=&quot;https://netplan.io/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;netplan&lt;/a&gt;，并展示一个作者用到的配置。
-    
-    </summary>
-    
-      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
-    
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
   </entry>
   
