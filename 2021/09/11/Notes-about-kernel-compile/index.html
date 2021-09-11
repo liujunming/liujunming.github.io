@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="深入理解FLR">
+  <meta name="description" content="Notes about kernel compile and config">
 
 
 
 
-  <meta name="keywords" content="PCI&PCIe, L">
+  <meta name="keywords" content="Kernel, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2021/09/11/深入理解FLR/">
+<link rel="canonical" href="http://liujunming.github.io/2021/09/11/Notes-about-kernel-compile/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> 深入理解FLR - L </title>
+    <title> Notes about kernel compile and config - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,7 +260,7 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          深入理解FLR
+          Notes about kernel compile and config
         
       </h1>
 
@@ -271,7 +271,7 @@
         
           <span class="post-category">
             
-              <a href="/categories/PCI-PCIe/">PCI&PCIe</a>
+              <a href="/categories/Kernel/">Kernel</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#check-FLR-capability"><span class="toc-text">check FLR capability</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#initiate-a-PCIe-function-level-reset"><span class="toc-text">initiate a PCIe function level reset</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#demo"><span class="toc-text">demo</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#proc-config-gz"><span class="toc-text">/proc/config.gz</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#boot-内核配置信息"><span class="toc-text">/boot 内核配置信息</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#make-oldconfig"><span class="toc-text">make oldconfig</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#mkinitramfs"><span class="toc-text">mkinitramfs</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#load-a-module-in-initrd"><span class="toc-text">load a module in initrd</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#INSTALL-MOD-PATH"><span class="toc-text">INSTALL_MOD_PATH</span></a></li></ol>
     </div>
   </div>
 
@@ -292,17 +292,29 @@
 
     <div class="post-content">
       
-        <p>本文将结合spec与kernel代码来介绍FLR。<a id="more"></a><br>FLR主要针对的是支持多个功能的PCIe设备（Multi-Fun PCIe Device），可以实现只对特定的Function复位，而其他的Function不受影响。</p>
-<h3 id="check-FLR-capability"><a href="#check-FLR-capability" class="headerlink" title="check FLR capability"></a>check FLR capability</h3><p><img src="/images/2021/09/3.PNG" alt><br><img src="/images/2021/09/4.PNG" alt></p>
-<p><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4556" target="_blank" rel="noopener">pcie_has_flr</a></p>
-<h3 id="initiate-a-PCIe-function-level-reset"><a href="#initiate-a-PCIe-function-level-reset" class="headerlink" title="initiate a PCIe function level reset"></a>initiate a PCIe function level reset</h3><p><img src="/images/2021/09/5.PNG" alt><br><img src="/images/2021/09/6.PNG" alt></p>
-<p><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4576" target="_blank" rel="noopener">pcie_flr</a></p>
-<h3 id="demo"><a href="#demo" class="headerlink" title="demo"></a>demo</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lspci -vvvxxx -s 00:02.0</span><br></pre></td></tr></table></figure>
-<p><img src="/images/2021/09/2.PNG" alt></p>
+        <p>本文主要记录内核编译配置的相关内容。<a id="more"></a></p>
+<h3 id="proc-config-gz"><a href="#proc-config-gz" class="headerlink" title="/proc/config.gz"></a>/proc/config.gz</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">zcat /proc/config.gz</span><br></pre></td></tr></table></figure>
+<p>Linux 可以在内核本身存储用于内核构建的 gzip 内核配置文件副本，并通过 /proc/config.gz 提供给用户。也就是说，/proc/config.gz 就是当前的 Linux 内核配置文件，并且是用 gzip 格式压缩过的。</p>
+<p>但不是所有的 Linux 发行版都有 /proc/config.gz 文件，大部分常见的 Linux 发行版就没有提供，比如 Ubuntu。只有当内核配置 <code>CONFIG_IKCONFIG</code> 和 <code>CONFIG_IKCONFIG_PROC</code> 为<code>y</code>，才会在 /proc 中出现 config.gz 文件。当然，即使大多数发行版没有提供 /proc/config.gz，仍然可以通过 /boot 查看内核配置信息。</p>
+<h3 id="boot-内核配置信息"><a href="#boot-内核配置信息" class="headerlink" title="/boot 内核配置信息"></a>/boot 内核配置信息</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cat /boot/config-5.4.0-80-generic</span><br><span class="line"></span><br><span class="line">cat /boot/config-$(uname -r)</span><br></pre></td></tr></table></figure>
+<h3 id="make-oldconfig"><a href="#make-oldconfig" class="headerlink" title="make oldconfig"></a>make oldconfig</h3><p>It reads the existing <code>.config</code> file that was used for an old kernel and prompts the user for options in the current kernel source that are not found in the file. This is useful when taking an existing configuration and moving it to a new kernel.</p>
+<p>使用其他 (通常是较旧的) 内核版本的 <code>.config</code> 文件时，需要先更新它。可以使用 <code>make oldconfig</code> 命令，以交互方式询问对新配置的选择。</p>
+<p><code>make olddefconfig</code> 的含义为：采用已有的<code>.config</code>文件的参数作为默认参数，同时升级依赖属性，新属性设置为默认值不再提醒。</p>
+<h3 id="mkinitramfs"><a href="#mkinitramfs" class="headerlink" title="mkinitramfs"></a>mkinitramfs</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkinitramfs -o /boot/initrd.img 2.6.24-16</span><br><span class="line"></span><br><span class="line">mkinitramfs -o &lt;full_path_to_initrd&gt; &lt;kernel_version&gt;</span><br></pre></td></tr></table></figure>
+<p>Note: 2.6.24-16是需要创建initramfs的kernel版本号，如果是给当前kernel制作initramfs，可以用<code>uname -r</code>查看当前的版本号。提供kernel版本号的主要目的是为了在initramfs中添加指定kernel的驱动模块。<code>mkinitramfs</code>会把<code>/lib/modules/${kernel_version}/</code>目录下的一些启动会用到的模块添加到initramfs中。</p>
+<h3 id="load-a-module-in-initrd"><a href="#load-a-module-in-initrd" class="headerlink" title="load a module in initrd"></a>load a module in initrd</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/initramfs-tools/modules</span><br><span class="line"># List of modules that you want to include in your initramfs.</span><br><span class="line"># They will be loaded at boot time in the order below.</span><br><span class="line">#</span><br><span class="line"># Syntax:  module_name [args ...]</span><br><span class="line">#</span><br><span class="line"># You must run update-initramfs(8) to effect this change.</span><br><span class="line">#</span><br><span class="line"># Examples:</span><br><span class="line">#</span><br><span class="line"># raid1</span><br><span class="line"># sd_mod</span><br></pre></td></tr></table></figure>
+<p>Add the names of the modules to <code>/etc/initramfs-tools/modules</code> . This added the modules to the initrd file. Update the initrd file by  <code>update-initramfs -u</code> </p>
+<p><code>update-initramfs -u</code>更新当前kernel的initramfs。在添加模块时，initramfs tools只会添加一些必要模块，用户可以通过在<code>/etc/initramfs-tools/modules</code>文件中加入模块名称来指定必须添加的模块。</p>
+<h3 id="INSTALL-MOD-PATH"><a href="#INSTALL-MOD-PATH" class="headerlink" title="INSTALL_MOD_PATH"></a>INSTALL_MOD_PATH</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make modules_install INSTALL_MOD_PATH=out/</span><br></pre></td></tr></table></figure>
+<p>The <code>INSTALL_MOD_PATH</code> variable is needed to install the modules in the target root filesystem instead of your host root filesystem.</p>
 <hr>
 <p>参考资料:</p>
 <ol>
-<li><a href="http://blog.chinaaet.com/justlxy/p/5100057845" target="_blank" rel="noopener">PCIe扫盲——复位机制介绍(FLR)</a></li>
+<li><a href="https://www.cnblogs.com/liuyawei/p/4024614.html" target="_blank" rel="noopener">Linux内核编译和替换小结</a></li>
+<li><a href="https://blog.csdn.net/lu_embedded/article/details/108908577" target="_blank" rel="noopener">/proc/config.gz 是什么</a> </li>
+<li><a href="https://stackoverflow.com/questions/4178526/what-does-make-oldconfig-do-exactly-in-the-linux-kernel-makefile" target="_blank" rel="noopener">What does “make oldconfig” do exactly in the Linux kernel makefile?</a></li>
+<li><a href="https://askubuntu.com/questions/676707/how-to-load-a-module-in-initrd" target="_blank" rel="noopener">How to load a module in initrd?</a></li>
+<li><a href="https://www.cnblogs.com/wwang/archive/2010/10/27/1862222.html" target="_blank" rel="noopener">制作initramfs/initrd镜像</a></li>
 </ol>
 
       
@@ -323,7 +335,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/PCI-PCIe/">PCI&PCIe</a>
+              <a href="/tags/Kernel/">Kernel</a>
             
           </div>
         
@@ -331,15 +343,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2021/09/11/Notes-about-kernel-compile/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Notes about kernel compile and config</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2021/09/10/Summary-of-PCI-device-reset/">
-        <span class="next-text nav-default">Summary of PCI&PCIe device function reset</span>
+      <a class="next" href="/2021/09/11/深入理解FLR/">
+        <span class="next-text nav-default">深入理解FLR</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -452,9 +458,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2021/09/11/深入理解FLR/';
-        this.page.identifier = '2021/09/11/深入理解FLR/';
-        this.page.title = '深入理解FLR';
+        this.page.url = 'http://liujunming.github.io/2021/09/11/Notes-about-kernel-compile/';
+        this.page.identifier = '2021/09/11/Notes-about-kernel-compile/';
+        this.page.title = 'Notes about kernel compile and config';
     };
     (function() {
     var d = document, s = d.createElement('script');
