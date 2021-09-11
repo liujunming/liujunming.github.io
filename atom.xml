@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-09-11T10:23:43.034Z</updated>
+  <updated>2021-09-11T12:51:18.330Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>How to use Power Management capability to reset PCI device function</title>
+    <link href="http://liujunming.github.io/2021/09/12/How-to-use-Power-Management-capability-to-reset-PCI-device-function/"/>
+    <id>http://liujunming.github.io/2021/09/12/How-to-use-Power-Management-capability-to-reset-PCI-device-function/</id>
+    <published>2021-09-11T17:26:28.000Z</published>
+    <updated>2021-09-11T12:51:18.330Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将结合spec与kernel代码来介绍：利用Power Management capability to reset PCI device function。<a id="more"></a></p><h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><p>PCIe设备的PM状态:</p><p><img src="/images/2021/09/10.png" alt></p><h3 id="Details"><a href="#Details" class="headerlink" title="Details"></a>Details</h3><p>核心思想: Put device into D3 state and back into D0 state.</p><p><img src="/images/2021/09/7.PNG" alt></p><ul><li><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4664" target="_blank" rel="noopener">检查PMCSR的No_Soft_Reset bit</a></li></ul><p><img src="/images/2021/09/8.PNG" alt></p><ul><li><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4675" target="_blank" rel="noopener">Put device into D3 state</a></li></ul><p><img src="/images/2021/09/9.PNG" alt></p><ul><li><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4680" target="_blank" rel="noopener">Put device back into D0 state</a></li></ul><hr><p>参考资料:</p><ol><li><a href="http://blog.chinaaet.com/justlxy/p/5100061872" target="_blank" rel="noopener">PCIe扫盲——Power Management概述</a></li><li><a href="https://lekensteyn.nl/files/docs/PCI_Power_Management_12.pdf" target="_blank" rel="noopener">PCI Bus Power Management Interface Specification Revision 1.2 </a></li><li><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4656" target="_blank" rel="noopener">pci_pm_reset</a></li><li><a href="https://static.lwn.net/2001/0704/a/pcipm-doc.php3" target="_blank" rel="noopener">RFC: PCI Power Management Documentation</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将结合spec与kernel代码来介绍：利用Power Management capability to reset PCI device function。
+    
+    </summary>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about kernel compile and config</title>
@@ -440,28 +462,6 @@
     
     
       <category term="VT-d" scheme="http://liujunming.github.io/tags/VT-d/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>The motivation of VFIO</title>
-    <link href="http://liujunming.github.io/2021/06/16/The-motivation-of-VFIO/"/>
-    <id>http://liujunming.github.io/2021/06/16/The-motivation-of-VFIO/</id>
-    <published>2021-06-16T12:18:55.000Z</published>
-    <updated>2021-06-17T11:22:08.430Z</updated>
-    
-    <content type="html"><![CDATA[<p>这一年多以来陆陆续续听到了VFIO这个技术，知道它可以用来：(1)虚拟化下pass-thru device；(2)实现用户态驱动，如DPDK，SPDK等。但是，从未深入研究过VFIO。接下来，准备写一系列的博客来介绍这项技术。本文将介绍the motivation of VFIO。<a id="more"></a>本文内容主要源于大佬的slides。</p><h3 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h3><blockquote><p>The VFIO driver is an IOMMU/device agnostic framework for exposing direct device access to userspace, in a secure, IOMMU protected environment.  In other words, this allows safe , non-privileged, userspace drivers.</p><p>Why do we want that?  Virtual machines often make use of direct device access (“device assignment”) when configured for the highest possible I/O performance.  From a device and host perspective, this simply turns the VM into a userspace driver, with the benefits of significantly reduced latency, higher bandwidth, and direct use of bare-metal device drivers.</p><p>Some applications, particularly in the high performance computing field, also benefit from low-overhead, direct device access from userspace.  Examples include network adapters (often non-TCP/IP based) and compute accelerators.  Prior to VFIO, these drivers had to either go through the full development cycle to become proper upstream driver, be maintained out of tree, or make use of the UIO framework, which has no notion of IOMMU protection, limited interrupt support, and requires root privileges to access things like PCI configuration space.</p><p>The VFIO driver framework intends to unify these, replacing both the KVM PCI specific device assignment code as well as provide a more secure, more featureful userspace driver environment than UIO.</p></blockquote><p>The use cases of VFIO are straightforward. Both of them need to directly access device:</p><ul><li><p>Virtualization guest OS</p></li><li><p>High performance user-level IO stacks such as DPDK</p></li></ul><p>VFIO claims that it replaced two exsiting things:</p><ul><li>UIO</li><li>KVM Legacy PCI Assignment</li></ul><h3 id="2-VFIO-vs-UIO"><a href="#2-VFIO-vs-UIO" class="headerlink" title="2. VFIO vs UIO"></a>2. VFIO vs UIO</h3><p>UIO, i.e. Userspace I/O.</p><h4 id="2-1-Basic-target-of-UIO-Enable-userspace-device-drivers"><a href="#2-1-Basic-target-of-UIO-Enable-userspace-device-drivers" class="headerlink" title="2.1 Basic target of UIO: Enable userspace device drivers:"></a>2.1 Basic target of UIO: Enable userspace device drivers:</h4><ul><li>Remap device MMIO to userspace</li><li>Remap kernel physical memory to userspace</li><li>Remap kernel virtual memory to userspace</li></ul><h4 id="2-2-What-is-missing"><a href="#2-2-What-is-missing" class="headerlink" title="2.2 What is missing:"></a>2.2 What is missing:</h4><ul><li>IRQ (partial support, polling mostly)</li><li>DMA</li></ul><h4 id="2-3-Why-DMA-capability-not-provided"><a href="#2-3-Why-DMA-capability-not-provided" class="headerlink" title="2.3 Why DMA capability not provided?"></a>2.3 Why DMA capability not provided?</h4><ul><li>IOMMU not considered from the beginning</li></ul><h4 id="2-4-Why-VFIO-is-different"><a href="#2-4-Why-VFIO-is-different" class="headerlink" title="2.4 Why VFIO is different?"></a>2.4 Why VFIO is different?</h4><ul><li>Full DMA capability from userspace</li><li>Full interrupt support to userspace</li></ul><h3 id="3-VFIO-vs-Legacy-PCI-Assignment"><a href="#3-VFIO-vs-Legacy-PCI-Assignment" class="headerlink" title="3. VFIO vs Legacy PCI Assignment"></a>3. VFIO vs Legacy PCI Assignment</h3><h4 id="3-1-Legacy-Assignment-the-Pros"><a href="#3-1-Legacy-Assignment-the-Pros" class="headerlink" title="3.1 Legacy Assignment: the Pros"></a>3.1 Legacy Assignment: the Pros</h4><ul><li>straight forward implementation</li></ul><h4 id="3-2-Legacy-Assignment-the-Cons"><a href="#3-2-Legacy-Assignment-the-Cons" class="headerlink" title="3.2 Legacy Assignment: the Cons"></a>3.2 Legacy Assignment: the Cons</h4><ul><li>the minimum granularity is PCI BDF<ul><li>How about a PCIe-to-PCI Bridge?</li><li>A device capable of Peer-to-Peer, but without ACS capability?</li></ul></li></ul><p><strong>“How about a PCIe-to-PCI Bridge?”的解释:</strong></p><p>设备利用自己的Source Identifier(包含Bus、Device、Func)来找到页表项以完成地址映射，不过如下特殊情况需要考虑:<br>对于由PCIe switch扩展出的PCI桥及桥下设备，在发送DMA请求时，Source Identifier是PCIe switch的，这样的话该PCI桥及桥下所有设备都会使用PCIe switch的Source Identifier去定位Context Entry，找到的页表也是同一个，如果将这个PCI桥下的不同设备分给不同虚机，由于会使用同一份页表，这样会产生问题。针对这种情况，当前PCI桥及桥下的所有设备必须分配给同一个虚机，这就是VFIO中group的概念。</p><p><strong>“A device capable of Peer-to-Peer, but without ACS capability?”的解释:</strong></p><p><a href="/2019/11/24/Introduction-to-PCIe-Access-Control-Services/#2-What-is-ACS">ACS的基本介绍</a></p><blockquote><p>This isolation is not always at the granularity of a single device though.  Even when an IOMMU is capable of this, properties of devices, interconnects, and IOMMU topologies can each reduce this isolation. For instance, an individual device may be part of a larger multi-function enclosure.  While the IOMMU may be able to distinguish between devices within the enclosure, the enclosure may not require transactions between devices to reach the IOMMU.  Examples of this could be anything from a multi-function PCI device with backdoors between functions to a non-PCI-ACS (Access Control Services) capable bridge allowing redirection without reaching the IOMMU. </p></blockquote><p>For VFIO, this isolation granularity is vfio_group instead of a single device.不会存在同一个group内的devices分配给多个虚拟机的情况。</p><h4 id="3-3-Why-VFIO-is-different"><a href="#3-3-Why-VFIO-is-different" class="headerlink" title="3.3 Why VFIO is different?"></a>3.3 Why VFIO is different?</h4><ul><li>the minimum granularity is vfio_group, which is derived from iommu_group</li><li>A PCIe-to-PCI hierarchy belongs to one group</li><li>Devices capable of Peer-to-Peer but without ACS capability, these devices belongs to one group(比如Device1和Device2之间可以Peer-to-Peer，但是没有ACS capability，如果将Device1 pass-thru给虚拟机1，将Device2 pass-thru给虚拟机2，就可能会破坏虚拟机的隔离性。因此需要将Device1和Device2放入同一个vfio_group中)</li></ul><hr><p>参考资料:</p><ol><li><a href="https://gdoc.pub/doc/e/2PACX-1vSsskD0A2XgHoZhaYLAkS7lmCOrfxkGXk1WTovWEAyeoELVdBjrE-NzD8h-NvJfKhxMpUg2aXzaD-XG" target="_blank" rel="noopener">Notes about Virtualization Yizhou Shan</a></li><li><a href="https://www.kernel.org/doc/Documentation/vfio.txt" target="_blank" rel="noopener">Kernel documentation: VFIO</a></li><li><a href="https://blog.csdn.net/hx_op/article/details/104029622" target="_blank" rel="noopener">VFIO概述</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;这一年多以来陆陆续续听到了VFIO这个技术，知道它可以用来：(1)虚拟化下pass-thru device；(2)实现用户态驱动，如DPDK，SPDK等。但是，从未深入研究过VFIO。接下来，准备写一系列的博客来介绍这项技术。本文将介绍the motivation of VFIO。
-    
-    </summary>
-    
-      <category term="VFIO" scheme="http://liujunming.github.io/categories/VFIO/"/>
-    
-    
-      <category term="VFIO" scheme="http://liujunming.github.io/tags/VFIO/"/>
     
   </entry>
   
