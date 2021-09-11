@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-09-11T01:17:51.344Z</updated>
+  <updated>2021-09-11T01:56:35.685Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>深入理解FLR</title>
+    <link href="http://liujunming.github.io/2021/09/11/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3FLR/"/>
+    <id>http://liujunming.github.io/2021/09/11/深入理解FLR/</id>
+    <published>2021-09-11T12:21:12.000Z</published>
+    <updated>2021-09-11T01:56:35.685Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将结合spec与kernel代码来介绍FLR。<a id="more"></a><br>FLR主要针对的是支持多个功能的PCIe设备（Multi-Fun PCIe Device），可以实现只对特定的Function复位，而其他的Function不受影响。</p><h3 id="check-FLR-capability"><a href="#check-FLR-capability" class="headerlink" title="check FLR capability"></a>check FLR capability</h3><p><img src="/images/2021/09/3.PNG" alt><br><img src="/images/2021/09/4.PNG" alt></p><p><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4556" target="_blank" rel="noopener">pcie_has_flr</a></p><h3 id="initiate-a-PCIe-function-level-reset"><a href="#initiate-a-PCIe-function-level-reset" class="headerlink" title="initiate a PCIe function level reset"></a>initiate a PCIe function level reset</h3><p><img src="/images/2021/09/5.PNG" alt><br><img src="/images/2021/09/6.PNG" alt></p><p><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4576" target="_blank" rel="noopener">pcie_flr</a></p><h3 id="demo"><a href="#demo" class="headerlink" title="demo"></a>demo</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lspci -vvvxxx -s 00:02.0</span><br></pre></td></tr></table></figure><p><img src="/images/2021/09/2.PNG" alt></p><hr><p>参考资料:</p><ol><li><a href="http://blog.chinaaet.com/justlxy/p/5100057845" target="_blank" rel="noopener">PCIe扫盲——复位机制介绍(FLR)</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将结合spec与kernel代码来介绍FLR。
+    
+    </summary>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>Summary of PCI&amp;PCIe device function reset</title>
@@ -442,28 +464,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>The introduction to git submodule</title>
-    <link href="http://liujunming.github.io/2021/06/09/The-introduction-to-git-submodule/"/>
-    <id>http://liujunming.github.io/2021/06/09/The-introduction-to-git-submodule/</id>
-    <published>2021-06-09T06:27:17.000Z</published>
-    <updated>2021-06-10T11:26:41.234Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要记录<code>git submodule</code>的相关知识。<a id="more"></a><br>官方spec:</p><ul><li><code>man git-submodule</code></li><li><a href="https://git-scm.com/book/en/v2/Git-Tools-Submodules" target="_blank" rel="noopener">Git Tools - Submodules</a></li></ul><p>本文内容主要转载自:<a href="https://www.jianshu.com/p/9000cd49822c" target="_blank" rel="noopener">Git submodule 子模块的管理和使用</a></p><h3 id="1-使用前提"><a href="#1-使用前提" class="headerlink" title="1. 使用前提"></a>1. 使用前提</h3><p>经常碰到这种情况：当你在一个Git 项目上工作时，你需要在其中使用另外一个Git 项目。也许它是一个第三方开发的Git 库或者是你独立开发和并在多个父项目中使用的。这个情况下一个常见的问题产生了：你想将两个项目单独处理但是又需要在其中一个中使用另外一个。</p><p>在Git 中你可以用子模块<code>submodule</code>来管理这些项目，<code>submodule</code>允许你将一个Git 仓库当作另外一个Git 仓库的子目录。这允许你克隆另外一个仓库到你的项目中并且保持你的提交相对独立。</p><h3 id="2-添加子模块"><a href="#2-添加子模块" class="headerlink" title="2. 添加子模块"></a>2. 添加子模块</h3><p>此文中统一将远程项目<code>https://github.com/maonx/vimwiki-assets.git</code>克隆到本地<code>assets</code>文件夹。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git submodule add https://github.com/maonx/vimwiki-assets.git assets</span><br></pre></td></tr></table></figure><p>添加子模块后运行<code>git status</code>, 可以看到目录有增加1个文件<code>.gitmodules</code>, 这个文件用来保存子模块的信息。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ git status</span><br><span class="line">On branch master</span><br><span class="line"></span><br><span class="line">Initial commit</span><br><span class="line"></span><br><span class="line">Changes to be committed:</span><br><span class="line">  (use &quot;git rm --cached &lt;file&gt;...&quot; to unstage)</span><br><span class="line"></span><br><span class="line">    new file:   .gitmodules</span><br><span class="line">    new file:   assets</span><br></pre></td></tr></table></figure><h3 id="3-查看子模块"><a href="#3-查看子模块" class="headerlink" title="3. 查看子模块"></a>3. 查看子模块</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ git submodule</span><br><span class="line"> e33f854d3f51f5ebd771a68da05ad0371a3c0570 assets (heads/master)</span><br></pre></td></tr></table></figure><h3 id="4-更新子模块"><a href="#4-更新子模块" class="headerlink" title="4. 更新子模块"></a>4. 更新子模块</h3><p>fetch all the data from that project and check out the appropriate commit listed in your superproject</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git submodule update</span><br></pre></td></tr></table></figure><p>更新子模块为远程项目的最新版本<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git submodule update --remote</span><br></pre></td></tr></table></figure></p><h3 id="5-克隆包含子模块的项目"><a href="#5-克隆包含子模块的项目" class="headerlink" title="5. 克隆包含子模块的项目"></a>5. 克隆包含子模块的项目</h3><p>克隆包含子模块的项目有二种方法：一种是先克隆父项目，再更新子模块；另一种是直接递归克隆整个项目。</p><h4 id="5-1-克隆父项目，再更新子模块"><a href="#5-1-克隆父项目，再更新子模块" class="headerlink" title="5.1 克隆父项目，再更新子模块"></a>5.1 克隆父项目，再更新子模块</h4><p>1.克隆父项目<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git clone https://github.com/maonx/vimwiki-assets.git assets</span><br></pre></td></tr></table></figure></p><p>2.查看子模块<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ git submodule</span><br><span class="line"> -e33f854d3f51f5ebd771a68da05ad0371a3c0570 assets</span><br></pre></td></tr></table></figure></p><p>子模块前面有一个<code>-</code>，说明子模块文件还未检入（空文件夹）。</p><p>3.初始化子模块<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ git submodule init</span><br><span class="line">Submodule &apos;assets&apos; (https://github.com/maonx/vimwiki-assets.git) registered for path &apos;assets&apos;</span><br></pre></td></tr></table></figure></p><p>初始化模块只需在克隆父项目后运行一次。</p><p>4.更新子模块<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ git submodule update</span><br><span class="line">Cloning into &apos;assets&apos;...</span><br><span class="line">remote: Counting objects: 151, done.</span><br><span class="line">remote: Compressing objects: 100% (80/80), done.</span><br><span class="line">remote: Total 151 (delta 18), reused 0 (delta 0), pack-reused 70</span><br><span class="line">Receiving objects: 100% (151/151), 1.34 MiB | 569.00 KiB/s, done.</span><br><span class="line">Resolving deltas: 100% (36/36), done.</span><br><span class="line">Checking connectivity... done.</span><br><span class="line">Submodule path &apos;assets&apos;: checked out &apos;e33f854d3f51f5ebd771a68da05ad0371a3c0570&apos;</span><br></pre></td></tr></table></figure></p><h4 id="5-2-递归克隆整个项目"><a href="#5-2-递归克隆整个项目" class="headerlink" title="5.2 递归克隆整个项目"></a>5.2 递归克隆整个项目</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone https://github.com/maonx/vimwiki-assets.git assets --recursive</span><br></pre></td></tr></table></figure><p>递归克隆整个项目，子模块已经同时更新了，一步到位。</p><h3 id="6-删除子模块"><a href="#6-删除子模块" class="headerlink" title="6. 删除子模块"></a>6. 删除子模块</h3><p><a href="https://stackoverflow.com/questions/1260748/how-do-i-remove-a-submodule/7646931#7646931" target="_blank" rel="noopener">How do I remove a submodule?</a></p><h3 id="7-MISC"><a href="#7-MISC" class="headerlink" title="7. MISC"></a>7. MISC</h3><p>常用操作:</p><p><code>git submodule update --init --recursive</code></p><p>解析:</p><ol><li><code>git submodule init</code> to initialize your local configuration file</li><li><code>git submodule update</code> to fetch all the data from that project and check out the appropriate commit listed in your superproject</li><li><code>--recursive</code>traverse submodules recursively</li></ol><hr><p>参考资料:</p><ol><li><a href="https://git-scm.com/book/en/v2/Git-Tools-Submodules" target="_blank" rel="noopener">Git Tools - Submodules</a></li><li><a href="https://www.jianshu.com/p/9000cd49822c" target="_blank" rel="noopener">Git submodule 子模块的管理和使用</a></li><li><a href="https://git.wiki.kernel.org/index.php/GitSubmoduleTutorial" target="_blank" rel="noopener">Git Submodule Tutorial</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要记录&lt;code&gt;git submodule&lt;/code&gt;的相关知识。
-    
-    </summary>
-    
-      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
-    
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
   </entry>
   
