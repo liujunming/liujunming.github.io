@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="eventfd system call内核实现">
+
+
+
+
+  <meta name="keywords" content="Kernel, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/10/25/eventfd-system-call内核实现/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> eventfd system call内核实现 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          eventfd system call内核实现
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-10-25
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Prerequisite"><span class="toc-text">1. Prerequisite</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Data-struct"><span class="toc-text">2. Data struct</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Core-function"><span class="toc-text">3. Core function</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-系统调用的定义"><span class="toc-text">3.1 系统调用的定义</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-eventfd-read"><span class="toc-text">3.2 eventfd_read</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-eventfd-write"><span class="toc-text">3.3 eventfd_write</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-4-eventfd-signal"><span class="toc-text">3.4 eventfd_signal</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍<code>eventfd</code>这个system call的内核实现。<a id="more"></a></p>
+<h3 id="1-Prerequisite"><a href="#1-Prerequisite" class="headerlink" title="1. Prerequisite"></a>1. Prerequisite</h3><ul>
+<li><code>man eventfd</code></li>
+<li><a href="/2019/08/24/linux-kernel中eventfd的使用/">linux kernel中eventfd的使用</a></li>
+</ul>
+<p>summary(仅考虑eventfd的flags为0 ，同时eventfd counter 没有 exceed the maximum):</p>
+<ol>
+<li>the eventfd counter has a nonzero value, then a <code>read</code> returns 8 bytes containing that value, and the counter’s value is reset to zero;</li>
+<li>If the eventfd counter is zero at the time of the call to <code>read</code>, then the call blocks until the counter becomes nonzero;</li>
+<li>A  <code>write</code>  call  adds  the 8-byte integer value supplied in its buffer to the counter;</li>
+<li><code>eventfd_signal(struct eventfd_ctx *ctx, __u64 n)</code>: Adds @n to the eventfd counter.</li>
+</ol>
+<h3 id="2-Data-struct"><a href="#2-Data-struct" class="headerlink" title="2. Data struct"></a>2. Data struct</h3><p><code>eventfd_ctx</code>结构的形式如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">eventfd_ctx</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kref</span> <span class="title">kref</span>;</span></span><br><span class="line">	<span class="keyword">wait_queue_head_t</span> wqh;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Every time that a write(2) is performed on an eventfd, the</span></span><br><span class="line"><span class="comment">	 * value of the __u64 being written is added to "count" and a</span></span><br><span class="line"><span class="comment">	 * wakeup is performed on "wqh". A read(2) will return the "count"</span></span><br><span class="line"><span class="comment">	 * value to userspace, and will reset "count" to zero. The kernel</span></span><br><span class="line"><span class="comment">	 * side eventfd_signal() also, adds to the "count" counter and</span></span><br><span class="line"><span class="comment">	 * issue a wakeup.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	__u64 count;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> flags;</span><br><span class="line">	<span class="keyword">int</span> id;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>在一个eventfd上执行<code>write</code>系统调用，会向<code>count</code>加上被写入的值，并唤醒等待队列<code>wqh</code>中的元素。内核中的<code>eventfd_signal</code>函数也会增加<code>count</code>的值并唤醒<code>wqh</code>中的元素。</p>
+<p>在eventfd上执行<code>read</code>系统调用，会向用户空间返回<code>count</code>的值，并且该eventfd对应的<code>eventfd_ctx</code>结构中的<code>count</code>会被清0。</p>
+<p><code>kref</code>是一个内核中的通用变量，一般插入到结构体中，用于记录该结构体被内核各处引用的次数，当<code>kref-&gt;refcount</code>为0时，该结构体不再被引用，需要进行释放。</p>
+<p><code>flags</code>由调用者传入，可能取值为<code>EFD_CLOEXEC</code>、<code>EFD_NONBLOCK</code>、<code>EFD_SEMAPHORE</code>三者的任意或组合。</p>
+<p><code>id</code>即eventfd的id，用于唯一标识一个eventfd。</p>
+<h3 id="3-Core-function"><a href="#3-Core-function" class="headerlink" title="3. Core function"></a>3. Core function</h3><h4 id="3-1-系统调用的定义"><a href="#3-1-系统调用的定义" class="headerlink" title="3.1 系统调用的定义"></a>3.1 系统调用的定义</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">SYSCALL_DEFINE1(eventfd, <span class="keyword">unsigned</span> <span class="keyword">int</span>, count)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> do_eventfd(count, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">do_eventfd</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">int</span> count, <span class="keyword">int</span> flags)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">eventfd_ctx</span> *<span class="title">ctx</span>;</span></span><br><span class="line">	<span class="keyword">int</span> fd;</span><br><span class="line">	...</span><br><span class="line">	ctx = kmalloc(<span class="keyword">sizeof</span>(*ctx), GFP_KERNEL);</span><br><span class="line">	...</span><br><span class="line">	kref_init(&amp;ctx-&gt;kref);</span><br><span class="line">	init_waitqueue_head(&amp;ctx-&gt;wqh);</span><br><span class="line">	ctx-&gt;count = count;</span><br><span class="line">	ctx-&gt;flags = flags;</span><br><span class="line">	ctx-&gt;id = ida_simple_get(&amp;eventfd_ida, <span class="number">0</span>, <span class="number">0</span>, GFP_KERNEL);</span><br><span class="line"></span><br><span class="line">	fd = anon_inode_getfd(<span class="string">"[eventfd]"</span>, &amp;eventfd_fops, ctx,</span><br><span class="line">			      O_RDWR | (flags &amp; EFD_SHARED_FCNTL_FLAGS));</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">return</span> fd;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>分配一个eventfd_ctx结构用于存储eventfd相关信息</li>
+<li>设置eventfd_ctx-&gt;kref中的值为1，表明内核正在引用该eventfd</li>
+<li>初始化eventfd_ctx结构中的等待队列</li>
+<li>为eventfd_ctx结构中的count(读写eventfd时要操作的量)赋上系统调用传入的count</li>
+<li>通过Linux提供的<strong>ida机制</strong>为eventfd_ctx结构中的id申请一个id</li>
+<li>通过anon_inode_getfd创建一个文件实例，该文件的操作方法为eventfd_fops，fd-&gt;private_data为eventfd_ctx，文件实例名为eventfd。</li>
+<li>返回该文件实例的文件描述符</li>
+</ol>
+<h4 id="3-2-eventfd-read"><a href="#3-2-eventfd-read" class="headerlink" title="3.2 eventfd_read"></a>3.2 eventfd_read</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">eventfd_read</span><span class="params">(struct file *file, <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count,</span></span></span><br><span class="line"><span class="function"><span class="params">			    <span class="keyword">loff_t</span> *ppos)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">eventfd_ctx</span> *<span class="title">ctx</span> = <span class="title">file</span>-&gt;<span class="title">private_data</span>;</span></span><br><span class="line">	<span class="keyword">ssize_t</span> res;</span><br><span class="line">	__u64 ucnt = <span class="number">0</span>;</span><br><span class="line">	DECLARE_WAITQUEUE(wait, current);</span><br><span class="line"></span><br><span class="line">	res = -EAGAIN;</span><br><span class="line">	<span class="keyword">if</span> (ctx-&gt;count &gt; <span class="number">0</span>)</span><br><span class="line">		res = <span class="keyword">sizeof</span>(ucnt);</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (!(file-&gt;f_flags &amp; O_NONBLOCK)) &#123;</span><br><span class="line">		<span class="comment">/*add to wait queue*/</span></span><br><span class="line">		__add_wait_queue(&amp;ctx-&gt;wqh, &amp;wait);</span><br><span class="line">		<span class="keyword">for</span> (;;) &#123;</span><br><span class="line">			set_current_state(TASK_INTERRUPTIBLE);</span><br><span class="line">			<span class="keyword">if</span> (ctx-&gt;count &gt; <span class="number">0</span>) &#123;</span><br><span class="line">				res = <span class="keyword">sizeof</span>(ucnt);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			...</span><br><span class="line">			<span class="comment">/*触发调度器，执行调度*/</span></span><br><span class="line">			schedule();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/*remove from the wait queue*/</span></span><br><span class="line">		__remove_wait_queue(&amp;ctx-&gt;wqh, &amp;wait);</span><br><span class="line">		__set_current_state(TASK_RUNNING);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (likely(res &gt; <span class="number">0</span>)) &#123;</span><br><span class="line">		eventfd_ctx_do_read(ctx, &amp;ucnt);</span><br><span class="line">		<span class="comment">/*judge whether wait queue is empty*/</span></span><br><span class="line">		<span class="keyword">if</span> (waitqueue_active(&amp;ctx-&gt;wqh)) <span class="comment">//在该eventfd上write阻塞的进程</span></span><br><span class="line">			wake_up_locked_poll(&amp;ctx-&gt;wqh, EPOLLOUT); <span class="comment">//唤醒对应的进程</span></span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">eventfd_ctx_do_read</span><span class="params">(struct eventfd_ctx *ctx, __u64 *cnt)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	*cnt = (ctx-&gt;flags &amp; EFD_SEMAPHORE) ? <span class="number">1</span> : ctx-&gt;count;</span><br><span class="line">	ctx-&gt;count -= *cnt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>只有eventfd_ctx-&gt;count大于0时，eventfd才是可读的，此时调用eventfd_ctx_do_read对eventfd_ctx的count进行处理，如果eventfd_ctx-&gt;flags中的EFD_SEMAPHORE为0，就将count变量置0，并激活在等待队列中EPOLLOUT(write阻塞)的进程。</p>
+</li>
+<li><p>如果eventfd_ctx-&gt;count等于0，即该eventfd当前不可读，如果eventfd_ctx-&gt;flags中的O_NONBLOCK没有置位，那么将发起读eventfd动作的进程放入eventfd_ctx中的等待队列，并重新调度新的进程运行。</p>
+</li>
+</ul>
+<h4 id="3-3-eventfd-write"><a href="#3-3-eventfd-write" class="headerlink" title="3.3 eventfd_write"></a>3.3 eventfd_write</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">eventfd_write</span><span class="params">(struct file *file, <span class="keyword">const</span> <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count,</span></span></span><br><span class="line"><span class="function"><span class="params">			     <span class="keyword">loff_t</span> *ppos)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">eventfd_ctx</span> *<span class="title">ctx</span> = <span class="title">file</span>-&gt;<span class="title">private_data</span>;</span></span><br><span class="line">	<span class="keyword">ssize_t</span> res;</span><br><span class="line">	__u64 ucnt;</span><br><span class="line">	DECLARE_WAITQUEUE(wait, current);</span><br><span class="line"></span><br><span class="line">	copy_from_user(&amp;ucnt, buf, <span class="keyword">sizeof</span>(ucnt));</span><br><span class="line">	...</span><br><span class="line">	res = -EAGAIN;</span><br><span class="line">	<span class="keyword">if</span> (ULLONG_MAX - ctx-&gt;count &gt; ucnt)</span><br><span class="line">		res = <span class="keyword">sizeof</span>(ucnt);</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (!(file-&gt;f_flags &amp; O_NONBLOCK)) &#123;</span><br><span class="line">		__add_wait_queue(&amp;ctx-&gt;wqh, &amp;wait);</span><br><span class="line">		<span class="keyword">for</span> (res = <span class="number">0</span>;;) &#123;</span><br><span class="line">			set_current_state(TASK_INTERRUPTIBLE);</span><br><span class="line">			<span class="keyword">if</span> (ULLONG_MAX - ctx-&gt;count &gt; ucnt) &#123;</span><br><span class="line">				res = <span class="keyword">sizeof</span>(ucnt);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			...</span><br><span class="line">			schedule();</span><br><span class="line">		&#125;</span><br><span class="line">		__remove_wait_queue(&amp;ctx-&gt;wqh, &amp;wait);</span><br><span class="line">		__set_current_state(TASK_RUNNING);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (likely(res &gt; <span class="number">0</span>)) &#123;</span><br><span class="line">		ctx-&gt;count += ucnt;</span><br><span class="line">		<span class="keyword">if</span> (waitqueue_active(&amp;ctx-&gt;wqh)) <span class="comment">//在该eventfd上read阻塞的进程</span></span><br><span class="line">			wake_up_locked_poll(&amp;ctx-&gt;wqh, EPOLLIN);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>将想要写入eventfd的value赋值到ucnt，判断ULLONG_MAX - eventfd_ctx-&gt;count 与ucnt的大小，确认eventfd中是否还有足够空间用于写入。</p>
+<ul>
+<li><p>如果有足够空间用于写入，ctx-&gt;count += ucnt，并激活在等待队列中EPOLLIN(read阻塞)的进程。</p>
+</li>
+<li><p>如果没有足够空间用于写入，则将发起写eventfd动作的进程放入eventfd_ctx中的等待队列，并重新调度新的进程运行。</p>
+</li>
+</ul>
+<h4 id="3-4-eventfd-signal"><a href="#3-4-eventfd-signal" class="headerlink" title="3.4 eventfd_signal"></a>3.4 eventfd_signal</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * eventfd_signal - Adds @n to the eventfd counter.</span></span><br><span class="line"><span class="comment"> * @ctx: [in] Pointer to the eventfd context.</span></span><br><span class="line"><span class="comment"> * @n: [in] Value of the counter to be added to the eventfd internal counter.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">__<span class="function">u64 <span class="title">eventfd_signal</span><span class="params">(struct eventfd_ctx *ctx, __u64 n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">if</span> (ULLONG_MAX - ctx-&gt;count &lt; n)</span><br><span class="line">		n = ULLONG_MAX - ctx-&gt;count;</span><br><span class="line">	ctx-&gt;count += n;</span><br><span class="line">	<span class="keyword">if</span> (waitqueue_active(&amp;ctx-&gt;wqh)) <span class="comment">//在该eventfd上read阻塞的进程</span></span><br><span class="line">		wake_up_locked_poll(&amp;ctx-&gt;wqh, EPOLLIN);</span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> n;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.cnblogs.com/haiyonghao/p/14440737.html" target="_blank" rel="noopener">Linux的eventfd机制</a></li>
+<li><a href="https://huazq.github.io/2019/08/08/eventfd%E5%88%86%E6%9E%90/" target="_blank" rel="noopener">eventfd分析</a></li>
+<li><a href="https://www.cnblogs.com/ck1020/p/7214310.html" target="_blank" rel="noopener">Linux eventfd分析</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/10/22/x86-64-Instruction-Encoding/">
+        <span class="next-text nav-default">x86-64 Instruction Encoding</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/10/25/eventfd-system-call内核实现/';
+        this.page.identifier = '2021/10/25/eventfd-system-call内核实现/';
+        this.page.title = 'eventfd system call内核实现';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
