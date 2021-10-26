@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Dive into ioeventfd(KVM side) mechanism">
+
+
+
+
+  <meta name="keywords" content="虚拟化, KVM, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/10/26/Dive-into-ioeventfd(kvm side)-mechanism/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Dive into ioeventfd(KVM side) mechanism - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Dive into ioeventfd(KVM side) mechanism
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-10-26
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Prerequisite"><span class="toc-text">1. Prerequisite</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Introduction-and-Motivation"><span class="toc-text">2. Introduction and Motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Overview"><span class="toc-text">3. Overview</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Details"><span class="toc-text">4. Details</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将深入理解ioeventfd机制，偏向于KVM side。<a id="more"></a></p>
+<h3 id="1-Prerequisite"><a href="#1-Prerequisite" class="headerlink" title="1. Prerequisite"></a>1. Prerequisite</h3><p><a href="/2021/10/25/eventfd-system-call内核实现/">eventfd system call内核实现</a></p>
+<h3 id="2-Introduction-and-Motivation"><a href="#2-Introduction-and-Motivation" class="headerlink" title="2. Introduction and Motivation"></a>2. Introduction and Motivation</h3><p><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d34e6b175e61821026893ec5298cc8e7558df43a" target="_blank" rel="noopener">KVM: add ioeventfd support</a>中的commit message很好地阐述了ioeventfd的motivation。</p>
+<p>ioeventfd is a mechanism to <strong>register PIO/MMIO regions to trigger an eventfd signal when written to by a guest</strong>.  Host userspace can register any arbitrary IO address with a corresponding eventfd and then pass the eventfd to a specific end-point of interest for handling.</p>
+<p>Normal IO requires a blocking round-trip since the operation may cause side-effects in the emulated model or may return data to the caller. Therefore, an IO in KVM traps from the guest to the host, causes a VMX/SVM “heavy-weight” exit back to userspace, and is ultimately serviced by qemu’s device model <strong>synchronously</strong> before returning control back to the vcpu.</p>
+<p>However, there is a subclass of IO which acts purely as a trigger for other IO (such as to kick off an out-of-band DMA request, etc).  For these patterns, the synchronous call is particularly expensive since we really only want to simply get our notification transmitted <strong>asychronously</strong> and return as quickly as possible.  All the sychronous infrastructure to ensure proper data-dependencies are met in the normal IO case are just unecessary overhead for signalling.  This adds additional computational load on the system, as well as latency to the signalling path.</p>
+<p>Therefore, we provide a mechanism for registration of an in-kernel trigger point that allows the VCPU to only require a very brief, lightweight exit just long enough to signal an eventfd.  This also means that any clients compatible with the eventfd interface (which includes userspace and kernelspace equally well) can now register to be notified. The end result should be a more flexible and higher performance notification API for the backend KVM hypervisor and perhipheral components.</p>
+<p>读者如果对<em>kick off an out-of-band DMA request</em>这句话不够理解，可以阅读:<a href="/2021/09/12/深入理解DMA-part1/">深入理解DMA part1</a>和<a href="/2021/09/13/深入理解DMA-part2/">深入理解DMA part2</a></p>
+<h3 id="3-Overview"><a href="#3-Overview" class="headerlink" title="3. Overview"></a>3. Overview</h3><p><img src="/images/2021/10/15.jpeg" alt></p>
+<p>Sequences:</p>
+<ol>
+<li>QEMU将一段PIO/MMIO region与eventfd绑定(具体来说，就是填好<code>struct kvm_ioeventfd</code>)，并设置好notification的handler;</li>
+<li>通过ioctl将<code>struct kvm_ioeventfd</code>结构体传给KVM;</li>
+<li>KVM根据信息，注册PIO/MMIO region的handler为<code>ioeventfd_ops</code>;</li>
+<li>Guest写PIO/MMIO region时，会发生VM Exit，KVM最终会调用<code>ioeventfd_write</code> to trigger an event to QEMU;</li>
+<li>QEMU监测到ioeventfd上出现了event，调用相应的handler处理IO.</li>
+</ol>
+<h3 id="4-Details"><a href="#4-Details" class="headerlink" title="4. Details"></a>4. Details</h3><p>用户态传入的参数如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_ioeventfd</span> &#123;</span></span><br><span class="line">    __u64 datamatch;		<span class="comment">/* 1 */</span></span><br><span class="line">    __u64 addr;        <span class="comment">/* legal pio/mmio address */</span></span><br><span class="line">    __u32 len;         <span class="comment">/* 0, 1, 2, 4, or 8 bytes    */</span></span><br><span class="line">    __s32 fd;				<span class="comment">/* 2 */</span></span><br><span class="line">    __u32 flags;</span><br><span class="line">    __u8  pad[<span class="number">36</span>];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>如果<code>flags</code>设置了<code>KVM_IOEVENTFD_FLAG_DATAMATCH</code>，只有当guest向addr地址写入的值与<code>datamatch</code>值相等时，才会触发event。</p>
+<p>用户态信息<code>kvm_ioeventfd</code>需要转化成内核态存放。ioeventfd内核态结构体基于eventfd，如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * --------------------------------------------------------------------</span></span><br><span class="line"><span class="comment"> * ioeventfd: translate a PIO/MMIO memory write to an eventfd signal.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * userspace can register a PIO/MMIO address with an eventfd for receiving</span></span><br><span class="line"><span class="comment"> * notification when the memory has been touched.</span></span><br><span class="line"><span class="comment"> * --------------------------------------------------------------------</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">ioeventfd</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>     <span class="title">list</span>;</span></span><br><span class="line">	u64                  addr;</span><br><span class="line">	<span class="keyword">int</span>                  length;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">eventfd_ctx</span>  *<span class="title">eventfd</span>;</span></span><br><span class="line">	u64                  datamatch;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kvm_io_device</span> <span class="title">dev</span>;</span></span><br><span class="line">	u8                   bus_idx;</span><br><span class="line">	<span class="keyword">bool</span>                 wildcard;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>list用于将当前ioeventfd链接到kvm的ioeventfd链表中去.</p>
+</li>
+<li><p>addr是ioeventfd对应的IO地址.</p>
+</li>
+<li><p>length是eventfd关联的长度.</p>
+</li>
+<li><p>eventfd是该ioeventfd对应的eventfd.</p>
+</li>
+<li><p>datamatch上文已经介绍过了.</p>
+</li>
+<li><p>dev用于将该ioeventfd与guest关联起来(通过注册该dev到guest).</p>
+</li>
+<li><p>bus_idx是该ioeventfd要注册到kvm的哪个总线上.</p>
+<ul>
+<li>kvm中将ioeventfd注册的地址分为4类，可以认为每类地址有独立的地址空间，它们被抽象成4个bus上的地址。分别是kvm_bus所列出的MMIO，PIO，VIRTIO_CCW_NOTIFY，FAST_MMIO。MMIO和FAST_MMIO的区别是，MMIO需要检查写入地址的值长度是否和ioeventfd指定的长度相等，FAST_MMIO则不需要检查长度。</li>
+</ul>
+</li>
+<li>wildcard与datamatch互斥，如果kvm_ioeventfd中datamatch为false，则_ioeventfd-&gt;wildcard设为true.</li>
+</ul>
+<p>所以<code>_ioeventfd</code>描述了一个ioeventfd要注册到kvm中的所有信息，其中包含了ioeventfd信息和需要注册到guest的总线和设备信息。</p>
+<hr>
+<p>KVM中的函数调用链如下:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kvm_ioeventfd</span><br><span class="line">	kvm_assign_ioeventfd</span><br><span class="line">		kvm_assign_ioeventfd_idx</span><br><span class="line">			kvm_iodevice_init(&amp;p-&gt;dev, &amp;ioeventfd_ops)</span><br><span class="line">			kvm_io_bus_register_dev</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kvm_io_bus_write</span><br><span class="line">	__kvm_io_bus_write</span><br><span class="line">		kvm_iodevice_write</span><br><span class="line">			dev-&gt;ops-&gt;write(ioeventfd_write)</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">kvm_io_device_ops</span> <span class="title">ioeventfd_ops</span> = &#123;</span></span><br><span class="line">	.write      = ioeventfd_write,</span><br><span class="line">	.destructor = ioeventfd_destructor,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>需要注意的是，ioeventfd对应的文件操作只有write操作，而没有read操作。</p>
+<p>write操作对应guest中写入ioeventfd对应的IO地址时触发的操作，也就是guest执行OUT类汇编指令时触发的操作，相反read操作就是guest执行IN类汇编指令时触发的操作，OUT类指令只是简单向外部输出数据，无需等待QEMU处理完成即可继续运行guest，但IN指令需要从外部获取数据，必须要等待QEMU处理完成IO请求再继续运行guest。</p>
+<p>ioeventfd设计的初衷就是节省guest运行OUT类指令时的时间，IN类指令执行时间无法节省，因此这里的ioeventfd 文件操作中只有write而没有read。</p>
+</blockquote>
+<p>剩下的事情就留给读者了，结合着源码与参考资料，去发现更多的细节吧!</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d34e6b175e61821026893ec5298cc8e7558df43a" target="_blank" rel="noopener">KVM: add ioeventfd support</a></li>
+<li><a href="https://www.cnblogs.com/haiyonghao/p/14440743.html" target="_blank" rel="noopener">qemu-kvm的ioeventfd机制</a></li>
+<li><a href="https://blog.csdn.net/huang987246510/article/details/105618557" target="_blank" rel="noopener">qemu中的eventfd——ioeventfd</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/KVM/">KVM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/10/25/eventfd-system-call内核实现/">
+        <span class="next-text nav-default">eventfd system call内核实现</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/10/26/Dive-into-ioeventfd(kvm side)-mechanism/';
+        this.page.identifier = '2021/10/26/Dive-into-ioeventfd(kvm side)-mechanism/';
+        this.page.title = 'Dive into ioeventfd(KVM side) mechanism';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
