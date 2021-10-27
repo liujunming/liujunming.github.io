@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-10-26T15:12:22.036Z</updated>
+  <updated>2021-10-27T10:02:05.209Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Dive into irqfd(KVM side) mechanism</title>
+    <link href="http://liujunming.github.io/2021/10/27/Dive-into-irqfd-KVM-side-mechanism/"/>
+    <id>http://liujunming.github.io/2021/10/27/Dive-into-irqfd-KVM-side-mechanism/</id>
+    <published>2021-10-27T01:53:42.000Z</published>
+    <updated>2021-10-27T10:02:05.209Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将深入理解irqfd机制，偏向于KVM side。<a id="more"></a>为了便于理清irqfd机制，本文只介绍patch <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3" target="_blank" rel="noopener">KVM: irqfd</a>中的内容。</p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>irqfd in KVM is implemented based on eventfd in Linux.</p><p>As its name shows, irqfd is basically a fd that is bound to an interrupt in the virtual machine. Here the fd must be an eventfd. The delivery path is single direction, say, interrupt is delivered from outside world into the guest. </p><p>With irqfd, if we want to trigger an interrupt we have setup, what we need to do is only write to that corresponding eventfd. To write it in userspace, a simple <code>write()</code> syscall would suffice (actually there is a libc call named <code>eventfd_write()</code>, however that’s merely a wrapper of the <code>write()</code> system call). To do it in kernel, we can use <code>eventfd_signal()</code> instead.</p><h3 id="2-Overview"><a href="#2-Overview" class="headerlink" title="2. Overview"></a>2. Overview</h3><p><img src="/images/2021/10/16.png" alt></p><p>irqfd基于eventfd机制，qemu中将一个gsi(全局系统中断号)与eventfd捆绑后，向kvm发送注册irqfd请求，kvm收到请求后将带有gsi信息的eventfd加入到与irqfd有关的等待队列中，一旦有进程向该eventfd写入，等待队列中的元素就会唤醒，并调用相应的唤醒函数(<code>irqfd_wakeup</code>)向guest注入中断(<code>irqfd_inject</code>)。</p><h3 id="3-Details"><a href="#3-Details" class="headerlink" title="3. Details"></a>3. Details</h3><p><img src="/images/2021/10/17.png" alt></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kvm_irqfd_assign</span><span class="params">(struct kvm *kvm, struct kvm_irqfd *args)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_kernel_irqfd</span> *<span class="title">irqfd</span>;</span></span><br><span class="line">...</span><br><span class="line">irqfd = kzalloc(<span class="keyword">sizeof</span>(*irqfd), GFP_KERNEL_ACCOUNT);</span><br><span class="line">irqfd-&gt;kvm = kvm;</span><br><span class="line">irqfd-&gt;gsi = args-&gt;gsi;</span><br><span class="line">INIT_LIST_HEAD(&amp;irqfd-&gt;<span class="built_in">list</span>);</span><br><span class="line">INIT_WORK(&amp;irqfd-&gt;inject, irqfd_inject);</span><br><span class="line">INIT_WORK(&amp;irqfd-&gt;shutdown, irqfd_shutdown);</span><br><span class="line">...</span><br><span class="line">irqfd-&gt;eventfd = eventfd;</span><br><span class="line">...</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Install our own custom wake-up handling so we are notified via</span></span><br><span class="line"><span class="comment"> * a callback whenever someone signals the underlying eventfd</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">init_waitqueue_func_entry(&amp;irqfd-&gt;wait, irqfd_wakeup);</span><br><span class="line">...</span><br><span class="line">init_poll_funcptr(&amp;irqfd-&gt;pt, irqfd_ptable_queue_proc);</span><br><span class="line">events = vfs_poll(f.file, &amp;irqfd-&gt;pt);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>kvm_kernel_irqfd结构中有2个work_struct，inject和shutdown，分别负责触发中断和关闭中断，这两个work_struct各自对应的操作函数分别为irqfd_inject和irqfd_shutdown。</p><p>kvm_irqfd_assign调用init_waitqueue_func_entry将<strong>irqfd_wakeup</strong>函数注册为irqfd中<strong>wait queue entry</strong>激活时的处理函数。<strong>这样任何写入该irqfd对应的eventfd的行为都将触发这个函数。</strong></p><p>kvm_irqfd_assign利用init_poll_funcptr将irqfd_ptable_queue_proc函数注册为irqfd中的poll table的处理函数。<strong>irqfd_ptable_queue_proc会将poll table中对应的wait queue entry加入到waitqueue中去。</strong></p><p>kvm_irq_assign以irqfd-&gt;pt为参数，调用eventfd的poll函数，也就是eventfd_poll；eventfd_poll会调用poll_wait函数；poll_wait会回调之前为poll table注册的irqfd_ptable_queue_proc函数。</p><hr><p>参考资料:</p><ol><li><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3" target="_blank" rel="noopener">KVM: irqfd</a></li><li><a href="https://blog.csdn.net/LoyenWang/article/details/115805007?spm=1001.2014.3001.5501" target="_blank" rel="noopener">Linux虚拟化KVM-Qemu分析（十二）之ioeventfd与irqfd</a></li><li><a href="https://www.cnblogs.com/haiyonghao/p/14440723.html" target="_blank" rel="noopener">qemu-kvm的irqfd机制</a></li><li><a href="http://xzpeter.org/htmls/2017_12_07_kvm_irqfd/kvm_irqfd_implementation.html" target="_blank" rel="noopener">KVM Irqfd Introduction</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将深入理解irqfd机制，偏向于KVM side。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
+    
+  </entry>
   
   <entry>
     <title>Dive into ioeventfd(KVM side) mechanism</title>
@@ -31,12 +55,6 @@
     
     </summary>
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
   </entry>
   
@@ -55,10 +73,6 @@
     
     </summary>
     
-      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
   </entry>
   
@@ -77,10 +91,6 @@
     
     </summary>
     
-      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
@@ -99,12 +109,6 @@
     
     </summary>
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
   </entry>
   
@@ -123,12 +127,6 @@
     
     </summary>
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
   </entry>
   
@@ -137,9 +135,9 @@
     <link href="http://liujunming.github.io/2021/10/10/KVM-notes-part2/"/>
     <id>http://liujunming.github.io/2021/10/10/KVM-notes-part2/</id>
     <published>2021-10-10T01:47:05.000Z</published>
-    <updated>2021-10-12T00:30:44.347Z</updated>
+    <updated>2021-10-27T10:02:05.210Z</updated>
     
-    <content type="html"><![CDATA[<p>Notes about using the KVM API.<a id="more"></a></p><h3 id="kvm-hello-world"><a href="#kvm-hello-world" class="headerlink" title="kvm-hello-world"></a>kvm-hello-world</h3><p>首先建议研究下<a href="https://github.com/dpw/kvm-hello-world" target="_blank" rel="noopener">kvm-hello-world</a>这一项目。运行并研究其代码。<br>整体来说比较简单，就是对<code>ioctl(vm-&gt;fd, KVM_SET_TSS_ADDR, 0xfffbd000)</code>这行代码有困惑。搜了下资料，<a href="https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt" target="_blank" rel="noopener">Documentation/virtual/kvm/api.txt</a>解释如下:</p><blockquote><p>Capability: KVM_CAP_SET_TSS_ADDR<br>Architectures: x86<br>Type: vm ioctl<br>Parameters: unsigned long tss_address (in)<br>Returns: 0 on success, -1 on error</p><p>This ioctl defines the physical address of a three-page region in the guest physical address space.  The region must be within the first 4GB of the guest physical address space and must not conflict with any memory slot or any mmio address.  The guest may malfunction if it accesses this memory region.</p><p>This ioctl is required on Intel-based hosts.  This is needed on Intel hardware because of a quirk in the virtualization implementation (see the internals documentation when it pops into existence).</p></blockquote><h3 id="LWN-Using-the-KVM-API"><a href="#LWN-Using-the-KVM-API" class="headerlink" title="LWN: Using the KVM API"></a>LWN: Using the KVM API</h3><p><a href="https://lwn.net/Articles/658511/" target="_blank" rel="noopener">LWN: Using the KVM API</a></p><p>好文。值得细细品读。</p><p>Notes 如下:</p><ul><li><a href="https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt" target="_blank" rel="noopener">Documentation/virtual/kvm/api.txt</a></li><li><a href="https://lwn.net/Articles/658512/" target="_blank" rel="noopener">fully functional sample program</a></li><li><code>KVM_EXIT_FAIL_ENTRY</code>: in particular, shows up often when changing the initial conditions of the VM; it indicates that the underlying hardware virtualization mechanism (VT in this case) can’t start the VM because the initial conditions don’t match its requirements.</li><li><code>KVM_EXIT_INTERNAL_ERROR</code> indicates an error from the Linux KVM subsystem rather than from the hardware. </li></ul><h4 id="Additional-KVM-API-features"><a href="#Additional-KVM-API-features" class="headerlink" title="Additional KVM API features"></a>Additional KVM API features</h4><p>Prospective implementers of memory-mapped I/O devices will want to look at the <code>exit_reason</code> <code>KVM_EXIT_MMIO</code>, as well as the <code>KVM_CAP_COALESCED_MMIO</code> extension to reduce vmexits, and the <code>ioeventfd</code> mechanism to process I/O asynchronously without a vmexit.</p><p>For hardware interrupts, see the <code>irqfd</code> mechanism, using the <code>KVM_CAP_IRQFD</code> extension capability. This provides a file descriptor that can inject a hardware interrupt into the KVM virtual machine without stopping it first. A virtual machine may thus write to this from a separate event loop or device-handling thread, and threads running <code>KVM_RUN</code> for a virtual CPU will process that interrupt at the next available opportunity.</p><p>x86 virtual machines will likely want to support <a href="https://en.wikipedia.org/wiki/CPUID" target="_blank" rel="noopener">CPUID</a> and <a href="https://en.wikipedia.org/wiki/Model-specific_register" target="_blank" rel="noopener">model-specific registers (MSRs)</a>, both of which have architecture-specific <code>ioctl()</code>s that minimize vmexits.</p><h4 id="Applications-of-the-KVM-API"><a href="#Applications-of-the-KVM-API" class="headerlink" title="Applications of the KVM API"></a>Applications of the KVM API</h4><p>Other than learning, debugging a virtual machine implementation, or as a party trick, why use <code>/dev/kvm</code> directly?</p><p>Virtual machines like <code>qemu-kvm</code> or <code>kvmtool</code> typically emulate the standard hardware of the target architecture; for instance, a standard x86 PC. While they can support other devices and <a href="https://lwn.net/Articles/580186/" target="_blank" rel="noopener">virtio</a> hardware, if you want to emulate a completely different type of system that shares little more than the instruction set architecture, you might want to implement a new VM instead. And even within an existing virtual machine implementation, authors of a new class of virtio hardware device will want a clear understanding of the KVM API.</p><p>Efforts like <a href="https://github.com/google/novm" target="_blank" rel="noopener">novm</a> and <a href="https://git.kernel.org/cgit/linux/kernel/git/will/kvmtool.git/" target="_blank" rel="noopener">kvmtool</a> use the KVM API to construct a lightweight VM, dedicated to running Linux rather than an arbitrary OS. More recently, the Clear Containers project uses kvmtool to <a href="https://lwn.net/Articles/644675/" target="_blank" rel="noopener">run containers using hardware virtualization</a>.</p><p>Alternatively, a VM need not run an OS at all. A KVM-based VM could instead implement a hardware-assisted sandbox with no virtual hardware devices and no OS, providing arbitrary virtual “hardware” devices as the API between the sandbox and the sandboxing VM.</p><p>While running a full virtual machine remains the primary use case for hardware virtualization, we’ve seen many innovative uses of the KVM API recently, and we can certainly expect more in the future.</p>]]></content>
+    <content type="html"><![CDATA[<p>Notes about using the KVM API.<a id="more"></a></p><h3 id="kvm-hello-world"><a href="#kvm-hello-world" class="headerlink" title="kvm-hello-world"></a>kvm-hello-world</h3><p>首先建议研究下<a href="https://github.com/dpw/kvm-hello-world" target="_blank" rel="noopener">kvm-hello-world</a>这一项目。运行并研究其代码。<br>整体来说比较简单，就是对<code>ioctl(vm-&gt;fd, KVM_SET_TSS_ADDR, 0xfffbd000)</code>这行代码有困惑。搜了下资料，<a href="https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt" target="_blank" rel="noopener">Documentation/virtual/kvm/api.txt</a>解释如下:</p><blockquote><p>Capability: KVM_CAP_SET_TSS_ADDR<br>Architectures: x86<br>Type: vm ioctl<br>Parameters: unsigned long tss_address (in)<br>Returns: 0 on success, -1 on error</p><p>This ioctl defines the physical address of a three-page region in the guest physical address space.  The region must be within the first 4GB of the guest physical address space and must not conflict with any memory slot or any mmio address.  The guest may malfunction if it accesses this memory region.</p><p>This ioctl is required on Intel-based hosts.  This is needed on Intel hardware because of a quirk in the virtualization implementation (see the internals documentation when it pops into existence).</p></blockquote><h3 id="LWN-Using-the-KVM-API"><a href="#LWN-Using-the-KVM-API" class="headerlink" title="LWN: Using the KVM API"></a>LWN: Using the KVM API</h3><p><a href="https://lwn.net/Articles/658511/" target="_blank" rel="noopener">LWN: Using the KVM API</a></p><p>好文。值得细细品读。</p><p>Notes 如下:</p><ul><li><a href="https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt" target="_blank" rel="noopener">Documentation/virtual/kvm/api.txt</a></li><li><a href="https://lwn.net/Articles/658512/" target="_blank" rel="noopener">fully functional sample program</a></li><li><code>KVM_EXIT_FAIL_ENTRY</code>: in particular, shows up often when changing the initial conditions of the VM; it indicates that the underlying hardware virtualization mechanism (VT in this case) can’t start the VM because the initial conditions don’t match its requirements.</li><li><code>KVM_EXIT_INTERNAL_ERROR</code> indicates an error from the Linux KVM subsystem rather than from the hardware. </li></ul><h4 id="Additional-KVM-API-features"><a href="#Additional-KVM-API-features" class="headerlink" title="Additional KVM API features"></a>Additional KVM API features</h4><p>Prospective implementers of memory-mapped I/O devices will want to look at the <code>exit_reason</code> <code>KVM_EXIT_MMIO</code>, as well as the <code>KVM_CAP_COALESCED_MMIO</code> extension to reduce vmexits, and the <code>ioeventfd</code> mechanism to process I/O asynchronously.</p><p>For hardware interrupts, see the <code>irqfd</code> mechanism, using the <code>KVM_CAP_IRQFD</code> extension capability. This provides a file descriptor that can inject a hardware interrupt into the KVM virtual machine without stopping it first. A virtual machine may thus write to this from a separate event loop or device-handling thread, and threads running <code>KVM_RUN</code> for a virtual CPU will process that interrupt at the next available opportunity.</p><p>x86 virtual machines will likely want to support <a href="https://en.wikipedia.org/wiki/CPUID" target="_blank" rel="noopener">CPUID</a> and <a href="https://en.wikipedia.org/wiki/Model-specific_register" target="_blank" rel="noopener">model-specific registers (MSRs)</a>, both of which have architecture-specific <code>ioctl()</code>s that minimize vmexits.</p><h4 id="Applications-of-the-KVM-API"><a href="#Applications-of-the-KVM-API" class="headerlink" title="Applications of the KVM API"></a>Applications of the KVM API</h4><p>Other than learning, debugging a virtual machine implementation, or as a party trick, why use <code>/dev/kvm</code> directly?</p><p>Virtual machines like <code>qemu-kvm</code> or <code>kvmtool</code> typically emulate the standard hardware of the target architecture; for instance, a standard x86 PC. While they can support other devices and <a href="https://lwn.net/Articles/580186/" target="_blank" rel="noopener">virtio</a> hardware, if you want to emulate a completely different type of system that shares little more than the instruction set architecture, you might want to implement a new VM instead. And even within an existing virtual machine implementation, authors of a new class of virtio hardware device will want a clear understanding of the KVM API.</p><p>Efforts like <a href="https://github.com/google/novm" target="_blank" rel="noopener">novm</a> and <a href="https://git.kernel.org/cgit/linux/kernel/git/will/kvmtool.git/" target="_blank" rel="noopener">kvmtool</a> use the KVM API to construct a lightweight VM, dedicated to running Linux rather than an arbitrary OS. More recently, the Clear Containers project uses kvmtool to <a href="https://lwn.net/Articles/644675/" target="_blank" rel="noopener">run containers using hardware virtualization</a>.</p><p>Alternatively, a VM need not run an OS at all. A KVM-based VM could instead implement a hardware-assisted sandbox with no virtual hardware devices and no OS, providing arbitrary virtual “hardware” devices as the API between the sandbox and the sandboxing VM.</p><p>While running a full virtual machine remains the primary use case for hardware virtualization, we’ve seen many innovative uses of the KVM API recently, and we can certainly expect more in the future.</p>]]></content>
     
     <summary type="html">
     
@@ -171,12 +169,6 @@
     
     </summary>
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
   </entry>
   
@@ -195,10 +187,6 @@
     
     </summary>
     
-      <category term="I/O系统" scheme="http://liujunming.github.io/categories/I-O%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-      <category term="I/O系统" scheme="http://liujunming.github.io/tags/I-O%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
@@ -217,10 +205,6 @@
     
     </summary>
     
-      <category term="I/O系统" scheme="http://liujunming.github.io/categories/I-O%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-      <category term="I/O系统" scheme="http://liujunming.github.io/tags/I-O%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
@@ -239,10 +223,6 @@
     
     </summary>
     
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -261,10 +241,6 @@
     
     </summary>
     
-      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
   </entry>
   
@@ -283,10 +259,6 @@
     
     </summary>
     
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -305,10 +277,6 @@
     
     </summary>
     
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -327,12 +295,6 @@
     
     </summary>
     
-      <category term="VT-d" scheme="http://liujunming.github.io/categories/VT-d/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="VT-d" scheme="http://liujunming.github.io/tags/VT-d/"/>
     
   </entry>
   
@@ -351,12 +313,6 @@
     
     </summary>
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="嵌套虚拟化" scheme="http://liujunming.github.io/tags/%E5%B5%8C%E5%A5%97%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -376,12 +332,6 @@
     
     </summary>
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="嵌套虚拟化" scheme="http://liujunming.github.io/tags/%E5%B5%8C%E5%A5%97%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -400,10 +350,6 @@
     
     </summary>
     
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -422,12 +368,6 @@
     
     </summary>
     
-      <category term="Firmware" scheme="http://liujunming.github.io/categories/Firmware/"/>
-    
-    
-      <category term="Firmware" scheme="http://liujunming.github.io/tags/Firmware/"/>
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
   </entry>
   
@@ -446,32 +386,6 @@
     
     </summary>
     
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>QEMU fw_cfg</title>
-    <link href="http://liujunming.github.io/2021/06/30/QEMU-fw-cfg/"/>
-    <id>http://liujunming.github.io/2021/06/30/QEMU-fw-cfg/</id>
-    <published>2021-06-29T18:44:40.000Z</published>
-    <updated>2021-06-29T19:44:31.474Z</updated>
-    
-    <content type="html"><![CDATA[<p>QEMU Firmware Configuration (fw_cfg) Device<a id="more"></a></p><p>QEMU provides a facility for passing strings and files into the VM. This facility is useful for passing kernel parameters, files, or other resources into a guest.</p><p>在Intel Graphics Device (IGD) assignment with vfio-pci中，有<a href="https://github.com/qemu/qemu/blob/master/docs/igd-assign.txt#L102" target="_blank" rel="noopener">“etc/igd-opregion”</a> 这一fw_cfg: This fw_cfg file exposes the OpRegion for the IGD device. 问题来了，这一fw_cfg的内容是哪里来的呢？</p><p>QEUM源码:</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">vfio_pci_igd_opregion_init</span><span class="params">(VFIOPCIDevice *vdev,</span></span></span><br><span class="line"><span class="function"><span class="params">                               struct vfio_region_info *info, Error **errp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">    vdev-&gt;igd_opregion = g_malloc0(info-&gt;size);</span><br><span class="line">    ret = pread(vdev-&gt;vbasedev.fd, vdev-&gt;igd_opregion,</span><br><span class="line">                info-&gt;size, info-&gt;offset);</span><br><span class="line">    <span class="keyword">if</span> (ret != info-&gt;size) &#123;</span><br><span class="line">        error_setg(errp, <span class="string">"failed to read IGD OpRegion"</span>);</span><br><span class="line">        g_free(vdev-&gt;igd_opregion);</span><br><span class="line">        vdev-&gt;igd_opregion = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="keyword">return</span> -EINVAL;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Provide fw_cfg with a copy of the OpRegion which the VM firmware is to</span></span><br><span class="line"><span class="comment">     * allocate 32bit reserved memory for, copy these contents into, and write</span></span><br><span class="line"><span class="comment">     * the reserved memory base address to the device ASLS register at 0xFC.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    fw_cfg_add_file(fw_cfg_find(), <span class="string">"etc/igd-opregion"</span>,</span><br><span class="line">                    vdev-&gt;igd_opregion, info-&gt;size);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">vfio_realize</span><span class="params">(PCIDevice *pdev, Error **errp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    ret = vfio_get_dev_region_info(&amp;vdev-&gt;vbasedev,</span><br><span class="line">    VFIO_REGION_TYPE_PCI_VENDOR_TYPE | PCI_VENDOR_ID_INTEL,</span><br><span class="line">        VFIO_REGION_SUBTYPE_INTEL_IGD_OPREGION, &amp;opregion);    </span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>kernel vfio源码:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">vfio_pci_igd_opregion_init</span><span class="params">(struct vfio_pci_device *vdev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">...</span><br><span class="line">ret = vfio_pci_register_dev_region(vdev,</span><br><span class="line">PCI_VENDOR_ID_INTEL | VFIO_REGION_TYPE_PCI_VENDOR_TYPE,</span><br><span class="line">VFIO_REGION_SUBTYPE_INTEL_IGD_OPREGION,</span><br><span class="line">&amp;vfio_pci_igd_regops, size + rvds, VFIO_REGION_INFO_FLAG_READ, base);</span><br><span class="line">...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">vfio_pci_regops</span> <span class="title">vfio_pci_igd_regops</span> = &#123;</span></span><br><span class="line">.rw= vfio_pci_igd_rw,</span><br><span class="line">.release= vfio_pci_igd_release,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">vfio_pci_igd_rw</span><span class="params">(struct vfio_pci_device *vdev, <span class="keyword">char</span> __user *buf,</span></span></span><br><span class="line"><span class="function"><span class="params">      <span class="keyword">size_t</span> count, <span class="keyword">loff_t</span> *ppos, <span class="keyword">bool</span> iswrite)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">int</span> i = VFIO_PCI_OFFSET_TO_INDEX(*ppos) - VFIO_PCI_NUM_REGIONS;</span><br><span class="line"><span class="keyword">void</span> *base = vdev-&gt;region[i].data;</span><br><span class="line"><span class="keyword">loff_t</span> pos = *ppos &amp; VFIO_PCI_OFFSET_MASK;</span><br><span class="line">u16 version;</span><br><span class="line">u64 rvda;</span><br><span class="line">u32 rvds;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (pos &gt;= vdev-&gt;region[i].size || iswrite)</span><br><span class="line"><span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">count = min(count, (<span class="keyword">size_t</span>)(vdev-&gt;region[i].size - pos));</span><br><span class="line"></span><br><span class="line">version = le16_to_cpu(*(__le16 *)(base + OPREGION_VERSION));</span><br><span class="line">rvda = le64_to_cpu(*(__le64 *)(base + OPREGION_RVDA));</span><br><span class="line">rvds = le32_to_cpu(*(__le32 *)(base + OPREGION_RVDS));</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (vdev-&gt;region[i].subtype == VFIO_REGION_SUBTYPE_INTEL_IGD_OPREGION &amp;&amp;</span><br><span class="line">    version == <span class="number">0x0200</span> &amp;&amp; rvda &amp;&amp; rvds) &#123;</span><br><span class="line">u32 addr = cpu_to_le32(*(__le32 *)(vdev-&gt;vconfig + OPREGION_PCI_ADDR));</span><br><span class="line"><span class="keyword">void</span> *vbt_base;</span><br><span class="line"><span class="keyword">void</span> *opregionvbt;</span><br><span class="line"></span><br><span class="line">vbt_base = memremap(rvda, rvds, MEMREMAP_WB);</span><br><span class="line"><span class="keyword">if</span> (!vbt_base)</span><br><span class="line"><span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">opregionvbt = kzalloc(vdev-&gt;region[i].size, GFP_KERNEL);</span><br><span class="line"><span class="keyword">if</span> (!opregionvbt) &#123;</span><br><span class="line">memunmap(vbt_base);</span><br><span class="line"><span class="keyword">return</span> -ENOMEM;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Stitch VBT after OpRegion if noncontigious */</span></span><br><span class="line"><span class="built_in">memcpy</span>(opregionvbt, base, OPREGION_SIZE);</span><br><span class="line"><span class="built_in">memcpy</span>(opregionvbt + OPREGION_SIZE, vbt_base, rvds);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Patch OpRegion 2.0 to 2.1 */</span></span><br><span class="line">*(__le16 *)(opregionvbt + OPREGION_VERSION) = <span class="number">0x0201</span>;</span><br><span class="line"><span class="comment">/* Patch RVDA location after OpRegion */</span></span><br><span class="line">*(__le64 *)(opregionvbt + OPREGION_RVDA) = OPREGION_SIZE;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (copy_to_user(buf, opregionvbt + pos, count)) &#123;</span><br><span class="line">kfree(opregionvbt);</span><br><span class="line">memunmap(vbt_base);</span><br><span class="line"><span class="keyword">return</span> -EFAULT;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">kfree(opregionvbt);</span><br><span class="line">memunmap(vbt_base);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line"><span class="keyword">if</span> (copy_to_user(buf, base + pos, count))</span><br><span class="line"><span class="keyword">return</span> -EFAULT;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">*ppos += count;</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><hr><p>参考资料:</p><ol><li><a href="https://wiki.osdev.org/QEMU_fw_cfg" target="_blank" rel="noopener">https://wiki.osdev.org/QEMU_fw_cfg</a></li><li><a href="https://github.com/qemu/qemu/blob/master/docs/specs/fw_cfg.txt" target="_blank" rel="noopener">https://github.com/qemu/qemu/blob/master/docs/specs/fw_cfg.txt</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;QEMU Firmware Configuration (fw_cfg) Device
-    
-    </summary>
-    
-      <category term="QEMU" scheme="http://liujunming.github.io/categories/QEMU/"/>
-    
-    
-      <category term="QEMU" scheme="http://liujunming.github.io/tags/QEMU/"/>
     
   </entry>
   
