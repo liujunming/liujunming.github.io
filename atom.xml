@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-10-27T10:02:05.209Z</updated>
+  <updated>2021-10-28T10:05:35.381Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -21,13 +21,13 @@
     <link href="http://liujunming.github.io/2021/10/27/Dive-into-irqfd-KVM-side-mechanism/"/>
     <id>http://liujunming.github.io/2021/10/27/Dive-into-irqfd-KVM-side-mechanism/</id>
     <published>2021-10-27T01:53:42.000Z</published>
-    <updated>2021-10-27T10:02:05.209Z</updated>
+    <updated>2021-10-28T10:05:35.381Z</updated>
     
-    <content type="html"><![CDATA[<p>本文将深入理解irqfd机制，偏向于KVM side。<a id="more"></a>为了便于理清irqfd机制，本文只介绍patch <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3" target="_blank" rel="noopener">KVM: irqfd</a>中的内容。</p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>irqfd in KVM is implemented based on eventfd in Linux.</p><p>As its name shows, irqfd is basically a fd that is bound to an interrupt in the virtual machine. Here the fd must be an eventfd. The delivery path is single direction, say, interrupt is delivered from outside world into the guest. </p><p>With irqfd, if we want to trigger an interrupt we have setup, what we need to do is only write to that corresponding eventfd. To write it in userspace, a simple <code>write()</code> syscall would suffice (actually there is a libc call named <code>eventfd_write()</code>, however that’s merely a wrapper of the <code>write()</code> system call). To do it in kernel, we can use <code>eventfd_signal()</code> instead.</p><h3 id="2-Overview"><a href="#2-Overview" class="headerlink" title="2. Overview"></a>2. Overview</h3><p><img src="/images/2021/10/16.png" alt></p><p>irqfd基于eventfd机制，qemu中将一个gsi(全局系统中断号)与eventfd捆绑后，向kvm发送注册irqfd请求，kvm收到请求后将带有gsi信息的eventfd加入到与irqfd有关的等待队列中，一旦有进程向该eventfd写入，等待队列中的元素就会唤醒，并调用相应的唤醒函数(<code>irqfd_wakeup</code>)向guest注入中断(<code>irqfd_inject</code>)。</p><h3 id="3-Details"><a href="#3-Details" class="headerlink" title="3. Details"></a>3. Details</h3><p><img src="/images/2021/10/17.png" alt></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kvm_irqfd_assign</span><span class="params">(struct kvm *kvm, struct kvm_irqfd *args)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_kernel_irqfd</span> *<span class="title">irqfd</span>;</span></span><br><span class="line">...</span><br><span class="line">irqfd = kzalloc(<span class="keyword">sizeof</span>(*irqfd), GFP_KERNEL_ACCOUNT);</span><br><span class="line">irqfd-&gt;kvm = kvm;</span><br><span class="line">irqfd-&gt;gsi = args-&gt;gsi;</span><br><span class="line">INIT_LIST_HEAD(&amp;irqfd-&gt;<span class="built_in">list</span>);</span><br><span class="line">INIT_WORK(&amp;irqfd-&gt;inject, irqfd_inject);</span><br><span class="line">INIT_WORK(&amp;irqfd-&gt;shutdown, irqfd_shutdown);</span><br><span class="line">...</span><br><span class="line">irqfd-&gt;eventfd = eventfd;</span><br><span class="line">...</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Install our own custom wake-up handling so we are notified via</span></span><br><span class="line"><span class="comment"> * a callback whenever someone signals the underlying eventfd</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">init_waitqueue_func_entry(&amp;irqfd-&gt;wait, irqfd_wakeup);</span><br><span class="line">...</span><br><span class="line">init_poll_funcptr(&amp;irqfd-&gt;pt, irqfd_ptable_queue_proc);</span><br><span class="line">events = vfs_poll(f.file, &amp;irqfd-&gt;pt);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>kvm_kernel_irqfd结构中有2个work_struct，inject和shutdown，分别负责触发中断和关闭中断，这两个work_struct各自对应的操作函数分别为irqfd_inject和irqfd_shutdown。</p><p>kvm_irqfd_assign调用init_waitqueue_func_entry将<strong>irqfd_wakeup</strong>函数注册为irqfd中<strong>wait queue entry</strong>激活时的处理函数。<strong>这样任何写入该irqfd对应的eventfd的行为都将触发这个函数。</strong></p><p>kvm_irqfd_assign利用init_poll_funcptr将irqfd_ptable_queue_proc函数注册为irqfd中的poll table的处理函数。<strong>irqfd_ptable_queue_proc会将poll table中对应的wait queue entry加入到waitqueue中去。</strong></p><p>kvm_irq_assign以irqfd-&gt;pt为参数，调用eventfd的poll函数，也就是eventfd_poll；eventfd_poll会调用poll_wait函数；poll_wait会回调之前为poll table注册的irqfd_ptable_queue_proc函数。</p><hr><p>参考资料:</p><ol><li><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3" target="_blank" rel="noopener">KVM: irqfd</a></li><li><a href="https://blog.csdn.net/LoyenWang/article/details/115805007?spm=1001.2014.3001.5501" target="_blank" rel="noopener">Linux虚拟化KVM-Qemu分析（十二）之ioeventfd与irqfd</a></li><li><a href="https://www.cnblogs.com/haiyonghao/p/14440723.html" target="_blank" rel="noopener">qemu-kvm的irqfd机制</a></li><li><a href="http://xzpeter.org/htmls/2017_12_07_kvm_irqfd/kvm_irqfd_implementation.html" target="_blank" rel="noopener">KVM Irqfd Introduction</a></li></ol>]]></content>
+    <content type="html"><![CDATA[<p>本文将深入理解irqfd机制，偏向于KVM side。为了便于理清irqfd机制，本文只介绍patch <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3" target="_blank" rel="noopener">KVM: irqfd</a>中的内容。<a id="more"></a></p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>irqfd in KVM is implemented based on eventfd in Linux.</p><p>As its name shows, irqfd is basically a fd that is bound to an interrupt in the virtual machine. Here the fd must be an eventfd. The delivery path is single direction, say, interrupt is delivered from outside world into the guest. </p><p>With irqfd, if we want to trigger an interrupt we have setup, what we need to do is only write to that corresponding eventfd. To write it in userspace, a simple <code>write()</code> syscall would suffice (actually there is a libc call named <code>eventfd_write()</code>, however that’s merely a wrapper of the <code>write()</code> system call). To do it in kernel, we can use <code>eventfd_signal()</code> instead.</p><h3 id="2-Overview"><a href="#2-Overview" class="headerlink" title="2. Overview"></a>2. Overview</h3><p><img src="/images/2021/10/16.png" alt></p><p>irqfd基于eventfd机制，qemu中将一个gsi(全局系统中断号)与eventfd捆绑后，向kvm发送注册irqfd请求，kvm收到请求后将带有gsi信息的eventfd加入到与irqfd有关的等待队列中，一旦有进程向该eventfd写入，等待队列中的元素就会唤醒，并调用相应的唤醒函数(<code>irqfd_wakeup</code>)向guest注入中断(<code>irqfd_inject</code>)。</p><h3 id="3-Details"><a href="#3-Details" class="headerlink" title="3. Details"></a>3. Details</h3><p><img src="/images/2021/10/17.png" alt></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kvm_irqfd_assign</span><span class="params">(struct kvm *kvm, struct kvm_irqfd *args)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_kernel_irqfd</span> *<span class="title">irqfd</span>;</span></span><br><span class="line">...</span><br><span class="line">irqfd = kzalloc(<span class="keyword">sizeof</span>(*irqfd), GFP_KERNEL_ACCOUNT);</span><br><span class="line">irqfd-&gt;kvm = kvm;</span><br><span class="line">irqfd-&gt;gsi = args-&gt;gsi;</span><br><span class="line">INIT_LIST_HEAD(&amp;irqfd-&gt;<span class="built_in">list</span>);</span><br><span class="line">INIT_WORK(&amp;irqfd-&gt;inject, irqfd_inject);</span><br><span class="line">INIT_WORK(&amp;irqfd-&gt;shutdown, irqfd_shutdown);</span><br><span class="line">...</span><br><span class="line">irqfd-&gt;eventfd = eventfd;</span><br><span class="line">...</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Install our own custom wake-up handling so we are notified via</span></span><br><span class="line"><span class="comment"> * a callback whenever someone signals the underlying eventfd</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">init_waitqueue_func_entry(&amp;irqfd-&gt;wait, irqfd_wakeup);</span><br><span class="line">...</span><br><span class="line">init_poll_funcptr(&amp;irqfd-&gt;pt, irqfd_ptable_queue_proc);</span><br><span class="line">events = vfs_poll(f.file, &amp;irqfd-&gt;pt);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>kvm_kernel_irqfd结构中有2个work_struct，inject和shutdown，分别负责触发中断和关闭中断，这两个work_struct各自对应的操作函数分别为irqfd_inject和irqfd_shutdown。</p><p>kvm_irqfd_assign调用init_waitqueue_func_entry将<strong>irqfd_wakeup</strong>函数注册为irqfd中<strong>wait queue entry</strong>激活时的处理函数。<strong>这样任何写入该irqfd对应的eventfd的行为都将触发这个函数。</strong></p><p>kvm_irqfd_assign利用init_poll_funcptr将irqfd_ptable_queue_proc函数注册为irqfd中的poll table的处理函数。<strong>irqfd_ptable_queue_proc会将poll table中对应的wait queue entry加入到waitqueue中去。</strong></p><p>kvm_irq_assign以irqfd-&gt;pt为参数，调用eventfd的poll函数，也就是eventfd_poll；eventfd_poll会调用poll_wait函数；poll_wait会回调之前为poll table注册的irqfd_ptable_queue_proc函数。</p><hr><p>参考资料:</p><ol><li><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3" target="_blank" rel="noopener">KVM: irqfd</a></li><li><a href="https://blog.csdn.net/LoyenWang/article/details/115805007?spm=1001.2014.3001.5501" target="_blank" rel="noopener">Linux虚拟化KVM-Qemu分析（十二）之ioeventfd与irqfd</a></li><li><a href="https://www.cnblogs.com/haiyonghao/p/14440723.html" target="_blank" rel="noopener">qemu-kvm的irqfd机制</a></li><li><a href="http://xzpeter.org/htmls/2017_12_07_kvm_irqfd/kvm_irqfd_implementation.html" target="_blank" rel="noopener">KVM Irqfd Introduction</a></li></ol>]]></content>
     
     <summary type="html">
     
-      &lt;p&gt;本文将深入理解irqfd机制，偏向于KVM side。
+      &lt;p&gt;本文将深入理解irqfd机制，偏向于KVM side。为了便于理清irqfd机制，本文只介绍patch &lt;a href=&quot;https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;KVM: irqfd&lt;/a&gt;中的内容。
     
     </summary>
     
@@ -55,6 +55,12 @@
     
     </summary>
     
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
   </entry>
   
@@ -73,6 +79,10 @@
     
     </summary>
     
+      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
   </entry>
   
@@ -91,6 +101,10 @@
     
     </summary>
     
+      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
@@ -109,6 +123,12 @@
     
     </summary>
     
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
   </entry>
   
@@ -127,6 +147,12 @@
     
     </summary>
     
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
   </entry>
   
@@ -169,6 +195,12 @@
     
     </summary>
     
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
   </entry>
   
@@ -187,6 +219,10 @@
     
     </summary>
     
+      <category term="I/O系统" scheme="http://liujunming.github.io/categories/I-O%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+      <category term="I/O系统" scheme="http://liujunming.github.io/tags/I-O%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
@@ -205,6 +241,10 @@
     
     </summary>
     
+      <category term="I/O系统" scheme="http://liujunming.github.io/categories/I-O%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+      <category term="I/O系统" scheme="http://liujunming.github.io/tags/I-O%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
@@ -223,6 +263,10 @@
     
     </summary>
     
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -241,6 +285,10 @@
     
     </summary>
     
+      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
   </entry>
   
@@ -259,6 +307,10 @@
     
     </summary>
     
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -277,6 +329,10 @@
     
     </summary>
     
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -295,6 +351,12 @@
     
     </summary>
     
+      <category term="VT-d" scheme="http://liujunming.github.io/categories/VT-d/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="VT-d" scheme="http://liujunming.github.io/tags/VT-d/"/>
     
   </entry>
   
@@ -313,6 +375,12 @@
     
     </summary>
     
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="嵌套虚拟化" scheme="http://liujunming.github.io/tags/%E5%B5%8C%E5%A5%97%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -332,6 +400,12 @@
     
     </summary>
     
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="嵌套虚拟化" scheme="http://liujunming.github.io/tags/%E5%B5%8C%E5%A5%97%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -350,6 +424,10 @@
     
     </summary>
     
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -368,6 +446,12 @@
     
     </summary>
     
+      <category term="Firmware" scheme="http://liujunming.github.io/categories/Firmware/"/>
+    
+    
+      <category term="Firmware" scheme="http://liujunming.github.io/tags/Firmware/"/>
+    
+      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
   </entry>
   
@@ -386,6 +470,10 @@
     
     </summary>
     
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
