@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-11-11T13:10:18.964Z</updated>
+  <updated>2021-11-11T14:23:54.464Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about ivshmem</title>
+    <link href="http://liujunming.github.io/2021/11/11/Notes-about-ivshmem/"/>
+    <id>http://liujunming.github.io/2021/11/11/Notes-about-ivshmem/</id>
+    <published>2021-11-11T13:32:45.000Z</published>
+    <updated>2021-11-11T14:23:54.464Z</updated>
+    
+    <content type="html"><![CDATA[<p>mark下ivshmem相关资料。<a id="more"></a></p><p>ivshmem是QEMU提供的一种宿主机与虚拟机之间或多个虚拟机之间共享内存的特殊设备。它有两种形式:</p><ul><li><strong>ivshmem-plain</strong>: 简单的共享内存区域</li><li><strong>ivshmem-doorbel</strong>: 除了共享内存，还能提供基于中断的通信机制</li></ul><p>这种设备在虚拟机内部表现为PCI设备，共享的内存区域则以PCI BAR的形式存在。ivshmem PCI设备提供3个BAR:</p><ul><li>BAR0: 设备寄存器</li><li>BAR1: MSI-X表</li><li>BAR2: 共享内存区域</li></ul><p>简单的共享内存场景只使用BAR2。如果需要基于中断实现额外通信，需要用到BAR0和BAR1。</p><p>只考虑共享内存这个场景，是如何做到内存共享的呢？在不同的虚拟机(这些虚拟机会共享内存)内，ivshmem device的BAR2地址(GPA)可能不同，但是对应的HPA是一样的，hypervisor会为不同虚拟机的ivshmem device的BAR2内存区域建立EPT映射，因此就达到共享内存的目的！<br>即:</p><ul><li>GPA1-&gt;HPA1</li><li>GPA2-&gt;HPA1</li></ul><p>Evidence on ACRN hypervisor:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// hypervisor code</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">ivshmem_vbar_map</span><span class="params">(struct pci_vdev *vdev, <span class="keyword">uint32_t</span> idx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">acrn_vm</span> *<span class="title">vm</span> = <span class="title">vpci2vm</span>(<span class="title">vdev</span>-&gt;<span class="title">vpci</span>);</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pci_vbar</span> *<span class="title">vbar</span> = &amp;<span class="title">vdev</span>-&gt;<span class="title">vbars</span>[<span class="title">idx</span>];</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">ivshmem_device</span> *<span class="title">ivs_dev</span> = (<span class="title">struct</span> <span class="title">ivshmem_device</span> *) <span class="title">vdev</span>-&gt;<span class="title">priv_data</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> ((idx == IVSHMEM_SHM_BAR) &amp;&amp; (vbar-&gt;base_hpa != INVALID_HPA) &amp;&amp; (vbar-&gt;base_gpa != <span class="number">0U</span>L)) &#123;</span><br><span class="line"><span class="comment">//ept_add_mr is called to build EPT mapping for ivshmem BAR2!</span></span><br><span class="line">ept_add_mr(vm, (<span class="keyword">uint64_t</span> *)vm-&gt;arch_vm.nworld_eptp, vbar-&gt;base_hpa,</span><br><span class="line">vbar-&gt;base_gpa, vbar-&gt;size, EPT_RD | EPT_WR | EPT_WB | EPT_IGNORE_PAT);</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//device model code</span></span><br><span class="line">create_ivshmem_from_dm(struct vmctx *ctx, struct pci_vdev *vdev,</span><br><span class="line"><span class="keyword">const</span> <span class="keyword">char</span> *name, <span class="keyword">uint32_t</span> size)</span><br><span class="line">&#123;</span><br><span class="line">...</span><br><span class="line">addr = (<span class="keyword">void</span> *)mmap(<span class="literal">NULL</span>, size, PROT_READ | PROT_WRITE,</span><br><span class="line">MAP_SHARED, fd, <span class="number">0</span>);</span><br><span class="line">bar_addr = pci_get_cfgdata32(vdev, PCIR_BAR(IVSHMEM_MEM_BAR));</span><br><span class="line">bar_addr |= ((<span class="keyword">uint64_t</span>)pci_get_cfgdata32(vdev, PCIR_BAR(IVSHMEM_MEM_BAR + <span class="number">1</span>)) &lt;&lt; <span class="number">32</span>);</span><br><span class="line">bar_addr &amp;= PCIM_BAR_MEM_BASE;</span><br><span class="line">pr_dbg(<span class="string">"shm configuration, vma 0x%lx, ivshmem bar 0x%lx, size 0x%x\n"</span>,</span><br><span class="line">(<span class="keyword">uint64_t</span>)addr, bar_addr, size);</span><br><span class="line"><span class="comment">//vm_map_memseg_vma is called to build EPT mapping for ivshmem BAR2!</span></span><br><span class="line"><span class="keyword">if</span> (!addr || vm_map_memseg_vma(ctx, size, bar_addr,</span><br><span class="line">(<span class="keyword">uint64_t</span>)addr, PROT_RW) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">pr_warn(<span class="string">"failed to map shared memory\n"</span>);</span><br><span class="line"><span class="keyword">goto</span> err;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ul><li><a href="https://git.qemu.org/?p=qemu.git;a=blob_plain;f=docs/specs/ivshmem-spec.txt;hb=HEAD" target="_blank" rel="noopener">Device Specification for Inter-VM shared memory device</a></li><li><a href="https://projectacrn.github.io/latest/developer-guides/hld/ivshmem-hld.html" target="_blank" rel="noopener">ACRN Shared Memory Based Inter-VM Communication</a></li><li><a href="https://www.researchgate.net/publication/345933128_Real_Time_Communication_Between_Two_Hypervised_Operating_Systems" target="_blank" rel="noopener">Real Time Communication Between Two Hypervised Operating Systems</a></li><li><a href="http://just4coding.com/2021/09/12/qemu-ivshmem/" target="_blank" rel="noopener">QEMU虚拟机内识别ivshmem设备</a></li><li><a href="https://drive.google.com/drive/folders/1ffFpbw_FlWrEqSmD8x8tQ_NHAgYd3M37" target="_blank" rel="noopener">Inter-VM Communication Introduction (DM land)</a></li><li><a href="https://drive.google.com/drive/folders/1rgfTZqETjCq2wCuiCwAGadgKIPom9lAr" target="_blank" rel="noopener">Inter-VM Communication Introduction (Hv-Land)</a></li></ul>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;mark下ivshmem相关资料。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PASID (Process Address Space ID)</title>
@@ -450,30 +474,6 @@
     
     
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about EFI Shell</title>
-    <link href="http://liujunming.github.io/2021/07/01/Notes-about-EFI-Shell/"/>
-    <id>http://liujunming.github.io/2021/07/01/Notes-about-EFI-Shell/</id>
-    <published>2021-07-01T01:54:26.000Z</published>
-    <updated>2021-07-01T10:11:28.349Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要记录EFI Shell相关的materials与常用的一些指令。<a id="more"></a></p><h3 id="1-materials"><a href="#1-materials" class="headerlink" title="1. materials"></a>1. materials</h3><p><a href="https://docstore.mik.ua/manuals/hp-ux/en/5991-1247B/ch04s13.html" target="_blank" rel="noopener">Command Reference for EFI Shell Commands</a><br><a href="https://manuais.iessanclemente.net/images/a/a6/EFI-ShellCommandManual.pdf" target="_blank" rel="noopener">Shell Command Reference Manual</a><br><a href="https://www.intel.com/content/dam/support/us/en/documents/motherboards/server/sb/efi_instructions.pdf" target="_blank" rel="noopener">Basic Instructions for Using the Extensible Firmware Interface</a><br><a href="https://kb.stonegroup.co.uk/index.php?View=entry&amp;EntryID=84" target="_blank" rel="noopener">How to Access the EFI Shell to carry out Systems Diagnostics or Updates</a></p><h3 id="2-常用指令"><a href="#2-常用指令" class="headerlink" title="2. 常用指令"></a>2. 常用指令</h3><p>EFI commands are very similar to common DOS and Linux commands. The most frequently<br>used commands include: </p><ul><li><code>ls</code> (or <code>dir</code>): Lists the directory contents.</li><li><code>cd</code>: Changes the directory.</li><li><code>cp</code>: Copies one or more files/directories to another location.</li><li><code>move</code>: Moves one or more files/directories to the destination.</li><li><code>rm</code>: Deletes one or more files or directories.</li><li><code>map</code>: Displays, resets, or deletes mappings with the verbose option.</li><li><code>map –r</code>: Commonly used to refresh mapped drives.</li><li><code>edit</code>: Starts a basic text editor with on-screen function key help.</li><li><code>set</code>: Displays (set), creates (set sname value), deletes (set –d), or changes EFI environment variables.</li><li><code>cls</code>: Clears the screen and can also change the background color.</li><li><code>echo</code>: Displays results on the screen.</li><li><code>help</code>: Displays help information.</li><li><code>exit</code>: Leaves the EFI shell and returns to the BIOS utility.</li><li><code>reset</code>: Resets the system with a warm reboot or complete shutdown. </li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drivers –b</span><br></pre></td></tr></table></figure><p>“-b” option for any UEFI command is a screen “pause” option so that you do not miss what you are trying to find because of it scrolling by.</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要记录EFI Shell相关的materials与常用的一些指令。
-    
-    </summary>
-    
-      <category term="Firmware" scheme="http://liujunming.github.io/categories/Firmware/"/>
-    
-    
-      <category term="Firmware" scheme="http://liujunming.github.io/tags/Firmware/"/>
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
   </entry>
   

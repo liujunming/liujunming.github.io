@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about ivshmem">
+
+
+
+
+  <meta name="keywords" content="虚拟化, PCI&PCIe, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/11/11/Notes-about-ivshmem/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about ivshmem - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about ivshmem
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-11-11
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+
+
+    <div class="post-content">
+      
+        <p>mark下ivshmem相关资料。<a id="more"></a></p>
+<p>ivshmem是QEMU提供的一种宿主机与虚拟机之间或多个虚拟机之间共享内存的特殊设备。它有两种形式:</p>
+<ul>
+<li><strong>ivshmem-plain</strong>: 简单的共享内存区域</li>
+<li><strong>ivshmem-doorbel</strong>: 除了共享内存，还能提供基于中断的通信机制</li>
+</ul>
+<p>这种设备在虚拟机内部表现为PCI设备，共享的内存区域则以PCI BAR的形式存在。ivshmem PCI设备提供3个BAR:</p>
+<ul>
+<li>BAR0: 设备寄存器</li>
+<li>BAR1: MSI-X表</li>
+<li>BAR2: 共享内存区域</li>
+</ul>
+<p>简单的共享内存场景只使用BAR2。如果需要基于中断实现额外通信，需要用到BAR0和BAR1。</p>
+<p>只考虑共享内存这个场景，是如何做到内存共享的呢？在不同的虚拟机(这些虚拟机会共享内存)内，ivshmem device的BAR2地址(GPA)可能不同，但是对应的HPA是一样的，hypervisor会为不同虚拟机的ivshmem device的BAR2内存区域建立EPT映射，因此就达到共享内存的目的！<br>即:</p>
+<ul>
+<li>GPA1-&gt;HPA1</li>
+<li>GPA2-&gt;HPA1</li>
+</ul>
+<p>Evidence on ACRN hypervisor:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// hypervisor code</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">ivshmem_vbar_map</span><span class="params">(struct pci_vdev *vdev, <span class="keyword">uint32_t</span> idx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">acrn_vm</span> *<span class="title">vm</span> = <span class="title">vpci2vm</span>(<span class="title">vdev</span>-&gt;<span class="title">vpci</span>);</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">pci_vbar</span> *<span class="title">vbar</span> = &amp;<span class="title">vdev</span>-&gt;<span class="title">vbars</span>[<span class="title">idx</span>];</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ivshmem_device</span> *<span class="title">ivs_dev</span> = (<span class="title">struct</span> <span class="title">ivshmem_device</span> *) <span class="title">vdev</span>-&gt;<span class="title">priv_data</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> ((idx == IVSHMEM_SHM_BAR) &amp;&amp; (vbar-&gt;base_hpa != INVALID_HPA) &amp;&amp; (vbar-&gt;base_gpa != <span class="number">0U</span>L)) &#123;</span><br><span class="line">		<span class="comment">//ept_add_mr is called to build EPT mapping for ivshmem BAR2!</span></span><br><span class="line">		ept_add_mr(vm, (<span class="keyword">uint64_t</span> *)vm-&gt;arch_vm.nworld_eptp, vbar-&gt;base_hpa,</span><br><span class="line">				vbar-&gt;base_gpa, vbar-&gt;size, EPT_RD | EPT_WR | EPT_WB | EPT_IGNORE_PAT);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//device model code</span></span><br><span class="line">create_ivshmem_from_dm(struct vmctx *ctx, struct pci_vdev *vdev,</span><br><span class="line">		<span class="keyword">const</span> <span class="keyword">char</span> *name, <span class="keyword">uint32_t</span> size)</span><br><span class="line">&#123;</span><br><span class="line">	...</span><br><span class="line">	addr = (<span class="keyword">void</span> *)mmap(<span class="literal">NULL</span>, size, PROT_READ | PROT_WRITE,</span><br><span class="line">			MAP_SHARED, fd, <span class="number">0</span>);</span><br><span class="line">	bar_addr = pci_get_cfgdata32(vdev, PCIR_BAR(IVSHMEM_MEM_BAR));</span><br><span class="line">	bar_addr |= ((<span class="keyword">uint64_t</span>)pci_get_cfgdata32(vdev, PCIR_BAR(IVSHMEM_MEM_BAR + <span class="number">1</span>)) &lt;&lt; <span class="number">32</span>);</span><br><span class="line">	bar_addr &amp;= PCIM_BAR_MEM_BASE;</span><br><span class="line">	pr_dbg(<span class="string">"shm configuration, vma 0x%lx, ivshmem bar 0x%lx, size 0x%x\n"</span>,</span><br><span class="line">			(<span class="keyword">uint64_t</span>)addr, bar_addr, size);</span><br><span class="line">	<span class="comment">//vm_map_memseg_vma is called to build EPT mapping for ivshmem BAR2!</span></span><br><span class="line">	<span class="keyword">if</span> (!addr || vm_map_memseg_vma(ctx, size, bar_addr,</span><br><span class="line">				(<span class="keyword">uint64_t</span>)addr, PROT_RW) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		pr_warn(<span class="string">"failed to map shared memory\n"</span>);</span><br><span class="line">		<span class="keyword">goto</span> err;</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ul>
+<li><a href="https://git.qemu.org/?p=qemu.git;a=blob_plain;f=docs/specs/ivshmem-spec.txt;hb=HEAD" target="_blank" rel="noopener">Device Specification for Inter-VM shared memory device</a></li>
+<li><a href="https://projectacrn.github.io/latest/developer-guides/hld/ivshmem-hld.html" target="_blank" rel="noopener">ACRN Shared Memory Based Inter-VM Communication</a></li>
+<li><a href="https://www.researchgate.net/publication/345933128_Real_Time_Communication_Between_Two_Hypervised_Operating_Systems" target="_blank" rel="noopener">Real Time Communication Between Two Hypervised Operating Systems</a></li>
+<li><a href="http://just4coding.com/2021/09/12/qemu-ivshmem/" target="_blank" rel="noopener">QEMU虚拟机内识别ivshmem设备</a></li>
+<li><a href="https://drive.google.com/drive/folders/1ffFpbw_FlWrEqSmD8x8tQ_NHAgYd3M37" target="_blank" rel="noopener">Inter-VM Communication Introduction (DM land)</a></li>
+<li><a href="https://drive.google.com/drive/folders/1rgfTZqETjCq2wCuiCwAGadgKIPom9lAr" target="_blank" rel="noopener">Inter-VM Communication Introduction (Hv-Land)</a></li>
+</ul>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/PCI-PCIe/">PCI&PCIe</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/11/09/Notes about-PASID-Process-Address-Space-ID/">
+        <span class="next-text nav-default">Notes about PASID (Process Address Space ID)</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/11/11/Notes-about-ivshmem/';
+        this.page.identifier = '2021/11/11/Notes-about-ivshmem/';
+        this.page.title = 'Notes about ivshmem';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
