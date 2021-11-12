@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about XSAVE feature set">
+
+
+
+
+  <meta name="keywords" content="体系结构, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/11/12/Notes-about-XSAVE-feature-set/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about XSAVE feature set - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about XSAVE feature set
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-11-12
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/体系结构/">体系结构</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Why"><span class="toc-text">1. Why?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Overview"><span class="toc-text">2. Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-XSAVE-Area"><span class="toc-text">3. XSAVE Area</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-Legacy-Region"><span class="toc-text">3.1 Legacy Region</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-XSAVE-Header"><span class="toc-text">3.2 XSAVE Header</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-Extended-Region"><span class="toc-text">3.3 Extended Region</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-1-Standard-Format"><span class="toc-text">3.3.1 Standard Format</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-2-Compacted-Format"><span class="toc-text">3.3.2 Compacted Format</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Optimization"><span class="toc-text">4. Optimization</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-The-init-optimization"><span class="toc-text">4.1 The init optimization</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-The-modified-optimization"><span class="toc-text">4.2 The modified optimization</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-Instructions-Summary"><span class="toc-text">5. Instructions Summary</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>mark下个人对XSAVE feature set的一点理解。本文大部分内容源于组内同学的知识分享，并非作者个人原创。<a id="more"></a><br>读者若想深入研究XSAVE feature set，Intel SDM Vol1 “MANAGING STATE USING THE XSAVE FEATURE SET”这章的内容就是极佳的材料。</p>
+<h2 id="1-Why"><a href="#1-Why" class="headerlink" title="1. Why?"></a>1. Why?</h2><p>一言以蔽之：Support the saving and restoring of processor state by hardware instead of software.</p>
+<p>线程可能会用到X87,SSE,AVX512等feature，这些feature会包含很多的寄存器。如果每次线程切换时，系统软件都需要手动save and restore这些寄存器，那样开销会很大。为此，XSAVE feature set应运而生，系统软件只需要调用XSAVE feature set提供的指令，即可让硬件来完成X87,SSE,AVX512等寄存器的save与restore功能！</p>
+<h2 id="2-Overview"><a href="#2-Overview" class="headerlink" title="2. Overview"></a>2. Overview</h2><p>The XSAVE feature set supports the saving and restoring of <strong>state components</strong>, each of which is a discrete set of processor registers (or parts of registers). Each such state component corresponds to an XSAVE-supported feature. The XSAVE feature set organizes the state components of the XSAVE-supported features using state component bitmaps. A state-component bitmap comprises 64 bits; each bit in such a bitmap corresponds to a single state component. Some state components are supervisor state components. The XSAVE feature supports supervisor state components with only the XSAVES and XRSTORS instructions.</p>
+<ul>
+<li>For User state components, Specified by XCR0</li>
+<li>For Supervisor state components, Specified by IA32_XSS MSR</li>
+</ul>
+<p><strong>XSAVE-enabled</strong> features (those features that require use of the XSAVE feature set for their enabling) .</p>
+<p><img src="/images/2021/11/10.png" alt></p>
+<p><img src="/images/2021/11/5.png" alt></p>
+<h2 id="3-XSAVE-Area"><a href="#3-XSAVE-Area" class="headerlink" title="3. XSAVE Area"></a>3. XSAVE Area</h2><p>The XSAVE feature set allows saving and loading processor state from a region of memory called  XSAVE area.</p>
+<p><img src="/images/2021/11/6.png" alt></p>
+<h3 id="3-1-Legacy-Region"><a href="#3-1-Legacy-Region" class="headerlink" title="3.1 Legacy Region"></a>3.1 Legacy Region</h3><p><img src="/images/2021/11/7.png" alt></p>
+<h3 id="3-2-XSAVE-Header"><a href="#3-2-XSAVE-Header" class="headerlink" title="3.2 XSAVE Header"></a>3.2 XSAVE Header</h3><p><img src="/images/2021/11/8.png" alt></p>
+<p><strong>XCOMP_BV[63]</strong> indicates the format of the extended region of the XSAVE area (see Section 13.4.3). </p>
+<ul>
+<li>If it is clear, the standard format is used. </li>
+<li>If it is set, the compacted format is used; XCOMP_BV[62:0] provide format specifics as specified in Section 13.4.3.</li>
+</ul>
+<p>为什么需要区分standard format与compacted format呢？其实就是为了节省内存。例如，某线程没用使用AVX512 feature，那么，compacted format就不会在Extended Region里存储AVX512相关的寄存器状态。</p>
+<h3 id="3-3-Extended-Region"><a href="#3-3-Extended-Region" class="headerlink" title="3.3 Extended Region"></a>3.3 Extended Region</h3><p>The XSAVE feature set uses the <u>extended area</u> for <u>each state component i, where i ≥ 2</u>.</p>
+<p>All state components other than X87 and SSE are using the extended region.</p>
+<p>Format of extended region:</p>
+<ul>
+<li>Standard format</li>
+<li>Compacted format</li>
+</ul>
+<h4 id="3-3-1-Standard-Format"><a href="#3-3-1-Standard-Format" class="headerlink" title="3.3.1 Standard Format"></a>3.3.1 Standard Format</h4><p>Supported by all processors that support the XSAVE feature set.</p>
+<p>Location of each state component i (i ≥ 2) is determined by CPUID.</p>
+<ul>
+<li>Offset: CPUID.(EAX=0DH,ECX=i):EBX</li>
+<li>Size: CPUID.(EAX=0DH,ECX=i):EAX</li>
+</ul>
+<h4 id="3-3-2-Compacted-Format"><a href="#3-3-2-Compacted-Format" class="headerlink" title="3.3.2 Compacted Format"></a>3.3.2 Compacted Format</h4><p>Supported by those processors that support the compaction extensions CPUID.(EAX=0DH,ECX=1):EAX[1]</p>
+<p>Location of each state component i (i ≥ 2) is determined by <u>CPUID</u> and <u>XCOMP_BV</u> field in the XSAVE header.</p>
+<ul>
+<li>Offset: refer to section 13.4.3, Vol.1, SDM</li>
+<li>Size: CPUID.(EAX=0DH,ECX=i):EAX</li>
+</ul>
+<h2 id="4-Optimization"><a href="#4-Optimization" class="headerlink" title="4. Optimization"></a>4. Optimization</h2><p>The <strong>XSAVEOPT, XSAVEC, and XSAVES</strong> instructions use two optimizations to <u>reduce the amount of data that they write to memory</u>.</p>
+<h3 id="4-1-The-init-optimization"><a href="#4-1-The-init-optimization" class="headerlink" title="4.1 The init optimization"></a>4.1 The init optimization</h3><p>Avoid writing data for any state component known to be in its <u>initial configuration</u>.</p>
+<h3 id="4-2-The-modified-optimization"><a href="#4-2-The-modified-optimization" class="headerlink" title="4.2 The modified optimization"></a>4.2 The modified optimization</h3><p>If either XSAVEOPT or XSAVES is using the <u>same XSAVE area</u> as that used by the <u>most recent execution of XRSTOR or XRSTORS</u>, it may avoid writing data for any state component whose configuration is known <u>not to have been modified since then</u>.</p>
+<h2 id="5-Instructions-Summary"><a href="#5-Instructions-Summary" class="headerlink" title="5. Instructions Summary"></a>5. Instructions Summary</h2><p><img src="/images/2021/11/9.png" alt></p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/体系结构/">体系结构</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/11/11/Notes-about-ivshmem/">
+        <span class="next-text nav-default">Notes about ivshmem</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/11/12/Notes-about-XSAVE-feature-set/';
+        this.page.identifier = '2021/11/12/Notes-about-XSAVE-feature-set/';
+        this.page.title = 'Notes about XSAVE feature set';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
