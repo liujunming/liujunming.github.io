@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Live Migration With Hardware Acceleration">
+
+
+
+
+  <meta name="keywords" content="虚拟化, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/11/18/Live-Migration-With-Hardware-Acceleration/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Live Migration With Hardware Acceleration - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Live Migration With Hardware Acceleration
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-11-18
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#QAT"><span class="toc-text">QAT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#IAX"><span class="toc-text">IAX</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DSA"><span class="toc-text">DSA</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Smart-Acceleration-Support"><span class="toc-text">Smart Acceleration Support</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Notes about Live Migration With Hardware Acceleration.<br><a href="https://static.sched.com/hosted_files/kvmforum2020/6e/Oct%2030_Live%20Migration%20with%20Hardware%20Acceleration_Wei%20Wang%20.pdf" target="_blank" rel="noopener">slides</a><br><a href="https://www.youtube.com/watch?v=c_DyiOmJdtI" target="_blank" rel="noopener">video</a><br><a id="more"></a></p>
+<h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><ul>
+<li>Live migration pain points<ul>
+<li>VMs with memory write intensive workloads are difficult to migrate</li>
+<li>VMs with large memory size takes long time to migrate</li>
+<li>May consume large network bandwidth</li>
+</ul>
+</li>
+<li>Existing solution: compression with CPUs<ul>
+<li>Slow</li>
+<li>Consumes too many CPUs from host</li>
+</ul>
+</li>
+<li>Our solution<ul>
+<li>Offload the compression part to Intel QAT with efficient approaches<ul>
+<li>Higher migration throughput</li>
+<li>Lower CPU utilization</li>
+</ul>
+</li>
+<li>A common design ready for future more accelerators to join in<ul>
+<li>Data Streaming Accelerator (DSA) and Intel Analytics Accelerator (IAX) coming on Sapphire Rapids CPUs</li>
+<li>Smart Selection</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="QAT"><a href="#QAT" class="headerlink" title="QAT"></a>QAT</h3><p>QuickAssist Technology (QAT) accelerates cryptographic and compression workloads by offloading the data to hardware capable of optimizing those functions.</p>
+<h3 id="IAX"><a href="#IAX" class="headerlink" title="IAX"></a>IAX</h3><p>(Intel Analytics Accelerator)</p>
+<p>Has compression capability</p>
+<h3 id="DSA"><a href="#DSA" class="headerlink" title="DSA"></a>DSA</h3><p>(Data Streaming Accelerator)</p>
+<p>DSA is a high-performance data copy and transformation accelerator that will be integrated in future Intel® processors, targeted for optimizing streaming data movement and transformation operations common with applications for high-performance storage, networking, persistent memory, and various data processing applications.</p>
+<p>Intel® DSA replaces the Intel® QuickData Technology, which is a part of Intel® I/O Acceleration Technology.</p>
+<p>The goal is to provide higher overall system performance for data mover and transformation operations, while freeing up CPU cycles for higher level functions. </p>
+<h3 id="Smart-Acceleration-Support"><a href="#Smart-Acceleration-Support" class="headerlink" title="Smart Acceleration Support"></a>Smart Acceleration Support</h3><ul>
+<li>DSA compares the dirty memory, and sends the “diff” to the destination only<ul>
+<li>Good when the guest only modifies a small part of a page</li>
+<li>Bad when the entire pages are changed</li>
+</ul>
+</li>
+<li>Smart Acceleration<ul>
+<li>Dynamically switch to use QAT/IAX compression or DSA diff during live migration using a prediction based on the compression ratio history and diff ratio history</li>
+</ul>
+</li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://kb.vmware.com/s/article/84039" target="_blank" rel="noopener">Information for the Intel® QuickAssist Technology (Intel® QAT) Single Root I/O Virtualization (SR-IOV) driver for VMware ESXi (84039)</a></li>
+<li><a href="https://01.org/blogs/2019/introducing-intel-data-streaming-accelerator" target="_blank" rel="noopener">INTRODUCING THE INTEL® DATA STREAMING ACCELERATOR (INTEL® DSA)</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2021/11/19/每周分享第24期/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">每周分享第24期</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2021/11/14/VT-x-Posted-Interrupt-Code-Analysis/">
+        <span class="next-text nav-default">VT-x Posted Interrupt Code Analysis</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/11/18/Live-Migration-With-Hardware-Acceleration/';
+        this.page.identifier = '2021/11/18/Live-Migration-With-Hardware-Acceleration/';
+        this.page.title = 'Live Migration With Hardware Acceleration';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
