@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="How to translate virtual to physical addresses through /proc/pid/pagemap">
+
+
+
+
+  <meta name="keywords" content="内存管理, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/11/20/How-to-translate-virtual-to-physical-addresses-through-proc-pid-pagemap/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> How to translate virtual to physical addresses through /proc/pid/pagemap - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          How to translate virtual to physical addresses through /proc/pid/pagemap
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-11-20
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/内存管理/">内存管理</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+
+
+    <div class="post-content">
+      
+        <p>本文主要记录/proc/pid/pagemap 相关notes，最权威的材料<a href="https://www.kernel.org/doc/Documentation/vm/pagemap.txt" target="_blank" rel="noopener">pagemap, from the userspace perspective</a>。<a id="more"></a></p>
+<p>In newer kernels there is a really nice virtual file in the /proc file system to get this information. </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;assert.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;errno.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdint.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PAGEMAP_ENTRY 8</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> GET_BIT(X,Y) (X &amp; ((uint64_t)1<span class="meta-string">&lt;&lt;Y)) &gt;&gt; Y</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> GET_PFN(X) X &amp; 0x7FFFFFFFFFFFFF</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">int</span> __endian_bit = <span class="number">1</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> is_bigendian() ( (*(char*)&amp;__endian_bit) == 0 )</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> i, c, pid, status;</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">long</span> virt_addr; </span><br><span class="line"><span class="keyword">uint64_t</span> read_val, file_offset;</span><br><span class="line"><span class="keyword">char</span> path_buf [<span class="number">0x100</span>] = &#123;&#125;;</span><br><span class="line">FILE * f;</span><br><span class="line"><span class="keyword">char</span> *end;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">read_pagemap</span><span class="params">(<span class="keyword">char</span> * path_buf, <span class="keyword">unsigned</span> <span class="keyword">long</span> virt_addr)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> ** argv)</span></span>&#123;</span><br><span class="line">   <span class="keyword">if</span>(argc!=<span class="number">3</span>)&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">"Argument number is not correct!\n pagemap PID VIRTUAL_ADDRESS\n"</span>);</span><br><span class="line">      <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">if</span>(!<span class="built_in">memcmp</span>(argv[<span class="number">1</span>],<span class="string">"self"</span>,<span class="keyword">sizeof</span>(<span class="string">"self"</span>)))&#123;</span><br><span class="line">      <span class="built_in">sprintf</span>(path_buf, <span class="string">"/proc/self/pagemap"</span>);</span><br><span class="line">      pid = <span class="number">-1</span>;</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">else</span>&#123;</span><br><span class="line">         pid = strtol(argv[<span class="number">1</span>],&amp;end, <span class="number">10</span>);</span><br><span class="line">         <span class="keyword">if</span> (end == argv[<span class="number">1</span>] || *end != <span class="string">'\0'</span> || pid&lt;=<span class="number">0</span>)&#123; </span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">"PID must be a positive number or 'self'\n"</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            &#125;</span><br><span class="line">       &#125;</span><br><span class="line">   virt_addr = strtol(argv[<span class="number">2</span>], <span class="literal">NULL</span>, <span class="number">16</span>);</span><br><span class="line">   <span class="keyword">if</span>(pid!=<span class="number">-1</span>)</span><br><span class="line">      <span class="built_in">sprintf</span>(path_buf, <span class="string">"/proc/%u/pagemap"</span>, pid);</span><br><span class="line">   </span><br><span class="line">   read_pagemap(path_buf, virt_addr);</span><br><span class="line">   <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">read_pagemap</span><span class="params">(<span class="keyword">char</span> * path_buf, <span class="keyword">unsigned</span> <span class="keyword">long</span> virt_addr)</span></span>&#123;</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">"Big endian? %d\n"</span>, is_bigendian());</span><br><span class="line">   f = fopen(path_buf, <span class="string">"rb"</span>);</span><br><span class="line">   <span class="keyword">if</span>(!f)&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">"Error! Cannot open %s\n"</span>, path_buf);</span><br><span class="line">      <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">   &#125;</span><br><span class="line">   </span><br><span class="line">   <span class="comment">//Shifting by virt-addr-offset number of bytes</span></span><br><span class="line">   <span class="comment">//and multiplying by the size of an address (the size of an entry in pagemap file)</span></span><br><span class="line">   file_offset = virt_addr / getpagesize() * PAGEMAP_ENTRY;</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">"Vaddr: 0x%lx, Page_size: %d, Entry_size: %d\n"</span>, virt_addr, getpagesize(), PAGEMAP_ENTRY);</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">"Reading %s at 0x%llx\n"</span>, path_buf, (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>) file_offset);</span><br><span class="line">   status = fseek(f, file_offset, SEEK_SET);</span><br><span class="line">   <span class="keyword">if</span>(status)&#123;</span><br><span class="line">      perror(<span class="string">"Failed to do fseek!"</span>);</span><br><span class="line">      <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">   &#125;</span><br><span class="line">   errno = <span class="number">0</span>;</span><br><span class="line">   read_val = <span class="number">0</span>;</span><br><span class="line">   <span class="keyword">unsigned</span> <span class="keyword">char</span> c_buf[PAGEMAP_ENTRY];</span><br><span class="line">   <span class="keyword">for</span>(i=<span class="number">0</span>; i &lt; PAGEMAP_ENTRY; i++)&#123;</span><br><span class="line">      c = getc(f);</span><br><span class="line">      <span class="keyword">if</span>(c==EOF)&#123;</span><br><span class="line">         <span class="built_in">printf</span>(<span class="string">"\nReached end of the file\n"</span>);</span><br><span class="line">         <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span>(is_bigendian())</span><br><span class="line">           c_buf[i] = c;</span><br><span class="line">      <span class="keyword">else</span></span><br><span class="line">           c_buf[PAGEMAP_ENTRY - i - <span class="number">1</span>] = c;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">"[%d]0x%x "</span>, i, c);</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">for</span>(i=<span class="number">0</span>; i &lt; PAGEMAP_ENTRY; i++)&#123;</span><br><span class="line">      read_val = (read_val &lt;&lt; <span class="number">8</span>) + c_buf[i];</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">"\n"</span>);</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">"Result: 0x%llx\n"</span>, (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>) read_val);</span><br><span class="line">   <span class="keyword">if</span>(GET_BIT(read_val, <span class="number">63</span>))</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">"PFN: 0x%llx\n"</span>,(<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>) GET_PFN(read_val));</span><br><span class="line">   <span class="keyword">else</span></span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">"Page not present\n"</span>);</span><br><span class="line">   <span class="keyword">if</span>(GET_BIT(read_val, <span class="number">62</span>))</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">"Page swapped\n"</span>);</span><br><span class="line">   fclose(f);</span><br><span class="line">   <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>And now how you use it. It’s very simple. Of course you need to compile it. Then you need to find out what mapping your target process does have. You can do that by reading /proc/pid/maps file. Fortunately that file is human readable.</p>
+<p>When you know a valid virtual address, you can pass it to our tool to get actual value from pagemap, including physical frame number. Here is an example:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> sudo su</span><br><span class="line"><span class="meta">$</span> # disable aslr</span><br><span class="line"><span class="meta">$</span> echo 0 | sudo tee /proc/sys/kernel/randomize_va_space</span><br><span class="line"><span class="meta">$</span></span><br><span class="line"><span class="meta">$</span> cat /proc/self/maps</span><br><span class="line">555555554000-55555555c000 r-xp 00000000 103:02 14286873                  /bin/cat</span><br><span class="line">55555575b000-55555575c000 r--p 00007000 103:02 14286873                  /bin/cat</span><br><span class="line">55555575c000-55555575d000 rw-p 00008000 103:02 14286873                  /bin/cat</span><br><span class="line">55555575d000-55555577e000 rw-p 00000000 00:00 0                          [heap]</span><br><span class="line">7ffff7013000-7ffff79e2000 r--p 00000000 103:02 10623634                  /usr/lib/locale/locale-archive</span><br><span class="line">7ffff79e2000-7ffff7bc9000 r-xp 00000000 103:02 4980818                   /lib/x86_64-linux-gnu/libc-2.27.so</span><br><span class="line">7ffff7bc9000-7ffff7dc9000 ---p 001e7000 103:02 4980818                   /lib/x86_64-linux-gnu/libc-2.27.so</span><br><span class="line">7ffff7dc9000-7ffff7dcd000 r--p 001e7000 103:02 4980818                   /lib/x86_64-linux-gnu/libc-2.27.so</span><br><span class="line">7ffff7dcd000-7ffff7dcf000 rw-p 001eb000 103:02 4980818                   /lib/x86_64-linux-gnu/libc-2.27.so</span><br><span class="line">7ffff7dcf000-7ffff7dd3000 rw-p 00000000 00:00 0</span><br><span class="line">7ffff7dd3000-7ffff7dfc000 r-xp 00000000 103:02 4980742                   /lib/x86_64-linux-gnu/ld-2.27.so</span><br><span class="line">7ffff7fc0000-7ffff7fe4000 rw-p 00000000 00:00 0</span><br><span class="line">7ffff7ff8000-7ffff7ffb000 r--p 00000000 00:00 0                          [vvar]</span><br><span class="line">7ffff7ffb000-7ffff7ffc000 r-xp 00000000 00:00 0                          [vdso]</span><br><span class="line">7ffff7ffc000-7ffff7ffd000 r--p 00029000 103:02 4980742                   /lib/x86_64-linux-gnu/ld-2.27.so</span><br><span class="line">7ffff7ffd000-7ffff7ffe000 rw-p 0002a000 103:02 4980742                   /lib/x86_64-linux-gnu/ld-2.27.so</span><br><span class="line">7ffff7ffe000-7ffff7fff000 rw-p 00000000 00:00 0</span><br><span class="line">7ffffffde000-7ffffffff000 rw-p 00000000 00:00 0                          [stack]</span><br><span class="line">ffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]</span><br><span class="line"><span class="meta">$</span> #so let's pick 0x555555554000. Now we run our program. </span><br><span class="line"><span class="meta">$</span> #First argument is pid, "self" is a legal option too, the second is virtual address</span><br><span class="line"><span class="meta">$</span> ./pagemap self 0x555555554000</span><br><span class="line">Big endian? 0</span><br><span class="line">Vaddr: 0x555555554000, Page_size: 4096, Entry_size: 8</span><br><span class="line">Reading /proc/self/pagemap at 0x2aaaaaaaa0</span><br><span class="line">[0]0x68 [1]0x65 [2]0x1e [3]0x0 [4]0x0 [5]0x0 [6]0x80 [7]0xa1</span><br><span class="line">Result: 0xa1800000001e6568</span><br><span class="line">PFN: 0x1e6568</span><br></pre></td></tr></table></figure>
+<p>We got  <strong>0x1e6568</strong> as a result. There are some bits showing that the page is valid, along with the size of the page. You can read more in Linux documentation: <a href="https://www.kernel.org/doc/Documentation/vm/pagemap.txt" target="_blank" rel="noopener">pagemap, from the userspace perspective</a>. Basically, the physical page number is 0x1e6568.</p>
+<p>The kernel implementation for /proc/pid/pagemap: <a href="https://elixir.bootlin.com/linux/v5.14/source/fs/proc/task_mmu.c#L1579" target="_blank" rel="noopener">pagemap_read</a></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.kernel.org/doc/Documentation/vm/pagemap.txt" target="_blank" rel="noopener">pagemap, from the userspace perspective</a></li>
+<li><a href="http://fivelinesofcode.blogspot.com/2014/03/how-to-translate-virtual-to-physical.html" target="_blank" rel="noopener">How to translate virtual to physical addresses through /proc/pid/pagemap</a></li>
+<li><a href="https://askubuntu.com/questions/318315/how-can-i-temporarily-disable-aslr-address-space-layout-randomization" target="_blank" rel="noopener">How can I temporarily disable ASLR (Address space layout randomization)?</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/内存管理/">内存管理</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/11/19/每周分享第24期/">
+        <span class="next-text nav-default">每周分享第24期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/11/20/How-to-translate-virtual-to-physical-addresses-through-proc-pid-pagemap/';
+        this.page.identifier = '2021/11/20/How-to-translate-virtual-to-physical-addresses-through-proc-pid-pagemap/';
+        this.page.title = 'How to translate virtual to physical addresses through /proc/pid/pagemap';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
