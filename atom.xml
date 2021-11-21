@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-11-20T16:22:45.340Z</updated>
+  <updated>2021-11-21T04:55:03.569Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>binding/unbinding pci&amp;pcie devices</title>
+    <link href="http://liujunming.github.io/2021/11/21/binding-unbinding-pci-pcie-devices/"/>
+    <id>http://liujunming.github.io/2021/11/21/binding-unbinding-pci-pcie-devices/</id>
+    <published>2021-11-21T03:10:27.000Z</published>
+    <updated>2021-11-21T04:55:03.569Z</updated>
+    
+    <content type="html"><![CDATA[<p>Notes about binding/unbinding pci&amp;pcie devices。<a id="more"></a></p><p>当使用vfio pass-thru devices时，个人常用的方式为:</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gpudevice=`cat /sys/bus/pci/devices/0000:00:02.0/device`</span><br><span class="line">echo 0000:00:02.0 &gt; /sys/bus/pci/devices/0000:00:02.0/driver/unbind</span><br><span class="line">echo "8086 $gpudevice" &gt; /sys/bus/pci/drivers/vfio-pci/new_id</span><br></pre></td></tr></table></figure><p>但是被问到了一个问题：为什么没用如下这一步呢？</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo 0000:00:02.0 &gt; /sys/bus/pci/driver/vfio-pci/bind</span><br></pre></td></tr></table></figure><p>发现自己无法回答该问题，因此，就有了本文。</p><p>对于<code>new_id</code>和<code>bind</code>的权威解释如下:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">What:/sys/bus/pci/drivers/.../bind</span><br><span class="line">What:/sys/devices/pciX/.../bind</span><br><span class="line">Date:December 2003</span><br><span class="line">Contact:linux-pci@vger.kernel.org</span><br><span class="line">Description:</span><br><span class="line">Writing a device location to this file will cause</span><br><span class="line">the driver to attempt to bind to the device found at</span><br><span class="line">this location.This is useful for overriding default</span><br><span class="line">bindings.  The format for the location is: DDDD:BB:DD.F.</span><br><span class="line">That is Domain:Bus:Device.Function and is the same as</span><br><span class="line">found in /sys/bus/pci/devices/.  For example::</span><br><span class="line"></span><br><span class="line">  # echo 0000:00:19.0 &gt; /sys/bus/pci/drivers/foo/bind</span><br><span class="line"></span><br><span class="line">What:/sys/bus/pci/drivers/.../new_id</span><br><span class="line">What:/sys/devices/pciX/.../new_id</span><br><span class="line">Date:December 2003</span><br><span class="line">Contact:linux-pci@vger.kernel.org</span><br><span class="line">Description:</span><br><span class="line">Writing a device ID to this file will attempt to</span><br><span class="line">dynamically add a new device ID to a PCI device driver.</span><br><span class="line">This may allow the driver to support more hardware than</span><br><span class="line">was included in the driver&apos;s static device ID support</span><br><span class="line">table at compile time.  The format for the device ID is:</span><br><span class="line">VVVV DDDD SVVV SDDD CCCC MMMM PPPP.  That is Vendor ID,</span><br><span class="line">Device ID, Subsystem Vendor ID, Subsystem Device ID,</span><br><span class="line">Class, Class Mask, and Private Driver Data.  The Vendor ID</span><br><span class="line">and Device ID fields are required, the rest are optional.</span><br><span class="line">Upon successfully adding an ID, the driver will probe</span><br><span class="line">for the device and attempt to bind to it.  For example::</span><br><span class="line"></span><br><span class="line">  # echo &quot;8086 10f5&quot; &gt; /sys/bus/pci/drivers/foo/new_id</span><br></pre></td></tr></table></figure><p>信息量还是不够,那只能继续！</p><p>从<a href="https://lore.kernel.org/kvm/1372776365.30572.874.camel@ul30vt.home/" target="_blank" rel="noopener">binding/unbinding devices to vfio-pci</a>可知：</p><p>The driver core will probe any unbound devices as soon as a new_id is added to vfio-pci.</p><p>That can be changed by:</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> echo 0 &gt; /sys/bus/pci/drivers_autoprobe</span><br></pre></td></tr></table></figure><hr><p>结论: 写入<code>new_id</code> node，如果<code>drivers_autoprobe</code>开启，就会自动bind,无需写入<code>bind</code> node。否则，还是需要写入<code>bind</code> node。</p><p>若想研究细节，那只能看Linux内核源码了。</p><p>new_id: <a href="https://elixir.bootlin.com/linux/v5.14/source/drivers/pci/pci-driver.c#L173" target="_blank" rel="noopener">new_id_store</a></p><p>drivers_autoprobe: <a href="https://elixir.bootlin.com/linux/v5.14/source/drivers/base/bus.c#L231" target="_blank" rel="noopener">drivers_autoprobe_store</a></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">new_id_store</span><br><span class="line">pci_add_dynid</span><br><span class="line">driver_attach</span><br><span class="line">__driver_attach</span><br><span class="line">driver_probe_device</span><br><span class="line">__driver_probe_device</span><br><span class="line">really_probe</span><br><span class="line">driver_bound</span><br><span class="line">driver_deferred_probe_trigger</span><br><span class="line">deferred_probe_work</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">DECLARE_WORK</span><span class="params">(deferred_probe_work, deferred_probe_work_func)</span></span>;</span><br><span class="line">deferred_probe_work_func</span><br><span class="line">bus_probe_device</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * bus_probe_device - probe drivers for a new device</span></span><br><span class="line"><span class="comment"> * @dev: device to probe</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * - Automatically probe for a driver if the bus allows it.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">bus_probe_device</span><span class="params">(struct device *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> *<span class="title">bus</span> = <span class="title">dev</span>-&gt;<span class="title">bus</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (bus-&gt;p-&gt;drivers_autoprobe)</span><br><span class="line">device_initial_probe(dev);</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Notes about binding/unbinding pci&amp;amp;pcie devices。
+    
+    </summary>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>How to translate virtual to physical addresses through /proc/pid/pagemap</title>
@@ -447,28 +469,6 @@
     
     
       <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>深入理解FLR</title>
-    <link href="http://liujunming.github.io/2021/09/11/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3FLR/"/>
-    <id>http://liujunming.github.io/2021/09/11/深入理解FLR/</id>
-    <published>2021-09-11T00:21:12.000Z</published>
-    <updated>2021-09-11T09:36:04.131Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将结合spec与kernel代码来介绍FLR。<a id="more"></a><br>FLR主要针对的是支持多个功能的PCIe设备（Multi-Fun PCIe Device），可以实现只对特定的Function复位，而其他的Function不受影响。</p><h3 id="check-FLR-capability"><a href="#check-FLR-capability" class="headerlink" title="check FLR capability"></a>check FLR capability</h3><p><img src="/images/2021/09/3.PNG" alt><br><img src="/images/2021/09/4.PNG" alt></p><p><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4556" target="_blank" rel="noopener">pcie_has_flr</a></p><h3 id="initiate-a-PCIe-function-level-reset"><a href="#initiate-a-PCIe-function-level-reset" class="headerlink" title="initiate a PCIe function level reset"></a>initiate a PCIe function level reset</h3><p><img src="/images/2021/09/5.PNG" alt><br><img src="/images/2021/09/6.PNG" alt></p><p><a href="https://elixir.bootlin.com/linux/v5.10.63/source/drivers/pci/pci.c#L4576" target="_blank" rel="noopener">pcie_flr</a></p><h3 id="demo"><a href="#demo" class="headerlink" title="demo"></a>demo</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lspci -vvvxxx -s 00:02.0</span><br></pre></td></tr></table></figure><p><img src="/images/2021/09/2.PNG" alt></p><hr><p>参考资料:</p><ol><li><a href="http://blog.chinaaet.com/justlxy/p/5100057845" target="_blank" rel="noopener">PCIe扫盲——复位机制介绍(FLR)</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将结合spec与kernel代码来介绍FLR。
-    
-    </summary>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
