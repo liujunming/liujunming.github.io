@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Compiling kernel module only w/o whole kernel compilation">
+
+
+
+
+  <meta name="keywords" content="Kernel, 工具, KVM, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/11/26/Compiling-kernel-module-only-w-o-whole-kernel-compilation/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Compiling kernel module only w/o whole kernel compilation - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Compiling kernel module only w/o whole kernel compilation
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-11-26
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/工具/">工具</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Introduction"><span class="toc-text">1. Introduction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Assumption"><span class="toc-text">2. Assumption</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Solution"><span class="toc-text">3. Solution</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Troublesomes"><span class="toc-text">4. Troublesomes</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-modprobe-failure"><span class="toc-text">4.1 modprobe failure.</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-Location-of-generated-modules"><span class="toc-text">4. 2 Location of generated modules</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Conclusion"><span class="toc-text">5. Conclusion</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>如何只编译内核的单个模块，然后reload新的模块呢？本文以kvm kernel module为例，阐述下具体的过程。本文转载自: <a href="https://yulistic.gitlab.io/2017/10/compiling-kernel-module-only-w/o-whole-kernel-compilation/" target="_blank" rel="noopener">Compiling kernel module only w/o whole kernel compilation</a><a id="more"></a></p>
+<h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>I was tried to modify a <code>kvm</code> kernel module for my research. Because it was a built-in kernel module, I needed to build all the kernel source code after modifying <code>kvm</code> module which is located in path <code>arch/x86/kvm/</code> from the linux kernel source root.</p>
+<p>The whole kernel compilation was a time consuming job, usually taking over 10 minutes even on my i7 desktop machine. I tried to find a way to compile modules only without the whole kernel compilation. The solution and some troublesomes are described below.</p>
+<h3 id="2-Assumption"><a href="#2-Assumption" class="headerlink" title="2. Assumption"></a>2. Assumption</h3><p>It is assumed that you have a kernel source code and configured it properly according to your taste. Also, assumed that you had installed the kernel and rebooted with it.</p>
+<h3 id="3-Solution"><a href="#3-Solution" class="headerlink" title="3. Solution"></a>3. Solution</h3><p>Building only one module is easy. After configuring, build the source as following.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make M=path/to/module/directory</span><br><span class="line">make M=path/to/module/directory modules_install</span><br></pre></td></tr></table></figure>
+<p>You can find the path of modules with <code>modinfo</code> command.<br>In my case, the required module was <code>kvm.ko</code>, and <code>kvm-intel.ko</code>. They were located in <code>arch/x86/kvm</code>.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make M=arch/x86/kvm</span><br><span class="line">make M=arch/x86/kvm modules_install</span><br></pre></td></tr></table></figure>
+<p>You can reload the new modules. I removed the <code>kvm-intel</code> module first because it depends on the <code>kvm</code> module.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rmmod kvm-intel kvm</span><br></pre></td></tr></table></figure>
+<p>And, load the new modules.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo modprobe kvm-intel</span><br></pre></td></tr></table></figure>
+<p>Loading <code>kvm-intel</code> will load <code>kvm</code> automatically.</p>
+<p>FYI: the new modules are installed in <strong>/lib/modules/`uname -r`/extra</strong> directory.</p>
+<h3 id="4-Troublesomes"><a href="#4-Troublesomes" class="headerlink" title="4. Troublesomes"></a>4. Troublesomes</h3><h4 id="4-1-modprobe-failure"><a href="#4-1-modprobe-failure" class="headerlink" title="4.1 modprobe failure."></a>4.1 <code>modprobe</code> failure.</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe: error: could not insert &apos;kvm&apos;: exec format error</span><br></pre></td></tr></table></figure>
+<p>The <code>modprobe</code> might fail if the version of a kernel module and that of a kernel are different. You can check the error with <code>dmesg</code> after the <code>modprobe</code> failure.</p>
+<p>In my case, I built the kernel without any modification which resulted in the version number of <code>4.13.0-rc6</code>. When I modified the <code>kvm</code> module and compiled it, the version number was changed to <code>4.13.0-rc6+</code>.</p>
+<p>My solution was building the kernel with some small modifications generating the version number as <code>4.13.0-rc6+</code> as a baseline.<br>The problem solved because the kvm module was also built with the same version number, <code>4.13.0-rc6+</code>, which did not produce any <code>modprobe</code> error.</p>
+<h4 id="4-2-Location-of-generated-modules"><a href="#4-2-Location-of-generated-modules" class="headerlink" title="4. 2 Location of generated modules"></a>4. 2 Location of generated modules</h4><p>The modules generated with <code>M=path</code> options are installed into <strong>/lib/modules/`uname -r`/extra</strong> path. The path is different from the originally built one (when compiling the whole kernel) which is <strong>/lib/modules/`uname -r`/kernel/arch/x86/kvm</strong> in the case of <code>kvm</code>.</p>
+<p>If you want to install a new module into the same location of original one, use <code>INSTALL_MOD_DIR</code> option. Example follows.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make INSTALL_MOD_DIR=kernel/arch/x86/kvm M=arch/x86/kvm modules_install</span><br></pre></td></tr></table></figure>
+<p>如果<code>modprobe</code>中遇到其他问题，请参考<a href="/2021/11/26/commands-on-Linux-kernel-modules/">commands on Linux kernel modules</a>。</p>
+<h3 id="5-Conclusion"><a href="#5-Conclusion" class="headerlink" title="5. Conclusion"></a>5. Conclusion</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">make M=arch/x86/kvm</span><br><span class="line">make INSTALL_MOD_DIR=kernel/arch/x86/kvm M=arch/x86/kvm modules_install</span><br><span class="line"></span><br><span class="line">rmmod kvm-intel kvm</span><br><span class="line">modprobe kvm-intel</span><br></pre></td></tr></table></figure>
+<p>Create a simple shell file under your Linux source code root.</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://yulistic.gitlab.io/2017/10/compiling-kernel-module-only-w/o-whole-kernel-compilation/" target="_blank" rel="noopener">Compiling kernel module only w/o whole kernel compilation</a></li>
+<li><a href="https://www.cnblogs.com/haiyonghao/p/14440240.html" target="_blank" rel="noopener">linux内核中单独module的编译和使用</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/工具/">工具</a>
+            
+              <a href="/tags/KVM/">KVM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2021/11/26/commands-on-Linux-kernel-modules/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Notes about the usage of Linux kernel modules</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2021/11/25/每周分享第25期/">
+        <span class="next-text nav-default">每周分享第25期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/11/26/Compiling-kernel-module-only-w-o-whole-kernel-compilation/';
+        this.page.identifier = '2021/11/26/Compiling-kernel-module-only-w-o-whole-kernel-compilation/';
+        this.page.title = 'Compiling kernel module only w/o whole kernel compilation';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
