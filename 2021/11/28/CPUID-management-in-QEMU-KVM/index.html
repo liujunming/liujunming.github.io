@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="CPUID management in QEMU/KVM">
+
+
+
+
+  <meta name="keywords" content="虚拟化, QEMU, KVM, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/11/28/CPUID-management-in-QEMU-KVM/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> CPUID management in QEMU/KVM - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          CPUID management in QEMU/KVM
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-11-28
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/QEMU/">QEMU</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Overview"><span class="toc-text">1. Overview</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Call-chains-in-QEMU"><span class="toc-text">2. Call chains in QEMU</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-How-to-use"><span class="toc-text">3.How to use</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-MISC"><span class="toc-text">4. MISC</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文以<a href="https://gitlab.com/qemu-project/qemu/-/tree/v5.2.0" target="_blank" rel="noopener">QEMU V5.2.0</a>,<a href="https://elixir.bootlin.com/linux/v5.14/source" target="_blank" rel="noopener">kernel  v5.14</a>的源码，介绍CPUID management，具体细节不会一一介绍，但是会给出函数调用链，读者可以以此为线索，深挖细节。<a id="more"></a></p>
+<h3 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h3><p>guest执行cpuid指令肯定会导致VM Exit，然后由KVM处理cpuid指令的模拟。</p>
+<p>KVM会执行<a href="https://elixir.bootlin.com/linux/v5.14/source/arch/x86/kvm/cpuid.c#L1225" target="_blank" rel="noopener">kvm_emulate_cpuid</a>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kvm_emulate_cpuid</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	u32 eax, ebx, ecx, edx;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (cpuid_fault_enabled(vcpu) &amp;&amp; !kvm_require_cpl(vcpu, <span class="number">0</span>))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	eax = kvm_rax_read(vcpu); <span class="comment">// 读取vcpu的rax内容</span></span><br><span class="line">	ecx = kvm_rcx_read(vcpu); <span class="comment">// 读取vcpu的rcx内容</span></span><br><span class="line">	kvm_cpuid(vcpu, &amp;eax, &amp;ebx, &amp;ecx, &amp;edx, <span class="literal">true</span>);</span><br><span class="line">	kvm_rax_write(vcpu, eax);</span><br><span class="line">	kvm_rbx_write(vcpu, ebx);</span><br><span class="line">	kvm_rcx_write(vcpu, ecx);</span><br><span class="line">	kvm_rdx_write(vcpu, edx);</span><br><span class="line">	<span class="keyword">return</span> kvm_skip_emulated_instruction(vcpu);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">bool</span> <span class="title">kvm_cpuid</span><span class="params">(struct kvm_vcpu *vcpu, u32 *eax, u32 *ebx,</span></span></span><br><span class="line"><span class="function"><span class="params">	       u32 *ecx, u32 *edx, <span class="keyword">bool</span> check_limit)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	u32 function = *eax, index = *ecx;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kvm_cpuid_entry2</span> *<span class="title">best</span>;</span></span><br><span class="line">	<span class="keyword">bool</span> entry_found = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">	best = kvm_find_cpuid_entry(vcpu, function, index);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!best) &#123;</span><br><span class="line">		entry_found = <span class="literal">false</span>;</span><br><span class="line">		<span class="keyword">if</span> (!check_limit)</span><br><span class="line">			<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">		best = check_cpuid_limit(vcpu, function, index);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">	<span class="keyword">if</span> (best) &#123;</span><br><span class="line">		*eax = best-&gt;eax;</span><br><span class="line">		*ebx = best-&gt;ebx;</span><br><span class="line">		*ecx = best-&gt;ecx;</span><br><span class="line">		*edx = best-&gt;edx;</span><br><span class="line">	&#125; <span class="keyword">else</span></span><br><span class="line">		*eax = *ebx = *ecx = *edx = <span class="number">0</span>;</span><br><span class="line">	trace_kvm_cpuid(function, *eax, *ebx, *ecx, *edx, entry_found);</span><br><span class="line">	<span class="keyword">return</span> entry_found;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>比较重要的函数为<a href="https://elixir.bootlin.com/linux/v5.14/source/arch/x86/kvm/cpuid.c#L1100" target="_blank" rel="noopener">kvm_find_cpuid_entry</a>,该函数寻找qemu写入到KVM中的CPUID entry(具体细节请参考源码)。</p>
+<p>所以比较重要的是这个”entry”,该entry由qemu写入。</p>
+<p>大致过程为:</p>
+<ol>
+<li>qemu通过ioctl(KVM_GET_SUPPORTED_CPUID)读取到host支持的CPUID列表</li>
+<li>qemu通过与运算剔除掉qemu不支持的CPUID</li>
+<li>最后通过ioctl(KVM_SET_CPUID2)将CPUID数据写入到KVM中供guest使用</li>
+</ol>
+<p>说白了，就是qemu与KVM协调创建cpuid “entry”，最终，qemu讲该“entry”的值写入KVM。接下来，guest执行cpuid指令而发生VM Exit时，KVM就可以cover住，无需qemu的参与。</p>
+<h3 id="2-Call-chains-in-QEMU"><a href="#2-Call-chains-in-QEMU" class="headerlink" title="2. Call chains in QEMU"></a>2. Call chains in QEMU</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">x86_cpu_realizefn</span><br><span class="line">	x86_cpu_expand_features</span><br><span class="line">		x86_cpu_get_supported_feature_word</span><br><span class="line">			kvm_arch_get_supported_cpuid</span><br><span class="line">				get_supported_cpuid</span><br><span class="line">					try_get_cpuid</span><br><span class="line">						KVM_GET_SUPPORTED_CPUID</span><br><span class="line">	x86_cpu_filter_features</span><br><span class="line">		x86_cpu_get_supported_feature_word</span><br><span class="line">			kvm_arch_get_supported_cpuid</span><br><span class="line">				get_supported_cpuid</span><br><span class="line">					try_get_cpuid</span><br><span class="line">						KVM_GET_SUPPORTED_CPUID</span><br><span class="line">	qemu_init_vcpu</span><br><span class="line">		cpus_accel-&gt;create_vcpu_thread[kvm_start_vcpu_thread]</span><br><span class="line">			kvm_vcpu_thread_fn</span><br><span class="line">				kvm_init_vcpu</span><br><span class="line">					kvm_arch_init_vcpu</span><br><span class="line">						cpu_x86_cpuid</span><br><span class="line">						KVM_SET_CPUID2</span><br></pre></td></tr></table></figure>
+<p><code>KVM_GET_SUPPORTED_CPUID</code>和<code>KVM_SET_CPUID2</code>的更多描述，可以参考<a href="https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt" target="_blank" rel="noopener">kvm/api.txt</a>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/***** Steps involved on loading and filtering CPUID data</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * When initializing and realizing a CPU object, the steps</span></span><br><span class="line"><span class="comment"> * involved in setting up CPUID data are:</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 1) Loading CPU model definition (X86CPUDefinition). This is</span></span><br><span class="line"><span class="comment"> *    implemented by x86_cpu_load_model() and should be completely</span></span><br><span class="line"><span class="comment"> *    transparent, as it is done automatically by instance_init.</span></span><br><span class="line"><span class="comment"> *    No code should need to look at X86CPUDefinition structs</span></span><br><span class="line"><span class="comment"> *    outside instance_init.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 2) CPU expansion. This is done by realize before CPUID</span></span><br><span class="line"><span class="comment"> *    filtering, and will make sure host/accelerator data is</span></span><br><span class="line"><span class="comment"> *    loaded for CPU models that depend on host capabilities</span></span><br><span class="line"><span class="comment"> *    (e.g. "host"). Done by x86_cpu_expand_features().</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 3) CPUID filtering. This initializes extra data related to</span></span><br><span class="line"><span class="comment"> *    CPUID, and checks if the host supports all capabilities</span></span><br><span class="line"><span class="comment"> *    required by the CPU. Runnability of a CPU model is</span></span><br><span class="line"><span class="comment"> *    determined at this step. Done by x86_cpu_filter_features().</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+<h3 id="3-How-to-use"><a href="#3-How-to-use" class="headerlink" title="3.How to use"></a>3.How to use</h3><p><code>qemu-system-x86_64 -cpu help</code></p>
+<ul>
+<li><p>增加 pdpe1gb feature (其中Nehalem是我选定的CPU型号, 也可以是别的型号)</p>
+<p>  <code>qemu-system-x86_64 -cpu Nehalem,+pdpe1gb</code></p>
+</li>
+<li><p>增加 pdpe1gb feature, 减去sse feature</p>
+<p><code>qemu-system-x86_64 -cpu Nehalem,+pdpe1gb,-sse</code></p>
+</li>
+<li><p>增加x2apic feature</p>
+<p> <code>qemu-system-x86_64 -cpu host,x2apic=on</code></p>
+</li>
+</ul>
+<p>qemu解析cpu feature选项的函数为<a href="https://gitlab.com/qemu-project/qemu/-/blob/v5.2.0/target/i386/cpu.c#L4697" target="_blank" rel="noopener">x86_cpu_parse_featurestr</a>。</p>
+<h3 id="4-MISC"><a href="#4-MISC" class="headerlink" title="4. MISC"></a>4. MISC</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compatibily hack to maintain legacy +-feat semantic,</span></span><br><span class="line"><span class="comment"> * where +-feat overwrites any feature set by</span></span><br><span class="line"><span class="comment"> * feat=on|feat even if the later is parsed after +-feat</span></span><br><span class="line"><span class="comment"> * (i.e. "-x2apic,x2apic=on" will result in x2apic disabled)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">static</span> GList *plus_features, *minus_features;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//CPUID usage for interaction between Hypervisors and Linux</span></span><br><span class="line"><span class="comment">//https://lore.kernel.org/kvm/1222881242.9381.17.camel@alok-dev1/</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPUID_EXT_HYPERVISOR  (1U &lt;&lt; 31)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* This CPUID returns the signature 'KVMKVMKVM' in ebx, ecx, and edx.  It</span></span><br><span class="line"><span class="comment"> * should be used to determine that a VM is running under KVM.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> KVM_CPUID_SIGNATURE	0x40000000</span></span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.cnblogs.com/haiyonghao/p/14440954.html" target="_blank" rel="noopener">READMSR和CPUID指令在Guest中的代码执行路径学习</a></li>
+<li><a href="https://www.cnblogs.com/hugetong/p/7773526.html" target="_blank" rel="noopener">qemu增加减少CPUID</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/KVM/">KVM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/11/26/commands-on-Linux-kernel-modules/">
+        <span class="next-text nav-default">Notes about the usage of Linux kernel modules</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/11/28/CPUID-management-in-QEMU-KVM/';
+        this.page.identifier = '2021/11/28/CPUID-management-in-QEMU-KVM/';
+        this.page.title = 'CPUID management in QEMU/KVM';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
