@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="How to enable QEMU guests to use public bridge">
+
+
+
+
+  <meta name="keywords" content="虚拟化, QEMU, 工具, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/11/29/How-to-enable-QEMU-guests-to-use-public-bridge/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> How to enable QEMU guests to use public bridge - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          How to enable QEMU guests to use public bridge
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-11-29
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/工具/">工具</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Overview"><span class="toc-text">1. Overview</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Tun-Tap网卡"><span class="toc-text">2. Tun/Tap网卡</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-普通的网卡工作模式"><span class="toc-text">2.1 普通的网卡工作模式</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-tun-tap网卡工作模式"><span class="toc-text">2.2 tun/tap网卡工作模式</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3-虚拟机用的tap类型网卡"><span class="toc-text">2.3 虚拟机用的tap类型网卡</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Solutions"><span class="toc-text">3. Solutions</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-Create-bridge"><span class="toc-text">3.1 Create bridge</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#3-1-1-Using-Distribution-Specific-Scripts"><span class="toc-text">3.1.1 Using Distribution-Specific Scripts</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#3-1-2-Manual-Configuration"><span class="toc-text">3.1.2 Manual Configuration</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-Create-tap"><span class="toc-text">3.2 Create tap</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Experience"><span class="toc-text">4. Experience</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-netplan-and-qemu-ifup"><span class="toc-text">4.1 netplan and qemu-ifup</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-virtio-net-pci"><span class="toc-text">4.2 virtio-net-pci</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-e1000-devce"><span class="toc-text">4.3 e1000 devce</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-4-net-nic"><span class="toc-text">4.4 net nic</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Troubleshooting"><span class="toc-text">5. Troubleshooting</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍enable QEMU guests to use public bridge。<a id="more"></a></p>
+<h3 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h3><p><strong>Bridge</strong>类似于一个网络交换机，用于交换数据包，连接不同的VMs, containers以及Host.<br><img src="/images/2021/11/13.png" alt></p>
+<h3 id="2-Tun-Tap网卡"><a href="#2-Tun-Tap网卡" class="headerlink" title="2. Tun/Tap网卡"></a>2. Tun/Tap网卡</h3><p>在我们创建完虚拟机后，一般在host里会多了张tap网卡，那这个网卡有什么作用呢？</p>
+<h4 id="2-1-普通的网卡工作模式"><a href="#2-1-普通的网卡工作模式" class="headerlink" title="2.1 普通的网卡工作模式"></a>2.1 普通的网卡工作模式</h4><p><img src="/images/2021/11/14.png" alt><br>普通的网卡一端连接物理链路，一端连接内核协议栈。</p>
+<h4 id="2-2-tun-tap网卡工作模式"><a href="#2-2-tun-tap网卡工作模式" class="headerlink" title="2.2 tun/tap网卡工作模式"></a>2.2 tun/tap网卡工作模式</h4><p>普通的物理网卡是通过物理链路来收发数据，而tun/tap 是通过/dev/net/tun来收发数据，一端连着/dev/net/tun，一端连着协议栈。</p>
+<h4 id="2-3-虚拟机用的tap类型网卡"><a href="#2-3-虚拟机用的tap类型网卡" class="headerlink" title="2.3 虚拟机用的tap类型网卡"></a>2.3 虚拟机用的tap类型网卡</h4><p>虚拟机主要用的是tap类型网卡，下面是tap网卡工作模式：<br><img src="/images/2021/11/15.png" alt></p>
+<p>tap网卡主要是两部分组成，字符设备驱动和虚拟网卡驱动。</p>
+<ul>
+<li>字符设备驱动：负责和用户进程打交道，把数据写入/dev/net/tun，然后通知用户进程从/dev/net/tun里面拿数据实现数据交互</li>
+<li>虚拟网卡驱动：负责和网络协议栈的数据打交道</li>
+</ul>
+<p>qemu-kvm中 vm与Host之间的通讯过程:</p>
+<ol>
+<li>在创建一个vm并启动时，在host中创建一个tap类型的网卡，例如tap0，同时vm作为一个qemu进程，内核为其提供了一个/dev/net/tun设备的文件描述符(fd),供其读写</li>
+<li>vm用户进程产生数据，发到vm的虚拟网卡上，实质上vm作为host的一个qemu进程，其产生的数据写入到/dev/net/tun里</li>
+<li>tap0网卡通过字符设备驱动从/dev/net/tun 里收到数据后，会转发给网桥，网桥再判断是否丢弃，转发或者交给上层的API来处理</li>
+</ol>
+<h3 id="3-Solutions"><a href="#3-Solutions" class="headerlink" title="3. Solutions"></a>3. Solutions</h3><h4 id="3-1-Create-bridge"><a href="#3-1-Create-bridge" class="headerlink" title="3.1 Create bridge"></a>3.1 Create bridge</h4><h5 id="3-1-1-Using-Distribution-Specific-Scripts"><a href="#3-1-1-Using-Distribution-Specific-Scripts" class="headerlink" title="3.1.1 Using Distribution-Specific Scripts"></a>3.1.1 Using Distribution-Specific Scripts</h5><p><a href="https://www.linux-kvm.org/page/Networking#Public_Bridge" target="_blank" rel="noopener">Networking#Public_Bridge</a>中列举了RedHat，Debian和SuSE上的配置。<br>还有一个重要的tool是<a href="/2021/06/01/Introduction-to-netplan/">netplan</a>。</p>
+<p>每次主机重启后，无需重新配置，重点推荐😊。</p>
+<h5 id="3-1-2-Manual-Configuration"><a href="#3-1-2-Manual-Configuration" class="headerlink" title="3.1.2 Manual Configuration"></a>3.1.2 Manual Configuration</h5><p>参见<a href="https://www.cnblogs.com/haiyonghao/p/14440163.html" target="_blank" rel="noopener">QEMU使用网桥模式</a>和<a href="https://blog.stefan-koch.name/2020/10/25/qemu-public-ip-vm-with-tap" target="_blank" rel="noopener">Hosting QEMU VMs with Public IP Addresses using TAP Interfaces</a>中的步骤。</p>
+<p>此方法的弊端在于:每次主机重启都需要重新配置，所以不推荐。</p>
+<h4 id="3-2-Create-tap"><a href="#3-2-Create-tap" class="headerlink" title="3.2 Create tap"></a>3.2 Create tap</h4><p>The default network configure script is <code>/etc/qemu-ifup</code> and the default network deconfigure script is <code>/etc/qemu-ifdown</code>.</p>
+<h3 id="4-Experience"><a href="#4-Experience" class="headerlink" title="4. Experience"></a>4. Experience</h3><h4 id="4-1-netplan-and-qemu-ifup"><a href="#4-1-netplan-and-qemu-ifup" class="headerlink" title="4.1 netplan and qemu-ifup"></a>4.1 netplan and qemu-ifup</h4><p><a href="https://github.com/liujunming/qemu_usage/tree/master/0002-set-net-on-kvm" target="_blank" rel="noopener">https://github.com/liujunming/qemu_usage/tree/master/0002-set-net-on-kvm</a></p>
+<h4 id="4-2-virtio-net-pci"><a href="#4-2-virtio-net-pci" class="headerlink" title="4.2 virtio-net-pci"></a>4.2 virtio-net-pci</h4><p><a href="https://github.com/liujunming/qemu_usage/tree/master/0007-use-virtio-net-pci-dev" target="_blank" rel="noopener">https://github.com/liujunming/qemu_usage/tree/master/0007-use-virtio-net-pci-dev</a></p>
+<h4 id="4-3-e1000-devce"><a href="#4-3-e1000-devce" class="headerlink" title="4.3 e1000 devce"></a>4.3 e1000 devce</h4><p><a href="https://github.com/liujunming/qemu_usage/tree/master/0009-e1000-device" target="_blank" rel="noopener">https://github.com/liujunming/qemu_usage/tree/master/0009-e1000-device</a></p>
+<h4 id="4-4-net-nic"><a href="#4-4-net-nic" class="headerlink" title="4.4 net nic"></a>4.4 net nic</h4><p><a href="https://github.com/liujunming/qemu_usage/tree/master/0010-net-nic" target="_blank" rel="noopener">https://github.com/liujunming/qemu_usage/tree/master/0010-net-nic</a></p>
+<h3 id="5-Troubleshooting"><a href="#5-Troubleshooting" class="headerlink" title="5. Troubleshooting"></a>5. Troubleshooting</h3><p><strong>docker makes existing KVM VMs have suddenly no connection</strong></p>
+<p>Potential solutions:</p>
+<ul>
+<li><p><a href="https://github.com/docker/for-linux/issues/949#issuecomment-594528885" target="_blank" rel="noopener">docker-ce package makes existing KVM guests unusable</a></p>
+</li>
+<li><p><a href="https://anteru.net/blog/2017/docker-kvm-iptables/" target="_blank" rel="noopener">Docker, KVM and iptables</a></p>
+</li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.linux-kvm.org/page/Networking#Public_Bridge" target="_blank" rel="noopener">Networking#Public_Bridge</a></li>
+<li><a href="https://www.cnblogs.com/xia-dong/p/11555625.html" target="_blank" rel="noopener">qemu虚拟机网桥通讯过程</a></li>
+<li><a href="https://calinyara.github.io/technology/2019/08/22/vnet_interface.html" target="_blank" rel="noopener">虚拟网络设备简介</a></li>
+<li><a href="https://www.cnblogs.com/haiyonghao/p/14440163.html" target="_blank" rel="noopener">QEMU使用网桥模式</a></li>
+<li><a href="https://blog.stefan-koch.name/2020/10/25/qemu-public-ip-vm-with-tap" target="_blank" rel="noopener">Hosting QEMU VMs with Public IP Addresses using TAP Interfaces</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/工具/">工具</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/11/28/CPUID-management-in-QEMU-KVM/">
+        <span class="next-text nav-default">CPUID management in QEMU/KVM</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/11/29/How-to-enable-QEMU-guests-to-use-public-bridge/';
+        this.page.identifier = '2021/11/29/How-to-enable-QEMU-guests-to-use-public-bridge/';
+        this.page.title = 'How to enable QEMU guests to use public bridge';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
