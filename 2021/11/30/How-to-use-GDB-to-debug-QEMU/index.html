@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="How to use GDB to debug QEMU process">
+
+
+
+
+  <meta name="keywords" content="QEMU, debug, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/11/30/How-to-use-GDB-to-debug-QEMU/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> How to use GDB to debug QEMU process - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          How to use GDB to debug QEMU process
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-11-30
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/debug/">debug</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Prerequisite"><span class="toc-text">Prerequisite</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Steps"><span class="toc-text">Steps</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>How to use GDB to debug QEMU process?<a id="more"></a></p>
+<h3 id="Prerequisite"><a href="#Prerequisite" class="headerlink" title="Prerequisite"></a>Prerequisite</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./configure --enable-debug</span><br></pre></td></tr></table></figure>
+<h3 id="Steps"><a href="#Steps" class="headerlink" title="Steps"></a>Steps</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> which qemu-system-x86_64</span><br><span class="line">/usr/local/bin/qemu-system-x86_64</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">gdb --args /usr/local/bin/qemu-system-x86_64\</span><br><span class="line">    -enable-kvm \</span><br><span class="line">    -m 2048 \</span><br><span class="line">    -smp 2 \</span><br><span class="line">    -cpu host \</span><br><span class="line">    -drive format=raw,file=laag.img \</span><br><span class="line">    -serial mon:stdio \</span><br><span class="line">    -net nic,macaddr=00:16:3e:60:0a:50 \</span><br><span class="line">    -net tap \</span><br><span class="line">    -vnc :3</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b x86_cpu_get_supported_feature_word</span><br><span class="line">Breakpoint 1 at 0x44f372: file /home/kvm/qemu/target/i386/cpu.c, line 5050.</span><br><span class="line">(gdb) r</span><br><span class="line">Starting program: /usr/local/bin/qemu-system-x86_64 -enable-kvm -m 2048 -smp 2 -cpu host -drive format=raw,file=laag.img -serial mon:stdio -net nic,macaddr=00:16:3e:60:0a:50 -net tap -vnc :3</span><br><span class="line">[Thread debugging using libthread_db enabled]</span><br><span class="line">Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".</span><br><span class="line">[New Thread 0x7fffe8d59700 (LWP 15519)]</span><br><span class="line">++ brctl show</span><br><span class="line">++ sed -n 2p</span><br><span class="line">++ awk '&#123;print $1&#125;'</span><br><span class="line">+ switch=br0</span><br><span class="line">+ '[' -n br0 ']'</span><br><span class="line">++ whoami</span><br><span class="line">+ tunctl -u root -t tap0</span><br><span class="line">TUNSETIFF: Device or resource busy</span><br><span class="line">+ ip link set tap0 up</span><br><span class="line">+ brctl addif br0 tap0</span><br><span class="line">+ exit 0</span><br><span class="line"></span><br><span class="line">Thread 1 "qemu-system-x86" hit Breakpoint 1, x86_cpu_get_supported_feature_word (w=FEAT_1_EDX, migratable_only=true) at /home/kvm/qemu/target/i386/cpu.c:5050</span><br><span class="line">5050        FeatureWordInfo *wi = &amp;feature_word_info[w];</span><br><span class="line">(gdb) bt</span><br><span class="line"><span class="meta">#</span>0  0x00005555559a3372 in x86_cpu_get_supported_feature_word (w=FEAT_1_EDX, migratable_only=true) at /home/kvm/qemu/target/i386/cpu.c:5050</span><br><span class="line"><span class="meta">#</span>1  0x00005555559a67bf in x86_cpu_expand_features (cpu=0x555556acef90, errp=0x7fffffffda60) at /home/kvm/qemu/target/i386/cpu.c:6386</span><br><span class="line"><span class="meta">#</span>2  0x00005555559a70a3 in x86_cpu_realizefn (dev=0x555556acef90, errp=0x7fffffffdae0) at /home/kvm/qemu/target/i386/cpu.c:6574</span><br><span class="line"><span class="meta">#</span>3  0x0000555555aa54cf in device_set_realized (obj=0x555556acef90, value=true, errp=0x7fffffffdbe8) at /home/kvm/qemu/hw/core/qdev.c:864</span><br><span class="line"><span class="meta">#</span>4  0x0000555555cf4adf in property_set_bool (obj=0x555556acef90, v=0x555556aecae0, name=0x555555fb5771 "realized", opaque=0x5555568916e0, errp=0x7fffffffdbe8) at /home/kvm/qemu/qom/object.c:2202</span><br><span class="line"><span class="meta">#</span>5  0x0000555555cf2c00 in object_property_set (obj=0x555556acef90, name=0x555555fb5771 "realized", v=0x555556aecae0, errp=0x55555681c0a0 &lt;error_fatal&gt;) at /home/kvm/qemu/qom/object.c:1349</span><br><span class="line"><span class="meta">#</span>6  0x0000555555cf5f45 in object_property_set_qobject (obj=0x555556acef90, name=0x555555fb5771 "realized", value=0x555556aea3a0, errp=0x55555681c0a0 &lt;error_fatal&gt;) at /home/kvm/qemu/qom/qom-qobject.c:28</span><br><span class="line"><span class="meta">#</span>7  0x0000555555cf2f47 in object_property_set_bool (obj=0x555556acef90, name=0x555555fb5771 "realized", value=true, errp=0x55555681c0a0 &lt;error_fatal&gt;) at /home/kvm/qemu/qom/object.c:1416</span><br><span class="line"><span class="meta">#</span>8  0x0000555555aa4083 in qdev_realize (dev=0x555556acef90, bus=0x0, errp=0x55555681c0a0 &lt;error_fatal&gt;) at /home/kvm/qemu/hw/core/qdev.c:379</span><br><span class="line"><span class="meta">#</span>9  0x000055555594235d in x86_cpu_new (x86ms=0x555556a43800, apic_id=0, errp=0x55555681c0a0 &lt;error_fatal&gt;) at /home/kvm/qemu/hw/i386/x86.c:126</span><br><span class="line"><span class="meta">#</span>10 0x00005555559424e8 in x86_cpus_init (x86ms=0x555556a43800, default_cpu_version=1) at /home/kvm/qemu/hw/i386/x86.c:164</span><br><span class="line"><span class="meta">#</span>11 0x000055555594ac74 in pc_init1 (machine=0x555556a43800, host_type=0x555555f73516 "i440FX-pcihost", pci_type=0x555555f7350f "i440FX") at /home/kvm/qemu/hw/i386/pc_piix.c:159</span><br><span class="line"><span class="meta">#</span>12 0x000055555594b791 in pc_init_v5_1 (machine=0x555556a43800) at /home/kvm/qemu/hw/i386/pc_piix.c:438</span><br><span class="line"><span class="meta">#</span>13 0x0000555555ab385c in machine_run_board_init (machine=0x555556a43800) at /home/kvm/qemu/hw/core/machine.c:1135</span><br><span class="line"><span class="meta">#</span>14 0x000055555599b752 in qemu_init (argc=18, argv=0x7fffffffe238, envp=0x7fffffffe2d0) at /home/kvm/qemu/softmmu/vl.c:4355</span><br><span class="line"><span class="meta">#</span>15 0x0000555555ddeb86 in main (argc=18, argv=0x7fffffffe238, envp=0x7fffffffe2d0) at /home/kvm/qemu/softmmu/main.c:48</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://kernelgo.org/linux-tips.html" target="_blank" rel="noopener"> Debug Qemu代码</a></li>
+<li><a href="https://ctf-wiki.github.io/ctf-tools/binary-core-tools/virtualization/qemu/qemu-install-and-debug/" target="_blank" rel="noopener">qemu 安装与调试</a></li>
+<li><a href="https://www.cnblogs.com/ck1020/p/7795242.html" target="_blank" rel="noopener">GDB调试qemu源码纪录</a></li>
+<li><a href="https://blog.csdn.net/wujianyongw4/article/details/85701740" target="_blank" rel="noopener">gdb 调试qemu</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/debug/">debug</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/11/29/How-to-enable-QEMU-guests-to-use-public-bridge/">
+        <span class="next-text nav-default">How to enable QEMU  to use public bridge</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/11/30/How-to-use-GDB-to-debug-QEMU/';
+        this.page.identifier = '2021/11/30/How-to-use-GDB-to-debug-QEMU/';
+        this.page.title = 'How to use GDB to debug QEMU process';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
