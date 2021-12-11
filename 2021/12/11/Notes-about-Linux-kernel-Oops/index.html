@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about Linux kernel Oops">
+
+
+
+
+  <meta name="keywords" content="Kernel, debug, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/12/11/Notes-about-Linux-kernel-Oops/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about Linux kernel Oops - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about Linux kernel Oops
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-12-11
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/debug/">debug</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Introduction"><span class="toc-text">1. Introduction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-decode-stacktrace"><span class="toc-text">2. decode_stacktrace</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-Input"><span class="toc-text">2.1 Input</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-Output"><span class="toc-text">2.2 Output</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3-Usage"><span class="toc-text">2.3 Usage</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Finding-the-bug-location-by-gdb"><span class="toc-text">3. Finding the bug location by gdb</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-More-info"><span class="toc-text">4. More info</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-Oops-0002-1"><span class="toc-text">4.1 Oops: 0002 [#1]</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-Tainted信息"><span class="toc-text">4.2 Tainted信息</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Notes about Linux kernel Oops.<a id="more"></a></p>
+<h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>什么是Oops？从语言学的角度说，Oops应该是一个拟声词。当出了点小事故，或者做了比较尴尬的事之后，你可以说”Oops”，翻译成中国话就叫做“哎呦”。“哎呦，对不起，对不起，我真不是故意打碎您的杯子的”。看，Oops就是这个意思。</p>
+<p>在Linux内核开发中的Oops是什么呢？其实，它和上面的解释也没什么本质的差别，只不过说话的主角变成了Linux。当某些比较致命的问题出现时，我们的Linux内核也会抱歉的对我们说：“哎呦（Oops），对不起，我把事情搞砸了”。Linux内核在发生kernel panic时会打印出Oops信息，把目前的寄存器状态、堆栈内容、以及完整的Call trace都show给我们看，这样就可以帮助我们定位错误。</p>
+<p>Kernel bug reports often come with a stack dump like the one below:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">------------[ cut here ]------------</span><br><span class="line">WARNING: CPU: 1 PID: 28102 at kernel/module.c:1108 module_put+0x57/0x70</span><br><span class="line">Modules linked in: dvb_usb_gp8psk(-) dvb_usb dvb_core nvidia_drm(PO) nvidia_modeset(PO) snd_hda_codec_hdmi snd_hda_intel snd_hda_codec snd_hwdep snd_hda_core snd_pcm snd_timer snd soundcore nvidia(PO) [last unloaded: rc_core]</span><br><span class="line">CPU: 1 PID: 28102 Comm: rmmod Tainted: P        WC O 4.8.4-build.1 #1</span><br><span class="line">Hardware name: MSI MS-7309/MS-7309, BIOS V1.12 02/23/2009</span><br><span class="line"> 00000000 c12ba080 00000000 00000000 c103ed6a c1616014 00000001 00006dc6</span><br><span class="line"> c1615862 00000454 c109e8a7 c109e8a7 00000009 ffffffff 00000000 f13f6a10</span><br><span class="line"> f5f5a600 c103ee33 00000009 00000000 00000000 c109e8a7 f80ca4d0 c109f617</span><br><span class="line">Call Trace:</span><br><span class="line"> [&lt;c12ba080&gt;] ? dump_stack+0x44/0x64</span><br><span class="line"> [&lt;c103ed6a&gt;] ? __warn+0xfa/0x120</span><br><span class="line"> [&lt;c109e8a7&gt;] ? module_put+0x57/0x70</span><br><span class="line"> [&lt;c109e8a7&gt;] ? module_put+0x57/0x70</span><br><span class="line"> [&lt;c103ee33&gt;] ? warn_slowpath_null+0x23/0x30</span><br><span class="line"> [&lt;c109e8a7&gt;] ? module_put+0x57/0x70</span><br><span class="line"> [&lt;f80ca4d0&gt;] ? gp8psk_fe_set_frontend+0x460/0x460 [dvb_usb_gp8psk]</span><br><span class="line"> [&lt;c109f617&gt;] ? symbol_put_addr+0x27/0x50</span><br><span class="line"> [&lt;f80bc9ca&gt;] ? dvb_usb_adapter_frontend_exit+0x3a/0x70 [dvb_usb]</span><br><span class="line"> [&lt;f80bb3bf&gt;] ? dvb_usb_exit+0x2f/0xd0 [dvb_usb]</span><br><span class="line"> [&lt;c13d03bc&gt;] ? usb_disable_endpoint+0x7c/0xb0</span><br><span class="line"> [&lt;f80bb48a&gt;] ? dvb_usb_device_exit+0x2a/0x50 [dvb_usb]</span><br><span class="line"> [&lt;c13d2882&gt;] ? usb_unbind_interface+0x62/0x250</span><br><span class="line"> [&lt;c136b514&gt;] ? __pm_runtime_idle+0x44/0x70</span><br><span class="line"> [&lt;c13620d8&gt;] ? __device_release_driver+0x78/0x120</span><br><span class="line"> [&lt;c1362907&gt;] ? driver_detach+0x87/0x90</span><br><span class="line"> [&lt;c1361c48&gt;] ? bus_remove_driver+0x38/0x90</span><br><span class="line"> [&lt;c13d1c18&gt;] ? usb_deregister+0x58/0xb0</span><br><span class="line"> [&lt;c109fbb0&gt;] ? SyS_delete_module+0x130/0x1f0</span><br><span class="line"> [&lt;c1055654&gt;] ? task_work_run+0x64/0x80</span><br><span class="line"> [&lt;c1000fa5&gt;] ? exit_to_usermode_loop+0x85/0x90</span><br><span class="line"> [&lt;c10013f0&gt;] ? do_fast_syscall_32+0x80/0x130</span><br><span class="line"> [&lt;c1549f43&gt;] ? sysenter_past_esp+0x40/0x6a</span><br><span class="line">---[ end trace 6ebc60ef3981792f ]---</span><br></pre></td></tr></table></figure></p>
+<p>Such stack traces provide enough information to identify the line inside the Kernel’s source code where the bug happened. Depending on the severity of the issue, it may also contain the word <strong>Oops</strong>, as on this one:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BUG: unable to handle kernel NULL pointer dereference at   (null)</span><br><span class="line">IP: [&lt;c06969d4&gt;] iret_exc+0x7d0/0xa59</span><br><span class="line">*pdpt = 000000002258a001 *pde = 0000000000000000</span><br><span class="line">Oops: 0002 [#1] PREEMPT SMP</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>Despite being an <strong>Oops</strong> or some other sort of stack trace, the offended line is usually required to identify and handle the bug. Along this chapter, we’ll refer to “Oops” for all kinds of stack traces that need to be analyzed.</p>
+<h3 id="2-decode-stacktrace"><a href="#2-decode-stacktrace" class="headerlink" title="2. decode_stacktrace"></a>2. decode_stacktrace</h3><p>If the kernel is compiled with <code>CONFIG_DEBUG_INFO</code>, you can enhance the quality of the stack trace by using file:<a href="https://lwn.net/Articles/592724/" target="_blank" rel="noopener">scripts/decode_stacktrace.sh</a>.</p>
+<h4 id="2-1-Input"><a href="#2-1-Input" class="headerlink" title="2.1 Input"></a>2.1 Input</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[    6.906437]  [&lt;ffffffff811f0e90&gt;] ? backtrace_test_irq_callback+0x20/0x20</span><br><span class="line">[    6.907121]  [&lt;ffffffff84388ce8&gt;] dump_stack+0x52/0x7f</span><br><span class="line">[    6.907640]  [&lt;ffffffff811f0ec8&gt;] backtrace_regression_test+0x38/0x110</span><br><span class="line">[    6.908281]  [&lt;ffffffff813596a0&gt;] ? proc_create_data+0xa0/0xd0</span><br><span class="line">[    6.908870]  [&lt;ffffffff870a8040&gt;] ? proc_modules_init+0x22/0x22</span><br><span class="line">[    6.909480]  [&lt;ffffffff810020c2&gt;] do_one_initcall+0xc2/0x1e0</span><br><span class="line">[...]</span><br></pre></td></tr></table></figure>
+<h4 id="2-2-Output"><a href="#2-2-Output" class="headerlink" title="2.2 Output"></a>2.2 Output</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[  635.148361]  dump_stack (lib/dump_stack.c:52)</span><br><span class="line">[  635.149127]  warn_slowpath_common (kernel/panic.c:418)</span><br><span class="line">[  635.150214]  warn_slowpath_null (kernel/panic.c:453)</span><br><span class="line">[  635.151031]  _oalloc_pages_slowpath+0x6a/0x7d0</span><br><span class="line">[  635.152171]  ? zone_watermark_ok (mm/page_alloc.c:1728)</span><br><span class="line">[  635.152988]  ? get_page_from_freelist (mm/page_alloc.c:1939)</span><br><span class="line">[  635.154766]  __alloc_pages_nodemask (mm/page_alloc.c:2766)</span><br></pre></td></tr></table></figure>
+<h4 id="2-3-Usage"><a href="#2-3-Usage" class="headerlink" title="2.3 Usage"></a>2.3 Usage</h4><p><code>./decode_stacktrace.sh [vmlinux] [base path]</code></p>
+<p>Where vmlinux is the vmlinux to extract line numbers from and base path is the path that points to the root of the build tree, for example:</p>
+<p><code>./decode_stacktrace.sh vmlinux /home/sasha/linux/ &lt; input.log &gt; output.log</code></p>
+<h3 id="3-Finding-the-bug-location-by-gdb"><a href="#3-Finding-the-bug-location-by-gdb" class="headerlink" title="3. Finding the bug location by gdb"></a>3. Finding the bug location by gdb</h3><p>Reporting a bug works best if you point the location of the bug at the Kernel source file. Usually, using gdb is easier, but the Kernel should be pre-compiled with debug info.</p>
+<p>The gdb is the best way to figure out the exact file and line number of the OOPS from the <code>vmlinux</code> file.</p>
+<p>The usage of gdb works best on a kernel compiled with <code>CONFIG_DEBUG_INFO</code>. This can be set by running:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ./scripts/config -d COMPILE_TEST -e DEBUG_KERNEL -e DEBUG_INFO</span><br></pre></td></tr></table></figure>
+<p>On a kernel compiled with <code>CONFIG_DEBUG_INFO</code>, you can simply copy the EIP value from the OOPS:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EIP:    0060:[&lt;c021e50e&gt;]    Not tainted VLI</span><br></pre></td></tr></table></figure>
+<p>And use GDB to translate that to human-readable form:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ gdb vmlinux</span><br><span class="line">(gdb) l *0xc021e50e</span><br></pre></td></tr></table></figure>
+<h3 id="4-More-info"><a href="#4-More-info" class="headerlink" title="4. More info"></a>4. More info</h3><h4 id="4-1-Oops-0002-1"><a href="#4-1-Oops-0002-1" class="headerlink" title="4.1 Oops: 0002 [#1]"></a>4.1 Oops: 0002 [#1]</h4><p>0002表示Oops的error code, #1表示这个错误发生一次。</p>
+<h4 id="4-2-Tainted信息"><a href="#4-2-Tainted信息" class="headerlink" title="4.2 Tainted信息"></a>4.2 Tainted信息</h4><ul>
+<li><a href="https://www.kernel.org/doc/html/latest/admin-guide/bug-hunting.html#modules-linked-in" target="_blank" rel="noopener">Modules linked in</a></li>
+<li><a href="https://www.kernel.org/doc/html/latest/admin-guide/tainted-kernels.html" target="_blank" rel="noopener">Tainted kernels</a></li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.kernel.org/doc/html/latest/admin-guide/bug-hunting.html" target="_blank" rel="noopener">Bug hunting</a></li>
+<li><a href="https://www.cnblogs.com/wwang/archive/2010/11/14/1876735.html" target="_blank" rel="noopener">Linux内核的Oops</a></li>
+<li><a href="https://lwn.net/Articles/592724/" target="_blank" rel="noopener">decode_stacktrace: make stack dump output useful again</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/debug/">debug</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/12/05/Introduction-to-cpu-affinity/">
+        <span class="next-text nav-default">Introduction to cpu affinity</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/12/11/Notes-about-Linux-kernel-Oops/';
+        this.page.identifier = '2021/12/11/Notes-about-Linux-kernel-Oops/';
+        this.page.title = 'Notes about Linux kernel Oops';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
