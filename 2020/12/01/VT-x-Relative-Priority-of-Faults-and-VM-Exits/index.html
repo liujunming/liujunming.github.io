@@ -293,6 +293,10 @@
 <p>In non-root mode，if the current privileage level is not 0, VM exit won’t happen. Because <strong>faults based on privilege level</strong> has priority over VM exits.</p>
 <p>In non-root mode，if CR4.OSXSAVE[bit 18] = 0, VM exit won’t happen. Because <strong>invalid-opcode exceptions(#UD)</strong> has priority over VM exits.</p>
 <p>详细内容可参考patch：<a href="https://github.com/projectacrn/acrn-hypervisor/commit/56eb859ea4e3af1edbd15b80276e9f2404a43e2b" target="_blank" rel="noopener">hv: vmexit: refine xsetbv_vmexit_handler API</a>。</p>
+<p>当然，这里是有一个前提的，那就是exception bitmap中#UD位为0。</p>
+<p><img src="/images/2021/12/6.png" alt></p>
+<p>如果exception bitmap中#UD位置1，那么，non-root下，只要发生#UD， 一定会发生VM Exit。<br><a href="https://github.com/torvalds/linux/tree/v5.15-rc6" target="_blank" rel="noopener">KVM</a> unconditionally intercept UD_VECTOR.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">kvm_arch_vcpu_create</span><br><span class="line">	kvm_vcpu_reset</span><br><span class="line">		vmx_update_exception_bitmap</span><br></pre></td></tr></table></figure></p>
+<p>In vmx_update_exception_bitmap function, UD_VECTOR is set in the EXCEPTION_BITMAP.</p>
 
       
     </div>
