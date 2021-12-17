@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-12-11T15:19:31.714Z</updated>
+  <updated>2021-12-17T15:51:03.537Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>The usage of OVMF in QEMU</title>
+    <link href="http://liujunming.github.io/2021/12/17/The-usage-of-OVMF/"/>
+    <id>http://liujunming.github.io/2021/12/17/The-usage-of-OVMF/</id>
+    <published>2021-12-17T14:49:38.000Z</published>
+    <updated>2021-12-17T15:51:03.537Z</updated>
+    
+    <content type="html"><![CDATA[<p>Notes about the usage of OVMF in QEMU.<a id="more"></a></p><h3 id="Case1"><a href="#Case1" class="headerlink" title="Case1"></a>Case1</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-bios /path/to/OVMF.fd \</span><br></pre></td></tr></table></figure><h3 id="Case2-split-firmware"><a href="#Case2-split-firmware" class="headerlink" title="Case2: split firmware"></a>Case2: split firmware</h3><blockquote><p>The variable store and the firmware executable are also available in the build output as separate files: “OVMF_VARS.fd” and “OVMF_CODE.fd”. This enables central management and updates of the firmware executable, while each virtual machine can retain its own variable store.)</p></blockquote><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-drive if=pflash,format=raw,unit=0,readonly=on,file=/path/to/OVMF_CODE.fd \</span><br><span class="line">-drive if=pflash,format=raw,unit=1,file=/path/to/OVMF_VARS.fd \</span><br></pre></td></tr></table></figure><h3 id="Case3-secure-boot"><a href="#Case3-secure-boot" class="headerlink" title="Case3: secure boot"></a>Case3: secure boot</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-drive if=pflash,format=raw,unit=0,readonly=on,file=/path/to/OVMF_SECURE_CODE.fd \</span><br><span class="line">-drive if=pflash,format=raw,unit=1,file=/path/to/OVMF_VARS.fd \</span><br><span class="line">-global driver=cfi.pflash01,property=secure,value=on \</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://www.linux-kvm.org/downloads/lersek/ovmf-whitepaper-c770f8c.txt" target="_blank" rel="noopener">Open Virtual Machine Firmware (OVMF) Status Report</a></li><li><a href="https://lore.kernel.org/qemu-devel/87y378n5iy.fsf@dusky.pond.sub.org/" target="_blank" rel="noopener">Configuring pflash devices for OVMF firmware</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Notes about the usage of OVMF in QEMU.
+    
+    </summary>
+    
+      <category term="Firmware" scheme="http://liujunming.github.io/categories/Firmware/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="Firmware" scheme="http://liujunming.github.io/tags/Firmware/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Linux kernel Oops</title>
@@ -469,28 +493,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Live Migration With Hardware Acceleration</title>
-    <link href="http://liujunming.github.io/2021/11/18/Live-Migration-With-Hardware-Acceleration/"/>
-    <id>http://liujunming.github.io/2021/11/18/Live-Migration-With-Hardware-Acceleration/</id>
-    <published>2021-11-18T12:15:30.000Z</published>
-    <updated>2021-11-19T09:27:45.090Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about Live Migration With Hardware Acceleration.<br><a href="https://static.sched.com/hosted_files/kvmforum2020/6e/Oct%2030_Live%20Migration%20with%20Hardware%20Acceleration_Wei%20Wang%20.pdf" target="_blank" rel="noopener">slides</a><br><a href="https://www.youtube.com/watch?v=c_DyiOmJdtI" target="_blank" rel="noopener">video</a><br><a id="more"></a></p><h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><ul><li>Live migration pain points<ul><li>VMs with memory write intensive workloads are difficult to migrate</li><li>VMs with large memory size takes long time to migrate</li><li>May consume large network bandwidth</li></ul></li><li>Existing solution: compression with CPUs<ul><li>Slow</li><li>Consumes too many CPUs from host</li></ul></li><li>Our solution<ul><li>Offload the compression part to Intel QAT with efficient approaches<ul><li>Higher migration throughput</li><li>Lower CPU utilization</li></ul></li><li>A common design ready for future more accelerators to join in<ul><li>Data Streaming Accelerator (DSA) and Intel Analytics Accelerator (IAX) coming on Sapphire Rapids CPUs</li><li>Smart Selection</li></ul></li></ul></li></ul><h3 id="QAT"><a href="#QAT" class="headerlink" title="QAT"></a>QAT</h3><p>QuickAssist Technology (QAT) accelerates cryptographic and compression workloads by offloading the data to hardware capable of optimizing those functions.</p><h3 id="IAX"><a href="#IAX" class="headerlink" title="IAX"></a>IAX</h3><p>(Intel Analytics Accelerator)</p><p>Has compression capability</p><h3 id="DSA"><a href="#DSA" class="headerlink" title="DSA"></a>DSA</h3><p>(Data Streaming Accelerator)</p><p>DSA is a high-performance data copy and transformation accelerator that will be integrated in future Intel® processors, targeted for optimizing streaming data movement and transformation operations common with applications for high-performance storage, networking, persistent memory, and various data processing applications.</p><p>Intel® DSA replaces the Intel® QuickData Technology, which is a part of Intel® I/O Acceleration Technology.</p><p>The goal is to provide higher overall system performance for data mover and transformation operations, while freeing up CPU cycles for higher level functions. </p><h3 id="Smart-Acceleration-Support"><a href="#Smart-Acceleration-Support" class="headerlink" title="Smart Acceleration Support"></a>Smart Acceleration Support</h3><ul><li>DSA compares the dirty memory, and sends the “diff” to the destination only<ul><li>Good when the guest only modifies a small part of a page</li><li>Bad when the entire pages are changed</li></ul></li><li>Smart Acceleration<ul><li>Dynamically switch to use QAT/IAX compression or DSA diff during live migration using a prediction based on the compression ratio history and diff ratio history</li></ul></li></ul><hr><p>参考资料:</p><ol><li><a href="https://kb.vmware.com/s/article/84039" target="_blank" rel="noopener">Information for the Intel® QuickAssist Technology (Intel® QAT) Single Root I/O Virtualization (SR-IOV) driver for VMware ESXi (84039)</a></li><li><a href="https://01.org/blogs/2019/introducing-intel-data-streaming-accelerator" target="_blank" rel="noopener">INTRODUCING THE INTEL® DATA STREAMING ACCELERATOR (INTEL® DSA)</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about Live Migration With Hardware Acceleration.&lt;br&gt;&lt;a href=&quot;https://static.sched.com/hosted_files/kvmforum2020/6e/Oct%2030_Live%20Migration%20with%20Hardware%20Acceleration_Wei%20Wang%20.pdf&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;slides&lt;/a&gt;&lt;br&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=c_DyiOmJdtI&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;video&lt;/a&gt;&lt;br&gt;
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
