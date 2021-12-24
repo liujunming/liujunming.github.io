@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="The usage of kdump">
+
+
+
+
+  <meta name="keywords" content="Kernel, debug, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/12/23/The-usage-of-kdump/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> The usage of kdump - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          The usage of kdump
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-12-23
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/debug/">debug</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-motivation"><span class="toc-text">1. motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Overview"><span class="toc-text">2. Overview</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-System-kernel-config-options"><span class="toc-text">3. System kernel config options</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Setup-and-Installation"><span class="toc-text">4. Setup and Installation</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-Ubuntu"><span class="toc-text">4.1 Ubuntu</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-强制内核崩溃"><span class="toc-text">5. 强制内核崩溃</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-Kdump-analysis-using-crash"><span class="toc-text">6. Kdump analysis using crash</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-MISC"><span class="toc-text">7. MISC</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Notes about Linux kernel kdump.<a id="more"></a></p>
+<h3 id="1-motivation"><a href="#1-motivation" class="headerlink" title="1. motivation"></a>1. motivation</h3><p>有时候<a href="/2021/12/11/Notes-about-Linux-kernel-Oops/">Oops</a>发生的同时系统也会宕机，此时这些出错信息是来不及存入文件中的，关掉电源后就无法再看到了。我们只能通过其他的方式来记录：手抄或者拍照。</p>
+<p>还有更坏的情况，如果Oops信息过多的话，一页屏幕显示不全，我们怎么来查看完整的内容呢？第一种方法，在grub里用vga参数指定更高的分辨率以使屏幕可以显示更多的内容。很明显，这个方法其实解决不了太多的问题；第二种方法，使用两台机器，把调试机的Oops信息通过串口打印到宿主机的屏幕上。但现在大部分的笔记本电脑是没有串口的，这个解决方法也有很大的局限性；第三种方法，使用内核转储工具kdump把发生Oops时的内存和CPU寄存器的内容dump到一个文件里，之后我们再用工具来分析问题。</p>
+<h3 id="2-Overview"><a href="#2-Overview" class="headerlink" title="2. Overview"></a>2. Overview</h3><p>Kdump uses kexec to quickly boot to a dump-capture kernel whenever a dump of the system kernel’s memory needs to be taken (for example, when the system panics). The system kernel’s memory image is preserved across the reboot and is accessible to the dump-capture kernel.</p>
+<p>You can use common commands, such as cp, scp or makedumpfile to copy the memory image to a dump file on the local disk, or across the network to a remote system.</p>
+<p>When the system kernel boots, it reserves a small section of memory for the dump-capture kernel. This ensures that ongoing Direct Memory Access (DMA) from the system kernel does not corrupt the dump-capture kernel. The kexec -p command loads the dump-capture kernel into this reserved memory.</p>
+<p>With the dump-capture kernel, you can access the memory image through /proc/vmcore. This exports the dump as an ELF-format file that you can write out using file copy commands such as cp or scp. You can also use makedumpfile utility to analyze and write out filtered contents with options, e.g with ‘-d 31’ it will only write out kernel data. Further, you can use analysis tools such as the GDB and the Crash tool to debug the dump file. </p>
+<p><img src="/images/2021/12/20.png" alt></p>
+<h3 id="3-System-kernel-config-options"><a href="#3-System-kernel-config-options" class="headerlink" title="3. System kernel config options"></a>3. System kernel config options</h3><p>There are two possible methods of using Kdump.</p>
+<ol>
+<li>Build a separate custom dump-capture kernel for capturing the kernel core dump.</li>
+<li>Or use the system kernel binary itself as dump-capture kernel and there is no need to build a separate dump-capture kernel. This is possible only with the architectures which support a relocatable kernel. As of today, i386, x86_64, ppc64, ia64, arm and arm64 architectures support relocatable kernel.</li>
+</ol>
+<p>本文选择的是第二种方法。</p>
+<p>system kernel config options配置如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CONFIG_KEXEC=y</span><br><span class="line">CONFIG_KEXEC_FILE=y</span><br><span class="line">CONFIG_KEXEC_CORE=y</span><br><span class="line">CONFIG_CRASH_CORE=y</span><br><span class="line">CONFIG_SYSFS=y</span><br><span class="line">CONFIG_DEBUG_INFO=y</span><br></pre></td></tr></table></figure>
+<h3 id="4-Setup-and-Installation"><a href="#4-Setup-and-Installation" class="headerlink" title="4. Setup and Installation"></a>4. Setup and Installation</h3><h4 id="4-1-Ubuntu"><a href="#4-1-Ubuntu" class="headerlink" title="4.1 Ubuntu"></a>4.1 Ubuntu</h4><p>参考: <a href="https://ubuntu.com/server/docs/kernel-crash-dump" target="_blank" rel="noopener">ubuntu Kernel Crash Dump</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install linux-crashdump -y</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2021/12/19.png" alt></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">wget https://github.com/crash-utility/crash/archive/refs/tags/7.3.1.tar.gz</span><br><span class="line">tar xzvf 7.3.1.tar.gz</span><br><span class="line">cd crash-7.3.1</span><br><span class="line"></span><br><span class="line">sudo apt install bison libz-dev libncurses5-dev libncursesw5-dev texinfo -y</span><br><span class="line"></span><br><span class="line">make</span><br><span class="line">sudo make install</span><br><span class="line"></span><br><span class="line">sudo reboot</span><br></pre></td></tr></table></figure>
+<h3 id="5-强制内核崩溃"><a href="#5-强制内核崩溃" class="headerlink" title="5. 强制内核崩溃"></a>5. 强制内核崩溃</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo 1 &gt; /proc/sys/kernel/sysrq</span><br><span class="line">echo c &gt; /proc/sysrq-trigger</span><br></pre></td></tr></table></figure>
+<p>重启后可以在/var/crash/目录下看到vmcore日志文件。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> cd /var/crash/</span><br><span class="line"><span class="meta">$</span> ls</span><br><span class="line">202112241159  kdump_lock  kexec_cmd</span><br><span class="line"><span class="meta">$</span> cd 202112241159</span><br><span class="line"><span class="meta">$</span> ls</span><br><span class="line">vmcore.202112241159</span><br><span class="line"><span class="meta">$</span> file vmcore.202112241159</span><br><span class="line">vmcore.202112241159: ELF 64-bit LSB core file x86-64, version 1 (SYSV), SVR4-style</span><br></pre></td></tr></table></figure>
+<h3 id="6-Kdump-analysis-using-crash"><a href="#6-Kdump-analysis-using-crash" class="headerlink" title="6. Kdump analysis using crash"></a>6. Kdump analysis using crash</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">crash vmcore.202112241159 /usr/lib/debug/lib/modules/5.15.0-rc6-virt-ui+/vmlinux</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; bt</span><br><span class="line">PID: 1579   TASK: ffff8d6087084f80  CPU: 0   COMMAND: &quot;bash&quot;</span><br><span class="line"> #0 [ffffae2c80fc7cc0] machine_kexec at ffffffffa9061348</span><br><span class="line"> #1 [ffffae2c80fc7d20] __crash_kexec at ffffffffa91bc670</span><br><span class="line"> #2 [ffffae2c80fc7de8] panic at ffffffffa9f301f0</span><br><span class="line"> #3 [ffffae2c80fc7e68] sysrq_handle_crash at ffffffffa98327a6</span><br><span class="line"> #4 [ffffae2c80fc7e70] __handle_sysrq.cold at ffffffffa9f62e96</span><br><span class="line"> #5 [ffffae2c80fc7ea0] write_sysrq_trigger at ffffffffa98331d4</span><br><span class="line"> #6 [ffffae2c80fc7eb0] proc_reg_write at ffffffffa93e83c3</span><br><span class="line"> #7 [ffffae2c80fc7ec8] vfs_write at ffffffffa934dc2d</span><br><span class="line"> #8 [ffffae2c80fc7f00] ksys_write at ffffffffa934df45</span><br><span class="line"> #9 [ffffae2c80fc7f38] do_syscall_64 at ffffffffa9fa9553</span><br><span class="line">#10 [ffffae2c80fc7f50] entry_SYSCALL_64_after_hwframe at ffffffffaa00007c</span><br><span class="line">    RIP: 00007f5ab67f5224  RSP: 00007ffe5b9e7038  RFLAGS: 00000246</span><br><span class="line">    RAX: ffffffffffffffda  RBX: 0000000000000002  RCX: 00007f5ab67f5224</span><br><span class="line">    RDX: 0000000000000002  RSI: 0000561b7a365e00  RDI: 0000000000000001</span><br><span class="line">    RBP: 0000561b7a365e00   R8: 000000000000000a   R9: 0000000000000001</span><br><span class="line">    R10: 000000000000000a  R11: 0000000000000246  R12: 00007f5ab6ad1760</span><br><span class="line">    R13: 0000000000000002  R14: 00007f5ab6acd2a0  R15: 00007f5ab6acc760</span><br><span class="line">    ORIG_RAX: 0000000000000001  CS: 0033  SS: 002b</span><br></pre></td></tr></table></figure>
+<h3 id="7-MISC"><a href="#7-MISC" class="headerlink" title="7. MISC"></a>7. MISC</h3><ul>
+<li><a href="https://www.kernel.org/doc/html/latest/admin-guide/kdump/kdump.html#crashkernel-syntax" target="_blank" rel="noopener">crashkernel syntax</a></li>
+<li>Configure Dump Location</li>
+<li>Configure Core Collector</li>
+</ul>
+<p>Configure Dump Location和Configure Core Collector可以参考<a href="https://www.thegeekstuff.com/2014/05/kdump/" target="_blank" rel="noopener">How to use kdump for Linux Kernel Crash Analysis</a>。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://events.static.linuxfound.org/sites/events/files/slides/kdump_usage_and_internals.pdf" target="_blank" rel="noopener">kdump: usage and internals</a></li>
+<li><a href="https://www.kernel.org/doc/html/latest/admin-guide/kdump/kdump.html" target="_blank" rel="noopener"> The kexec-based Crash Dumping Solution</a></li>
+<li><a href="https://programming.vip/docs/example-using-crash-to-analyze-kdump-dump-kernel-crash-kernel.html" target="_blank" rel="noopener">Example using crash to analyze Kdump dump kernel crash kernel</a></li>
+<li><a href="https://www.thegeekstuff.com/2014/05/kdump/" target="_blank" rel="noopener">How to use kdump for Linux Kernel Crash Analysis</a></li>
+<li><a href="https://www.jianshu.com/p/3c92647140f7" target="_blank" rel="noopener">如何在Ubuntu18.04下安装和配置kdump</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/debug/">debug</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/12/18/Notes-about-the-usage-of-git-log/">
+        <span class="next-text nav-default">Notes about the usage of git log</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/12/23/The-usage-of-kdump/';
+        this.page.identifier = '2021/12/23/The-usage-of-kdump/';
+        this.page.title = 'The usage of kdump';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
