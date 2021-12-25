@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="system call: select vs poll vs epoll">
+  <meta name="description" content="Notes about magic SysRq key">
 
 
 
 
-  <meta name="keywords" content="linux, I/O系统, L">
+  <meta name="keywords" content="linux, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2019/08/26/system call select vs poll vs epoll/">
+<link rel="canonical" href="http://liujunming.github.io/2021/12/25/Notes-about-magic-SysRq-key/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> system call: select vs poll vs epoll - L </title>
+    <title> Notes about magic SysRq key - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,13 +260,13 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          system call: select vs poll vs epoll
+          Notes about magic SysRq key
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2019-08-26
+          2021-12-25
         </span>
         
           <span class="post-category">
@@ -281,17 +281,47 @@
 
     
     
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-What-is-magic-SysRq-key"><span class="toc-text">1. What is magic SysRq key?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-How-do-I-enable-the-magic-SysRq-key"><span class="toc-text">2. How do I enable the magic SysRq key?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-How-do-I-use-the-magic-SysRq-key"><span class="toc-text">3. How do I use the magic SysRq key?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-What-are-the-‘command’-keys"><span class="toc-text">4. What are the ‘command’ keys?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Usage-example"><span class="toc-text">5. Usage example</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-perform-a-system-crash-and-a-crashdump-will-be-taken-if-configured"><span class="toc-text">5.1 perform a system crash and a crashdump will be taken if configured.</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
 
 
     <div class="post-content">
       
-        <p>建议阅读<a href="https://devarea.com/linux-io-multiplexing-select-vs-poll-vs-epoll/#.XWNUOOgzaUk" target="_blank" rel="noopener">LINUX – IO MULTIPLEXING – SELECT VS POLL VS EPOLL</a>中的实例代码。</p>
-<a id="more"></a>
+        <p>Notes about magic SysRq key.<a id="more"></a></p>
+<p><img src="/images/2021/12/26.png" alt></p>
+<h3 id="1-What-is-magic-SysRq-key"><a href="#1-What-is-magic-SysRq-key" class="headerlink" title="1. What is magic SysRq key?"></a>1. What is magic SysRq key?</h3><p>It is a ‘magical’ key combo you can hit which the kernel will respond to regardless of whatever else it is doing, unless it is completely locked up.</p>
+<p>Magic SysRq组合键是一串能直接与Linux 内核沟通的组合键，允许用户就算在系统进入死循环濒临崩溃时，直接调用系统底层将资料写入文件系统或重启，避免尚未写入文件系统与硬盘的数据在关机后消失。</p>
+<p>此组合键提供一系列在系统崩溃时常用到的功能，比如上述的写入数据，或关闭 X Server 、Kill 进程、卸载 文件系统，也通常是死机时的最后手段。</p>
+<h3 id="2-How-do-I-enable-the-magic-SysRq-key"><a href="#2-How-do-I-enable-the-magic-SysRq-key" class="headerlink" title="2. How do I enable the magic SysRq key?"></a>2. How do I enable the magic SysRq key?</h3><p>You need to say “yes” to ‘Magic SysRq key (<code>CONFIG_MAGIC_SYSRQ</code>)’ when configuring the kernel. When running a kernel with SysRq compiled in, <code>/proc/sys/kernel/sysrq</code> controls the functions allowed to be invoked via the SysRq key. The default value in this file is set by the <code>CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE</code> config symbol, which itself defaults to 1. Here is the list of possible values in <code>/proc/sys/kernel/sysrq</code>:</p>
+<ul>
+<li><p>0 - disable sysrq completely</p>
+</li>
+<li><p>1 - enable all functions of sysrq</p>
+</li>
+<li><p>>1 - bitmask of allowed sysrq functions (see below for detailed function description):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">  2 =   0x2 - enable control of console logging level</span><br><span class="line">  4 =   0x4 - enable control of keyboard (SAK, unraw)</span><br><span class="line">  8 =   0x8 - enable debugging dumps of processes etc.</span><br><span class="line"> 16 =  0x10 - enable sync command</span><br><span class="line"> 32 =  0x20 - enable remount read-only</span><br><span class="line"> 64 =  0x40 - enable signalling of processes (term, kill, oom-kill)</span><br><span class="line">128 =  0x80 - allow reboot/poweroff</span><br><span class="line">256 = 0x100 - allow nicing of all RT tasks</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>Note that the value of <code>/proc/sys/kernel/sysrq</code> influences only the invocation via a keyboard. Invocation of any operation via <code>/proc/sysrq-trigger</code> is always allowed (by a user with admin privileges).</p>
+<h3 id="3-How-do-I-use-the-magic-SysRq-key"><a href="#3-How-do-I-use-the-magic-SysRq-key" class="headerlink" title="3. How do I use the magic SysRq key?"></a>3. How do I use the magic SysRq key?</h3><ul>
+<li><p>On x86<br>You press the key combo <code>ALT-SysRq-&lt;command key&gt;</code>.</p>
+</li>
+<li><p>On all<br>Write a character to <code>/proc/sysrq-trigger</code>. e.g.:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo t &gt; /proc/sysrq-trigger</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="4-What-are-the-‘command’-keys"><a href="#4-What-are-the-‘command’-keys" class="headerlink" title="4. What are the ‘command’ keys?"></a>4. What are the ‘command’ keys?</h3><p><a href="https://www.kernel.org/doc/html/latest/admin-guide/sysrq.html#what-are-the-command-keys" target="_blank" rel="noopener">kernel.org doc</a></p>
+<h3 id="5-Usage-example"><a href="#5-Usage-example" class="headerlink" title="5. Usage example"></a>5. Usage example</h3><h4 id="5-1-perform-a-system-crash-and-a-crashdump-will-be-taken-if-configured"><a href="#5-1-perform-a-system-crash-and-a-crashdump-will-be-taken-if-configured" class="headerlink" title="5.1 perform a system crash and a crashdump will be taken if configured."></a>5.1 perform a system crash and a crashdump will be taken if configured.</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo 1 &gt; /proc/sys/kernel/sysrq</span><br><span class="line">echo c &gt; /proc/sysrq-trigger</span><br></pre></td></tr></table></figure>
 <hr>
-<p>参考资料：</p>
+<p>参考资料:</p>
 <ol>
-<li><a href="https://jvns.ca/blog/2017/06/03/async-io-on-linux--select--poll--and-epoll/" target="_blank" rel="noopener">Async IO on Linux: select, poll, and epoll</a></li>
-<li><a href="https://devarea.com/linux-io-multiplexing-select-vs-poll-vs-epoll/#.XWNUOOgzaUk" target="_blank" rel="noopener">LINUX – IO MULTIPLEXING – SELECT VS POLL VS EPOLL</a></li>
+<li><a href="https://www.kernel.org/doc/html/latest/admin-guide/sysrq.html" target="_blank" rel="noopener">Linux Magic System Request Key Hacks</a></li>
+<li><a href="https://zh.wikipedia.org/zh-cn/Magic_SysRq%E7%B5%84%E5%90%88%E9%8D%B5" target="_blank" rel="noopener">wikipedia Magic SysRq组合键</a></li>
 </ol>
 
       
@@ -314,23 +344,15 @@
             
               <a href="/tags/linux/">linux</a>
             
-              <a href="/tags/I-O系统/">I/O系统</a>
-            
           </div>
         
         
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2019/08/26/file-operations-poll-function/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">file_operations poll function</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2019/08/26/select-usage-and-implementation-in-kernel/">
-        <span class="next-text nav-default">select usage and implementation in kernel</span>
+      <a class="next" href="/2021/12/24/Intel-CPU-operating-modes/">
+        <span class="next-text nav-default">Intel CPU operating modes</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -443,9 +465,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2019/08/26/system call select vs poll vs epoll/';
-        this.page.identifier = '2019/08/26/system call select vs poll vs epoll/';
-        this.page.title = 'system call: select vs poll vs epoll';
+        this.page.url = 'http://liujunming.github.io/2021/12/25/Notes-about-magic-SysRq-key/';
+        this.page.identifier = '2021/12/25/Notes-about-magic-SysRq-key/';
+        this.page.title = 'Notes about magic SysRq key';
     };
     (function() {
     var d = document, s = d.createElement('script');

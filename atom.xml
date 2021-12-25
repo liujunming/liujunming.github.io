@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-12-24T13:08:07.571Z</updated>
+  <updated>2021-12-25T03:08:54.637Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about magic SysRq key</title>
+    <link href="http://liujunming.github.io/2021/12/25/Notes-about-magic-SysRq-key/"/>
+    <id>http://liujunming.github.io/2021/12/25/Notes-about-magic-SysRq-key/</id>
+    <published>2021-12-25T02:29:06.000Z</published>
+    <updated>2021-12-25T03:08:54.637Z</updated>
+    
+    <content type="html"><![CDATA[<p>Notes about magic SysRq key.<a id="more"></a></p><p><img src="/images/2021/12/26.png" alt></p><h3 id="1-What-is-magic-SysRq-key"><a href="#1-What-is-magic-SysRq-key" class="headerlink" title="1. What is magic SysRq key?"></a>1. What is magic SysRq key?</h3><p>It is a ‘magical’ key combo you can hit which the kernel will respond to regardless of whatever else it is doing, unless it is completely locked up.</p><p>Magic SysRq组合键是一串能直接与Linux 内核沟通的组合键，允许用户就算在系统进入死循环濒临崩溃时，直接调用系统底层将资料写入文件系统或重启，避免尚未写入文件系统与硬盘的数据在关机后消失。</p><p>此组合键提供一系列在系统崩溃时常用到的功能，比如上述的写入数据，或关闭 X Server 、Kill 进程、卸载 文件系统，也通常是死机时的最后手段。</p><h3 id="2-How-do-I-enable-the-magic-SysRq-key"><a href="#2-How-do-I-enable-the-magic-SysRq-key" class="headerlink" title="2. How do I enable the magic SysRq key?"></a>2. How do I enable the magic SysRq key?</h3><p>You need to say “yes” to ‘Magic SysRq key (<code>CONFIG_MAGIC_SYSRQ</code>)’ when configuring the kernel. When running a kernel with SysRq compiled in, <code>/proc/sys/kernel/sysrq</code> controls the functions allowed to be invoked via the SysRq key. The default value in this file is set by the <code>CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE</code> config symbol, which itself defaults to 1. Here is the list of possible values in <code>/proc/sys/kernel/sysrq</code>:</p><ul><li><p>0 - disable sysrq completely</p></li><li><p>1 - enable all functions of sysrq</p></li><li><p>>1 - bitmask of allowed sysrq functions (see below for detailed function description):</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">  2 =   0x2 - enable control of console logging level</span><br><span class="line">  4 =   0x4 - enable control of keyboard (SAK, unraw)</span><br><span class="line">  8 =   0x8 - enable debugging dumps of processes etc.</span><br><span class="line"> 16 =  0x10 - enable sync command</span><br><span class="line"> 32 =  0x20 - enable remount read-only</span><br><span class="line"> 64 =  0x40 - enable signalling of processes (term, kill, oom-kill)</span><br><span class="line">128 =  0x80 - allow reboot/poweroff</span><br><span class="line">256 = 0x100 - allow nicing of all RT tasks</span><br></pre></td></tr></table></figure></li></ul><p>Note that the value of <code>/proc/sys/kernel/sysrq</code> influences only the invocation via a keyboard. Invocation of any operation via <code>/proc/sysrq-trigger</code> is always allowed (by a user with admin privileges).</p><h3 id="3-How-do-I-use-the-magic-SysRq-key"><a href="#3-How-do-I-use-the-magic-SysRq-key" class="headerlink" title="3. How do I use the magic SysRq key?"></a>3. How do I use the magic SysRq key?</h3><ul><li><p>On x86<br>You press the key combo <code>ALT-SysRq-&lt;command key&gt;</code>.</p></li><li><p>On all<br>Write a character to <code>/proc/sysrq-trigger</code>. e.g.:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo t &gt; /proc/sysrq-trigger</span><br></pre></td></tr></table></figure></li></ul><h3 id="4-What-are-the-‘command’-keys"><a href="#4-What-are-the-‘command’-keys" class="headerlink" title="4. What are the ‘command’ keys?"></a>4. What are the ‘command’ keys?</h3><p><a href="https://www.kernel.org/doc/html/latest/admin-guide/sysrq.html#what-are-the-command-keys" target="_blank" rel="noopener">kernel.org doc</a></p><h3 id="5-Usage-example"><a href="#5-Usage-example" class="headerlink" title="5. Usage example"></a>5. Usage example</h3><h4 id="5-1-perform-a-system-crash-and-a-crashdump-will-be-taken-if-configured"><a href="#5-1-perform-a-system-crash-and-a-crashdump-will-be-taken-if-configured" class="headerlink" title="5.1 perform a system crash and a crashdump will be taken if configured."></a>5.1 perform a system crash and a crashdump will be taken if configured.</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo 1 &gt; /proc/sys/kernel/sysrq</span><br><span class="line">echo c &gt; /proc/sysrq-trigger</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://www.kernel.org/doc/html/latest/admin-guide/sysrq.html" target="_blank" rel="noopener">Linux Magic System Request Key Hacks</a></li><li><a href="https://zh.wikipedia.org/zh-cn/Magic_SysRq%E7%B5%84%E5%90%88%E9%8D%B5" target="_blank" rel="noopener">wikipedia Magic SysRq组合键</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Notes about magic SysRq key.
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>Intel CPU operating modes</title>
@@ -473,28 +495,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Linux MSR tools</title>
-    <link href="http://liujunming.github.io/2021/11/21/Linux-MSR-tools/"/>
-    <id>http://liujunming.github.io/2021/11/21/Linux-MSR-tools/</id>
-    <published>2021-11-21T08:17:28.000Z</published>
-    <updated>2021-11-21T10:16:17.903Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about MSR tools in Linux，并结合一个具体的例子，展示其用法。<a id="more"></a>本文大部分内容源于<a href="https://ilinuxkernel.com/?p=255" target="_blank" rel="noopener">Linux读写CPU MSR寄存器命令rdmsr/wrmsr</a>。</p><p>Linux内核源码提供了读写CPU MSR寄存器模块，使得用户空间可以直接读写MSR寄存器。</p><p>开源社区提供msr寄存器读写工具:msr-tools，其中有两个命令，<code>rdmsr</code>/<code>wrmsr</code>。</p><h3 id="Prerequisite"><a href="#Prerequisite" class="headerlink" title="Prerequisite"></a>Prerequisite</h3><p>要使<code>rdmsr</code>/<code>wrmsr</code>命令可以读写msr寄存器，系统中必须有msr模块，或将msr模块编译进内核。下面是从内核配置选项中选取的内容:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Processor type and features  —&gt;</span><br><span class="line">&lt;M&gt; /dev/cpu/*/msr – Model-specific register support</span><br></pre></td></tr></table></figure></p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">modprobe msr</span><br><span class="line"></span><br><span class="line">apt-get install -y msr-tools</span><br></pre></td></tr></table></figure><h3 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">root@kvm:~# rdmsr -h</span><br><span class="line">Usage: rdmsr [options] regno</span><br><span class="line">  --help         -h  Print this help</span><br><span class="line">  --version      -V  Print current version</span><br><span class="line">  --hexadecimal  -x  Hexadecimal output (lower case)</span><br><span class="line">  --capital-hex  -X  Hexadecimal output (upper case)</span><br><span class="line">  --decimal      -d  Signed decimal output</span><br><span class="line">  --unsigned     -u  Unsigned decimal output</span><br><span class="line">  --octal        -o  Octal output</span><br><span class="line">  --c-language   -c  Format output as a C language constant</span><br><span class="line">  --zero-pad     -0  Output leading zeroes</span><br><span class="line">  --raw          -r  Raw binary output</span><br><span class="line">  --all          -a  all processors</span><br><span class="line">  --processor #  -p  Select processor number (default 0)</span><br><span class="line">  --bitfield h:l -f  Output bits [h:l] only</span><br><span class="line">root@kvm:~# wrmsr -h</span><br><span class="line">Usage: wrmsr [options] regno value...</span><br><span class="line">  --help         -h  Print this help</span><br><span class="line">  --version      -V  Print current version</span><br><span class="line">  --all          -a  all processors</span><br><span class="line">  --processor #  -p  Select processor number (default 0)</span><br></pre></td></tr></table></figure><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">root@kvm:~# rdmsr -p 0 0x1b</span><br><span class="line">fee00d00</span><br><span class="line">root@kvm:~# rdmsr -p 1 0x1b</span><br><span class="line">fee00c00</span><br></pre></td></tr></table></figure><p><img src="/images/2021/11/12.png" alt></p><p>由此可加:</p><ul><li>CPU 0 has set BSP flag, while CPU 1 has cleared BSP flag</li><li>x2APIC mode is enabled</li><li>APIC Global enabled</li><li>…</li></ul><h3 id="Interface"><a href="#Interface" class="headerlink" title="Interface"></a>Interface</h3><p><code>/dev/cpu/CPUNUM/msr</code> provides  an interface to read and write the model-specific registers (MSRs) of an x86 CPU. CPUNUM is the number of the CPU to access as listed in /proc/cpuinfo.</p><p>The register access is done by opening the file and seeking to the MSR number as offset in the file, and then reading or writing in chunks  of  8 bytes. </p><h3 id="Resource"><a href="#Resource" class="headerlink" title="Resource"></a>Resource</h3><ul><li><code>man msr</code></li><li><a href="https://github.com/intel/msr-tools" target="_blank" rel="noopener">intel/msr-tools</a></li></ul>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about MSR tools in Linux，并结合一个具体的例子，展示其用法。
-    
-    </summary>
-    
-      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
-    
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
   </entry>
   
