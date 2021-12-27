@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="MSR management in QEMU/KVM">
+
+
+
+
+  <meta name="keywords" content="虚拟化, QEMU, KVM, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2021/12/26/MSR-management-in-QEMU-KVM/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> MSR management in QEMU/KVM - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          MSR management in QEMU/KVM
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2021-12-26
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/QEMU-KVM/">QEMU&&KVM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-理论基础"><span class="toc-text">1. 理论基础</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-RDMSR-and-WRMSR-instruction"><span class="toc-text">1.1 RDMSR and WRMSR instruction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-VM-Exit"><span class="toc-text">1.2 VM Exit</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-MSR-bitmap"><span class="toc-text">1.3 MSR bitmap</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-VM-Exit-Controls-for-MSRs"><span class="toc-text">1.4 VM-Exit Controls for MSRs</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-5-VM-Entry-Controls-for-MSRs"><span class="toc-text">1.5 VM-Entry Controls for MSRs</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Basic-VMX-related-source-code"><span class="toc-text">2. Basic VMX-related source code</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-MSR-bitmap"><span class="toc-text">2.1 MSR bitmap</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-1-空间分配与初始化"><span class="toc-text">2.1.1 空间分配与初始化</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-2-VMCS-field"><span class="toc-text">2.1.2 VMCS field</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-passthrough-MSR"><span class="toc-text">2.2 passthrough MSR</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-MSR-area"><span class="toc-text">2.3 MSR area</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-How-KVM-handle-MSR-read"><span class="toc-text">3. How KVM handle MSR read</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-VM-Exit-when-guest-executing-RDMSR-instruction"><span class="toc-text">3.1 VM Exit when guest executing RDMSR instruction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-QEMU-get-MSRs"><span class="toc-text">3.2 QEMU get MSRs</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-IOCTL"><span class="toc-text">4. IOCTL</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-KVM-GET-MSR-INDEX-LIST"><span class="toc-text">4.1 KVM_GET_MSR_INDEX_LIST</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-KVM-GET-MSR-FEATURE-INDEX-LIST"><span class="toc-text">4.2 KVM_GET_MSR_FEATURE_INDEX_LIST</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-KVM-GET-MSRS"><span class="toc-text">4.3 KVM_GET_MSRS</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-4-KVM-SET-MSRS"><span class="toc-text">4.4 KVM_SET_MSRS</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将以<a href="https://gitlab.com/qemu-project/qemu/-/tree/v5.2.0" target="_blank" rel="noopener">QEMU V5.2.0</a>,<a href="https://elixir.bootlin.com/linux/v5.14/source" target="_blank" rel="noopener">kernel  v5.14</a>的源码与SDM的描述，介绍MSR management，具体细节不会一一介绍，但是会点出关键性的内容，读者可以以此为线索，深挖细节。<a id="more"></a></p>
+<h2 id="1-理论基础"><a href="#1-理论基础" class="headerlink" title="1. 理论基础"></a>1. 理论基础</h2><h3 id="1-1-RDMSR-and-WRMSR-instruction"><a href="#1-1-RDMSR-and-WRMSR-instruction" class="headerlink" title="1.1 RDMSR and WRMSR instruction"></a>1.1 RDMSR and WRMSR instruction</h3><ul>
+<li>RDMSR—Read from Model Specific Register<br>EDX:EAX ← MSR[ECX];</li>
+<li>WRMSR—Write to Model Specific Register<br>MSR[ECX] ← EDX:EAX;</li>
+</ul>
+<p>WRMSR与RDMSR类似，受篇幅限制，接下来主要以RDMSR为主。</p>
+<h3 id="1-2-VM-Exit"><a href="#1-2-VM-Exit" class="headerlink" title="1.2 VM Exit"></a>1.2 VM Exit</h3><p>The RDMSR instruction causes a VM exit if any of the following are true:</p>
+<ul>
+<li>The “use MSR bitmaps” VM-execution control is 0.</li>
+<li>The value of ECX is not in the ranges 00000000H – 00001FFFH and C0000000H – C0001FFFH.</li>
+<li>The value of ECX is in the range 00000000H – 00001FFFH and bit n in read bitmap for low MSRs is 1, where n is the value of ECX.</li>
+<li>The value of ECX is in the range C0000000H – C0001FFFH and bit n in read bitmap for high MSRs is 1, where n is the value of ECX &amp; 00001FFFH.</li>
+</ul>
+<h3 id="1-3-MSR-bitmap"><a href="#1-3-MSR-bitmap" class="headerlink" title="1.3 MSR bitmap"></a>1.3 MSR bitmap</h3><p>On processors that support the 1-setting of the “use MSR bitmaps” VM-execution control, the VM-execution control fields include the 64-bit physical address of four contiguous <strong>MSR bitmaps</strong>, which are each 1-KByte in size. This field does not exist on processors that do not support the 1-setting of that control. The four bitmaps are:</p>
+<ul>
+<li><strong>Read bitmap for low MSRs</strong> (located at the MSR-bitmap address). This contains one bit for each MSR address in the range 00000000H to 00001FFFH. The bit determines whether an execution of RDMSR applied to that MSR causes a VM exit.</li>
+<li><strong>Read bitmap for high MSRs</strong> (located at the MSR-bitmap address plus 1024). This contains one bit for each MSR address in the range C0000000H toC0001FFFH. The bit determines whether an execution of RDMSR applied to that MSR causes a VM exit.</li>
+<li><strong>Write bitmap for low MSRs </strong>(located at the MSR-bitmap address plus 2048). This contains one bit for each MSR address in the range 00000000H to 00001FFFH. The bit determines whether an execution of WRMSR applied to that MSR causes a VM exit.</li>
+<li><strong>Write bitmap for high MSRs</strong> (located at the MSR-bitmap address plus 3072). This contains one bit for each MSR address in the range C0000000H toC0001FFFH. The bit determines whether an execution of WRMSR applied to that MSR causes a VM exit.</li>
+</ul>
+<p>A logical processor uses these bitmaps if and only if the “use MSR bitmaps” control is 1. If the bitmaps are used, an execution of RDMSR or WRMSR causes a VM exit if the value of RCX is in neither of the ranges covered by the bitmaps or <u>if the appropriate bit in the MSR bitmaps (corresponding to the instruction and the RCX value) is 1</u>.</p>
+<h3 id="1-4-VM-Exit-Controls-for-MSRs"><a href="#1-4-VM-Exit-Controls-for-MSRs" class="headerlink" title="1.4 VM-Exit Controls for MSRs"></a>1.4 VM-Exit Controls for MSRs</h3><p><img src="/images/2021/12/27.png" alt></p>
+<h3 id="1-5-VM-Entry-Controls-for-MSRs"><a href="#1-5-VM-Entry-Controls-for-MSRs" class="headerlink" title="1.5 VM-Entry Controls for MSRs"></a>1.5 VM-Entry Controls for MSRs</h3><p><img src="/images/2021/12/28.png" alt></p>
+<h2 id="2-Basic-VMX-related-source-code"><a href="#2-Basic-VMX-related-source-code" class="headerlink" title="2. Basic VMX-related source code"></a>2. Basic VMX-related source code</h2><h3 id="2-1-MSR-bitmap"><a href="#2-1-MSR-bitmap" class="headerlink" title="2.1 MSR bitmap"></a>2.1 MSR bitmap</h3><h4 id="2-1-1-空间分配与初始化"><a href="#2-1-1-空间分配与初始化" class="headerlink" title="2.1.1 空间分配与初始化"></a>2.1.1 空间分配与初始化</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kvm_vm_ioct(KVM_CREATE_VCPU)</span><br><span class="line">    kvm_vm_ioctl_create_vcpu</span><br><span class="line">        kvm_arch_vcpu_create</span><br><span class="line">            vmx_create_vcpu[static_call(kvm_x86_vcpu_create)(vcpu)]</span><br><span class="line">                alloc_loaded_vmcs</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 分配一个page(4K)的空间给msr bitmap,并将该空间的内容初始化为全1</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">alloc_loaded_vmcs</span><span class="params">(struct loaded_vmcs *loaded_vmcs)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (cpu_has_vmx_msr_bitmap()) &#123;</span><br><span class="line">		loaded_vmcs-&gt;msr_bitmap = (<span class="keyword">unsigned</span> <span class="keyword">long</span> *)</span><br><span class="line">			__get_free_page(GFP_KERNEL_ACCOUNT);</span><br><span class="line">		<span class="keyword">if</span> (!loaded_vmcs-&gt;msr_bitmap)</span><br><span class="line">			<span class="keyword">goto</span> out_vmcs;</span><br><span class="line">		<span class="built_in">memset</span>(loaded_vmcs-&gt;msr_bitmap, <span class="number">0xff</span>, PAGE_SIZE);</span><br><span class="line">		...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-2-VMCS-field"><a href="#2-1-2-VMCS-field" class="headerlink" title="2.1.2 VMCS field"></a>2.1.2 VMCS field</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vmx_create_vcpu</span><br><span class="line">	alloc_loaded_vmcs</span><br><span class="line">	init_vmcs</span><br><span class="line">		vmcs_write64(MSR_BITMAP, __pa(vmx-&gt;vmcs01.msr_bitmap))</span><br></pre></td></tr></table></figure>
+<h3 id="2-2-passthrough-MSR"><a href="#2-2-passthrough-MSR" class="headerlink" title="2.2 passthrough MSR"></a>2.2 passthrough MSR</h3><p><code>vmx_disable_intercept_for_msr</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">vmx_disable_intercept_for_msr</span><span class="params">(struct kvm_vcpu *vcpu, u32 msr, <span class="keyword">int</span> type)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vcpu_vmx</span> *<span class="title">vmx</span> = <span class="title">to_vmx</span>(<span class="title">vcpu</span>);</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> *msr_bitmap = vmx-&gt;vmcs01.msr_bitmap;</span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Mark the desired intercept state in shadow bitmap, this is needed</span></span><br><span class="line"><span class="comment">	 * for resync when the MSR filters change.</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="keyword">if</span> (is_valid_passthrough_msr(msr)) &#123;</span><br><span class="line">		<span class="keyword">int</span> idx = possible_passthrough_msr_slot(msr);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (idx != -ENOENT) &#123;</span><br><span class="line">			<span class="keyword">if</span> (type &amp; MSR_TYPE_R)</span><br><span class="line">				clear_bit(idx, vmx-&gt;shadow_msr_intercept.read);</span><br><span class="line">			<span class="keyword">if</span> (type &amp; MSR_TYPE_W)</span><br><span class="line">				clear_bit(idx, vmx-&gt;shadow_msr_intercept.write);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-3-MSR-area"><a href="#2-3-MSR-area" class="headerlink" title="2.3 MSR area"></a>2.3 MSR area</h3><p>建议学习下<a href="/2021/03/20/虚拟化学习心得-three-context/">虚拟化学习心得:three context</a> 中MSR area中的motivation。</p>
+<p>以下内容为关键字，读者可去KVM中搜索源码学习。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">VM_ENTRY_MSR_LOAD_COUNT</span><br><span class="line">VM_ENTRY_MSR_LOAD_ADDR</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">VM_EXIT_MSR_STORE_COUNT</span><br><span class="line">VM_EXIT_MSR_LOAD_COUNT</span><br><span class="line">VM_EXIT_MSR_STORE_ADDR</span><br><span class="line">VM_EXIT_MSR_LOAD_ADDR</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vcpu_vmx</span> &#123;</span></span><br><span class="line">	...</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">msr_autoload</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">vmx_msrs</span> <span class="title">guest</span>;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">vmx_msrs</span> <span class="title">host</span>;</span></span><br><span class="line">	&#125; msr_autoload;</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">msr_autostore</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">vmx_msrs</span> <span class="title">guest</span>;</span></span><br><span class="line">	&#125; msr_autostore;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="3-How-KVM-handle-MSR-read"><a href="#3-How-KVM-handle-MSR-read" class="headerlink" title="3. How KVM handle MSR read"></a>3. How KVM handle MSR read</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">msr_data</span> &#123;</span></span><br><span class="line">	<span class="keyword">bool</span> host_initiated;</span><br><span class="line">	u32 index;</span><br><span class="line">	u64 data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><strong>host_initiated</strong>:</p>
+<ul>
+<li>true: QEMU fired the call to operate on an MSR reg</li>
+<li>false: guest fired the call to operate on an MSR reg</li>
+</ul>
+<h3 id="3-1-VM-Exit-when-guest-executing-RDMSR-instruction"><a href="#3-1-VM-Exit-when-guest-executing-RDMSR-instruction" class="headerlink" title="3.1 VM Exit when guest executing RDMSR instruction"></a>3.1 VM Exit when guest executing RDMSR instruction</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kvm_emulate_rdmsr</span><br><span class="line">	kvm_get_msr</span><br><span class="line">		kvm_get_msr_ignored_check</span><br><span class="line">			__kvm_get_msr</span><br><span class="line">				vmx_get_msr[kvm_x86_get_msr]</span><br><span class="line">					kvm_get_msr_common</span><br></pre></td></tr></table></figure>
+<p><code>vmx_get_msr</code>处理一部分特殊MSR的读请求,<code>kvm_get_msr_common</code>处理普通MSR的读请求。</p>
+<h3 id="3-2-QEMU-get-MSRs"><a href="#3-2-QEMU-get-MSRs" class="headerlink" title="3.2 QEMU get MSRs"></a>3.2 QEMU get MSRs</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">kvm_arch_dev_ioctl</span><br><span class="line">	msr_io</span><br><span class="line">		__msr_io(...,do_get_msr)</span><br><span class="line"></span><br><span class="line">kvm_arch_vcpu_ioctl</span><br><span class="line">	msr_io</span><br><span class="line">		__msr_io(...,do_get_msr)</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">do_get_msr</span><br><span class="line">    kvm_get_msr_ignored_check</span><br><span class="line">        __kvm_get_msr</span><br><span class="line">            vmx_get_msr</span><br></pre></td></tr></table></figure>
+<h2 id="4-IOCTL"><a href="#4-IOCTL" class="headerlink" title="4. IOCTL"></a>4. IOCTL</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * List of msr numbers which we expose to userspace through KVM_GET_MSRS</span></span><br><span class="line"><span class="comment"> * and KVM_SET_MSRS, and KVM_GET_MSR_INDEX_LIST.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * The three MSR lists(msrs_to_save, emulated_msrs, msr_based_features)</span></span><br><span class="line"><span class="comment"> * extract the supported MSRs from the related const lists.</span></span><br><span class="line"><span class="comment"> * msrs_to_save is selected from the msrs_to_save_all to reflect the</span></span><br><span class="line"><span class="comment"> * capabilities of the host cpu. This capabilities test skips MSRs that are</span></span><br><span class="line"><span class="comment"> * kvm-specific. Those are put in emulated_msrs_all; filtering of emulated_msrs</span></span><br><span class="line"><span class="comment"> * may depend on host virtualization features rather than host cpu features.</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+<h3 id="4-1-KVM-GET-MSR-INDEX-LIST"><a href="#4-1-KVM-GET-MSR-INDEX-LIST" class="headerlink" title="4.1 KVM_GET_MSR_INDEX_LIST"></a>4.1 KVM_GET_MSR_INDEX_LIST</h3><p><code>KVM_GET_MSR_INDEX_LIST</code> returns the guest MSRs that are supported.  The list varies by kvm version and host processor, but does not change otherwise.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// QEMU</span></span><br><span class="line">kvm_get_supported_msrs</span><br><span class="line">	kvm_ioctl(KVM_GET_MSR_INDEX_LIST)</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// KVM</span></span><br><span class="line">kvm_arch_dev_ioctl(KVM_GET_MSR_INDEX_LIST)</span><br><span class="line">	msrs_to_save</span><br><span class="line">	emulated_msrs</span><br></pre></td></tr></table></figure>
+<h3 id="4-2-KVM-GET-MSR-FEATURE-INDEX-LIST"><a href="#4-2-KVM-GET-MSR-FEATURE-INDEX-LIST" class="headerlink" title="4.2 KVM_GET_MSR_FEATURE_INDEX_LIST"></a>4.2 KVM_GET_MSR_FEATURE_INDEX_LIST</h3><p><code>KVM_GET_MSR_FEATURE_INDEX_LIST</code> returns the list of MSRs that can be passed to the <code>KVM_GET_MSRS</code> system ioctl.  This lets userspace probe host capabilities and processor features that are exposed via MSRs (e.g., VMX capabilities).<br>This list also varies by kvm version and host processor, but does not change otherwise.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// QEMU</span></span><br><span class="line">kvm_get_supported_feature_msrs</span><br><span class="line">	kvm_ioctl(KVM_GET_MSR_FEATURE_INDEX_LIST)</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// KVM</span></span><br><span class="line">kvm_arch_dev_ioctl(KVM_GET_MSR_INDEX_LIST)</span><br><span class="line">	msr_based_features</span><br></pre></td></tr></table></figure>
+<h3 id="4-3-KVM-GET-MSRS"><a href="#4-3-KVM-GET-MSRS" class="headerlink" title="4.3 KVM_GET_MSRS"></a>4.3 KVM_GET_MSRS</h3><p>When used as a system ioctl:<br>Reads the values of MSR-based features that are available for the VM.<br>The list of msr-based features can be obtained using <code>KVM_GET_MSR_FEATURE_INDEX_LIST</code> in a system ioctl.</p>
+<p>When used as a vcpu ioctl:<br>Reads model-specific registers from the vcpu.  Supported msr indices can be obtained using <code>KVM_GET_MSR_INDEX_LIST</code> in a system ioctl.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_msrs</span> &#123;</span></span><br><span class="line">	__u32 nmsrs; <span class="comment">/* number of msrs in entries */</span></span><br><span class="line">	__u32 pad;</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kvm_msr_entry</span> <span class="title">entries</span>[0];</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_msr_entry</span> &#123;</span></span><br><span class="line">	__u32 index;</span><br><span class="line">	__u32 reserved;</span><br><span class="line">	__u64 data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>Application code should set the <code>nmsrs</code> member (which indicates the size of the entries array) and the <code>index</code> member of each array entry. kvm will fill in the <code>data</code> member.</p>
+<h3 id="4-4-KVM-SET-MSRS"><a href="#4-4-KVM-SET-MSRS" class="headerlink" title="4.4 KVM_SET_MSRS"></a>4.4 KVM_SET_MSRS</h3><p>Writes model-specific registers to the vcpu. </p>
+<p>Application code should set the <code>nmsrs</code> member (which indicates the size of the entries array), and the <code>index</code> and <code>data</code> members of each array entry.</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.cnblogs.com/haiyonghao/p/14440954.html" target="_blank" rel="noopener">READMSR和CPUID指令在Guest中的代码执行路径学习</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt" target="_blank" rel="noopener">kvm/api.txt</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/KVM/">KVM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2021/12/25/Notes-about-magic-SysRq-key/">
+        <span class="next-text nav-default">Notes about magic SysRq key</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2021
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2021/12/26/MSR-management-in-QEMU-KVM/';
+        this.page.identifier = '2021/12/26/MSR-management-in-QEMU-KVM/';
+        this.page.title = 'MSR management in QEMU/KVM';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
