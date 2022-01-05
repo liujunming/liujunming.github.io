@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2021-12-27T12:16:38.559Z</updated>
+  <updated>2022-01-05T10:08:18.255Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>The usage of Intel GS segment</title>
+    <link href="http://liujunming.github.io/2022/01/05/The-usage-of-Intel-GS-segment/"/>
+    <id>http://liujunming.github.io/2022/01/05/The-usage-of-Intel-GS-segment/</id>
+    <published>2022-01-05T07:48:22.000Z</published>
+    <updated>2022-01-05T10:08:18.255Z</updated>
+    
+    <content type="html"><![CDATA[<p>在阅读<a href="https://gitlab.com/kvm-unit-tests/kvm-unit-tests" target="_blank" rel="noopener">KVM-Unit-Tests</a>过程中，看到了<code>asm (&quot;mov %0, %%gs:0&quot; : : &quot;r&quot;(apic_id()) : &quot;memory&quot;);</code>，不是很明白，因此，特此写一篇文章记录下Intel GS segment的相关用法。<a id="more"></a></p><h3 id="1-Description-in-SDM"><a href="#1-Description-in-SDM" class="headerlink" title="1. Description in SDM"></a>1. Description in SDM</h3><p><img src="/images/2022/01/01.png" alt></p><h3 id="2-Usage"><a href="#2-Usage" class="headerlink" title="2. Usage"></a>2. Usage</h3><ul><li>The GS segment can be used for thread local storage.</li><li>The GS segment can be used for per-CPU data.</li></ul><h3 id="3-Source-code-in-KVM-Unit-Tests"><a href="#3-Source-code-in-KVM-Unit-Tests" class="headerlink" title="3. Source code in KVM-Unit-Tests"></a>3. Source code in KVM-Unit-Tests</h3><p>commit id: ca785dae0dd343b1de4b3f5d6c1223d41fbc39e7</p><p><img src="/images/2022/01/03.png" alt><br><figure class="highlight as"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">MSR_GS_BASE = <span class="number">0xc0000101</span></span><br><span class="line"></span><br><span class="line">.macro setup_percpu_area</span><br><span class="line">lea <span class="number">-4096</span>(%esp), %eax</span><br><span class="line">mov $<span class="number">0</span>, %edx</span><br><span class="line">mov $MSR_GS_BASE, %ecx</span><br><span class="line">wrmsr</span><br><span class="line">.endm</span><br></pre></td></tr></table></figure></p><p><code>MSR_GS_BASE</code> MSR的描述如下：<br><img src="/images/2022/01/02.png" alt></p><p>stack的layout可以以<code>stacktop</code>为关键字，在<a href="https://gitlab.com/kvm-unit-tests/kvm-unit-tests/-/blob/master/x86/cstart64.S" target="_blank" rel="noopener">cstart64.S</a>中搜索。</p><p>Here’re the example to use GS segment to access per-CPU data:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">smp_id</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> id;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">asm</span> (<span class="string">"mov %%gs:0, %0"</span> : <span class="string">"=r"</span>(id));</span><br><span class="line">    <span class="keyword">return</span> id;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">setup_smp_id</span><span class="params">(<span class="keyword">void</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">asm</span> (<span class="string">"mov %0, %%gs:0"</span> : : <span class="string">"r"</span>(apic_id()) : <span class="string">"memory"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><hr><p>参考资料：</p><ol><li><a href="https://stackoverflow.com/questions/10810203/what-is-the-fs-gs-register-intended-for" target="_blank" rel="noopener">What is the “FS”/“GS” register intended for?</a></li><li><a href="https://stackoverflow.com/questions/9249315/what-is-gs-in-assembly" target="_blank" rel="noopener">What is %gs in Assembly</a></li><li><a href="https://stackoverflow.com/questions/12234817/what-does-this-instruction-do-mov-gs0x14-eax" target="_blank" rel="noopener">what does this instruction do?:- mov %gs:0x14,%eax</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;在阅读&lt;a href=&quot;https://gitlab.com/kvm-unit-tests/kvm-unit-tests&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;KVM-Unit-Tests&lt;/a&gt;过程中，看到了&lt;code&gt;asm (&amp;quot;mov %0, %%gs:0&amp;quot; : : &amp;quot;r&amp;quot;(apic_id()) : &amp;quot;memory&amp;quot;);&lt;/code&gt;，不是很明白，因此，特此写一篇文章记录下Intel GS segment的相关用法。
+    
+    </summary>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
+    
+    
+      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
+    
+  </entry>
   
   <entry>
     <title>MSR management in QEMU/KVM</title>
@@ -471,32 +493,6 @@
     
     
       <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Compiling kernel module only w/o whole kernel compilation</title>
-    <link href="http://liujunming.github.io/2021/11/26/Compiling-kernel-module-only-w-o-whole-kernel-compilation/"/>
-    <id>http://liujunming.github.io/2021/11/26/Compiling-kernel-module-only-w-o-whole-kernel-compilation/</id>
-    <published>2021-11-26T02:07:04.000Z</published>
-    <updated>2021-11-26T12:03:30.908Z</updated>
-    
-    <content type="html"><![CDATA[<p>如何只编译内核的单个模块，然后reload新的模块呢？本文以kvm kernel module为例，阐述下具体的过程。本文转载自: <a href="https://yulistic.gitlab.io/2017/10/compiling-kernel-module-only-w/o-whole-kernel-compilation/" target="_blank" rel="noopener">Compiling kernel module only w/o whole kernel compilation</a><a id="more"></a></p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>I was tried to modify a <code>kvm</code> kernel module for my research. Because it was a built-in kernel module, I needed to build all the kernel source code after modifying <code>kvm</code> module which is located in path <code>arch/x86/kvm/</code> from the linux kernel source root.</p><p>The whole kernel compilation was a time consuming job, usually taking over 10 minutes even on my i7 desktop machine. I tried to find a way to compile modules only without the whole kernel compilation. The solution and some troublesomes are described below.</p><h3 id="2-Assumption"><a href="#2-Assumption" class="headerlink" title="2. Assumption"></a>2. Assumption</h3><p>It is assumed that you have a kernel source code and configured it properly according to your taste. Also, assumed that you had installed the kernel and rebooted with it.</p><h3 id="3-Solution"><a href="#3-Solution" class="headerlink" title="3. Solution"></a>3. Solution</h3><p>Building only one module is easy. After configuring, build the source as following.</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make M=path/to/module/directory</span><br><span class="line">make M=path/to/module/directory modules_install</span><br></pre></td></tr></table></figure><p>You can find the path of modules with <code>modinfo</code> command.<br>In my case, the required module was <code>kvm.ko</code>, and <code>kvm-intel.ko</code>. They were located in <code>arch/x86/kvm</code>.</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make M=arch/x86/kvm</span><br><span class="line">make M=arch/x86/kvm modules_install</span><br></pre></td></tr></table></figure><p>You can reload the new modules. I removed the <code>kvm-intel</code> module first because it depends on the <code>kvm</code> module.</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rmmod kvm-intel kvm</span><br></pre></td></tr></table></figure><p>And, load the new modules.</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo modprobe kvm-intel</span><br></pre></td></tr></table></figure><p>Loading <code>kvm-intel</code> will load <code>kvm</code> automatically.</p><p>FYI: the new modules are installed in <strong>/lib/modules/`uname -r`/extra</strong> directory.</p><h3 id="4-Troublesomes"><a href="#4-Troublesomes" class="headerlink" title="4. Troublesomes"></a>4. Troublesomes</h3><h4 id="4-1-modprobe-failure"><a href="#4-1-modprobe-failure" class="headerlink" title="4.1 modprobe failure."></a>4.1 <code>modprobe</code> failure.</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe: error: could not insert &apos;kvm&apos;: exec format error</span><br></pre></td></tr></table></figure><p>The <code>modprobe</code> might fail if the version of a kernel module and that of a kernel are different. You can check the error with <code>dmesg</code> after the <code>modprobe</code> failure.</p><p>In my case, I built the kernel without any modification which resulted in the version number of <code>4.13.0-rc6</code>. When I modified the <code>kvm</code> module and compiled it, the version number was changed to <code>4.13.0-rc6+</code>.</p><p>My solution was building the kernel with some small modifications generating the version number as <code>4.13.0-rc6+</code> as a baseline.<br>The problem solved because the kvm module was also built with the same version number, <code>4.13.0-rc6+</code>, which did not produce any <code>modprobe</code> error.</p><h4 id="4-2-Location-of-generated-modules"><a href="#4-2-Location-of-generated-modules" class="headerlink" title="4. 2 Location of generated modules"></a>4. 2 Location of generated modules</h4><p>The modules generated with <code>M=path</code> options are installed into <strong>/lib/modules/`uname -r`/extra</strong> path. The path is different from the originally built one (when compiling the whole kernel) which is <strong>/lib/modules/`uname -r`/kernel/arch/x86/kvm</strong> in the case of <code>kvm</code>.</p><p>If you want to install a new module into the same location of original one, use <code>INSTALL_MOD_DIR</code> option. Example follows.</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make INSTALL_MOD_DIR=kernel/arch/x86/kvm M=arch/x86/kvm modules_install</span><br></pre></td></tr></table></figure><p>如果<code>modprobe</code>中遇到其他问题，请参考<a href="/2021/11/26/commands-on-Linux-kernel-modules/">commands on Linux kernel modules</a>。</p><h3 id="5-Conclusion"><a href="#5-Conclusion" class="headerlink" title="5. Conclusion"></a>5. Conclusion</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">make M=arch/x86/kvm</span><br><span class="line">make INSTALL_MOD_DIR=kernel/arch/x86/kvm M=arch/x86/kvm modules_install</span><br><span class="line"></span><br><span class="line">rmmod kvm-intel kvm</span><br><span class="line">modprobe kvm-intel</span><br></pre></td></tr></table></figure><p>Create a simple shell file under your Linux source code root.</p><hr><p>参考资料:</p><ol><li><a href="https://yulistic.gitlab.io/2017/10/compiling-kernel-module-only-w/o-whole-kernel-compilation/" target="_blank" rel="noopener">Compiling kernel module only w/o whole kernel compilation</a></li><li><a href="https://www.cnblogs.com/haiyonghao/p/14440240.html" target="_blank" rel="noopener">linux内核中单独module的编译和使用</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;如何只编译内核的单个模块，然后reload新的模块呢？本文以kvm kernel module为例，阐述下具体的过程。本文转载自: &lt;a href=&quot;https://yulistic.gitlab.io/2017/10/compiling-kernel-module-only-w/o-whole-kernel-compilation/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Compiling kernel module only w/o whole kernel compilation&lt;/a&gt;
-    
-    </summary>
-    
-      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
       <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
