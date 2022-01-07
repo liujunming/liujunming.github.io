@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="The usage of cpu hot(un)plug in QEMU">
+
+
+
+
+  <meta name="keywords" content="QEMU, hotplug, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/01/07/The-usage-of-cpu-hot-un-plug-in-QEMU/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> The usage of cpu hot(un)plug in QEMU - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          The usage of cpu hot(un)plug in QEMU
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-01-07
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/QEMU/">QEMU</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Kernel-Configuration"><span class="toc-text">1. Kernel Configuration</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-QEMU-launch-script-setting"><span class="toc-text">2. QEMU launch script setting</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Run-‘qmp-shell’"><span class="toc-text">3. Run ‘qmp-shell’</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Find-out-which-CPU-types-could-be-plugged-and-into-which-sockets"><span class="toc-text">4. Find out which CPU types could be plugged, and into which sockets:</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Hotplug"><span class="toc-text">5. Hotplug</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-Hotunplug"><span class="toc-text">6. Hotunplug</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍在QEMU KVM 环境下，cpu hot(un)plug的使用。<a id="more"></a></p>
+<h3 id="1-Kernel-Configuration"><a href="#1-Kernel-Configuration" class="headerlink" title="1. Kernel Configuration"></a>1. Kernel Configuration</h3><p>To use the cpu hotplug feature,  need to select the following items:</p>
+<ul>
+<li>CONFIG_SMP</li>
+<li>CONFIG_HOTPLUG_CPU</li>
+<li>CONFIG_ACPI_HOTPLUG_CPU</li>
+</ul>
+<h3 id="2-QEMU-launch-script-setting"><a href="#2-QEMU-launch-script-setting" class="headerlink" title="2. QEMU launch script setting"></a>2. QEMU launch script setting</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu [...] -smp 1,maxcpus=4 -qmp unix:/tmp/qmp-sock,server=on,wait=off</span><br></pre></td></tr></table></figure>
+<p>note that the “maxcpus” is mandatory to allow vCPU hotplug.</p>
+<h3 id="3-Run-‘qmp-shell’"><a href="#3-Run-‘qmp-shell’" class="headerlink" title="3. Run ‘qmp-shell’"></a>3. Run ‘qmp-shell’</h3><p>Run ‘qmp-shell’ (located in the source tree, under: “scripts/qmp/“) to connect to the just-launched QEMU:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ ./qmp-shell -p -v /tmp/qmp-sock</span><br><span class="line">Welcome to the QMP low-level shell!</span><br><span class="line">Connected to QEMU 5.1.0</span><br><span class="line"></span><br><span class="line">(QEMU)</span><br></pre></td></tr></table></figure></p>
+<h3 id="4-Find-out-which-CPU-types-could-be-plugged-and-into-which-sockets"><a href="#4-Find-out-which-CPU-types-could-be-plugged-and-into-which-sockets" class="headerlink" title="4. Find out which CPU types could be plugged, and into which sockets:"></a>4. Find out which CPU types could be plugged, and into which sockets:</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">(QEMU) query-hotpluggable-cpus</span><br><span class="line">&#123;</span><br><span class="line">    &quot;execute&quot;: &quot;query-hotpluggable-cpus&quot;,</span><br><span class="line">    &quot;arguments&quot;: &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">    &quot;return&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;props&quot;: &#123;</span><br><span class="line">                &quot;core-id&quot;: 0,</span><br><span class="line">                &quot;thread-id&quot;: 0,</span><br><span class="line">                &quot;socket-id&quot;: 3</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;vcpus-count&quot;: 1,</span><br><span class="line">            &quot;type&quot;: &quot;host-x86_64-cpu&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;props&quot;: &#123;</span><br><span class="line">                &quot;core-id&quot;: 0,</span><br><span class="line">                &quot;thread-id&quot;: 0,</span><br><span class="line">                &quot;socket-id&quot;: 2</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;vcpus-count&quot;: 1,</span><br><span class="line">            &quot;type&quot;: &quot;host-x86_64-cpu&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;props&quot;: &#123;</span><br><span class="line">                &quot;core-id&quot;: 0,</span><br><span class="line">                &quot;thread-id&quot;: 0,</span><br><span class="line">                &quot;socket-id&quot;: 1</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;vcpus-count&quot;: 1,</span><br><span class="line">            &quot;type&quot;: &quot;host-x86_64-cpu&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;props&quot;: &#123;</span><br><span class="line">                &quot;core-id&quot;: 0,</span><br><span class="line">                &quot;thread-id&quot;: 0,</span><br><span class="line">                &quot;socket-id&quot;: 0</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;vcpus-count&quot;: 1,</span><br><span class="line">            &quot;qom-path&quot;: &quot;/machine/unattached/device[0]&quot;,</span><br><span class="line">            &quot;type&quot;: &quot;host-x86_64-cpu&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br><span class="line">(QEMU)</span><br></pre></td></tr></table></figure>
+<p>The <code>query-hotpluggable-cpus</code> command returns an object for CPUs that are present (containing a “qom-path” member) or which may be hot-plugged (no “qom-path” member). From the output, we can see that <code>host-x86_64-cpu</code> is present in socket 0, while hot-plugging a CPU into socket 1 requires passing the listed properties to QMP <code>device_add</code>.</p>
+<h3 id="5-Hotplug"><a href="#5-Hotplug" class="headerlink" title="5. Hotplug"></a>5. Hotplug</h3><p>Before  running <code>device_add</code>, run the following command lines.<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> cd /sys/devices/system/cpu</span><br><span class="line"><span class="meta">$</span> ls</span><br><span class="line">cpu0</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">(QEMU) query-cpus-fast</span><br><span class="line">&#123;</span><br><span class="line">    &quot;execute&quot;: &quot;query-cpus-fast&quot;,</span><br><span class="line">    &quot;arguments&quot;: &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">    &quot;return&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;arch&quot;: &quot;x86&quot;,</span><br><span class="line">            &quot;thread-id&quot;: 20077,</span><br><span class="line">            &quot;props&quot;: &#123;</span><br><span class="line">                &quot;core-id&quot;: 0,</span><br><span class="line">                &quot;thread-id&quot;: 0,</span><br><span class="line">                &quot;socket-id&quot;: 0</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;qom-path&quot;: &quot;/machine/unattached/device[0]&quot;,</span><br><span class="line">            &quot;cpu-index&quot;: 0,</span><br><span class="line">            &quot;target&quot;: &quot;x86_64&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br><span class="line">(QEMU)</span><br></pre></td></tr></table></figure>
+<p>CPU hot-add:<br><strong><em>{ ‘command’: ‘device_add’, ‘data’: {‘driver’: ‘str’, ‘id’: ‘str’, … }}</em></strong></p>
+<ul>
+<li>mandatory properties for every CPU<ul>
+<li>driver: cpu model type name</li>
+<li>id: unique device name</li>
+</ul>
+</li>
+<li>target/configuration dependent properties<ul>
+<li>socket-id: socket number in range [0..max sockets)</li>
+<li>core-id: core number in range [0..max cores)</li>
+<li>thread-id: thread-id in range [..max threads)</li>
+<li>node-id: NUMA node ID the CPU belongs to</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">(QEMU) device_add driver=host-x86_64-cpu socket-id=1 core-id=0 thread-id=0 id=cpu2</span><br><span class="line">&#123;</span><br><span class="line">    &quot;execute&quot;: &quot;device_add&quot;,</span><br><span class="line">    &quot;arguments&quot;: &#123;</span><br><span class="line">        &quot;driver&quot;: &quot;host-x86_64-cpu&quot;,</span><br><span class="line">        &quot;socket-id&quot;: 1,</span><br><span class="line">        &quot;core-id&quot;: 0,</span><br><span class="line">        &quot;thread-id&quot;: 0,</span><br><span class="line">        &quot;id&quot;: &quot;cpu2&quot;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">    &quot;return&quot;: &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line">(QEMU)</span><br></pre></td></tr></table></figure>
+<p>After  running <code>device_add</code>, run the following command lines.<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> cd /sys/devices/system/cpu</span><br><span class="line"><span class="meta">$</span> ls</span><br><span class="line">cpu0</span><br><span class="line">cpu1</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">(QEMU) query-cpus-fast</span><br><span class="line">&#123;</span><br><span class="line">    &quot;execute&quot;: &quot;query-cpus-fast&quot;,</span><br><span class="line">    &quot;arguments&quot;: &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">    &quot;return&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;arch&quot;: &quot;x86&quot;,</span><br><span class="line">            &quot;thread-id&quot;: 20077,</span><br><span class="line">            &quot;props&quot;: &#123;</span><br><span class="line">                &quot;core-id&quot;: 0,</span><br><span class="line">                &quot;thread-id&quot;: 0,</span><br><span class="line">                &quot;socket-id&quot;: 0</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;qom-path&quot;: &quot;/machine/unattached/device[0]&quot;,</span><br><span class="line">            &quot;cpu-index&quot;: 0,</span><br><span class="line">            &quot;target&quot;: &quot;x86_64&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;arch&quot;: &quot;x86&quot;,</span><br><span class="line">            &quot;thread-id&quot;: 20117,</span><br><span class="line">            &quot;props&quot;: &#123;</span><br><span class="line">                &quot;core-id&quot;: 0,</span><br><span class="line">                &quot;thread-id&quot;: 0,</span><br><span class="line">                &quot;socket-id&quot;: 1</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;qom-path&quot;: &quot;/machine/peripheral/cpu2&quot;,</span><br><span class="line">            &quot;cpu-index&quot;: 1,</span><br><span class="line">            &quot;target&quot;: &quot;x86_64&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br><span class="line">(QEMU)</span><br></pre></td></tr></table></figure>
+<p><strong>Optionally online newly added CPU inside guest</strong><br>Linux kernel doesn’t online hot-added CPUs automatically. Once CPU is hot-added it should be onlined using an appropriate udev script or manually by issuing a following command:<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo 1 &gt; /sys/devices/system/cpu/cpu1/online</span><br></pre></td></tr></table></figure></p>
+<h3 id="6-Hotunplug"><a href="#6-Hotunplug" class="headerlink" title="6. Hotunplug"></a>6. Hotunplug</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">(QEMU) device_del id=cpu2</span><br><span class="line">&#123;</span><br><span class="line">    &quot;execute&quot;: &quot;device_del&quot;,</span><br><span class="line">    &quot;arguments&quot;: &#123;</span><br><span class="line">        &quot;id&quot;: &quot;cpu2&quot;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">    &quot;return&quot;: &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line">(QEMU)</span><br></pre></td></tr></table></figure>
+<p>After  running <code>device_del</code>, run the following command lines.<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> cd /sys/devices/system/cpu</span><br><span class="line"><span class="meta">$</span> ls</span><br><span class="line">cpu0</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">(QEMU) query-cpus-fast</span><br><span class="line">&#123;</span><br><span class="line">    &quot;execute&quot;: &quot;query-cpus-fast&quot;,</span><br><span class="line">    &quot;arguments&quot;: &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">    &quot;return&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;arch&quot;: &quot;x86&quot;,</span><br><span class="line">            &quot;thread-id&quot;: 20077,</span><br><span class="line">            &quot;props&quot;: &#123;</span><br><span class="line">                &quot;core-id&quot;: 0,</span><br><span class="line">                &quot;thread-id&quot;: 0,</span><br><span class="line">                &quot;socket-id&quot;: 0</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;qom-path&quot;: &quot;/machine/unattached/device[0]&quot;,</span><br><span class="line">            &quot;cpu-index&quot;: 0,</span><br><span class="line">            &quot;target&quot;: &quot;x86_64&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br><span class="line">(QEMU)</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://qemu.readthedocs.io/en/latest/system/cpu-hotplug.html" target="_blank" rel="noopener">Virtual CPU hotplug</a></li>
+<li><a href="https://wiki.qemu.org/Features/CPUHotplug" target="_blank" rel="noopener">Features/CPUHotplug</a></li>
+<li><a href="http://events17.linuxfoundation.org/sites/events/files/slides/CPU%20Hot-plug%20support%20in%20QEMU.pdf" target="_blank" rel="noopener">QEMU CPU Hotplug</a></li>
+<li><a href="https://github.com/esminc/qemu/blob/master/Source/device-qemu/android/android-goldfish-2.6.29/Documentation/cpu-hotplug.txt" target="_blank" rel="noopener">cpu-hotplug.txt</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/hotplug/">hotplug</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/01/07/The-usage-of-memory-hotplug-under-QEMU-KVM/">
+        <span class="next-text nav-default">The usage of memory hot(un)plug in QEMU</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/01/07/The-usage-of-cpu-hot-un-plug-in-QEMU/';
+        this.page.identifier = '2022/01/07/The-usage-of-cpu-hot-un-plug-in-QEMU/';
+        this.page.title = 'The usage of cpu hot(un)plug in QEMU';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

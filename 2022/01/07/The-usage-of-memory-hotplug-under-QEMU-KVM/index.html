@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="The usage of memory hot(un)plug in QEMU">
+
+
+
+
+  <meta name="keywords" content="QEMU, hotplug, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/01/07/The-usage-of-memory-hotplug-under-QEMU-KVM/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> The usage of memory hot(un)plug in QEMU - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          The usage of memory hot(un)plug in QEMU
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-01-07
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/QEMU/">QEMU</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Kernel-Configuration"><span class="toc-text">1. Kernel Configuration</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-QEMU-launch-script-setting"><span class="toc-text">2. QEMU launch script setting</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Hotplug"><span class="toc-text">3. Hotplug</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Hotunplug"><span class="toc-text">4. Hotunplug</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍在QEMU KVM 环境下，memory hot(un)plug的使用。<a id="more"></a></p>
+<h3 id="1-Kernel-Configuration"><a href="#1-Kernel-Configuration" class="headerlink" title="1. Kernel Configuration"></a>1. Kernel Configuration</h3><p>To use the memory hotplug feature, <code>CONFIG_ACPI_HOTPLUG_MEMORY</code> should be selected.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /boot/config-5.4.0-92-generic | grep CONFIG_ACPI_HOTPLUG_MEMORY</span><br><span class="line">CONFIG_ACPI_HOTPLUG_MEMORY=y</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-QEMU-launch-script-setting"><a href="#2-QEMU-launch-script-setting" class="headerlink" title="2. QEMU launch script setting"></a>2. QEMU launch script setting</h3><p>In order to be able to hotplug memory, QEMU has to be told how many hotpluggable memory slots to create and what is the maximum amount of memory the guest can grow. This is done at startup time by means of the <code>-m</code> command-line option, which has the following format:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-m [size=]megs[,slots=n,maxmem=size]</span><br></pre></td></tr></table></figure></p>
+<p>Where,</p>
+<ul>
+<li>“megs” is the startup RAM. It is the RAM the guest will boot with</li>
+<li>“slots” is the number of hotpluggable memory slots</li>
+<li>“maxmem” is the maximum RAM size the guest can have</li>
+</ul>
+<p>For example, the following command-line:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu [...] -m 1G,slots=3,maxmem=4G</span><br></pre></td></tr></table></figure></p>
+<p>Creates a guest with 1GB of memory and three hotpluggable memory slots. The hotpluggable memory slots are empty when the guest is booted, so all memory the guest will see after boot is 1GB. The maximum memory the guest can reach is 4GB. This means that three additional gigabytes can be hotplugged by using any combination of the available memory slots.</p>
+<h3 id="3-Hotplug"><a href="#3-Hotplug" class="headerlink" title="3. Hotplug"></a>3. Hotplug</h3><p>Before  running <code>device_add</code>, run the following command lines.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/meminfo | head -2</span><br><span class="line">MemTotal:         727172 kB</span><br><span class="line">MemFree:           59700 kB</span><br><span class="line">$ ls /sys/devices/system/memory/ | grep memory</span><br><span class="line">memory0</span><br><span class="line">memory1</span><br><span class="line">memory2</span><br><span class="line">memory3</span><br><span class="line">memory4</span><br><span class="line">memory5</span><br><span class="line">memory6</span><br><span class="line">memory7</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(qemu) object_add memory-backend-ram,id=mem1,size=1G</span><br><span class="line">(qemu) device_add pc-dimm,id=dimm1,memdev=mem1</span><br></pre></td></tr></table></figure>
+<p>After  running <code>device_add</code>, run the following command lines.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/meminfo | head -2</span><br><span class="line">MemTotal:        1785560 kB</span><br><span class="line">MemFree:         1115004 kB</span><br><span class="line">$ ls /sys/devices/system/memory/ | grep memory</span><br><span class="line">memory0</span><br><span class="line">memory1</span><br><span class="line">memory2</span><br><span class="line">memory3</span><br><span class="line">memory32</span><br><span class="line">memory33</span><br><span class="line">memory34</span><br><span class="line">memory35</span><br><span class="line">memory36</span><br><span class="line">memory37</span><br><span class="line">memory38</span><br><span class="line">memory39</span><br><span class="line">memory4</span><br><span class="line">memory5</span><br><span class="line">memory6</span><br><span class="line">memory7</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">$ cat /sys/devices/system/memory/memory33/state</span><br><span class="line">online</span><br></pre></td></tr></table></figure></p>
+<h3 id="4-Hotunplug"><a href="#4-Hotunplug" class="headerlink" title="4. Hotunplug"></a>4. Hotunplug</h3><p>You may need to add <code>movable_node</code> in guest kernel command line firstly!</p>
+<p>In order to be able to hot unplug pc-dimm device, QEMU has to be told the ids of pc-dimm device and memory backend object. The ids were assigned when you hot plugged memory.</p>
+<p>Two monitor commands are used to hot unplug memory:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">- &quot;device_del&quot;: deletes a front-end pc-dimm device</span><br><span class="line">- &quot;object_del&quot;: deletes a memory backend object</span><br></pre></td></tr></table></figure></p>
+<p>For example, assuming that the pc-dimm device with id “dimm1” exists, and its memory backend is “mem1”, the following commands tries to remove it.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(qemu) device_del dimm1</span><br><span class="line">(qemu) object_del mem1</span><br></pre></td></tr></table></figure></p>
+<p>After  running <code>device_del</code>, run the following command lines.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/meminfo | head -2</span><br><span class="line">MemTotal:         736984 kB</span><br><span class="line">MemFree:           87368 kB</span><br><span class="line">$ ls /sys/devices/system/memory/ | grep memory</span><br><span class="line">memory0</span><br><span class="line">memory1</span><br><span class="line">memory2</span><br><span class="line">memory3</span><br><span class="line">memory4</span><br><span class="line">memory5</span><br><span class="line">memory6</span><br><span class="line">memory7</span><br></pre></td></tr></table></figure></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://github.com/qemu/qemu/blob/master/docs/memory-hotplug.txt" target="_blank" rel="noopener">QEMU memory hotplug</a></li>
+<li><a href="https://www.kernel.org/doc/html/latest/admin-guide/mm/memory-hotplug.html" target="_blank" rel="noopener">kernel doc Memory Hot(Un)Plug</a></li>
+<li><a href="https://bugzilla.redhat.com/show_bug.cgi?id=1674497" target="_blank" rel="noopener">Memory Hot-unplug fails to remove DIMM</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/hotplug/">hotplug</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2022/01/07/The-usage-of-cpu-hot-un-plug-in-QEMU/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">The usage of cpu hot(un)plug in QEMU</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2022/01/06/How-to-fetch-mailing-list-patches/">
+        <span class="next-text nav-default">How to fetch mailing list patches</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/01/07/The-usage-of-memory-hotplug-under-QEMU-KVM/';
+        this.page.identifier = '2022/01/07/The-usage-of-memory-hotplug-under-QEMU-KVM/';
+        this.page.title = 'The usage of memory hot(un)plug in QEMU';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
