@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about FPU implementation in Linux kernel">
+
+
+
+
+  <meta name="keywords" content="Kernel, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/01/08/Notes-about-FPU-implementation-in-Linux-kernel/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about FPU implementation in Linux kernel - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about FPU implementation in Linux kernel
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-01-08
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#TIF-NEED-FPU-LOAD"><span class="toc-text">TIF_NEED_FPU_LOAD</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#schedule"><span class="toc-text">schedule</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Defer-FPU-state-load-until-return-to-userspace"><span class="toc-text">Defer FPU state load until return to userspace</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#switch-fpu-prepare"><span class="toc-text">switch_fpu_prepare</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exit-to-user-mode"><span class="toc-text">exit to user mode</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#fpregs-restore-userregs"><span class="toc-text">fpregs_restore_userregs</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#kernel-fpu-begin-kernel-fpu-end"><span class="toc-text">kernel_fpu_begin/kernel_fpu_end</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将结合kernel <a href="https://elixir.bootlin.com/linux/v5.15-rc6/source" target="_blank" rel="noopener">v5.15-rc6</a>，记录下FPU相关的笔记。<a id="more"></a></p>
+<p>建议先阅读<a href="/2021/11/12/Notes-about-XSAVE-feature-set/">Notes about XSAVE feature set</a>。</p>
+<h3 id="TIF-NEED-FPU-LOAD"><a href="#TIF-NEED-FPU-LOAD" class="headerlink" title="TIF_NEED_FPU_LOAD"></a>TIF_NEED_FPU_LOAD</h3><ul>
+<li><p>If <code>TIF_NEED_FPU_LOAD</code> is cleared then the CPU’s FPU registers hold current thread’s FPU registers. </p>
+</li>
+<li><p>If <code>TIF_NEED_FPU_LOAD</code> is set then CPU’s FPU registers may not hold current()’s FPU registers. It is required to load the registers before returning to userland or using the content otherwise.</p>
+</li>
+</ul>
+<h3 id="schedule"><a href="#schedule" class="headerlink" title="schedule"></a>schedule</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">schedule(kernel/sched/core.c)	</span><br><span class="line">    __schedule(kernel/sched/core.c)</span><br><span class="line">    	pick_next_task(kernel/sched/core.c)</span><br><span class="line">        context_switch(kernel/sched/core.c)	</span><br><span class="line">            switch_to(arch/x86/include/<span class="keyword">asm</span>/switch_to.h)</span><br><span class="line">            	__switch_to_asm(arch/x86/entry/entry_64.S)</span><br><span class="line">                    __switch_to(arch/x86/kernel/process_64.c)</span><br><span class="line">                        switch_fpu_prepare</span><br></pre></td></tr></table></figure>
+<h3 id="Defer-FPU-state-load-until-return-to-userspace"><a href="#Defer-FPU-state-load-until-return-to-userspace" class="headerlink" title="Defer FPU state load until return to userspace"></a>Defer FPU state load until return to userspace</h3><p><a href="https://lore.kernel.org/lkml/20181107194858.9380-24-bigeasy@linutronix.de/" target="_blank" rel="noopener">https://lore.kernel.org/lkml/20181107194858.9380-24-bigeasy@linutronix.de/</a></p>
+<p>Idea:Defer loading of FPU state until return to userspace. This gives the kernel the potential to skip loading FPU state for tasks that stay in kernel mode.</p>
+<ul>
+<li>save the FPU register into xsave area for the previous task when task switch occurs</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v5.15-rc6/source/arch/x86/kernel/process_64.c#L568</span></span><br><span class="line">__switch_to</span><br><span class="line">	switch_fpu_prepare</span><br><span class="line">		save_fpregs_to_fpstate</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (!test_thread_flag(TIF_NEED_FPU_LOAD))</span><br><span class="line">	switch_fpu_prepare(prev_fpu, cpu);</span><br></pre></td></tr></table></figure>
+<p>为什么要加<code>!test_thread_flag(TIF_NEED_FPU_LOAD)</code>这一判断呢？<br>因为只有当前cpu fpu的寄存器状态属于previous task时，才能调用switch_fpu_prepare。</p>
+<ul>
+<li>set <code>TIF_NEED_FPU_LOAD</code> for the next task when task switch occurs</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v5.15-rc6/source/arch/x86/kernel/process_64.c#L623</span></span><br><span class="line">__switch_to</span><br><span class="line">	switch_fpu_finish(next_fpu);</span><br><span class="line"></span><br><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v5.15-rc6/source/arch/x86/include/asm/fpu/internal.h#L534</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Delay loading of the complete FPU state until the return to userland.</span></span><br><span class="line"><span class="comment"> * PKRU is handled separately.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">switch_fpu_finish</span><span class="params">(struct fpu *new_fpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (cpu_feature_enabled(X86_FEATURE_FPU))</span><br><span class="line">		set_thread_flag(TIF_NEED_FPU_LOAD);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="switch-fpu-prepare"><a href="#switch-fpu-prepare" class="headerlink" title="switch_fpu_prepare"></a>switch_fpu_prepare</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v5.15-rc6/source/arch/x86/include/asm/fpu/internal.h#L508</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * FPU state switching for scheduling.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This is a two-stage process:</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *  - switch_fpu_prepare() saves the old state.</span></span><br><span class="line"><span class="comment"> *    This is done within the context of the old process.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *  - switch_fpu_finish() sets TIF_NEED_FPU_LOAD; the floating point state</span></span><br><span class="line"><span class="comment"> *    will get loaded on return to userspace, or when the kernel needs it.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * If TIF_NEED_FPU_LOAD is cleared then the CPU's FPU registers</span></span><br><span class="line"><span class="comment"> * are saved in the current thread's FPU register state.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * If TIF_NEED_FPU_LOAD is set then CPU's FPU registers may not</span></span><br><span class="line"><span class="comment"> * hold current()'s FPU registers. It is required to load the</span></span><br><span class="line"><span class="comment"> * registers before returning to userland or using the content</span></span><br><span class="line"><span class="comment"> * otherwise.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * The FPU context is only stored/restored for a user task and</span></span><br><span class="line"><span class="comment"> * PF_KTHREAD is used to distinguish between kernel and user threads.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">switch_fpu_prepare</span><span class="params">(struct fpu *old_fpu, <span class="keyword">int</span> cpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (static_cpu_has(X86_FEATURE_FPU) &amp;&amp; !(current-&gt;flags &amp; PF_KTHREAD)) &#123;</span><br><span class="line">		save_fpregs_to_fpstate(old_fpu);</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * The save operation preserved register state, so the</span></span><br><span class="line"><span class="comment">		 * fpu_fpregs_owner_ctx is still @old_fpu. Store the</span></span><br><span class="line"><span class="comment">		 * current CPU number in @old_fpu, so the next return</span></span><br><span class="line"><span class="comment">		 * to user space can avoid the FPU register restore</span></span><br><span class="line"><span class="comment">		 * when is returns on the same CPU and still owns the</span></span><br><span class="line"><span class="comment">		 * context.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		old_fpu-&gt;last_cpu = cpu;</span><br><span class="line"></span><br><span class="line">		trace_x86_fpu_regs_deactivated(old_fpu);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="exit-to-user-mode"><a href="#exit-to-user-mode" class="headerlink" title="exit to user mode"></a>exit to user mode</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">exit_to_user_mode_prepare</span><br><span class="line">    arch_exit_to_user_mode_prepare</span><br><span class="line">        switch_fpu_return</span><br><span class="line">        	fpregs_restore_userregs</span><br><span class="line">        		__restore_fpregs_from_fpstate</span><br><span class="line">        		fpregs_activate</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">syscall_exit_to_user_mode</span><br><span class="line">    __syscall_exit_to_user_mode_work</span><br><span class="line">        exit_to_user_mode_prepare</span><br><span class="line">            arch_exit_to_user_mode_prepare</span><br><span class="line">	__exit_to_user_mode</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">irqentry_exit_to_user_mode</span><br><span class="line">	__exit_to_user_mode</span><br></pre></td></tr></table></figure>
+<h3 id="fpregs-restore-userregs"><a href="#fpregs-restore-userregs" class="headerlink" title="fpregs_restore_userregs"></a>fpregs_restore_userregs</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v5.15-rc6/source/arch/x86/include/asm/fpu/internal.h#L456</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">fpregs_restore_userregs</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fpu</span> *<span class="title">fpu</span> = &amp;<span class="title">current</span>-&gt;<span class="title">thread</span>.<span class="title">fpu</span>;</span></span><br><span class="line">	<span class="keyword">int</span> cpu = smp_processor_id();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (WARN_ON_ONCE(current-&gt;flags &amp; PF_KTHREAD))</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!fpregs_state_valid(fpu, cpu)) &#123;</span><br><span class="line">		u64 mask;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * This restores _all_ xstate which has not been</span></span><br><span class="line"><span class="comment">		 * established yet.</span></span><br><span class="line"><span class="comment">		 *</span></span><br><span class="line"><span class="comment">		 * If PKRU is enabled, then the PKRU value is already</span></span><br><span class="line"><span class="comment">		 * correct because it was either set in switch_to() or in</span></span><br><span class="line"><span class="comment">		 * flush_thread(). So it is excluded because it might be</span></span><br><span class="line"><span class="comment">		 * not up to date in current-&gt;thread.fpu.xsave state.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		mask = xfeatures_mask_restore_user() |</span><br><span class="line">			xfeatures_mask_supervisor();</span><br><span class="line">		__restore_fpregs_from_fpstate(&amp;fpu-&gt;state, mask);</span><br><span class="line"></span><br><span class="line">		fpregs_activate(fpu);</span><br><span class="line">		fpu-&gt;last_cpu = cpu;</span><br><span class="line">	&#125;</span><br><span class="line">	clear_thread_flag(TIF_NEED_FPU_LOAD);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">int</span> <span class="title">fpregs_state_valid</span><span class="params">(struct fpu *fpu, <span class="keyword">unsigned</span> <span class="keyword">int</span> cpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> fpu == this_cpu_read(fpu_fpregs_owner_ctx) &amp;&amp; cpu == fpu-&gt;last_cpu;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Highest level per task FPU state data structure that</span></span><br><span class="line"><span class="comment"> * contains the FPU register state plus various FPU</span></span><br><span class="line"><span class="comment"> * state fields:</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fpu</span> &#123;</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * @last_cpu:</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * Records the last CPU on which this context was loaded into</span></span><br><span class="line"><span class="comment">	 * FPU registers. (In the lazy-restore case we might be</span></span><br><span class="line"><span class="comment">	 * able to reuse FPU registers across multiple context switches</span></span><br><span class="line"><span class="comment">	 * this way, if no intermediate task used the FPU.)</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * A value of -1 is used to indicate that the FPU state in context</span></span><br><span class="line"><span class="comment">	 * memory is newer than the FPU state in registers, and that the</span></span><br><span class="line"><span class="comment">	 * FPU state should be reloaded next time the task is run.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>			last_cpu;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * @avx512_timestamp:</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * Records the timestamp of AVX512 use during last context switch.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>			avx512_timestamp;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * @state:</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * In-memory copy of all FPU registers that we save/restore</span></span><br><span class="line"><span class="comment">	 * over context switches. If the task is using the FPU then</span></span><br><span class="line"><span class="comment">	 * the registers in the FPU are more recent than this state</span></span><br><span class="line"><span class="comment">	 * copy. If the task context-switches away then they get</span></span><br><span class="line"><span class="comment">	 * saved here and represent the FPU state.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">union</span> fpregs_state		state;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * WARNING: 'state' is dynamically-sized.  Do not put</span></span><br><span class="line"><span class="comment">	 * anything after it here.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">fpregs_activate</span><br><span class="line">	this_cpu_write(fpu_fpregs_owner_ctx, fpu)</span><br><span class="line"></span><br><span class="line">fpregs_deactivate</span><br><span class="line">	this_cpu_write(fpu_fpregs_owner_ctx, <span class="literal">NULL</span>);</span><br></pre></td></tr></table></figure>
+<h3 id="kernel-fpu-begin-kernel-fpu-end"><a href="#kernel-fpu-begin-kernel-fpu-end" class="headerlink" title="kernel_fpu_begin/kernel_fpu_end"></a>kernel_fpu_begin/kernel_fpu_end</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">kernel_fpu_begin</span><br><span class="line">	kernel_fpu_begin_mask(KFPU_MXCSR)</span><br><span class="line">		__cpu_invalidate_fpregs_state</span><br><span class="line">			__this_cpu_write(fpu_fpregs_owner_ctx, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PF_KTHREAD		0x00200000	<span class="comment">/* I am a kernel thread */</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">kernel_fpu_begin_mask</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">int</span> kfpu_mask)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	preempt_disable();</span><br><span class="line"></span><br><span class="line">	WARN_ON_FPU(!irq_fpu_usable());</span><br><span class="line">	WARN_ON_FPU(this_cpu_read(in_kernel_fpu));</span><br><span class="line"></span><br><span class="line">	this_cpu_write(in_kernel_fpu, <span class="literal">true</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!(current-&gt;flags &amp; PF_KTHREAD) &amp;&amp;</span><br><span class="line">	    !test_thread_flag(TIF_NEED_FPU_LOAD)) &#123;</span><br><span class="line">		set_thread_flag(TIF_NEED_FPU_LOAD);</span><br><span class="line">		save_fpregs_to_fpstate(&amp;current-&gt;thread.fpu);</span><br><span class="line">	&#125;</span><br><span class="line">	__cpu_invalidate_fpregs_state();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Put sane initial values into the control registers. */</span></span><br><span class="line">	<span class="keyword">if</span> (likely(kfpu_mask &amp; KFPU_MXCSR) &amp;&amp; boot_cpu_has(X86_FEATURE_XMM))</span><br><span class="line">		ldmxcsr(MXCSR_DEFAULT);</span><br><span class="line"></span><br><span class="line">	....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">kernel_fpu_end</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	WARN_ON_FPU(!this_cpu_read(in_kernel_fpu));</span><br><span class="line"></span><br><span class="line">	this_cpu_write(in_kernel_fpu, <span class="literal">false</span>);</span><br><span class="line">	preempt_enable();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/01/07/The-usage-of-cpu-hot-un-plug-in-QEMU/">
+        <span class="next-text nav-default">The usage of cpu hot(un)plug in QEMU</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/01/08/Notes-about-FPU-implementation-in-Linux-kernel/';
+        this.page.identifier = '2022/01/08/Notes-about-FPU-implementation-in-Linux-kernel/';
+        this.page.title = 'Notes about FPU implementation in Linux kernel';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
