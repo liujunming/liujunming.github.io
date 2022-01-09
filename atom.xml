@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-01-08T16:48:09.767Z</updated>
+  <updated>2022-01-09T07:27:29.981Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Segment protection:CPL,DPL and RPL</title>
+    <link href="http://liujunming.github.io/2022/01/09/Segment-protection-CPL-DPL-and-RPL/"/>
+    <id>http://liujunming.github.io/2022/01/09/Segment-protection-CPL-DPL-and-RPL/</id>
+    <published>2022-01-09T06:33:15.000Z</published>
+    <updated>2022-01-09T07:27:29.981Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将总结Segment protection:CPL,DPL and RPL相关知识点。<a id="more"></a></p><h3 id="1-CPL-DPL-and-RPL"><a href="#1-CPL-DPL-and-RPL" class="headerlink" title="1. CPL,DPL and RPL"></a>1. CPL,DPL and RPL</h3><h4 id="1-1-CPL"><a href="#1-1-CPL" class="headerlink" title="1.1 CPL"></a>1.1 CPL</h4><p><strong>Current privilege level (CPL) field</strong> — (Bits 0 and 1 of the CS segment register.) Indicates the privilege level of the currently executing program or procedure. The term current privilege level (CPL) refers to the setting of this field.<br><img src="/images/2022/01/15.png" alt></p><p>当前权限级别（Current Privilege Level，下简称 CPL） ： CPL 表示当前运行的代码的权限。 通过 CS 的 0~1 位两位记录代码的 CPL 值， CPL 可以有 0~3 供 4 个级别，这就是我们常说的 ring 级别（实际上， ring 级别有更广阔的含义）。其中 ring0对应 CPL=0，具有最高权限， 操作系统的内核运行在该权限； ring3 对应 CPL=3，用户程序运行在 ring3。 CPL 值越高权限越低。</p><h4 id="1-2-DPL"><a href="#1-2-DPL" class="headerlink" title="1.2 DPL"></a>1.2 DPL</h4><p><strong>Descriptor privilege level (DPL) field</strong> — (Bits 13 and 14 in the second doubleword of a segment descriptor.) Determines the privilege level of the segment.<br><img src="/images/2022/01/17.png" alt><br>描述符权限级别（Descriptor Privilege Level，下简称 DPL）： DPL 表示段和门所具有的权限。它表示代码访问某个段或通过某个门时所需要的最低权限。例如某个数据段描述符有 DPL=2，则只有 CPL=0、 1、2 的代码可以访问该数据段， CPL=3 的不能访问。</p><h4 id="1-3-RPL"><a href="#1-3-RPL" class="headerlink" title="1.3 RPL"></a>1.3 RPL</h4><p><strong>Requested privilege level (RPL) field</strong> — (Bits 0 and 1 of any segment selector.) Specifies the requested privilege level of a segment selector.<br><img src="/images/2022/01/16.png" alt><br>所要求权限级别（Requested Privilege Level，以下简称 RPL）： RPL 比较特殊，它存在于段寄存器的 0~1 位（注意， CS 寄存器的 0~1 位是 CPL），用于程序在访问段时增加一级检查。</p><h3 id="2-How-to-check"><a href="#2-How-to-check" class="headerlink" title="2. How to check"></a>2. How to check</h3><p>程序访问一个段，要通过段寄存器得到段描述符，这样会产生 2 次检查，参与检查的 3 个属性分别是：程序本身的 CPL、段寄存器的 RPL、段描述符的 DPL。 CPL、DPL、 RPL 组合起来的情况有很多种，但<u>只有当 CPL &lt;= DPL 且 RPL &lt;= DPL 时，访问才被允许</u>，其余情况均被拒绝。通常，可以把 RPL 设置成 0 来简化检查，此时，满足 CPL&lt;= DPL 访问即被允许。</p><p><img src="/images/2022/01/18.png" alt><br><img src="/images/2022/01/19.png" alt></p><h3 id="3-Materials"><a href="#3-Materials" class="headerlink" title="3. Materials"></a>3. Materials</h3><p>详情请参考SDM Vol3 CHAPTER 5 PROTECTION!</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将总结Segment protection:CPL,DPL and RPL相关知识点。
+    
+    </summary>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
+    
+    
+      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes for SDM Vol2</title>
@@ -455,30 +477,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="QEMU" scheme="http://liujunming.github.io/tags/QEMU/"/>
-    
-      <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about KVM trace</title>
-    <link href="http://liujunming.github.io/2021/12/02/Notes-about-KVM-trace/"/>
-    <id>http://liujunming.github.io/2021/12/02/Notes-about-KVM-trace/</id>
-    <published>2021-12-02T10:37:46.000Z</published>
-    <updated>2021-12-11T15:19:31.714Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about KVM trace.<a id="more"></a></p><h3 id="kvm-trace-point"><a href="#kvm-trace-point" class="headerlink" title="kvm trace point"></a>kvm trace point</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo cat /sys/kernel/debug/tracing/available_events | grep kvm:</span><br><span class="line">sudo cat /sys/kernel/debug/tracing/available_filter_functions | grep -i kvm</span><br></pre></td></tr></table></figure><p>了解kvm 的trace event也是了解kvm的一个渠道。</p><h3 id="Track-kvm-event"><a href="#Track-kvm-event" class="headerlink" title="Track kvm event"></a>Track kvm event</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo trace-cmd record -e kvm</span><br><span class="line">sudo trace-cmd report</span><br></pre></td></tr></table></figure><h3 id="Track-kvm-cpuid"><a href="#Track-kvm-cpuid" class="headerlink" title="Track kvm_cpuid"></a>Track kvm_cpuid</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo trace-cmd record -e kvm_cpuid</span><br><span class="line">sudo trace-cmd report</span><br></pre></td></tr></table></figure><h3 id="Track-kvm-inj-virq"><a href="#Track-kvm-inj-virq" class="headerlink" title="Track kvm_inj_virq"></a>Track kvm_inj_virq</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo trace-cmd record -e kvm_inj_virq</span><br><span class="line">sudo trace-cmd report</span><br></pre></td></tr></table></figure><h3 id="Track-kvm-inj-exception"><a href="#Track-kvm-inj-exception" class="headerlink" title="Track kvm_inj_exception"></a>Track kvm_inj_exception</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo trace-cmd record -e kvm_inj_exception</span><br><span class="line">sudo trace-cmd report</span><br></pre></td></tr></table></figure><h3 id="Track-kvm-exit"><a href="#Track-kvm-exit" class="headerlink" title="Track kvm_exit"></a>Track kvm_exit</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo trace-cmd record -e kvm_exit</span><br><span class="line">sudo trace-cmd report</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://www.linux-kvm.org/page/Tracing" target="_blank" rel="noopener">linux-kvm.org Tracing</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about KVM trace.
-    
-    </summary>
-    
-      <category term="debug" scheme="http://liujunming.github.io/categories/debug/"/>
-    
-    
-      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
     
       <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
     
