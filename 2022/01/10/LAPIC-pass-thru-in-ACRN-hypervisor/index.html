@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="LAPIC pass-thru in ACRN hypervisor">
+
+
+
+
+  <meta name="keywords" content="虚拟化, 中断, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/01/10/LAPIC-pass-thru-in-ACRN-hypervisor/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> LAPIC pass-thru in ACRN hypervisor - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          LAPIC pass-thru in ACRN hypervisor
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-01-10
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/中断/">中断</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#LAPIC-Passthrough-Based-on-vLAPIC"><span class="toc-text">LAPIC Passthrough Based on vLAPIC</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Source-code"><span class="toc-text">Source code</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>How ACRN pass-thru LAPIC?<a id="more"></a></p>
+<h3 id="LAPIC-Passthrough-Based-on-vLAPIC"><a href="#LAPIC-Passthrough-Based-on-vLAPIC" class="headerlink" title="LAPIC Passthrough Based on vLAPIC"></a>LAPIC Passthrough Based on vLAPIC</h3><p>LAPIC passthrough is supported based on vLAPIC, the guest OS first boots with vLAPIC in xAPIC mode and then switches to x2APIC mode to enable the LAPIC passthrough.</p>
+<p>In case of LAPIC passthrough based on vLAPIC, the system will have the following characteristics.</p>
+<ul>
+<li>IRQs received by the LAPIC can be handled by the Guest VM without <code>vmexit</code></li>
+<li>Guest VM always see virtual LAPIC IDs for security consideration</li>
+<li>most MSRs are directly accessible from Guest VM except for <code>XAPICID</code>, <code>LDR</code> and <code>ICR</code>. Write operations to <code>ICR</code> will be trapped to avoid malicious IPIs. Read operations to <code>XAPIC</code> and <code>LDR</code> will be trapped in order to make the Guest VM always see the virtual LAPIC IDs instead of the physical ones.</li>
+</ul>
+<h3 id="Source-code"><a href="#Source-code" class="headerlink" title="Source code"></a>Source code</h3><ul>
+<li><a href="https://github.com/projectacrn/acrn-hypervisor/blob/release_2.7/hypervisor/arch/x86/guest/vmsr.c#L1168-L1187" target="_blank" rel="noopener">update_msr_bitmap_x2apic_passthru</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * After switch to x2apic mode, most MSRs are passthrough to guest, but vlapic is still valid</span></span><br><span class="line"><span class="comment"> * for virtualization of some MSRs for security consideration:</span></span><br><span class="line"><span class="comment"> * - XAPICID/LDR: Read to XAPICID/LDR need to be trapped to guarantee guest always see right vlapic_id.</span></span><br><span class="line"><span class="comment"> * - ICR: Write to ICR need to be trapped to avoid milicious IPI.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @pre vcpu != NULL</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">update_msr_bitmap_x2apic_passthru</span><span class="params">(struct acrn_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">uint8_t</span> *msr_bitmap = vcpu-&gt;arch.msr_bitmap;</span><br><span class="line"></span><br><span class="line">	intercept_x2apic_msrs(msr_bitmap, INTERCEPT_DISABLE);</span><br><span class="line">	enable_msr_interception(msr_bitmap, MSR_IA32_EXT_XAPICID, INTERCEPT_READ);</span><br><span class="line">	enable_msr_interception(msr_bitmap, MSR_IA32_EXT_APIC_LDR, INTERCEPT_READ);</span><br><span class="line">	enable_msr_interception(msr_bitmap, MSR_IA32_EXT_APIC_ICR, INTERCEPT_WRITE);</span><br><span class="line">	set_tsc_msr_interception(vcpu, exec_vmread64(VMX_TSC_OFFSET_FULL) != <span class="number">0U</span>L);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><a href="https://github.com/projectacrn/acrn-hypervisor/blob/release_2.7/hypervisor/arch/x86/guest/vlapic.c#L2150-L2166" target="_blank" rel="noopener">vlapic_x2apic_write</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int32_t</span> vlapic_x2apic_write(struct acrn_vcpu *vcpu, <span class="keyword">uint32_t</span> msr, <span class="keyword">uint64_t</span> val)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">acrn_vlapic</span> *<span class="title">vlapic</span>;</span></span><br><span class="line">	<span class="keyword">uint32_t</span> offset;</span><br><span class="line">	<span class="keyword">int32_t</span> error = <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * If vLAPIC is in xAPIC mode and guest tries to access x2APIC MSRs</span></span><br><span class="line"><span class="comment">	 * inject a GP to guest</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	vlapic = vcpu_vlapic(vcpu);</span><br><span class="line">	<span class="keyword">if</span> (is_x2apic_enabled(vlapic)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (is_lapic_pt_configured(vcpu-&gt;vm)) &#123;</span><br><span class="line">			<span class="keyword">switch</span> (msr) &#123;</span><br><span class="line">			<span class="keyword">case</span> MSR_IA32_EXT_APIC_ICR:</span><br><span class="line">				error = vlapic_x2apic_pt_icr_access(vcpu, val);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">	...</span><br></pre></td></tr></table></figure>
+<ul>
+<li><a href="https://github.com/projectacrn/acrn-hypervisor/blob/release_2.7/hypervisor/arch/x86/guest/vlapic.c#L2116-L2148" target="_blank" rel="noopener">vlapic_x2apic_read</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int32_t</span> vlapic_x2apic_read(struct acrn_vcpu *vcpu, <span class="keyword">uint32_t</span> msr, <span class="keyword">uint64_t</span> *val)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">acrn_vlapic</span> *<span class="title">vlapic</span>;</span></span><br><span class="line">	<span class="keyword">uint32_t</span> offset;</span><br><span class="line">	<span class="keyword">int32_t</span> error = <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * If vLAPIC is in xAPIC mode and guest tries to access x2APIC MSRs</span></span><br><span class="line"><span class="comment">	 * inject a GP to guest</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	vlapic = vcpu_vlapic(vcpu);</span><br><span class="line">	<span class="keyword">if</span> (is_x2apic_enabled(vlapic)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (is_lapic_pt_configured(vcpu-&gt;vm)) &#123;</span><br><span class="line">			<span class="keyword">switch</span> (msr) &#123;</span><br><span class="line">			<span class="keyword">case</span> MSR_IA32_EXT_APIC_LDR:</span><br><span class="line">			<span class="keyword">case</span> MSR_IA32_EXT_XAPICID:</span><br><span class="line">				offset = x2apic_msr_to_regoff(msr);</span><br><span class="line">				error = vlapic_read(vlapic, offset, val);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">default</span>:</span><br><span class="line">				pr_err(<span class="string">"%s: unexpected MSR[0x%x] read with lapic_pt"</span>, __func__, msr);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			offset = x2apic_msr_to_regoff(msr);</span><br><span class="line">			<span class="keyword">if</span> (vlapic-&gt;ops-&gt;x2apic_read_msr_may_valid(offset)) &#123;</span><br><span class="line">				error = vlapic_read(vlapic, offset, val);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://projectacrn.github.io/latest/developer-guides/hld/hv-virt-interrupt.html#lapic-passthrough-based-on-vlapic" target="_blank" rel="noopener">LAPIC Passthrough Based on vLAPIC</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/中断/">中断</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/01/09/Segment-protection-CPL-DPL-and-RPL/">
+        <span class="next-text nav-default">Segment protection:CPL,DPL and RPL</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/01/10/LAPIC-pass-thru-in-ACRN-hypervisor/';
+        this.page.identifier = '2022/01/10/LAPIC-pass-thru-in-ACRN-hypervisor/';
+        this.page.title = 'LAPIC pass-thru in ACRN hypervisor';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
