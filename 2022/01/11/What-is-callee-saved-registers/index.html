@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="caller-saved registers and callee-saved registers">
+
+
+
+
+  <meta name="keywords" content="计算机编程, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/01/11/What-is-callee-saved-registers/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> caller-saved registers and callee-saved registers - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          caller-saved registers and callee-saved registers
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-01-11
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机编程/">计算机编程</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Prerequisite"><span class="toc-text">1. Prerequisite</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Definition"><span class="toc-text">2. Definition</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-Caller-saved-registers"><span class="toc-text">2.1 Caller-saved registers</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-Callee-saved-registers"><span class="toc-text">2.2 Callee-saved registers</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Linux-x86-64-function-call"><span class="toc-text">3. Linux x86-64 function call</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-Callee-saved-registers"><span class="toc-text">3.1 Callee-saved registers</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-Caller-saved-registers"><span class="toc-text">3.2 Caller-saved registers</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Example"><span class="toc-text">4. Example</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-setjmp"><span class="toc-text">4.1 setjmp</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-arch-switch-to"><span class="toc-text">4.2 arch_switch_to</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>The introduction to caller-saved registers and callee-saved registers.<a id="more"></a></p>
+<h3 id="1-Prerequisite"><a href="#1-Prerequisite" class="headerlink" title="1. Prerequisite"></a>1. Prerequisite</h3><p><a href="/2020/04/11/Introduction-to-System-V-ABI/">Introduction to System V ABI</a></p>
+<h3 id="2-Definition"><a href="#2-Definition" class="headerlink" title="2. Definition"></a>2. Definition</h3><h4 id="2-1-Caller-saved-registers"><a href="#2-1-Caller-saved-registers" class="headerlink" title="2.1 Caller-saved registers"></a>2.1 Caller-saved registers</h4><blockquote>
+<p><strong>Caller-saved registers</strong> (AKA <strong>volatile</strong> registers, or <strong>call-clobbered</strong>) are used to hold temporary quantities that need not be preserved across calls.</p>
+</blockquote>
+<p>For that reason, it is the caller’s responsibility to push these registers onto the stack or copy them somewhere else if it wants to restore this value after a procedure call.</p>
+<p>It’s normal to let a <code>call</code> destroy temporary values in these registers, though.</p>
+<h4 id="2-2-Callee-saved-registers"><a href="#2-2-Callee-saved-registers" class="headerlink" title="2.2 Callee-saved registers"></a>2.2 Callee-saved registers</h4><blockquote>
+<p><strong>Callee-saved registers</strong> (AKA <strong>non-volatile</strong> registers, or <strong>call-preserved</strong>) are used to hold long-lived values that should be preserved across calls.</p>
+</blockquote>
+<p>When the caller makes a procedure call, it can expect that those registers will hold the same value after the callee returns, making it the responsibility of the callee to save them and restore them before returning to the caller. Or to not touch them.</p>
+<h3 id="3-Linux-x86-64-function-call"><a href="#3-Linux-x86-64-function-call" class="headerlink" title="3. Linux x86-64 function call"></a>3. Linux x86-64 function call</h3><p><a href="https://www.uclibc.org/docs/psABI-x86_64.pdf" target="_blank" rel="noopener">spec</a></p>
+<h4 id="3-1-Callee-saved-registers"><a href="#3-1-Callee-saved-registers" class="headerlink" title="3.1 Callee-saved registers"></a>3.1 Callee-saved registers</h4><p><img src="/images/2022/01/20.png" alt></p>
+<p><code>r12</code>, <code>r13</code>, <code>r14</code>, <code>r15</code>, <code>rbx</code>, <code>rsp</code>, <code>rbp</code> are the callee-saved registers - they have a “Yes” in the “Preserved across function calls” column.</p>
+<h4 id="3-2-Caller-saved-registers"><a href="#3-2-Caller-saved-registers" class="headerlink" title="3.2 Caller-saved registers"></a>3.2 Caller-saved registers</h4><p><img src="/images/2022/01/21.png" alt></p>
+<h3 id="4-Example"><a href="#4-Example" class="headerlink" title="4. Example"></a>4. Example</h3><h4 id="4-1-setjmp"><a href="#4-1-setjmp" class="headerlink" title="4.1 setjmp"></a>4.1 setjmp</h4><p><a href="https://gitlab.com/kvm-unit-tests/kvm-unit-tests/-/blob/master/lib/x86/setjmp64.S" target="_blank" rel="noopener">https://gitlab.com/kvm-unit-tests/kvm-unit-tests/-/blob/master/lib/x86/setjmp64.S</a></p>
+<figure class="highlight as"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">.globl setjmp</span><br><span class="line">setjmp:</span><br><span class="line">	mov (%rsp), %rsi</span><br><span class="line">	mov %rsi, (%rdi)</span><br><span class="line">	mov %rsp, <span class="number">0x8</span>(%rdi)</span><br><span class="line">	mov %rbp, <span class="number">0x10</span>(%rdi)</span><br><span class="line">	mov %rbx, <span class="number">0x18</span>(%rdi)</span><br><span class="line">	mov %r12, <span class="number">0x20</span>(%rdi)</span><br><span class="line">	mov %r13, <span class="number">0x28</span>(%rdi)</span><br><span class="line">	mov %r14, <span class="number">0x30</span>(%rdi)</span><br><span class="line">	mov %r15, <span class="number">0x38</span>(%rdi)</span><br><span class="line">	xor %eax, %eax</span><br><span class="line">	ret</span><br><span class="line"></span><br><span class="line">.globl longjmp</span><br><span class="line">longjmp:</span><br><span class="line">	mov %esi, %eax</span><br><span class="line">	mov <span class="number">0x38</span>(%rdi), %r15</span><br><span class="line">	mov <span class="number">0x30</span>(%rdi), %r14</span><br><span class="line">	mov <span class="number">0x28</span>(%rdi), %r13</span><br><span class="line">	mov <span class="number">0x20</span>(%rdi), %r12</span><br><span class="line">	mov <span class="number">0x18</span>(%rdi), %rbx</span><br><span class="line">	mov <span class="number">0x10</span>(%rdi), %rbp</span><br><span class="line">	mov <span class="number">0x8</span>(%rdi), %rsp</span><br><span class="line">	mov (%rdi), %rsi</span><br><span class="line">	mov %rsi, (%rsp)</span><br><span class="line">	ret</span><br></pre></td></tr></table></figure>
+<h4 id="4-2-arch-switch-to"><a href="#4-2-arch-switch-to" class="headerlink" title="4.2 arch_switch_to"></a>4.2 arch_switch_to</h4><p><a href="https://github.com/projectacrn/acrn-hypervisor/blob/release_2.7/hypervisor/arch/x86/sched.S" target="_blank" rel="noopener">https://github.com/projectacrn/acrn-hypervisor/blob/release_2.7/hypervisor/arch/x86/sched.S</a></p>
+<figure class="highlight as"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">    .text</span><br><span class="line"></span><br><span class="line">   .code64</span><br><span class="line">   .align       <span class="number">8</span></span><br><span class="line">   .global      arch_switch_to</span><br><span class="line">arch_switch_to:</span><br><span class="line">	pushf</span><br><span class="line">	pushq %rbx</span><br><span class="line">	pushq %rbp</span><br><span class="line">	pushq %r12</span><br><span class="line">	pushq %r13</span><br><span class="line">	pushq %r14</span><br><span class="line">	pushq %r15</span><br><span class="line">	pushq %rdi</span><br><span class="line">	movq %rsp, (%rdi)</span><br><span class="line">	movq (%rsi), %rsp</span><br><span class="line">	popq %rdi</span><br><span class="line">	popq %r15</span><br><span class="line">	popq %r14</span><br><span class="line">	popq %r13</span><br><span class="line">	popq %r12</span><br><span class="line">	popq %rbp</span><br><span class="line">	popq %rbx</span><br><span class="line">	popf</span><br><span class="line">	retq</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://stackoverflow.com/questions/9268586/what-are-callee-and-caller-saved-registers" target="_blank" rel="noopener">What are callee and caller saved registers?</a></li>
+<li><a href="https://stackoverflow.com/questions/18024672/what-registers-are-preserved-through-a-linux-x86-64-function-call" target="_blank" rel="noopener">What registers are preserved through a linux x86-64 function call</a></li>
+<li><a href="https://www.cs.virginia.edu/~evans/cs216/guides/x86.html" target="_blank" rel="noopener">x86 Assembly Guide</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/计算机编程/">计算机编程</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2022/01/11/How-to-verify-the-difference-between-posted-interrupt-and-event-injection/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">How to verify the difference between posted interrupt and event injection</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2022/01/10/LAPIC-pass-thru-in-ACRN-hypervisor/">
+        <span class="next-text nav-default">LAPIC pass-thru in ACRN hypervisor</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/01/11/What-is-callee-saved-registers/';
+        this.page.identifier = '2022/01/11/What-is-callee-saved-registers/';
+        this.page.title = 'caller-saved registers and callee-saved registers';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-01-10T10:04:37.955Z</updated>
+  <updated>2022-01-11T10:34:52.524Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,52 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>How to verify the difference between posted interrupt and event injection</title>
+    <link href="http://liujunming.github.io/2022/01/11/How-to-verify-the-difference-between-posted-interrupt-and-event-injection/"/>
+    <id>http://liujunming.github.io/2022/01/11/How-to-verify-the-difference-between-posted-interrupt-and-event-injection/</id>
+    <published>2022-01-11T06:38:25.000Z</published>
+    <updated>2022-01-11T10:34:52.524Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将介绍利用ftrace to verify the difference between posted interrupt and event injection.<a id="more"></a></p><h3 id="1-Posted-Interrupt-scenarios"><a href="#1-Posted-Interrupt-scenarios" class="headerlink" title="1. Posted Interrupt scenarios"></a>1. Posted Interrupt scenarios</h3><ul><li>Enable Posted Interrupt<ul><li>kernel parameter: <code>kvm_intel.enable_apicv=1</code></li><li><code>rmmod kvm-intel kvm &amp;&amp; modprobe kvm-intel enable_apicv=1</code></li></ul></li><li>Need to ensure <code>cat /sys/module/kvm_intel/parameters/enable_apicv</code> is <strong>Y</strong></li></ul><h3 id="2-Event-Injection-scenarios"><a href="#2-Event-Injection-scenarios" class="headerlink" title="2. Event Injection scenarios"></a>2. Event Injection scenarios</h3><ul><li><p>Disable Posted Interrupt</p><ul><li>kernel parameter: <code>kvm_intel.enable_apicv=0</code></li><li><code>rmmod kvm-intel kvm &amp;&amp; modprobe kvm-intel enable_apicv=0</code></li></ul></li><li><p>Need to ensure <code>cat /sys/module/kvm_intel/parameters/enable_apicv</code> is <strong>N</strong></p></li></ul><h3 id="3-Trace-verification"><a href="#3-Trace-verification" class="headerlink" title="3. Trace verification"></a>3. Trace verification</h3><ul><li>sudo trace-cmd record -e kvm_inj_virq</li><li>sudo trace-cmd report</li></ul><h4 id="3-1-trace-for-Posted-Interrupt"><a href="#3-1-trace-for-Posted-Interrupt" class="headerlink" title="3.1 trace for Posted Interrupt"></a>3.1 trace for Posted Interrupt</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86-930906 [173] 703091.577738: kvm_inj_virq:         irq 8</span><br><span class="line">qemu-system-x86-930906 [173] 703091.577741: kvm_inj_virq:         irq 8</span><br><span class="line">qemu-system-x86-930906 [173] 703091.581667: kvm_inj_virq:         irq 16</span><br><span class="line">qemu-system-x86-930906 [173] 703091.582496: kvm_inj_virq:         irq 16</span><br><span class="line">qemu-system-x86-930906 [173] 703091.592551: kvm_inj_virq:         irq 25</span><br></pre></td></tr></table></figure><h4 id="3-2-trace-for-Event-Injection"><a href="#3-2-trace-for-Event-Injection" class="headerlink" title="3.2 trace for Event Injection"></a>3.2 trace for Event Injection</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86-931437 [222] 703390.933279: kvm_inj_virq:         irq 8</span><br><span class="line">qemu-system-x86-931437 [222] 703390.933282: kvm_inj_virq:         irq 8</span><br><span class="line">qemu-system-x86-931437 [222] 703390.940684: kvm_inj_virq:         irq 16</span><br><span class="line">qemu-system-x86-931437 [222] 703390.941541: kvm_inj_virq:         irq 16</span><br><span class="line">qemu-system-x86-931437 [222] 703390.951859: kvm_inj_virq:         irq 25</span><br><span class="line">qemu-system-x86-931438 [223] 703391.322195: kvm_inj_virq:         irq 32</span><br><span class="line">qemu-system-x86-931437 [222] 703391.330941: kvm_inj_virq:         irq 236</span><br><span class="line">qemu-system-x86-931437 [222] 703391.331953: kvm_inj_virq:         irq 236</span><br><span class="line">qemu-system-x86-931437 [222] 703392.385846: kvm_inj_virq:         irq 236</span><br></pre></td></tr></table></figure><h4 id="3-3-summary"><a href="#3-3-summary" class="headerlink" title="3.3 summary"></a>3.3 summary</h4><p>Interrupts 32 to 255—User Defined Interrupts</p><p>相对于Event Injection，当enable Posted Interrupt之后，trace中没有出现User Defined Interrupts的kvm_inj_virq事件！</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将介绍利用ftrace to verify the difference between posted interrupt and event injection.
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>caller-saved registers and callee-saved registers</title>
+    <link href="http://liujunming.github.io/2022/01/11/What-is-callee-saved-registers/"/>
+    <id>http://liujunming.github.io/2022/01/11/What-is-callee-saved-registers/</id>
+    <published>2022-01-11T00:42:56.000Z</published>
+    <updated>2022-01-11T10:34:52.525Z</updated>
+    
+    <content type="html"><![CDATA[<p>The introduction to caller-saved registers and callee-saved registers.<a id="more"></a></p><h3 id="1-Prerequisite"><a href="#1-Prerequisite" class="headerlink" title="1. Prerequisite"></a>1. Prerequisite</h3><p><a href="/2020/04/11/Introduction-to-System-V-ABI/">Introduction to System V ABI</a></p><h3 id="2-Definition"><a href="#2-Definition" class="headerlink" title="2. Definition"></a>2. Definition</h3><h4 id="2-1-Caller-saved-registers"><a href="#2-1-Caller-saved-registers" class="headerlink" title="2.1 Caller-saved registers"></a>2.1 Caller-saved registers</h4><blockquote><p><strong>Caller-saved registers</strong> (AKA <strong>volatile</strong> registers, or <strong>call-clobbered</strong>) are used to hold temporary quantities that need not be preserved across calls.</p></blockquote><p>For that reason, it is the caller’s responsibility to push these registers onto the stack or copy them somewhere else if it wants to restore this value after a procedure call.</p><p>It’s normal to let a <code>call</code> destroy temporary values in these registers, though.</p><h4 id="2-2-Callee-saved-registers"><a href="#2-2-Callee-saved-registers" class="headerlink" title="2.2 Callee-saved registers"></a>2.2 Callee-saved registers</h4><blockquote><p><strong>Callee-saved registers</strong> (AKA <strong>non-volatile</strong> registers, or <strong>call-preserved</strong>) are used to hold long-lived values that should be preserved across calls.</p></blockquote><p>When the caller makes a procedure call, it can expect that those registers will hold the same value after the callee returns, making it the responsibility of the callee to save them and restore them before returning to the caller. Or to not touch them.</p><h3 id="3-Linux-x86-64-function-call"><a href="#3-Linux-x86-64-function-call" class="headerlink" title="3. Linux x86-64 function call"></a>3. Linux x86-64 function call</h3><p><a href="https://www.uclibc.org/docs/psABI-x86_64.pdf" target="_blank" rel="noopener">spec</a></p><h4 id="3-1-Callee-saved-registers"><a href="#3-1-Callee-saved-registers" class="headerlink" title="3.1 Callee-saved registers"></a>3.1 Callee-saved registers</h4><p><img src="/images/2022/01/20.png" alt></p><p><code>r12</code>, <code>r13</code>, <code>r14</code>, <code>r15</code>, <code>rbx</code>, <code>rsp</code>, <code>rbp</code> are the callee-saved registers - they have a “Yes” in the “Preserved across function calls” column.</p><h4 id="3-2-Caller-saved-registers"><a href="#3-2-Caller-saved-registers" class="headerlink" title="3.2 Caller-saved registers"></a>3.2 Caller-saved registers</h4><p><img src="/images/2022/01/21.png" alt></p><h3 id="4-Example"><a href="#4-Example" class="headerlink" title="4. Example"></a>4. Example</h3><h4 id="4-1-setjmp"><a href="#4-1-setjmp" class="headerlink" title="4.1 setjmp"></a>4.1 setjmp</h4><p><a href="https://gitlab.com/kvm-unit-tests/kvm-unit-tests/-/blob/master/lib/x86/setjmp64.S" target="_blank" rel="noopener">https://gitlab.com/kvm-unit-tests/kvm-unit-tests/-/blob/master/lib/x86/setjmp64.S</a></p><figure class="highlight as"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">.globl setjmp</span><br><span class="line">setjmp:</span><br><span class="line">mov (%rsp), %rsi</span><br><span class="line">mov %rsi, (%rdi)</span><br><span class="line">mov %rsp, <span class="number">0x8</span>(%rdi)</span><br><span class="line">mov %rbp, <span class="number">0x10</span>(%rdi)</span><br><span class="line">mov %rbx, <span class="number">0x18</span>(%rdi)</span><br><span class="line">mov %r12, <span class="number">0x20</span>(%rdi)</span><br><span class="line">mov %r13, <span class="number">0x28</span>(%rdi)</span><br><span class="line">mov %r14, <span class="number">0x30</span>(%rdi)</span><br><span class="line">mov %r15, <span class="number">0x38</span>(%rdi)</span><br><span class="line">xor %eax, %eax</span><br><span class="line">ret</span><br><span class="line"></span><br><span class="line">.globl longjmp</span><br><span class="line">longjmp:</span><br><span class="line">mov %esi, %eax</span><br><span class="line">mov <span class="number">0x38</span>(%rdi), %r15</span><br><span class="line">mov <span class="number">0x30</span>(%rdi), %r14</span><br><span class="line">mov <span class="number">0x28</span>(%rdi), %r13</span><br><span class="line">mov <span class="number">0x20</span>(%rdi), %r12</span><br><span class="line">mov <span class="number">0x18</span>(%rdi), %rbx</span><br><span class="line">mov <span class="number">0x10</span>(%rdi), %rbp</span><br><span class="line">mov <span class="number">0x8</span>(%rdi), %rsp</span><br><span class="line">mov (%rdi), %rsi</span><br><span class="line">mov %rsi, (%rsp)</span><br><span class="line">ret</span><br></pre></td></tr></table></figure><h4 id="4-2-arch-switch-to"><a href="#4-2-arch-switch-to" class="headerlink" title="4.2 arch_switch_to"></a>4.2 arch_switch_to</h4><p><a href="https://github.com/projectacrn/acrn-hypervisor/blob/release_2.7/hypervisor/arch/x86/sched.S" target="_blank" rel="noopener">https://github.com/projectacrn/acrn-hypervisor/blob/release_2.7/hypervisor/arch/x86/sched.S</a></p><figure class="highlight as"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">    .text</span><br><span class="line"></span><br><span class="line">   .code64</span><br><span class="line">   .align       <span class="number">8</span></span><br><span class="line">   .global      arch_switch_to</span><br><span class="line">arch_switch_to:</span><br><span class="line">pushf</span><br><span class="line">pushq %rbx</span><br><span class="line">pushq %rbp</span><br><span class="line">pushq %r12</span><br><span class="line">pushq %r13</span><br><span class="line">pushq %r14</span><br><span class="line">pushq %r15</span><br><span class="line">pushq %rdi</span><br><span class="line">movq %rsp, (%rdi)</span><br><span class="line">movq (%rsi), %rsp</span><br><span class="line">popq %rdi</span><br><span class="line">popq %r15</span><br><span class="line">popq %r14</span><br><span class="line">popq %r13</span><br><span class="line">popq %r12</span><br><span class="line">popq %rbp</span><br><span class="line">popq %rbx</span><br><span class="line">popf</span><br><span class="line">retq</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://stackoverflow.com/questions/9268586/what-are-callee-and-caller-saved-registers" target="_blank" rel="noopener">What are callee and caller saved registers?</a></li><li><a href="https://stackoverflow.com/questions/18024672/what-registers-are-preserved-through-a-linux-x86-64-function-call" target="_blank" rel="noopener">What registers are preserved through a linux x86-64 function call</a></li><li><a href="https://www.cs.virginia.edu/~evans/cs216/guides/x86.html" target="_blank" rel="noopener">x86 Assembly Guide</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;The introduction to caller-saved registers and callee-saved registers.
+    
+    </summary>
+    
+      <category term="计算机编程" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BC%96%E7%A8%8B/"/>
+    
+    
+      <category term="计算机编程" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BC%96%E7%A8%8B/"/>
+    
+  </entry>
   
   <entry>
     <title>LAPIC pass-thru in ACRN hypervisor</title>
@@ -425,58 +471,6 @@
     
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>The usage of QEMU&amp;&amp;KVM live migration</title>
-    <link href="http://liujunming.github.io/2021/12/04/The-usage-of-QEMU-KVM-live-migration/"/>
-    <id>http://liujunming.github.io/2021/12/04/The-usage-of-QEMU-KVM-live-migration/</id>
-    <published>2021-12-04T07:45:45.000Z</published>
-    <updated>2021-12-05T11:12:42.291Z</updated>
-    
-    <content type="html"><![CDATA[<p>Steps of live migration under QEMU&amp;&amp;KVM.<a id="more"></a></p><p>A is the source host, B is the destination host.</p><h3 id="1-launch-source-VM-on-A"><a href="#1-launch-source-VM-on-A" class="headerlink" title="1. launch source VM on A"></a>1. launch source VM on A</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;qemu-command-line&gt;</span><br></pre></td></tr></table></figure><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>! /bin/bash -x</span><br><span class="line">    qemu-system-x86_64 \</span><br><span class="line">    -enable-kvm \</span><br><span class="line">    -m 4096 \</span><br><span class="line">    -smp 2 \</span><br><span class="line">    -cpu host \</span><br><span class="line">    -drive format=raw,file=laag.img \</span><br><span class="line">    -serial mon:stdio \</span><br><span class="line">    -vnc :3</span><br></pre></td></tr></table></figure><h3 id="2-launch-destination-VM-on-B"><a href="#2-launch-destination-VM-on-B" class="headerlink" title="2. launch destination VM on B"></a>2. launch destination VM on B</h3><p>Start the VM on B with the exact same parameters as the VM on A, in migration-listen mode:</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;qemu-command-line&gt; -incoming tcp:0:4444</span><br></pre></td></tr></table></figure><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span>! /bin/bash -x</span><br><span class="line">    qemu-system-x86_64 \</span><br><span class="line">    -enable-kvm \</span><br><span class="line">    -m 4096 \</span><br><span class="line">    -smp 2 \</span><br><span class="line">    -cpu host \</span><br><span class="line">    -drive format=raw,file=laag.img \</span><br><span class="line">    -serial mon:stdio \</span><br><span class="line">    -vnc :4 \</span><br><span class="line">    -incoming tcp:0:4444</span><br></pre></td></tr></table></figure><h3 id="3-start-the-migration-on-A-only"><a href="#3-start-the-migration-on-A-only" class="headerlink" title="3. start the migration (on A only)"></a>3. start the migration (on A only)</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(qemu)migrate -d tcp:&lt;host B IP&gt;:4444</span><br></pre></td></tr></table></figure><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(qemu)migrate -d tcp:localhost:4444</span><br></pre></td></tr></table></figure><h3 id="4-check-the-status-on-A-only"><a href="#4-check-the-status-on-A-only" class="headerlink" title="4.  check the status (on A only)"></a>4.  check the status (on A only)</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(qemu) info migrate</span><br></pre></td></tr></table></figure><p>When completed, get can the info: <code>Migration status: completed</code>.  The source VM will stop at the end.</p><h3 id="5-misc"><a href="#5-misc" class="headerlink" title="5. misc"></a>5. misc</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">(qemu) help migrate</span><br><span class="line">migrate [-d] [-b] [-i] [-r] uri -- migrate to URI (using -d to not wait for completion)</span><br><span class="line">                         -b for migration without shared storage with full copy of disk</span><br><span class="line">                         -i for migration without shared storage with incremental copy of disk (base image shared between src and destination)</span><br><span class="line">                         -r to resume a paused migration</span><br></pre></td></tr></table></figure><p>The ‘-d’ will let you query the status of the migration. With no ‘-d’ the monitor prompt returns when the migration completes.</p><hr><p>参考资料:</p><ol><li><a href="https://www.linux-kvm.org/page/Migration" target="_blank" rel="noopener">page/Migration</a></li><li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2018/03/01/qemu-live-migration" target="_blank" rel="noopener">qemu热迁移简介</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Steps of live migration under QEMU&amp;amp;&amp;amp;KVM.
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
-    
-      <category term="live migration" scheme="http://liujunming.github.io/tags/live-migration/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>How to verify the virtio kick behavior</title>
-    <link href="http://liujunming.github.io/2021/12/03/How-to-verify-the-virtio-kick-behavior/"/>
-    <id>http://liujunming.github.io/2021/12/03/How-to-verify-the-virtio-kick-behavior/</id>
-    <published>2021-12-03T05:27:34.000Z</published>
-    <updated>2021-12-05T11:12:42.288Z</updated>
-    
-    <content type="html"><![CDATA[<p>How to use QEMU monitor and trace-cmd to verify the virtio kick behavior?<a id="more"></a></p><h3 id="1-definition-of-virtio-kick"><a href="#1-definition-of-virtio-kick" class="headerlink" title="1. definition of virtio kick"></a>1. definition of virtio kick</h3><p>kick: used by the guest to notify the host that SGs have been added.</p><p><a href="http://retis.sssup.it/luca/KernelProgramming/Slides/kp_virtio.pdf" target="_blank" rel="noopener">http://retis.sssup.it/luca/KernelProgramming/Slides/kp_virtio.pdf</a></p><h3 id="2-create-a-virtio-device"><a href="#2-create-a-virtio-device" class="headerlink" title="2. create a virtio device"></a>2. create a virtio device</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-drive format=raw,file=laag.img,if=virtio</span><br></pre></td></tr></table></figure><h3 id="3-get-the-notify-mmio-addr-in-guest"><a href="#3-get-the-notify-mmio-addr-in-guest" class="headerlink" title="3. get the notify mmio addr in guest"></a>3. get the notify mmio addr in guest</h3><p>In QEMU monitor, type <code>info mtree</code></p><p><img src="/images/2021/12/2.png" alt></p><p>type <code>info pci</code></p><p><img src="/images/2021/12/3.png" alt></p><h3 id="4-track-the-kvm-mmio-event"><a href="#4-track-the-kvm-mmio-event" class="headerlink" title="4. track the kvm_mmio event"></a>4. track the kvm_mmio event</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo trace-cmd record -e kvm_mmio</span><br><span class="line">sudo trace-cmd report</span><br></pre></td></tr></table></figure><p><img src="/images/2021/12/4.png" alt></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;How to use QEMU monitor and trace-cmd to verify the virtio kick behavior?
-    
-    </summary>
-    
-      <category term="debug" scheme="http://liujunming.github.io/categories/debug/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
-    
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
     
   </entry>
   
