@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-01-11T10:34:52.524Z</updated>
+  <updated>2022-01-12T10:11:09.085Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,54 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>中断那些事</title>
+    <link href="http://liujunming.github.io/2022/01/12/%E4%B8%AD%E6%96%AD%E9%82%A3%E4%BA%9B%E4%BA%8B/"/>
+    <id>http://liujunming.github.io/2022/01/12/中断那些事/</id>
+    <published>2022-01-12T06:12:54.000Z</published>
+    <updated>2022-01-12T10:11:09.085Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文试图总结中断及其虚拟化相关知识点，会持续更新。<a id="more"></a></p><h3 id="1-Terms"><a href="#1-Terms" class="headerlink" title="1. Terms"></a>1. Terms</h3><ul><li>PIC</li><li>LAPIC</li><li>IOAPIC</li><li>MSI/MSI-x</li></ul><hr><ul><li>APICv</li><li>VT-x Posted Interrupt</li><li>VT-d Interrupt Remapping</li><li>VT-d Posted Interrupt</li><li>IPIv</li></ul><hr><ul><li>User Interrupt</li></ul><h3 id="2-Keypoint"><a href="#2-Keypoint" class="headerlink" title="2. Keypoint"></a>2. Keypoint</h3><h4 id="2-1-host"><a href="#2-1-host" class="headerlink" title="2.1 host"></a>2.1 host</h4><p>四步曲:<br><img src="/images/2022/01/23.png" alt></p><h4 id="2-2-APICv"><a href="#2-2-APICv" class="headerlink" title="2.2 APICv"></a>2.2 APICv</h4><p>五步曲:<br><img src="/images/2022/01/24.png" alt></p><h3 id="3-Normal-Interrupt-in-host"><a href="#3-Normal-Interrupt-in-host" class="headerlink" title="3. Normal Interrupt in host"></a>3. Normal Interrupt in host</h3><h4 id="3-1-Interrupt-Routing"><a href="#3-1-Interrupt-Routing" class="headerlink" title="3.1 Interrupt Routing"></a>3.1 Interrupt Routing</h4><ul><li>IPI<ul><li>source CPU writes ICR register</li></ul></li><li>External interrupt<ul><li>IOAPIC</li><li>MSI/MSI-x</li></ul></li></ul><h4 id="3-2-Interrupt-Acceptance"><a href="#3-2-Interrupt-Acceptance" class="headerlink" title="3.2 Interrupt Acceptance"></a>3.2 Interrupt Acceptance</h4><ul><li>Set the IRR reg, add the interrupt to the waiting queue</li></ul><h4 id="3-3-Interrupt-Recognition"><a href="#3-3-Interrupt-Recognition" class="headerlink" title="3.3 Interrupt Recognition"></a>3.3 Interrupt Recognition</h4><ul><li>Acquire the highest priority interrupt from the IRR reg , and set the corresponding bit in the ISR reg</li></ul><h4 id="3-4-Interrupt-Delivery"><a href="#3-4-Interrupt-Delivery" class="headerlink" title="3.4 Interrupt Delivery"></a>3.4 Interrupt Delivery</h4><ul><li>Distribute the interrupt to the CPU to execute the interrupt handler registered in the IDT</li></ul><h3 id="4-Hardware-optimization-for-interrupt-virtualization"><a href="#4-Hardware-optimization-for-interrupt-virtualization" class="headerlink" title="4. Hardware optimization for interrupt virtualization"></a>4. Hardware optimization for interrupt virtualization</h3><h4 id="4-1-Interrupt-Routing"><a href="#4-1-Interrupt-Routing" class="headerlink" title="4.1 Interrupt Routing"></a>4.1 Interrupt Routing</h4><ul><li>IPIv</li></ul><h4 id="4-2-Interrupt-Acceptance"><a href="#4-2-Interrupt-Acceptance" class="headerlink" title="4.2 Interrupt Acceptance"></a>4.2 Interrupt Acceptance</h4><ul><li>Posted Interrupt</li></ul><h4 id="4-3-Interrupt-Recognition"><a href="#4-3-Interrupt-Recognition" class="headerlink" title="4.3 Interrupt Recognition"></a>4.3 Interrupt Recognition</h4><ul><li>APICv:APIC-register virtualization</li></ul><h4 id="4-4-Interrupt-Delivery"><a href="#4-4-Interrupt-Delivery" class="headerlink" title="4.4 Interrupt Delivery"></a>4.4 Interrupt Delivery</h4><ul><li>APICv:Virtual-interrupt delivery</li></ul>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文试图总结中断及其虚拟化相关知识点，会持续更新。
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Introduction to VT-x FlexPriority</title>
+    <link href="http://liujunming.github.io/2022/01/12/Introduction-to-VT-x-FlexPriority/"/>
+    <id>http://liujunming.github.io/2022/01/12/Introduction-to-VT-x-FlexPriority/</id>
+    <published>2022-01-12T04:36:09.000Z</published>
+    <updated>2022-01-12T10:11:09.083Z</updated>
+    
+    <content type="html"><![CDATA[<p>VT-x FlexPriority是<a href="/2020/10/08/The-motivation-of-APICv/">APICv</a>之前的一个过渡性的技术，本文特意考古一下。<a id="more"></a></p><p>VT-x FlexPriority引入了Shadow TPR，即VTPR寄存器（Virtual-APIC Page也是此时引入的）。此时，Virtual-APIC Page中仅实现了VTPR一个寄存器，并且尚未发明<strong>APIC Write</strong> VM Exit，因此对VTPR寄存器的写入会起到类似APIC-Write Emulation的效果，不会引起VM Exit。</p><p><img src="/images/2022/01/22.png" alt></p><p>考古patch <a href="https://lore.kernel.org/kvm/DB3BD37E3533EE46BED2FBA80995557F87DA24@pdsmsx414.ccr.corp.intel.com/" target="_blank" rel="noopener">Memory mapped TPR shadow feature enabling</a>，读者若有兴趣，可以读一读。</p><hr><p>参考资料:</p><ol><li><a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/" target="_blank" rel="noopener">Intel SDM Chapter 29: APIC Virtualizaton &amp; Virtual Interrupts</a></li><li><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/virtualization-enabling-intel-virtualization-technology-features-and-benefits-paper.pdf" target="_blank" rel="noopener">Enabling Intel® Virtualization Technology Features and Benefits</a></li><li><a href="https://lore.kernel.org/kvm/DB3BD37E3533EE46BED2FBA80995557F87DA24@pdsmsx414.ccr.corp.intel.com/" target="_blank" rel="noopener">Memory mapped TPR shadow feature enabling</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;VT-x FlexPriority是&lt;a href=&quot;/2020/10/08/The-motivation-of-APICv/&quot;&gt;APICv&lt;/a&gt;之前的一个过渡性的技术，本文特意考古一下。
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
   
   <entry>
     <title>How to verify the difference between posted interrupt and event injection</title>
@@ -425,52 +473,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="Firmware" scheme="http://liujunming.github.io/tags/Firmware/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Linux kernel Oops</title>
-    <link href="http://liujunming.github.io/2021/12/11/Notes-about-Linux-kernel-Oops/"/>
-    <id>http://liujunming.github.io/2021/12/11/Notes-about-Linux-kernel-Oops/</id>
-    <published>2021-12-11T14:23:17.000Z</published>
-    <updated>2021-12-11T15:19:31.714Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about Linux kernel Oops.<a id="more"></a></p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>什么是Oops？从语言学的角度说，Oops应该是一个拟声词。当出了点小事故，或者做了比较尴尬的事之后，你可以说”Oops”，翻译成中国话就叫做“哎呦”。“哎呦，对不起，对不起，我真不是故意打碎您的杯子的”。看，Oops就是这个意思。</p><p>在Linux内核开发中的Oops是什么呢？其实，它和上面的解释也没什么本质的差别，只不过说话的主角变成了Linux。当某些比较致命的问题出现时，我们的Linux内核也会抱歉的对我们说：“哎呦（Oops），对不起，我把事情搞砸了”。Linux内核在发生kernel panic时会打印出Oops信息，把目前的寄存器状态、堆栈内容、以及完整的Call trace都show给我们看，这样就可以帮助我们定位错误。</p><p>Kernel bug reports often come with a stack dump like the one below:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">------------[ cut here ]------------</span><br><span class="line">WARNING: CPU: 1 PID: 28102 at kernel/module.c:1108 module_put+0x57/0x70</span><br><span class="line">Modules linked in: dvb_usb_gp8psk(-) dvb_usb dvb_core nvidia_drm(PO) nvidia_modeset(PO) snd_hda_codec_hdmi snd_hda_intel snd_hda_codec snd_hwdep snd_hda_core snd_pcm snd_timer snd soundcore nvidia(PO) [last unloaded: rc_core]</span><br><span class="line">CPU: 1 PID: 28102 Comm: rmmod Tainted: P        WC O 4.8.4-build.1 #1</span><br><span class="line">Hardware name: MSI MS-7309/MS-7309, BIOS V1.12 02/23/2009</span><br><span class="line"> 00000000 c12ba080 00000000 00000000 c103ed6a c1616014 00000001 00006dc6</span><br><span class="line"> c1615862 00000454 c109e8a7 c109e8a7 00000009 ffffffff 00000000 f13f6a10</span><br><span class="line"> f5f5a600 c103ee33 00000009 00000000 00000000 c109e8a7 f80ca4d0 c109f617</span><br><span class="line">Call Trace:</span><br><span class="line"> [&lt;c12ba080&gt;] ? dump_stack+0x44/0x64</span><br><span class="line"> [&lt;c103ed6a&gt;] ? __warn+0xfa/0x120</span><br><span class="line"> [&lt;c109e8a7&gt;] ? module_put+0x57/0x70</span><br><span class="line"> [&lt;c109e8a7&gt;] ? module_put+0x57/0x70</span><br><span class="line"> [&lt;c103ee33&gt;] ? warn_slowpath_null+0x23/0x30</span><br><span class="line"> [&lt;c109e8a7&gt;] ? module_put+0x57/0x70</span><br><span class="line"> [&lt;f80ca4d0&gt;] ? gp8psk_fe_set_frontend+0x460/0x460 [dvb_usb_gp8psk]</span><br><span class="line"> [&lt;c109f617&gt;] ? symbol_put_addr+0x27/0x50</span><br><span class="line"> [&lt;f80bc9ca&gt;] ? dvb_usb_adapter_frontend_exit+0x3a/0x70 [dvb_usb]</span><br><span class="line"> [&lt;f80bb3bf&gt;] ? dvb_usb_exit+0x2f/0xd0 [dvb_usb]</span><br><span class="line"> [&lt;c13d03bc&gt;] ? usb_disable_endpoint+0x7c/0xb0</span><br><span class="line"> [&lt;f80bb48a&gt;] ? dvb_usb_device_exit+0x2a/0x50 [dvb_usb]</span><br><span class="line"> [&lt;c13d2882&gt;] ? usb_unbind_interface+0x62/0x250</span><br><span class="line"> [&lt;c136b514&gt;] ? __pm_runtime_idle+0x44/0x70</span><br><span class="line"> [&lt;c13620d8&gt;] ? __device_release_driver+0x78/0x120</span><br><span class="line"> [&lt;c1362907&gt;] ? driver_detach+0x87/0x90</span><br><span class="line"> [&lt;c1361c48&gt;] ? bus_remove_driver+0x38/0x90</span><br><span class="line"> [&lt;c13d1c18&gt;] ? usb_deregister+0x58/0xb0</span><br><span class="line"> [&lt;c109fbb0&gt;] ? SyS_delete_module+0x130/0x1f0</span><br><span class="line"> [&lt;c1055654&gt;] ? task_work_run+0x64/0x80</span><br><span class="line"> [&lt;c1000fa5&gt;] ? exit_to_usermode_loop+0x85/0x90</span><br><span class="line"> [&lt;c10013f0&gt;] ? do_fast_syscall_32+0x80/0x130</span><br><span class="line"> [&lt;c1549f43&gt;] ? sysenter_past_esp+0x40/0x6a</span><br><span class="line">---[ end trace 6ebc60ef3981792f ]---</span><br></pre></td></tr></table></figure></p><p>Such stack traces provide enough information to identify the line inside the Kernel’s source code where the bug happened. Depending on the severity of the issue, it may also contain the word <strong>Oops</strong>, as on this one:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BUG: unable to handle kernel NULL pointer dereference at   (null)</span><br><span class="line">IP: [&lt;c06969d4&gt;] iret_exc+0x7d0/0xa59</span><br><span class="line">*pdpt = 000000002258a001 *pde = 0000000000000000</span><br><span class="line">Oops: 0002 [#1] PREEMPT SMP</span><br><span class="line">...</span><br></pre></td></tr></table></figure><p>Despite being an <strong>Oops</strong> or some other sort of stack trace, the offended line is usually required to identify and handle the bug. Along this chapter, we’ll refer to “Oops” for all kinds of stack traces that need to be analyzed.</p><h3 id="2-decode-stacktrace"><a href="#2-decode-stacktrace" class="headerlink" title="2. decode_stacktrace"></a>2. decode_stacktrace</h3><p>If the kernel is compiled with <code>CONFIG_DEBUG_INFO</code>, you can enhance the quality of the stack trace by using file:<a href="https://lwn.net/Articles/592724/" target="_blank" rel="noopener">scripts/decode_stacktrace.sh</a>.</p><h4 id="2-1-Input"><a href="#2-1-Input" class="headerlink" title="2.1 Input"></a>2.1 Input</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[    6.906437]  [&lt;ffffffff811f0e90&gt;] ? backtrace_test_irq_callback+0x20/0x20</span><br><span class="line">[    6.907121]  [&lt;ffffffff84388ce8&gt;] dump_stack+0x52/0x7f</span><br><span class="line">[    6.907640]  [&lt;ffffffff811f0ec8&gt;] backtrace_regression_test+0x38/0x110</span><br><span class="line">[    6.908281]  [&lt;ffffffff813596a0&gt;] ? proc_create_data+0xa0/0xd0</span><br><span class="line">[    6.908870]  [&lt;ffffffff870a8040&gt;] ? proc_modules_init+0x22/0x22</span><br><span class="line">[    6.909480]  [&lt;ffffffff810020c2&gt;] do_one_initcall+0xc2/0x1e0</span><br><span class="line">[...]</span><br></pre></td></tr></table></figure><h4 id="2-2-Output"><a href="#2-2-Output" class="headerlink" title="2.2 Output"></a>2.2 Output</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[  635.148361]  dump_stack (lib/dump_stack.c:52)</span><br><span class="line">[  635.149127]  warn_slowpath_common (kernel/panic.c:418)</span><br><span class="line">[  635.150214]  warn_slowpath_null (kernel/panic.c:453)</span><br><span class="line">[  635.151031]  _oalloc_pages_slowpath+0x6a/0x7d0</span><br><span class="line">[  635.152171]  ? zone_watermark_ok (mm/page_alloc.c:1728)</span><br><span class="line">[  635.152988]  ? get_page_from_freelist (mm/page_alloc.c:1939)</span><br><span class="line">[  635.154766]  __alloc_pages_nodemask (mm/page_alloc.c:2766)</span><br></pre></td></tr></table></figure><h4 id="2-3-Usage"><a href="#2-3-Usage" class="headerlink" title="2.3 Usage"></a>2.3 Usage</h4><p><code>./decode_stacktrace.sh [vmlinux] [base path]</code></p><p>Where vmlinux is the vmlinux to extract line numbers from and base path is the path that points to the root of the build tree, for example:</p><p><code>./decode_stacktrace.sh vmlinux /home/sasha/linux/ &lt; input.log &gt; output.log</code></p><h3 id="3-Finding-the-bug-location-by-gdb"><a href="#3-Finding-the-bug-location-by-gdb" class="headerlink" title="3. Finding the bug location by gdb"></a>3. Finding the bug location by gdb</h3><p>Reporting a bug works best if you point the location of the bug at the Kernel source file. Usually, using gdb is easier, but the Kernel should be pre-compiled with debug info.</p><p>The gdb is the best way to figure out the exact file and line number of the OOPS from the <code>vmlinux</code> file.</p><p>The usage of gdb works best on a kernel compiled with <code>CONFIG_DEBUG_INFO</code>. This can be set by running:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ./scripts/config -d COMPILE_TEST -e DEBUG_KERNEL -e DEBUG_INFO</span><br></pre></td></tr></table></figure><p>On a kernel compiled with <code>CONFIG_DEBUG_INFO</code>, you can simply copy the EIP value from the OOPS:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EIP:    0060:[&lt;c021e50e&gt;]    Not tainted VLI</span><br></pre></td></tr></table></figure><p>And use GDB to translate that to human-readable form:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ gdb vmlinux</span><br><span class="line">(gdb) l *0xc021e50e</span><br></pre></td></tr></table></figure><h3 id="4-More-info"><a href="#4-More-info" class="headerlink" title="4. More info"></a>4. More info</h3><h4 id="4-1-Oops-0002-1"><a href="#4-1-Oops-0002-1" class="headerlink" title="4.1 Oops: 0002 [#1]"></a>4.1 Oops: 0002 [#1]</h4><p>0002表示Oops的error code, #1表示这个错误发生一次。</p><h4 id="4-2-Tainted信息"><a href="#4-2-Tainted信息" class="headerlink" title="4.2 Tainted信息"></a>4.2 Tainted信息</h4><ul><li><a href="https://www.kernel.org/doc/html/latest/admin-guide/bug-hunting.html#modules-linked-in" target="_blank" rel="noopener">Modules linked in</a></li><li><a href="https://www.kernel.org/doc/html/latest/admin-guide/tainted-kernels.html" target="_blank" rel="noopener">Tainted kernels</a></li></ul><hr><p>参考资料:</p><ol><li><a href="https://www.kernel.org/doc/html/latest/admin-guide/bug-hunting.html" target="_blank" rel="noopener">Bug hunting</a></li><li><a href="https://www.cnblogs.com/wwang/archive/2010/11/14/1876735.html" target="_blank" rel="noopener">Linux内核的Oops</a></li><li><a href="https://lwn.net/Articles/592724/" target="_blank" rel="noopener">decode_stacktrace: make stack dump output useful again</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about Linux kernel Oops.
-    
-    </summary>
-    
-      <category term="debug" scheme="http://liujunming.github.io/categories/debug/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-      <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Introduction to cpu affinity</title>
-    <link href="http://liujunming.github.io/2021/12/05/Introduction-to-cpu-affinity/"/>
-    <id>http://liujunming.github.io/2021/12/05/Introduction-to-cpu-affinity/</id>
-    <published>2021-12-05T13:27:43.000Z</published>
-    <updated>2021-12-05T15:31:19.010Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about cpu affinity.<a id="more"></a></p><h3 id="1-Motivation"><a href="#1-Motivation" class="headerlink" title="1. Motivation"></a>1. Motivation</h3><p>CPU的亲和性， 就是进程要在指定的 CPU 上尽量长时间地运行而不被迁移到其他处理器，即绑定CPU or 绑核。</p><p>在多核运行的机器上，每个CPU本身自己会有缓存，缓存着进程使用的信息，而进程可能会被OS调度到其他CPU上，如此，CPU cache命中率就低了。当绑定CPU后，程序就会一直在指定的cpu跑，不会由操作系统调度到其他CPU上，性能有一定的提高。</p><p>另外一种使用绑核考虑就是将重要的业务进程隔离开，对于部分实时进程调度优先级高，可以将其绑定到一个指定核上，既可以保证实时进程的调度，也可以避免其他CPU上进程对该实时进程的干扰。</p><p><a href="https://en.wikipedia.org/wiki/Processor_affinity" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Processor_affinity</a></p><h3 id="2-Material"><a href="#2-Material" class="headerlink" title="2. Material"></a>2. Material</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">man taskset</span><br></pre></td></tr></table></figure><p>C language: <code>sched_setaffinity</code> and <code>sched_getaffinity</code> function.</p><h3 id="3-Example"><a href="#3-Example" class="headerlink" title="3. Example"></a>3. Example</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// a.c</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/prctl.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        prctl(PR_SET_NAME,<span class="string">"myProcess\0"</span>,<span class="literal">NULL</span>,<span class="literal">NULL</span>,<span class="literal">NULL</span>);</span><br><span class="line">        <span class="keyword">while</span>(<span class="number">1</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ gcc a.c</span><br><span class="line">$ taskset 0x10 ./a.out</span><br></pre></td></tr></table></figure><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ pgrep myProcess</span><br><span class="line">8402</span><br><span class="line">$ sudo trace-cmd record -e sched:sched_switch -P 8402</span><br><span class="line">$ sudo trace-cmd report</span><br></pre></td></tr></table></figure><p><img src="/images/2021/12/5.png" alt></p><p>From the result, we can see: process 8402 is running on processor #4, it’s corresponding to mask <code>0x10</code>.</p><hr><p>参考资料:</p><ol><li><a href="https://oenhan.com/cpu-affinity" target="_blank" rel="noopener">CPU亲和性的使用与机制</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about cpu affinity.
-    
-    </summary>
-    
-      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
-    
-    
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
     
   </entry>
   
