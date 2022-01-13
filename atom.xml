@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-01-12T10:11:09.085Z</updated>
+  <updated>2022-01-13T10:55:57.367Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>split lock detect and its virtualization</title>
+    <link href="http://liujunming.github.io/2022/01/13/split-lock-and-its-virtualization/"/>
+    <id>http://liujunming.github.io/2022/01/13/split-lock-and-its-virtualization/</id>
+    <published>2022-01-13T00:04:29.000Z</published>
+    <updated>2022-01-13T10:55:57.367Z</updated>
+    
+    <content type="html"><![CDATA[<p>split lock detect and its virtualization.<a id="more"></a></p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>A split lock is any atomic operation whose operand crosses two cache lines. Since the operand spans two cache lines and the operation must be atomic, the system locks the bus while the CPU accesses the two cache lines.</p><p>During bus locking, request from other CPUs or bus agents for control of the bus are blocked. Blocking bus access from other CPUs plus overhead of configuring bus locking protocol degrade not only performance on one CPU but also overall system performance.</p><p>If the operand is cacheable and completely contained in one cache line, the atomic operation is optimized by less expensive cache locking on Intel P6 and recent processors. If a split lock operation is detected and a developer fixes the issue so that the operand can be operated in one cache line, cache locking instead of more expensive bus locking will be used for the atomic operation. Removing the split lock can improve overall performance.</p><p>Intel-64 and IA32 multiple-processor systems support locked atomic operations on locations in system memory. For example, The LOCK instruction prefix can be prepended to the following instructions: ADD, ADC, AND, BTC, BTR, BTS, CMPXCHG, CMPXCH8B, CMPXCHG16B, DEC, INC, NEG, NOT, OR, SBB, SUB, XOR, XADD, and XCHG, when these instructions use memory destination operand forms. </p><p>More information about split lock, bus locking, and cache locking can be found in the latest Intel 64 and IA-32 Architecture Software Developer’s Manual.</p><h3 id="2-Split-lock-detection"><a href="#2-Split-lock-detection" class="headerlink" title="2. Split lock detection"></a>2. Split lock detection</h3><p>Intel introduces a mechanism to detect split lock via Alignment Check(#AC) exception before badly aligned atomic instructions might impact whole system performance in Tremont and other future processors. </p><p>This capability is critical for real time system designers who build consolidated real time systems. These systems run hard real time code on some cores and run “untrusted” user processes on some other cores. The hard real time cannot afford to have any bus lock from the untrusted processes to hurt real time performance. To date the designers have been unable to deploy these solutions as they have no way to prevent the “untrusted” user code from generating split lock and bus lock to block the hard real time code to access memory during bus locking.</p><p>This capability may also find usage in cloud. A user process with split lock running in one guest can block other cores from accessing shared memory during its split locked memory access. That may cause overall<br>system performance degradation.</p><p>Split lock may open a security hole where malicious user code may slow down overall system by executing instructions with split lock.</p><h3 id="3-Feature-Enumeration-and-Control"><a href="#3-Feature-Enumeration-and-Control" class="headerlink" title="3. Feature Enumeration and Control"></a>3. Feature Enumeration and Control</h3><p>#AC for Split-locked Access feature is enumerated and controlled via CPUID and MSR registers.</p><ul><li>CPUID.(EAX=0x7, ECX=0):EDX[30], the 30th bit of output value in EDX indicates if the platform has IA32_CORE_CAPABILITIES MSR.</li><li>The 5th bit of IA32_CORE_CAPABILITIES MSR(0xcf), enumerates whether the CPU supports #AC for Split-locked Access (and has TEST_CTRL MSR).</li><li>The 29th bit of TEST_CTL MSR(0x33) controls enabling and disabling #AC for Split-locked Access.</li></ul><h3 id="4-Handle-split-lock"><a href="#4-Handle-split-lock" class="headerlink" title="4. Handle split lock"></a>4. Handle split lock</h3><p>Because #AC is a fault, the instruction is not executed, giving the #AC handler an opportunity to decide how to handle this instruction:</p><ul><li>It can allow the instruction to run with LOCK# bus signal potentially impacting performance of other CPUs.</li><li>It can terminate the software at this instruction.</li><li>and so on.</li></ul><h3 id="5-Interface"><a href="#5-Interface" class="headerlink" title="5. Interface"></a>5. Interface</h3><p><code>split_lock_detect</code> kernel parameter:<br><img src="/images/2022/01/25.png" alt></p><h3 id="6-Example"><a href="#6-Example" class="headerlink" title="6. Example"></a>6. Example</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//https://gcc.gnu.org/onlinedocs/gcc-4.4.4/gcc/Structure_002dPacking-Pragmas.html</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> pack(push,2)</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">counter</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">char</span> buf[<span class="number">62</span>];</span><br><span class="line"><span class="keyword">long</span> <span class="keyword">long</span> c;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> pack(pop)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">counter</span> *<span class="title">p</span>;</span></span><br><span class="line">    <span class="keyword">int</span> size = <span class="keyword">sizeof</span>(struct counter);</span><br><span class="line">    <span class="keyword">int</span> prot = PROT_READ | PROT_WRITE;</span><br><span class="line">    <span class="keyword">int</span> flags = MAP_PRIVATE | MAP_ANONYMOUS;</span><br><span class="line"></span><br><span class="line">    p = (struct counter *) mmap(<span class="number">0</span>, size, prot, flags, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">    __sync_fetch_and_add(&amp;p-&gt;c, <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>Intel CPU中，一个cache line 只有64个字节，struct counter中的成员 c 占8个字节，buf填充了62个字节。因此，一旦访问成员c，就涉及两个cache lines的内容的拼接；执行原子操作 <code>__sync_fetch_and_add()</code>会触发split lock。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[124994.391805] x86/split lock detection: #AC: a.out/91418 took a split_lock trap at address: 0x556c2928819a</span><br></pre></td></tr></table></figure><h3 id="7-Virtualization"><a href="#7-Virtualization" class="headerlink" title="7. Virtualization"></a>7. Virtualization</h3><p>To expose this feature to guest, need to</p><ol><li>Report the new CPUID bit to guest.</li><li>Emulate IA32_CORE_CAPABILITIES MSR.</li><li>Emulate TEST_CTL MSR. </li></ol><hr><p>参考资料:</p><ol><li><a href="https://lwn.net/ml/linux-kernel/1556134382-58814-1-git-send-email-fenghua.yu%40intel.com/" target="_blank" rel="noopener">x86/split_lock: Enable split lock detection</a></li><li><a href="https://kernel.taobao.org/2019/07/Detecting-and-handling-split-locks/" target="_blank" rel="noopener">Detecting and handling split locks</a></li><li><a href="https://projectacrn.github.io/latest/developer-guides/hld/hld-splitlock.html" target="_blank" rel="noopener">Handling Split-Locked Access in ACRN</a></li><li><a href="https://drive.google.com/drive/folders/1MQLEV5samjExLukxFZ1A5GB1TaZS5ZSo" target="_blank" rel="noopener">TCC feature introduction - split lock</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;split lock detect and its virtualization.
+    
+    </summary>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
+    
+  </entry>
   
   <entry>
     <title>中断那些事</title>
@@ -449,30 +473,6 @@
     
     
       <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>The usage of OVMF in QEMU</title>
-    <link href="http://liujunming.github.io/2021/12/17/The-usage-of-OVMF/"/>
-    <id>http://liujunming.github.io/2021/12/17/The-usage-of-OVMF/</id>
-    <published>2021-12-17T14:49:38.000Z</published>
-    <updated>2021-12-18T03:52:22.392Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about the usage of OVMF in QEMU.<a id="more"></a></p><h3 id="Case1"><a href="#Case1" class="headerlink" title="Case1"></a>Case1</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-bios /path/to/OVMF.fd \</span><br></pre></td></tr></table></figure><h3 id="Case2-split-firmware"><a href="#Case2-split-firmware" class="headerlink" title="Case2: split firmware"></a>Case2: split firmware</h3><blockquote><p>The variable store and the firmware executable are also available in the build output as separate files: “OVMF_VARS.fd” and “OVMF_CODE.fd”. This enables central management and updates of the firmware executable, while each virtual machine can retain its own variable store.</p></blockquote><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-drive if=pflash,format=raw,unit=0,readonly=on,file=/path/to/OVMF_CODE.fd \</span><br><span class="line">-drive if=pflash,format=raw,unit=1,file=/path/to/OVMF_VARS.fd \</span><br></pre></td></tr></table></figure><h3 id="Case3-secure-boot"><a href="#Case3-secure-boot" class="headerlink" title="Case3: secure boot"></a>Case3: secure boot</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-drive if=pflash,format=raw,unit=0,readonly=on,file=/path/to/OVMF_SECURE_CODE.fd \</span><br><span class="line">-drive if=pflash,format=raw,unit=1,file=/path/to/OVMF_VARS.fd \</span><br><span class="line">-global driver=cfi.pflash01,property=secure,value=on \</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://www.linux-kvm.org/downloads/lersek/ovmf-whitepaper-c770f8c.txt" target="_blank" rel="noopener">Open Virtual Machine Firmware (OVMF) Status Report</a></li><li><a href="https://lore.kernel.org/qemu-devel/87y378n5iy.fsf@dusky.pond.sub.org/" target="_blank" rel="noopener">Configuring pflash devices for OVMF firmware</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about the usage of OVMF in QEMU.
-    
-    </summary>
-    
-      <category term="Firmware" scheme="http://liujunming.github.io/categories/Firmware/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="Firmware" scheme="http://liujunming.github.io/tags/Firmware/"/>
     
   </entry>
   
