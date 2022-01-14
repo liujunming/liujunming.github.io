@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about force_emulation_prefix in KVM">
+
+
+
+
+  <meta name="keywords" content="KVM, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/01/14/Notes-about-force-emulation-prefix-in-KVM/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about force_emulation_prefix in KVM - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about force_emulation_prefix in KVM
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-01-14
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/KVM/">KVM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Materials"><span class="toc-text">1. Materials</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Motivation"><span class="toc-text">2. Motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Example"><span class="toc-text">3. Example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Source-code"><span class="toc-text">4. Source code</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Notes about force_emulation_prefix in KVM.<a id="more"></a></p>
+<h3 id="1-Materials"><a href="#1-Materials" class="headerlink" title="1. Materials"></a>1. Materials</h3><p>commit id: 6c86eedc206dd1f9d37a2796faa8e6f2278215d2<br><a href="https://lore.kernel.org/kvm/1522798129-14588-1-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">https://lore.kernel.org/kvm/1522798129-14588-1-git-send-email-wanpengli@tencent.com/</a></p>
+<h3 id="2-Motivation"><a href="#2-Motivation" class="headerlink" title="2. Motivation"></a>2. Motivation</h3><p>There is no easy way to force KVM to run an instruction through the emulator(by design as that will expose the x86 emulator as a significant attack-surface).</p>
+<p>However, we do wish to expose the x86 emulator in case we are testing it(e.g. via kvm-unit-tests). Therefore, this patch adds a “force emulation prefix” that is designed to raise #UD which KVM will trap and it’s #UD exit-handler will match “force emulation prefix” to run instruction after prefix by the x86 emulator.</p>
+<p>To not expose the x86 emulator by default, we add a module parameter that should be off by default.</p>
+<p>The  x86 emulator is the function: <a href="https://elixir.bootlin.com/linux/v5.15-rc5/source/arch/x86/kvm/x86.c#L7988" target="_blank" rel="noopener">kvm_emulate_instruction</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">kvm_emulate_instruction</span><br><span class="line">	x86_emulate_instruction</span><br></pre></td></tr></table></figure>
+<h3 id="3-Example"><a href="#3-Example" class="headerlink" title="3. Example"></a>3. Example</h3><ul>
+<li>use <code>kvm.force_emulation_prefix=1</code> to enable</li>
+</ul>
+<p><a href="https://gitlab.com/kvm-unit-tests/kvm-unit-tests/-/blob/master/x86/emulator.c" target="_blank" rel="noopener">emulator.c</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Forced emulation prefix, used to invoke the emulator unconditionally.  */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> KVM_FEP <span class="meta-string">"ud2; .byte 'k', 'v', 'm';"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> KVM_FEP_LENGTH 5</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> fep_available = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">handle_exception(UD_VECTOR, record_no_fep);</span><br><span class="line"><span class="keyword">asm</span>(KVM_FEP <span class="string">"nop"</span>);</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">record_no_fep</span><span class="params">(struct ex_regs *regs)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	fep_available = <span class="number">0</span>;</span><br><span class="line">	regs-&gt;rip += KVM_FEP_LENGTH;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>在guest中不会因为执行<code>asm(&quot;nop&quot;)</code>而发生VM Exit.</li>
+<li>如果<code>kvm.force_emulation_prefix=1</code> ,那么在kvm unit test中，执行<code>asm(KVM_FEP &quot;nop&quot;)</code>的结果就是执行<code>asm(&quot;nop&quot;)</code>的结果，在guest中不会产生#UD.</li>
+<li>如果<code>kvm.force_emulation_prefix=0</code> ,那么在kvm unit test中，执行<code>asm(KVM_FEP &quot;nop&quot;)</code>的结果就是在guest中产生#UD，那么#UD handler会被调用，全局变量<code>fep_available</code>就会被设置为0.</li>
+</ul>
+<p>Test cases:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://gitlab.com/kvm-unit-tests/kvm-unit-tests/-/blob/master/x86/emulator.c#L1185-1190</span></span><br><span class="line"><span class="keyword">if</span> (fep_available) &#123;</span><br><span class="line">	...</span><br><span class="line">	test_nop(mem);</span><br><span class="line">	...</span><br></pre></td></tr></table></figure>
+<p>目的是测试<a href="https://elixir.bootlin.com/linux/v5.15-rc5/source/arch/x86/kvm/x86.c#L7988" target="_blank" rel="noopener">kvm_emulate_instruction</a>是否正确模拟了<code>nop</code>指令。</p>
+<p>在guest中不会因为执行<code>asm(&quot;nop&quot;)</code>而发生VM Exit，就无法测试<a href="https://elixir.bootlin.com/linux/v5.15-rc5/source/arch/x86/kvm/x86.c#L7988" target="_blank" rel="noopener">kvm_emulate_instruction</a>是否正确模拟了<code>nop</code>指令。<code>force_emulation_prefix</code>就帮上了忙，细节请参考下节的内容。</p>
+<h3 id="4-Source-code"><a href="#4-Source-code" class="headerlink" title="4. Source code"></a>4. Source code</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//https://elixir.bootlin.com/linux/v5.15-rc5/source/arch/x86/kvm/x86.c#L6541</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">handle_ud</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span> kvm_emulate_prefix[] = &#123; __KVM_EMULATE_PREFIX &#125;;</span><br><span class="line">	<span class="keyword">int</span> emul_type = EMULTYPE_TRAP_UD;</span><br><span class="line">	<span class="keyword">char</span> sig[<span class="number">5</span>]; <span class="comment">/* ud2; .ascii "kvm" */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">x86_exception</span> <span class="title">e</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (unlikely(!static_call(kvm_x86_can_emulate_instruction)(vcpu, <span class="literal">NULL</span>, <span class="number">0</span>)))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (force_emulation_prefix &amp;&amp;</span><br><span class="line">	    kvm_read_guest_virt(vcpu, kvm_get_linear_rip(vcpu),</span><br><span class="line">				sig, <span class="keyword">sizeof</span>(sig), &amp;e) == <span class="number">0</span> &amp;&amp;</span><br><span class="line">	    <span class="built_in">memcmp</span>(sig, kvm_emulate_prefix, <span class="keyword">sizeof</span>(sig)) == <span class="number">0</span>) &#123;</span><br><span class="line">		kvm_rip_write(vcpu, kvm_rip_read(vcpu) + <span class="keyword">sizeof</span>(sig));</span><br><span class="line">		emul_type = EMULTYPE_TRAP_UD_FORCED;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> kvm_emulate_instruction(vcpu, emul_type);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//https://elixir.bootlin.com/linux/v5.15-rc5/source/arch/x86/include/asm/emulate_prefix.h#L12</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __KVM_EMULATE_PREFIX  0x0f,0x0b,0x6b,0x76,0x6d	<span class="comment">/* ud2 ; .ascii "kvm" */</span></span></span><br></pre></td></tr></table></figure>
+<p>在上节的例子中，<code>handle_ud</code> 会执行<code>kvm_rip_write(vcpu, kvm_rip_read(vcpu) + sizeof(sig))</code>，<code>kvm_emulate_instruction</code>将模拟<code>nop</code>指令。</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/KVM/">KVM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/01/13/split-lock-and-its-virtualization/">
+        <span class="next-text nav-default">split lock detect and its virtualization</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/01/14/Notes-about-force-emulation-prefix-in-KVM/';
+        this.page.identifier = '2022/01/14/Notes-about-force-emulation-prefix-in-KVM/';
+        this.page.title = 'Notes about force_emulation_prefix in KVM';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
