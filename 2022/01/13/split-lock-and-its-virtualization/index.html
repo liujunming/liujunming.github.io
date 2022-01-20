@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="split lock detect and its virtualization">
+  <meta name="description" content="Notes about split lock detect">
 
 
 
 
-  <meta name="keywords" content="虚拟化, SDM, L">
+  <meta name="keywords" content="SDM, L">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> split lock detect and its virtualization - L </title>
+    <title> Notes about split lock detect - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,7 +260,7 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          split lock detect and its virtualization
+          Notes about split lock detect
         
       </h1>
 
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Introduction"><span class="toc-text">1. Introduction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Split-lock-detection"><span class="toc-text">2. Split lock detection</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Feature-Enumeration-and-Control"><span class="toc-text">3. Feature Enumeration and Control</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Handle-split-lock"><span class="toc-text">4. Handle split lock</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Interface"><span class="toc-text">5. Interface</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-Example"><span class="toc-text">6. Example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-Virtualization"><span class="toc-text">7. Virtualization</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Introduction"><span class="toc-text">1. Introduction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Split-lock-detection"><span class="toc-text">2. Split lock detection</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Feature-Enumeration-and-Control"><span class="toc-text">3. Feature Enumeration and Control</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Handle-split-lock"><span class="toc-text">4. Handle split lock</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Interface"><span class="toc-text">5. Interface</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-Example"><span class="toc-text">6. Example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-Implementation-in-Kernel"><span class="toc-text">7. Implementation in Kernel</span></a></li></ol>
     </div>
   </div>
 
@@ -292,7 +292,7 @@
 
     <div class="post-content">
       
-        <p>split lock detect and its virtualization.<a id="more"></a></p>
+        <p>Notes about split lock detect.<a id="more"></a></p>
 <h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>A split lock is any atomic operation whose operand crosses two cache lines. Since the operand spans two cache lines and the operation must be atomic, the system locks the bus while the CPU accesses the two cache lines.</p>
 <p>During bus locking, request from other CPUs or bus agents for control of the bus are blocked. Blocking bus access from other CPUs plus overhead of configuring bus locking protocol degrade not only performance on one CPU but also overall system performance.</p>
 <p>If the operand is cacheable and completely contained in one cache line, the atomic operation is optimized by less expensive cache locking on Intel P6 and recent processors. If a split lock operation is detected and a developer fixes the issue so that the operand can be operated in one cache line, cache locking instead of more expensive bus locking will be used for the atomic operation. Removing the split lock can improve overall performance.</p>
@@ -308,6 +308,8 @@
 <li>The 5th bit of IA32_CORE_CAPABILITIES MSR(0xcf), enumerates whether the CPU supports #AC for Split-locked Access (and has TEST_CTRL MSR).</li>
 <li>The 29th bit of TEST_CTL MSR(0x33) controls enabling and disabling #AC for Split-locked Access.</li>
 </ul>
+<p><img src="/images/2022/01/24.png" alt></p>
+<p><img src="/images/2022/01/25.png" alt></p>
 <h3 id="4-Handle-split-lock"><a href="#4-Handle-split-lock" class="headerlink" title="4. Handle split lock"></a>4. Handle split lock</h3><p>Because #AC is a fault, the instruction is not executed, giving the #AC handler an opportunity to decide how to handle this instruction:</p>
 <ul>
 <li>It can allow the instruction to run with LOCK# bus signal potentially impacting performance of other CPUs.</li>
@@ -318,12 +320,11 @@
 <h3 id="6-Example"><a href="#6-Example" class="headerlink" title="6. Example"></a>6. Example</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//https://gcc.gnu.org/onlinedocs/gcc-4.4.4/gcc/Structure_002dPacking-Pragmas.html</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> pack(push,2)</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">counter</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="keyword">char</span> buf[<span class="number">62</span>];</span><br><span class="line">	<span class="keyword">long</span> <span class="keyword">long</span> c;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> pack(pop)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span> <span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">counter</span> *<span class="title">p</span>;</span></span><br><span class="line">    <span class="keyword">int</span> size = <span class="keyword">sizeof</span>(struct counter);</span><br><span class="line">    <span class="keyword">int</span> prot = PROT_READ | PROT_WRITE;</span><br><span class="line">    <span class="keyword">int</span> flags = MAP_PRIVATE | MAP_ANONYMOUS;</span><br><span class="line"></span><br><span class="line">    p = (struct counter *) mmap(<span class="number">0</span>, size, prot, flags, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">    	__sync_fetch_and_add(&amp;p-&gt;c, <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>Intel CPU中，一个cache line 只有64个字节，struct counter中的成员 c 占8个字节，buf填充了62个字节。因此，一旦访问成员c，就涉及两个cache lines的内容的拼接；执行原子操作 <code>__sync_fetch_and_add()</code>会触发split lock。</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[124994.391805] x86/split lock detection: #AC: a.out/91418 took a split_lock trap at address: 0x556c2928819a</span><br></pre></td></tr></table></figure>
-<h3 id="7-Virtualization"><a href="#7-Virtualization" class="headerlink" title="7. Virtualization"></a>7. Virtualization</h3><p>To expose this feature to guest, need to</p>
-<ol>
-<li>Report the new CPUID bit to guest.</li>
-<li>Emulate IA32_CORE_CAPABILITIES MSR.</li>
-<li>Emulate TEST_CTL MSR. </li>
-</ol>
+<h3 id="7-Implementation-in-Kernel"><a href="#7-Implementation-in-Kernel" class="headerlink" title="7. Implementation in Kernel"></a>7. Implementation in Kernel</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> X86_FEATURE_SPLIT_LOCK_DETECT   (11*32+ 6) <span class="comment">/* #AC for split lock */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> X86_FEATURE_BUS_LOCK_DETECT     (16*32+24) <span class="comment">/* Bus Lock detect */</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* Abbreviated from Intel SDM name IA32_CORE_CAPABILITIES */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MSR_IA32_CORE_CAPS			  0x000000cf</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MSR_IA32_CORE_CAPS_SPLIT_LOCK_DETECT_BIT  5</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MSR_IA32_CORE_CAPS_SPLIT_LOCK_DETECT	  BIT(MSR_IA32_CORE_CAPS_SPLIT_LOCK_DETECT_BIT)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MSR_TEST_CTRL				0x00000033</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MSR_TEST_CTRL_SPLIT_LOCK_DETECT_BIT	29</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MSR_TEST_CTRL_SPLIT_LOCK_DETECT		BIT(MSR_TEST_CTRL_SPLIT_LOCK_DETECT_BIT)</span></span><br></pre></td></tr></table></figure>
+<p>If bit 5 is set in <code>MSR_IA32_CORE_CAPS</code>, the feature <code>X86_FEATURE_SPLIT_LOCK_DETECT</code> will be enabled and “split_lock_detect” will be displayed.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">early_cpu_init</span><br><span class="line">	early_identify_cpu</span><br><span class="line">		sld_setup</span><br><span class="line">			split_lock_setup</span><br><span class="line">				__split_lock_setup</span><br><span class="line">					setup_force_cpu_cap(X86_FEATURE_SPLIT_LOCK_DETECT)</span><br><span class="line">			sld_state_setup</span><br><span class="line">			sld_state_show</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function">init <span class="title">split_lock_setup</span><span class="params">(struct cpuinfo_x86 *c)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">x86_cpu_id</span> *<span class="title">m</span>;</span></span><br><span class="line">	u64 ia32_core_caps;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (boot_cpu_has(X86_FEATURE_HYPERVISOR))</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	m = x86_match_cpu(split_lock_cpu_ids);</span><br><span class="line">	<span class="keyword">if</span> (!m)</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">switch</span> (m-&gt;driver_data) &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="number">0</span>:</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	<span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">		<span class="keyword">if</span> (!cpu_has(c, X86_FEATURE_CORE_CAPABILITIES))</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		rdmsrl(MSR_IA32_CORE_CAPS, ia32_core_caps);</span><br><span class="line">		<span class="keyword">if</span> (!(ia32_core_caps &amp; MSR_IA32_CORE_CAPS_SPLIT_LOCK_DETECT))</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cpu_model_supports_sld = <span class="literal">true</span>;</span><br><span class="line">	__split_lock_setup();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">identify_cpu</span><br><span class="line">	init_intel[this_cpu-&gt;c_init]</span><br><span class="line">		split_lock_init</span><br><span class="line">			split_lock_verify_msr</span><br></pre></td></tr></table></figure>
 <hr>
 <p>参考资料:</p>
 <ol>
@@ -350,8 +351,6 @@
       <footer class="post-footer">
         
           <div class="post-tags">
-            
-              <a href="/tags/虚拟化/">虚拟化</a>
             
               <a href="/tags/SDM/">SDM</a>
             
@@ -484,7 +483,7 @@
     var disqus_config = function () {
         this.page.url = 'http://liujunming.github.io/2022/01/13/split-lock-and-its-virtualization/';
         this.page.identifier = '2022/01/13/split-lock-and-its-virtualization/';
-        this.page.title = 'split lock detect and its virtualization';
+        this.page.title = 'Notes about split lock detect';
     };
     (function() {
     var d = document, s = d.createElement('script');

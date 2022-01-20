@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="Notes about bus lock detection">
 
 
 
+
+  <meta name="keywords" content="SDM, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/tags/虚拟化/page/4/">
+<link rel="canonical" href="http://liujunming.github.io/2022/01/18/Notes-about-bus-lock-detection/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    虚拟化 · L
-  
-</title>
+    <title> Notes about bus lock detection - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,186 +256,116 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about bus lock detection
+        
+      </h1>
 
-  <section id="archive" class="archive">
+      <div class="post-meta">
+        <span class="post-time">
+          2022-01-18
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/SDM/">SDM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
     
+    
+
+
+    <div class="post-content">
+      
+        <p>Notes about bus lock detection.<a id="more"></a></p>
+<ul>
+<li>fault vs trap</li>
+</ul>
+<p>#AC for <a href="/2022/01/13/split-lock-and-its-virtualization/">Split-locked Access</a> is fault, #DB for bus lock detection is trap.</p>
+<p><img src="/images/2022/01/26.png" alt></p>
+<p>A bus lock is acquired through either <strong>split locked access to writeback (WB) memory</strong> or <strong>any locked access to non-WB memory</strong>. This is typically &gt;1000 cycles slower than an atomic operation within a cache line. It also disrupts performance on other cores.</p>
+<p>Although split lock can be detected by #AC fault, the fault is triggered before the instruction acquires bus lock. This makes it difficult to mitigate bus lock (e.g. throttle(限制) the user application).</p>
+<p>How to explain <u>it difficult to mitigate bus lock(e.g. throttle the user application)</u>?<br><code>split_lock_detect</code> default value is warn, that is the split lock state will be changed for one instruction. But this requires changing the split lock state using the test MSR for the complete core, impacting other threads.  <strong>Keypoint:</strong> #AC fault: The return address for the fault handler points to the faulting instruction, rather than to the instruction following the faulting instruction. <strong>Think:</strong> What does #AC handler do when <code>split_lock_detect</code> value is warn?<br><img src="/images/2022/01/27.png" alt><br><code>ratelimit</code>可以理解为throttle the user application!</p>
+<p>Some CPUs have ability to notify the kernel by an #DB trap after a user instruction acquires a bus lock and is executed. This allows the kernel to enforce user application throttling or mitigations.</p>
+<p>#DB for bus lock detect fixes issues in #AC for split lock detect:</p>
+<ol>
+<li>It’s architectural … just need to look at one CPUID bit to know it exists</li>
+<li>The IA32_DEBUGCTL MSR, which reports bus lock in #DB, is per-thread. So each process or guest can have different behavior.</li>
+<li>It has support for VMM/guests (new VMEXIT codes, etc).</li>
+<li>It detects not only split locks but also bus locks from non-WB.</li>
+</ol>
+<p>Hardware only generates #DB for bus lock detect when CPL&gt;0 to avoid nested #DB from multiple bus locks while the first #DB is being handled.</p>
+<p>Use the existing kernel command line parameter “split_lock_detect=” to handle #DB for bus lock with an additional option “ratelimit=N” to set bus lock rate limit for a user.</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://software.intel.com/content/www/us/en/develop/download/intel-architecture-instruction-set-extensions-programming-reference.html" target="_blank" rel="noopener">Intel Instruction Set Extension</a> Chapter 9</li>
+<li><a href="https://lore.kernel.org/lkml/20210322135325.682257-1-fenghua.yu@intel.com/" target="_blank" rel="noopener">x86/bus_lock: Enable bus lock detection</a></li>
+</ol>
+
+      
+    </div>
 
     
       
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-10-23
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/10/23/Some-notes-about-pause-loop-exiting/" class="archive-post-link">
-            Some notes about pause loop exiting
-          </a>
-        </span>
-      </div>
-    
       
 
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-10-11
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/10/11/VT-d-Posted-Interrupt/" class="archive-post-link">
-            VT-d Posted Interrupt
-          </a>
-        </span>
-      </div>
-    
+
+
       
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-10-10
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/10/10/VT-d-Interrupt-Remapping/" class="archive-post-link">
-            VT-d Interrupt Remapping
-          </a>
-        </span>
-      </div>
-    
       
+    
 
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-10-09
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/10/09/Some-notes-about-Interrupt-Window/" class="archive-post-link">
-            Some notes about Interrupt Window and NMI Window
-          </a>
-        </span>
-      </div>
     
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-10-08
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/10/08/The-motivation-of-APICv/" class="archive-post-link">
-            The motivation of APICv
-          </a>
-        </span>
-      </div>
-    
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-10-07
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/10/07/Introduction-to-Posted-interrupt/" class="archive-post-link">
-            Introduction to VT-x Posted-interrupt
-          </a>
-        </span>
-      </div>
-    
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-10-05
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/10/05/Some-notes-about-CVE-2016-5195/" class="archive-post-link">
-            Some notes about CVE-2016-5195
-          </a>
-        </span>
-      </div>
-    
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-08-30
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/08/30/Without-EPT-or-SPT-guest-still-can-access-memory/" class="archive-post-link">
-            Without EPT or SPT, guest still can access memory?
-          </a>
-        </span>
-      </div>
-    
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-08-29
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/08/29/Some-notes-about-Queued-Invalidaion-in-VT-d/" class="archive-post-link">
-            Some notes about Queued Invalidation in VT-d
-          </a>
-        </span>
-      </div>
-    
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            2020-07-12
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/07/12/Introduction-to-ept-misconfig/" class="archive-post-link">
-            Introduction to ept misconfig
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
-      <a class="prev" href="/tags/虚拟化/page/3/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text">上一页</span>
-      </a>
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/SDM/">SDM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
     
     
-      <a class="next" href="/tags/虚拟化/page/5/">
-        <span class="next-text">下一页</span>
+      <a class="next" href="/2022/01/16/Notes-about-IRQ-Affinity/">
+        <span class="next-text nav-default">Notes about IRQ Affinity</span>
+        <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -524,9 +452,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = '';
-        this.page.identifier = 'tags/虚拟化/page/4/index.html';
-        this.page.title = '';
+        this.page.url = 'http://liujunming.github.io/2022/01/18/Notes-about-bus-lock-detection/';
+        this.page.identifier = '2022/01/18/Notes-about-bus-lock-detection/';
+        this.page.title = 'Notes about bus lock detection';
     };
     (function() {
     var d = document, s = d.createElement('script');
