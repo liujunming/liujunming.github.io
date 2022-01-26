@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="FPU virtualization in KVM">
+
+
+
+
+  <meta name="keywords" content="虚拟化, KVM, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/01/24/FPU-virtualization-in-KVM/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> FPU virtualization in KVM - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          FPU virtualization in KVM
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-01-24
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/KVM/">KVM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Prerequisite"><span class="toc-text">1. Prerequisite</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-xsave-state"><span class="toc-text">2. xsave state</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-kvm-load-guest-fpu-and-kvm-put-guest-fpu"><span class="toc-text">3. kvm_load_guest_fpu and kvm_put_guest_fpu</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-KVM-GET-XSAVE-and-KVM-SET-XSAVE-ioctl"><span class="toc-text">4. KVM_GET_XSAVE and KVM_SET_XSAVE ioctl</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将以<a href="https://elixir.bootlin.com/linux/v5.16-rc1/source" target="_blank" rel="noopener">v5.16-rc1</a>源码为例，介绍下KVM中FPU virtualization的实现。<a id="more"></a></p>
+<h3 id="1-Prerequisite"><a href="#1-Prerequisite" class="headerlink" title="1. Prerequisite"></a>1. Prerequisite</h3><ul>
+<li><a href="/2021/11/12/Notes-about-XSAVE-feature-set/">Notes about XSAVE feature set</a></li>
+<li><a href="/2022/01/08/Notes-about-FPU-implementation-in-Linux-kernel/">Notes about FPU implementation in Linux kernel</a></li>
+</ul>
+<h3 id="2-xsave-state"><a href="#2-xsave-state" class="headerlink" title="2. xsave state"></a>2. xsave state</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vmx_vcpu_run</span><br><span class="line">	kvm_load_guest_xsave_state</span><br><span class="line">	vmx_vcpu_enter_exit(vcpu, vmx); <span class="comment">/* The actual VMENTER/EXIT is in the .noinstr.text section. */</span></span><br><span class="line">	kvm_load_host_xsave_state</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">kvm_load_guest_xsave_state</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">if</span> (kvm_read_cr4_bits(vcpu, X86_CR4_OSXSAVE)) &#123;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (vcpu-&gt;arch.xcr0 != host_xcr0)</span><br><span class="line">			xsetbv(XCR_XFEATURE_ENABLED_MASK, vcpu-&gt;arch.xcr0);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (vcpu-&gt;arch.xsaves_enabled &amp;&amp;</span><br><span class="line">		    vcpu-&gt;arch.ia32_xss != host_xss)</span><br><span class="line">			wrmsrl(MSR_IA32_XSS, vcpu-&gt;arch.ia32_xss);</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">kvm_load_host_xsave_state</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">if</span> (kvm_read_cr4_bits(vcpu, X86_CR4_OSXSAVE)) &#123;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (vcpu-&gt;arch.xcr0 != host_xcr0)</span><br><span class="line">			xsetbv(XCR_XFEATURE_ENABLED_MASK, host_xcr0);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (vcpu-&gt;arch.xsaves_enabled &amp;&amp;</span><br><span class="line">		    vcpu-&gt;arch.ia32_xss != host_xss)</span><br><span class="line">			wrmsrl(MSR_IA32_XSS, host_xss);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3-kvm-load-guest-fpu-and-kvm-put-guest-fpu"><a href="#3-kvm-load-guest-fpu-and-kvm-put-guest-fpu" class="headerlink" title="3. kvm_load_guest_fpu and kvm_put_guest_fpu"></a>3. kvm_load_guest_fpu and kvm_put_guest_fpu</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_vcpu_arch</span> &#123;</span></span><br><span class="line">	...</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * QEMU userspace and the guest each have their own FPU state.</span></span><br><span class="line"><span class="comment">	 * In vcpu_run, we switch between the user and guest FPU contexts.</span></span><br><span class="line"><span class="comment">	 * While running a VCPU, the VCPU thread will have the guest FPU</span></span><br><span class="line"><span class="comment">	 * context.</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * Note that while the PKRU state lives inside the fpu registers,</span></span><br><span class="line"><span class="comment">	 * it is switched out separately at VMENTER and VMEXIT time. The</span></span><br><span class="line"><span class="comment">	 * "guest_fpstate" state here contains the guest FPU context, with the</span></span><br><span class="line"><span class="comment">	 * host PRKU bits.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fpu_guest</span> <span class="title">guest_fpu</span>;</span></span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Swap (qemu) user FPU context for the guest FPU context. */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">kvm_load_guest_fpu</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Exclude PKRU from restore as restored separately in</span></span><br><span class="line"><span class="comment">	 * kvm_x86_ops.run().</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	fpu_swap_kvm_fpstate(&amp;vcpu-&gt;arch.guest_fpu, <span class="literal">true</span>);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* When vcpu_run ends, restore user space FPU context. */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">kvm_put_guest_fpu</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	fpu_swap_kvm_fpstate(&amp;vcpu-&gt;arch.guest_fpu, <span class="literal">false</span>);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fpu</span> &#123;</span></span><br><span class="line">	...</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * @fpstate:</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * Pointer to the active struct fpstate. Initialized to</span></span><br><span class="line"><span class="comment">	 * point at @__fpstate below.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fpstate</span>			*<span class="title">fpstate</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * @__task_fpstate:</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * Pointer to an inactive struct fpstate. Initialized to NULL. Is</span></span><br><span class="line"><span class="comment">	 * used only for KVM support to swap out the regular task fpstate.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fpstate</span>			*__<span class="title">task_fpstate</span>;</span></span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">fpu_swap_kvm_fpstate</span><span class="params">(struct fpu_guest *guest_fpu, <span class="keyword">bool</span> enter_guest)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fpstate</span> *<span class="title">guest_fps</span> = <span class="title">guest_fpu</span>-&gt;<span class="title">fpstate</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fpu</span> *<span class="title">fpu</span> = &amp;<span class="title">current</span>-&gt;<span class="title">thread</span>.<span class="title">fpu</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fpstate</span> *<span class="title">cur_fps</span> = <span class="title">fpu</span>-&gt;<span class="title">fpstate</span>;</span></span><br><span class="line"></span><br><span class="line">	fpregs_lock();</span><br><span class="line">	<span class="keyword">if</span> (!cur_fps-&gt;is_confidential &amp;&amp; !test_thread_flag(TIF_NEED_FPU_LOAD))</span><br><span class="line">		save_fpregs_to_fpstate(fpu);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Swap fpstate */</span></span><br><span class="line">	<span class="keyword">if</span> (enter_guest) &#123;</span><br><span class="line">		fpu-&gt;__task_fpstate = cur_fps;</span><br><span class="line">		fpu-&gt;fpstate = guest_fps;</span><br><span class="line">		guest_fps-&gt;in_use = <span class="literal">true</span>;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		guest_fps-&gt;in_use = <span class="literal">false</span>;</span><br><span class="line">		fpu-&gt;fpstate = fpu-&gt;__task_fpstate;</span><br><span class="line">		fpu-&gt;__task_fpstate = <span class="literal">NULL</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cur_fps = fpu-&gt;fpstate;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!cur_fps-&gt;is_confidential) &#123;</span><br><span class="line">		<span class="comment">/* Includes XFD update */</span></span><br><span class="line">		restore_fpregs_from_fpstate(cur_fps, XFEATURE_MASK_FPSTATE);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * XSTATE is restored by firmware from encrypted</span></span><br><span class="line"><span class="comment">		 * memory. Make sure XFD state is correct while</span></span><br><span class="line"><span class="comment">		 * running with guest fpstate</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		xfd_update_state(cur_fps);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fpregs_mark_activate();</span><br><span class="line">	fpregs_unlock();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="4-KVM-GET-XSAVE-and-KVM-SET-XSAVE-ioctl"><a href="#4-KVM-GET-XSAVE-and-KVM-SET-XSAVE-ioctl" class="headerlink" title="4. KVM_GET_XSAVE and KVM_SET_XSAVE ioctl"></a>4. KVM_GET_XSAVE and KVM_SET_XSAVE ioctl</h3><p><a href="https://lore.kernel.org/lkml/20211017152048.666354328@linutronix.de/" target="_blank" rel="noopener">x86/kvm: Convert FPU handling to a single swap buffer</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kvm_arch_vcpu_ioctl</span><br><span class="line">	kvm_vcpu_ioctl_x86_get_xsave[KVM_GET_XSAVE]</span><br><span class="line">		fpu_copy_guest_fpstate_to_uabi</span><br><span class="line">			__copy_xstate_to_uabi_buf</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * __copy_xstate_to_uabi_buf - Copy kernel saved xstate to a UABI buffer</span></span><br><span class="line"><span class="comment"> * @to:		membuf descriptor</span></span><br><span class="line"><span class="comment"> * @fpstate:	The fpstate buffer from which to copy</span></span><br><span class="line"><span class="comment"> * @pkru_val:	The PKRU value to store in the PKRU component</span></span><br><span class="line"><span class="comment"> * @copy_mode:	The requested copy mode</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Converts from kernel XSAVE or XSAVES compacted format to UABI conforming</span></span><br><span class="line"><span class="comment"> * format, i.e. from the kernel internal hardware dependent storage format</span></span><br><span class="line"><span class="comment"> * to the requested @mode. UABI XSTATE is always uncompacted!</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * It supports partial copy but @to.pos always starts from zero.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">void</span> __copy_xstate_to_uabi_buf(struct membuf to, struct fpstate *fpstate,</span><br><span class="line">			       u32 pkru_val, <span class="keyword">enum</span> xstate_copy_mode copy_mode)</span><br><span class="line">&#123;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><a href="https://elixir.bootlin.com/linux/v5.16-rc1/source/arch/x86/kernel/fpu/xstate.c#L1132" target="_blank" rel="noopener">__copy_xstate_to_uabi_buf</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kvm_arch_vcpu_ioctl</span><br><span class="line">	kvm_vcpu_ioctl_x86_set_xsave[KVM_SET_XSAVE]</span><br><span class="line">		fpu_copy_uabi_to_guest_fpstate</span><br><span class="line">			copy_uabi_from_kernel_to_xstate</span><br><span class="line">				copy_uabi_to_xstate</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/KVM/">KVM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/01/18/Notes-about-bus-lock-detection/">
+        <span class="next-text nav-default">Notes about bus lock detection</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/01/24/FPU-virtualization-in-KVM/';
+        this.page.identifier = '2022/01/24/FPU-virtualization-in-KVM/';
+        this.page.title = 'FPU virtualization in KVM';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
