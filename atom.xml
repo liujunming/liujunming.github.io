@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-02-06T11:28:46.357Z</updated>
+  <updated>2022-02-08T10:00:14.938Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>GDB Conditional Breakpoints</title>
+    <link href="http://liujunming.github.io/2022/02/08/GDB-Conditional-Breakpoints/"/>
+    <id>http://liujunming.github.io/2022/02/08/GDB-Conditional-Breakpoints/</id>
+    <published>2022-02-08T06:01:15.000Z</published>
+    <updated>2022-02-08T10:00:14.938Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文转载自<a href="https://www.fayewilliams.com/2011/07/13/gdb-conditional-breakpoints/" target="_blank" rel="noopener">GDB Conditional Breakpoints</a>。<a id="more"></a></p><p>What if you have a large loop running and you only want to look at what’s happening as it nears the end? Do you really have to step through 99 iterations in a 100 item loop?</p><p>Of course you don’t. Step forward the conditional breakpoint.</p><h3 id="Set-a-conditional-breakpoint-using-a-condition"><a href="#Set-a-conditional-breakpoint-using-a-condition" class="headerlink" title="Set a conditional breakpoint using a condition"></a>Set a conditional breakpoint using a condition</h3><p>In GDB you can specify a condition in the programming language you are debugging and apply it to any breakpoint. Let’s stop a loop at the 99th iteration (I’m debugging C/C++, so my conditions are written in C/C++):</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b Message.cpp:112 if i == 99</span><br></pre></td></tr></table></figure><p>That’s all there is to it.</p><p>To ensure gdb stops execution, use <em>the first line of code inside the loop</em> as the stopping point, not the loop itself.</p><p>You can also specify a condition on an existing breakpoint by using the breakpoint number as a reference:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) cond 3 i == 99</span><br></pre></td></tr></table></figure><p>And remove a condition from a breakpoint using:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(gdb) cond 3</span><br><span class="line">Breakpoint 3 now unconditional.</span><br></pre></td></tr></table></figure><h3 id="That’s-great-What-else-can-you-do"><a href="#That’s-great-What-else-can-you-do" class="headerlink" title="That’s great! What else can you do?"></a>That’s great! What else can you do?</h3><p>Pretty much anything you like! Just write the condition exactly as if you were testing for it in your code, e.g.:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">(gdb) cond 1 strcmp(message,&quot;earthquake&quot;) == 0</span><br><span class="line">//stop if the array message is equal to &apos;earthquake&apos;</span><br><span class="line"></span><br><span class="line">(gdb) cond 2 *p == &apos;r&apos;</span><br><span class="line">//stop if the char* pointer p points to the letter &apos;r&apos;</span><br><span class="line"></span><br><span class="line">(gdb) cond 3 num &lt; 0.75</span><br><span class="line">//stop while the float num is less than 0.75</span><br></pre></td></tr></table></figure><p>Conditional breakpoints covered and your efficiency increased, all in less than 5 minutes!</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文转载自&lt;a href=&quot;https://www.fayewilliams.com/2011/07/13/gdb-conditional-breakpoints/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;GDB Conditional Breakpoints&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="debug" scheme="http://liujunming.github.io/categories/debug/"/>
+    
+    
+      <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
+    
+  </entry>
   
   <entry>
     <title>Interrupt and Interrupt Virtualization</title>
@@ -438,28 +460,6 @@
     <summary type="html">
     
       &lt;p&gt;本文将深入解析Intel &lt;code&gt;iret&lt;/code&gt; instruction。
-    
-    </summary>
-    
-      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
-    
-    
-      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>The usage of Intel GS segment</title>
-    <link href="http://liujunming.github.io/2022/01/05/The-usage-of-Intel-GS-segment/"/>
-    <id>http://liujunming.github.io/2022/01/05/The-usage-of-Intel-GS-segment/</id>
-    <published>2022-01-05T07:48:22.000Z</published>
-    <updated>2022-01-05T10:08:18.255Z</updated>
-    
-    <content type="html"><![CDATA[<p>在阅读<a href="https://gitlab.com/kvm-unit-tests/kvm-unit-tests" target="_blank" rel="noopener">KVM-Unit-Tests</a>过程中，看到了<code>asm (&quot;mov %0, %%gs:0&quot; : : &quot;r&quot;(apic_id()) : &quot;memory&quot;);</code>，不是很明白，因此，特此写一篇文章记录下Intel GS segment的相关用法。<a id="more"></a></p><h3 id="1-Description-in-SDM"><a href="#1-Description-in-SDM" class="headerlink" title="1. Description in SDM"></a>1. Description in SDM</h3><p><img src="/images/2022/01/01.png" alt></p><h3 id="2-Usage"><a href="#2-Usage" class="headerlink" title="2. Usage"></a>2. Usage</h3><ul><li>The GS segment can be used for thread local storage.</li><li>The GS segment can be used for per-CPU data.</li></ul><h3 id="3-Source-code-in-KVM-Unit-Tests"><a href="#3-Source-code-in-KVM-Unit-Tests" class="headerlink" title="3. Source code in KVM-Unit-Tests"></a>3. Source code in KVM-Unit-Tests</h3><p>commit id: ca785dae0dd343b1de4b3f5d6c1223d41fbc39e7</p><p><img src="/images/2022/01/03.png" alt><br><figure class="highlight as"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">MSR_GS_BASE = <span class="number">0xc0000101</span></span><br><span class="line"></span><br><span class="line">.macro setup_percpu_area</span><br><span class="line">lea <span class="number">-4096</span>(%esp), %eax</span><br><span class="line">mov $<span class="number">0</span>, %edx</span><br><span class="line">mov $MSR_GS_BASE, %ecx</span><br><span class="line">wrmsr</span><br><span class="line">.endm</span><br></pre></td></tr></table></figure></p><p><code>MSR_GS_BASE</code> MSR的描述如下：<br><img src="/images/2022/01/02.png" alt></p><p>stack的layout可以以<code>stacktop</code>为关键字，在<a href="https://gitlab.com/kvm-unit-tests/kvm-unit-tests/-/blob/master/x86/cstart64.S" target="_blank" rel="noopener">cstart64.S</a>中搜索。</p><p>Here’re the example to use GS segment to access per-CPU data:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">smp_id</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> id;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">asm</span> (<span class="string">"mov %%gs:0, %0"</span> : <span class="string">"=r"</span>(id));</span><br><span class="line">    <span class="keyword">return</span> id;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">setup_smp_id</span><span class="params">(<span class="keyword">void</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">asm</span> (<span class="string">"mov %0, %%gs:0"</span> : : <span class="string">"r"</span>(apic_id()) : <span class="string">"memory"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><hr><p>参考资料：</p><ol><li><a href="https://stackoverflow.com/questions/10810203/what-is-the-fs-gs-register-intended-for" target="_blank" rel="noopener">What is the “FS”/“GS” register intended for?</a></li><li><a href="https://stackoverflow.com/questions/9249315/what-is-gs-in-assembly" target="_blank" rel="noopener">What is %gs in Assembly</a></li><li><a href="https://stackoverflow.com/questions/12234817/what-does-this-instruction-do-mov-gs0x14-eax" target="_blank" rel="noopener">what does this instruction do?:- mov %gs:0x14,%eax</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;在阅读&lt;a href=&quot;https://gitlab.com/kvm-unit-tests/kvm-unit-tests&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;KVM-Unit-Tests&lt;/a&gt;过程中，看到了&lt;code&gt;asm (&amp;quot;mov %0, %%gs:0&amp;quot; : : &amp;quot;r&amp;quot;(apic_id()) : &amp;quot;memory&amp;quot;);&lt;/code&gt;，不是很明白，因此，特此写一篇文章记录下Intel GS segment的相关用法。
     
     </summary>
     

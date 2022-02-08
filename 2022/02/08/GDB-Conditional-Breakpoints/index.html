@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="GDB Conditional Breakpoints">
 
 
 
+
+  <meta name="keywords" content="debug, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2019/04/">
+<link rel="canonical" href="http://liujunming.github.io/2022/02/08/GDB-Conditional-Breakpoints/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> GDB Conditional Breakpoints - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,99 +256,112 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          GDB Conditional Breakpoints
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 426 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2022-02-08
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/debug/">debug</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Set-a-conditional-breakpoint-using-a-condition"><span class="toc-text">Set a conditional breakpoint using a condition</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#That’s-great-What-else-can-you-do"><span class="toc-text">That’s great! What else can you do?</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文转载自<a href="https://www.fayewilliams.com/2011/07/13/gdb-conditional-breakpoints/" target="_blank" rel="noopener">GDB Conditional Breakpoints</a>。<a id="more"></a></p>
+<p>What if you have a large loop running and you only want to look at what’s happening as it nears the end? Do you really have to step through 99 iterations in a 100 item loop?</p>
+<p>Of course you don’t. Step forward the conditional breakpoint.</p>
+<h3 id="Set-a-conditional-breakpoint-using-a-condition"><a href="#Set-a-conditional-breakpoint-using-a-condition" class="headerlink" title="Set a conditional breakpoint using a condition"></a>Set a conditional breakpoint using a condition</h3><p>In GDB you can specify a condition in the programming language you are debugging and apply it to any breakpoint. Let’s stop a loop at the 99th iteration (I’m debugging C/C++, so my conditions are written in C/C++):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b Message.cpp:112 if i == 99</span><br></pre></td></tr></table></figure>
+<p>That’s all there is to it.</p>
+<p>To ensure gdb stops execution, use <em>the first line of code inside the loop</em> as the stopping point, not the loop itself.</p>
+<p>You can also specify a condition on an existing breakpoint by using the breakpoint number as a reference:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) cond 3 i == 99</span><br></pre></td></tr></table></figure>
+<p>And remove a condition from a breakpoint using:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(gdb) cond 3</span><br><span class="line">Breakpoint 3 now unconditional.</span><br></pre></td></tr></table></figure>
+<h3 id="That’s-great-What-else-can-you-do"><a href="#That’s-great-What-else-can-you-do" class="headerlink" title="That’s great! What else can you do?"></a>That’s great! What else can you do?</h3><p>Pretty much anything you like! Just write the condition exactly as if you were testing for it in your code, e.g.:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">(gdb) cond 1 strcmp(message,&quot;earthquake&quot;) == 0</span><br><span class="line">//stop if the array message is equal to &apos;earthquake&apos;</span><br><span class="line"></span><br><span class="line">(gdb) cond 2 *p == &apos;r&apos;</span><br><span class="line">//stop if the char* pointer p points to the letter &apos;r&apos;</span><br><span class="line"></span><br><span class="line">(gdb) cond 3 num &lt; 0.75</span><br><span class="line">//stop while the float num is less than 0.75</span><br></pre></td></tr></table></figure>
+<p>Conditional breakpoints covered and your efficiency increased, all in less than 5 minutes!</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2019</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/debug/">debug</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-29
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2019/04/29/CPU-cache一致性问题/" class="archive-post-link">
-            CPU Cache一致性问题
-          </a>
-        </span>
-      </div>
+        
+        
+  <nav class="post-nav">
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-20
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2019/04/20/CPU-cache/" class="archive-post-link">
-            CPU Cache
-          </a>
-        </span>
-      </div>
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-10
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2019/04/10/转-CPU-Cache-Line伪共享问题的总结和分析/" class="archive-post-link">
-            (转)CPU Cache Line伪共享问题的总结和分析
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
+      <a class="next" href="/2022/02/06/Interrupt-and-Interrupt-Virtualization/">
+        <span class="next-text nav-default">Interrupt and Interrupt Virtualization</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -434,6 +445,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/02/08/GDB-Conditional-Breakpoints/';
+        this.page.identifier = '2022/02/08/GDB-Conditional-Breakpoints/';
+        this.page.title = 'GDB Conditional Breakpoints';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
