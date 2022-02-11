@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Introduction to QEMU-KVM Live Migration">
+
+
+
+
+  <meta name="keywords" content="虚拟化, live migration, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/02/10/Introduction-to-QEMU-KVM-Live-Migration/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Introduction to QEMU-KVM Live Migration - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Introduction to QEMU-KVM Live Migration
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-02-10
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/live-migration/">live migration</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Usage"><span class="toc-text">1. Usage</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-基本原理"><span class="toc-text">2. 基本原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Algorithm"><span class="toc-text">3. Algorithm</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-发送端源码分析"><span class="toc-text">4. 发送端源码分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-接收端源码分析"><span class="toc-text">5. 接收端源码分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-MISC"><span class="toc-text">6. MISC</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Introduction to QEMU-KVM Live Migration.<a id="more"></a></p>
+<p>本文只介绍<a href="https://en.wikipedia.org/wiki/Live_migration#Pre-copy_memory_migration" target="_blank" rel="noopener">Pre-copy memory migration</a>，大部分内容转载自:<a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2018/03/01/qemu-live-migration" target="_blank" rel="noopener">qemu热迁移简介</a>.</p>
+<p>文中的代码解析基于QEMU 5.1.0。</p>
+<h3 id="1-Usage"><a href="#1-Usage" class="headerlink" title="1. Usage"></a>1. Usage</h3><p><a href="/2021/12/04/The-usage-of-QEMU-KVM-live-migration/">The usage of QEMU&amp;&amp;KVM live migration</a></p>
+<h3 id="2-基本原理"><a href="#2-基本原理" class="headerlink" title="2. 基本原理"></a>2. 基本原理</h3><p>推荐读下<a href="https://github.com/liujunming/paper_reading_notes/issues/9" target="_blank" rel="noopener">NSDI‘05 Live Migration of Virtual Machines</a>。</p>
+<p><img src="/images/2022/02/01.png" alt></p>
+<p>首先看看热迁移过程中qemu的哪些部分会包含进来。上图中间的灰色部分是虚拟机的内存，它对于qemu来说是黑盒，qemu不会做任何假设，而只是一股脑儿的发送到dst(destination host)。左边的区域是表示设备的状态，这部分是虚拟机可见的，qemu使用自己的协议来发送这部分。右边的是不会迁移的部分，但是还是需要dst和src(source host)保持一致，一般来说，src和dst的虚拟机使用相同的qemu command line能够保证这部分一致。</p>
+<p>需要满足很多条件才能进行热迁:</p>
+<ol>
+<li>使用共享存储，如NFS</li>
+<li>host的时间要一致</li>
+<li>网络配置要一致，不能说src能访问某个网络，dst不能</li>
+<li>host CPU类型要一致，毕竟host导出指令集给guest</li>
+<li>虚拟机的机器类型，QEMU版本，rom版本等</li>
+</ol>
+<p>热迁移主要包括三个步骤：</p>
+<ol>
+<li>将虚拟机所有RAM pages设置成dirty，主要函数:<code>ram_save_setup</code></li>
+<li>持续迭代将虚拟机的dirty pages发送到dst，直到达到一定条件，比如dirty pages数量比较少, 主要函数:<code>ram_save_iterate</code></li>
+<li>停止src上面的guest，把剩下的dirty pages发送到dst，之后发送设备状态，主要函数: <code>qemu_savevm_state_complete_precopy</code></li>
+</ol>
+<p>其中步骤1和步骤2是上图中的灰色区域，步骤3是灰色和左边的区域。</p>
+<p>之后就可以在dst上面继续运行qemu程序了。</p>
+<h3 id="3-Algorithm"><a href="#3-Algorithm" class="headerlink" title="3. Algorithm"></a>3. Algorithm</h3><ol>
+<li>Setup</li>
+</ol>
+<ul>
+<li>Start guest on destination, connect, enable dirty page logging and more</li>
+</ul>
+<ol start="2">
+<li>Transfer Memory</li>
+</ol>
+<ul>
+<li>Guest continues to run</li>
+<li>Bandwidth limitation (controlled by the user)</li>
+<li>First transfer the whole memory</li>
+<li>Iteratively transfer all dirty pages (pages that were written to by the guest).</li>
+</ul>
+<ol start="3">
+<li>Stop the guest</li>
+</ol>
+<ul>
+<li>And sync VM image(s) (guest’s hard drives).</li>
+</ul>
+<ol start="4">
+<li>Transfer State</li>
+</ol>
+<ul>
+<li>As fast as possible (no bandwidth limitation)</li>
+<li>All VM devices’ state and dirty pages yet to be transferred</li>
+</ul>
+<ol start="5">
+<li>Continue the guest</li>
+</ol>
+<ul>
+<li>On destination upon success<ul>
+<li>Broadcast “I’m over here” Ethernet packet to announce new location of NIC(s).</li>
+</ul>
+</li>
+<li>On source upon failure (with one exception).</li>
+</ul>
+<h3 id="4-发送端源码分析"><a href="#4-发送端源码分析" class="headerlink" title="4. 发送端源码分析"></a>4. 发送端源码分析</h3><p>在qemu的monitor输入migrate命令后，经过的一些函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">hmp_migrate</span><br><span class="line">	qmp_migrate</span><br><span class="line">		tcp_start_outgoing_migration</span><br><span class="line">			socket_start_outgoing_migration</span><br><span class="line">				socket_outgoing_migration</span><br><span class="line">					migration_channel_connect</span><br><span class="line">						qemu_fopen_channel_output</span><br><span class="line">						migrate_fd_connect</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">migrate_fd_connect</span><span class="params">(MigrationState *s, Error *error_in)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    </span><br><span class="line">    qemu_thread_create(&amp;s-&gt;thread, <span class="string">"live_migration"</span>, migration_thread, s,</span><br><span class="line">                       QEMU_THREAD_JOINABLE);</span><br><span class="line">    s-&gt;migration_thread_running = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>migrate_fd_connect</code>函数创建了一个迁移线程，线程函数为<code>migration_thread</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">migration_thread</span><br><span class="line">	qemu_savevm_state_setup</span><br><span class="line">		ram_save_setup[save_setup]</span><br><span class="line">			ram_init_all</span><br><span class="line">				ram_init_bitmaps</span><br><span class="line">					ram_list_init_bitmaps</span><br><span class="line">						bitmap_new</span><br><span class="line">						bitmap_set</span><br><span class="line">	migration_iteration_run</span><br><span class="line">		qemu_savevm_state_pending</span><br><span class="line">			ram_save_pending[save_live_pending]</span><br><span class="line">		qemu_savevm_state_iterate</span><br><span class="line">			ram_save_iterate[save_live_iterate]</span><br><span class="line">				ram_find_and_save_block</span><br><span class="line">		migration_completion</span><br><span class="line">			vm_stop_force_state</span><br><span class="line">			qemu_savevm_state_complete_precopy</span><br><span class="line">				qemu_savevm_state_complete_precopy_iterable</span><br><span class="line">					ram_save_complete[save_live_complete_precopy]</span><br><span class="line">						ram_find_and_save_block</span><br></pre></td></tr></table></figure>
+<p><code>migration_thread</code>主要就是用来完成之前提到的热迁移的三个步骤。<br>首先来看第一个步骤，<code>qemu_savevm_state_setup</code>标记所有RAM pages为dirty。</p>
+<p>接着看第二个步骤，由while循环中的两个函数完成: <code>qemu_savevm_state_pending</code>和<code>qemu_savevm_state_iterate</code>。</p>
+<p>第一个函数通过调用回调函数<code>ram_save_pending</code>确定还要传输的字节数，比较简单。 第二个函数通过调用回调函数<code>ram_save_iterate</code>用来把dirty  pages传到dst上面。</p>
+<p><code>ram_find_and_save_block</code>–&gt;<code>find_dirty_block</code>–&gt;<code>ram_save_host_page</code>–&gt;<code>migration_bitmap_clear_dirty</code>–&gt;<code>ram_save_target_page</code>–&gt;<code>ram_save_page</code>–&gt;<code>save_normal_page</code>-&gt;<code>qemu_put_buffer_async</code> –&gt;…-&gt;<code>qemu_fflush</code> –&gt;…-&gt;<code>send</code></p>
+<p>在while循环中反复调用<code>ram_save_pending</code>和<code>ram_save_iterate</code>不停向dst发送虚拟机脏页，直到达到一定的条件，然后进入第三个步骤。</p>
+<p>第三个步骤就是调用<code>migration_completion</code>，在这一步中会停止src虚拟机，然后把最后剩的一点脏页拷贝到dst去。</p>
+<h3 id="5-接收端源码分析"><a href="#5-接收端源码分析" class="headerlink" title="5. 接收端源码分析"></a>5. 接收端源码分析</h3><p>接收端的qemu运行参数跟发送端的一样，但是多了一个参数<code>-incoming tcp:0:6666</code>, qemu在解析到<code>-incoming</code>后，就会等待src迁移过来，我们来看看这个流程。</p>
+<p><code>main</code> –&gt;<code>qemu_init</code> –&gt;<code>qemu_start_incoming_migration</code> –&gt;<code>tcp_start_incoming_migration</code> –&gt;<code>socket_start_incoming_migration</code> –&gt;<code>socket_accept_incoming_migration</code> –&gt;<code>migration_channel_process_incoming</code> -&gt;<code>migration_ioc_process_incoming</code> -&gt;<code>migration_incoming_process</code> -&gt;<code>process_incoming_migration_co</code> -&gt;<code>qemu_loadvm_state</code> -&gt;<code>qemu_loadvm_state_main</code></p>
+<p><code>process_incoming_migration_co</code>函数用来完成数据接收，恢复虚拟机的运行。最重要的是<code>qemu_loadvm_state</code>，用于接收数据，在dst重构虚拟机。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">qemu_loadvm_state</span><span class="params">(QEMUFile *f)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    ret = qemu_loadvm_state_main(f, mis);</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>显然，<code>qemu_loadvm_state_main</code>是构建虚拟机的主要函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">qemu_loadvm_state_main</span><span class="params">(QEMUFile *f, MigrationIncomingState *mis)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">uint8_t</span> section_type;</span><br><span class="line">    <span class="keyword">int</span> ret = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">retry:</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">        section_type = qemu_get_byte(f);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (qemu_file_get_error(f)) &#123;</span><br><span class="line">            ret = qemu_file_get_error(f);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        trace_qemu_loadvm_state_section(section_type);</span><br><span class="line">        <span class="keyword">switch</span> (section_type) &#123;</span><br><span class="line">        <span class="keyword">case</span> QEMU_VM_SECTION_START:</span><br><span class="line">        <span class="keyword">case</span> QEMU_VM_SECTION_FULL:</span><br><span class="line">            ret = qemu_loadvm_section_start_full(f, mis);</span><br><span class="line">            <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">goto</span> out;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> QEMU_VM_SECTION_PART:</span><br><span class="line">        <span class="keyword">case</span> QEMU_VM_SECTION_END:</span><br><span class="line">            ret = qemu_loadvm_section_part_end(f, mis);</span><br><span class="line">            <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">goto</span> out;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> QEMU_VM_COMMAND:</span><br><span class="line">            ret = loadvm_process_command(f);</span><br><span class="line">            trace_qemu_loadvm_state_section_command(ret);</span><br><span class="line">            <span class="keyword">if</span> ((ret &lt; <span class="number">0</span>) || (ret == LOADVM_QUIT)) &#123;</span><br><span class="line">                <span class="keyword">goto</span> out;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> QEMU_VM_EOF:</span><br><span class="line">            <span class="comment">/* This is the end of migration */</span></span><br><span class="line">            <span class="keyword">goto</span> out;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            error_report(<span class="string">"Unknown savevm section type %d"</span>, section_type);</span><br><span class="line">            ret = -EINVAL;</span><br><span class="line">            <span class="keyword">goto</span> out;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        qemu_file_set_error(f, ret);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Cancel bitmaps incoming regardless of recovery */</span></span><br><span class="line">        dirty_bitmap_mig_cancel_incoming();</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * If we are during an active postcopy, then we pause instead</span></span><br><span class="line"><span class="comment">         * of bail out to at least keep the VM's dirty data.  Note</span></span><br><span class="line"><span class="comment">         * that POSTCOPY_INCOMING_LISTENING stage is still not enough,</span></span><br><span class="line"><span class="comment">         * during which we're still receiving device states and we</span></span><br><span class="line"><span class="comment">         * still haven't yet started the VM on destination.</span></span><br><span class="line"><span class="comment">         *</span></span><br><span class="line"><span class="comment">         * Only RAM postcopy supports recovery. Still, if RAM postcopy is</span></span><br><span class="line"><span class="comment">         * enabled, canceled bitmaps postcopy will not affect RAM postcopy</span></span><br><span class="line"><span class="comment">         * recovering.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (postcopy_state_get() == POSTCOPY_INCOMING_RUNNING &amp;&amp;</span><br><span class="line">            migrate_postcopy_ram() &amp;&amp; postcopy_pause_incoming(mis)) &#123;</span><br><span class="line">            <span class="comment">/* Reset f to point to the newly created channel */</span></span><br><span class="line">            f = mis-&gt;from_src_file;</span><br><span class="line">            <span class="keyword">goto</span> retry;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>qemu_loadvm_state_main</code>分别处理各个section, src会把<code>QEMU_VM_SECTION_START</code>等标志放到流中。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">qemu_loadvm_section_start_full</span><br><span class="line">	find_se</span><br><span class="line">	vmstate_load</span><br><span class="line">		ram_load[load_state]</span><br><span class="line">			ram_load_precopy</span><br><span class="line">				qemu_get_buffer</span><br><span class="line">				...</span><br></pre></td></tr></table></figure></p>
+<p><code>ram_load</code>负责把接收到的数据拷贝到dst这端虚拟机的内存上。 </p>
+<h3 id="6-MISC"><a href="#6-MISC" class="headerlink" title="6. MISC"></a>6. MISC</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">SaveVMHandlers</span> &#123;</span></span><br><span class="line">    <span class="comment">/* This runs inside the iothread lock.  */</span></span><br><span class="line">    SaveStateHandler *save_state;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> (*save_cleanup)(<span class="keyword">void</span> *opaque);</span><br><span class="line">    <span class="keyword">int</span> (*save_live_complete_postcopy)(QEMUFile *f, <span class="keyword">void</span> *opaque);</span><br><span class="line">    <span class="keyword">int</span> (*save_live_complete_precopy)(QEMUFile *f, <span class="keyword">void</span> *opaque);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* This runs both outside and inside the iothread lock.  */</span></span><br><span class="line">    <span class="keyword">bool</span> (*is_active)(<span class="keyword">void</span> *opaque);</span><br><span class="line">    <span class="keyword">bool</span> (*has_postcopy)(<span class="keyword">void</span> *opaque);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* is_active_iterate</span></span><br><span class="line"><span class="comment">     * If it is not NULL then qemu_savevm_state_iterate will skip iteration if</span></span><br><span class="line"><span class="comment">     * it returns false. For example, it is needed for only-postcopy-states,</span></span><br><span class="line"><span class="comment">     * which needs to be handled by qemu_savevm_state_setup and</span></span><br><span class="line"><span class="comment">     * qemu_savevm_state_pending, but do not need iterations until not in</span></span><br><span class="line"><span class="comment">     * postcopy stage.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">bool</span> (*is_active_iterate)(<span class="keyword">void</span> *opaque);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* This runs outside the iothread lock in the migration case, and</span></span><br><span class="line"><span class="comment">     * within the lock in the savevm case.  The callback had better only</span></span><br><span class="line"><span class="comment">     * use data that is local to the migration thread or protected</span></span><br><span class="line"><span class="comment">     * by other locks.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">int</span> (*save_live_iterate)(QEMUFile *f, <span class="keyword">void</span> *opaque);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* This runs outside the iothread lock!  */</span></span><br><span class="line">    <span class="keyword">int</span> (*save_setup)(QEMUFile *f, <span class="keyword">void</span> *opaque);</span><br><span class="line">    <span class="keyword">void</span> (*save_live_pending)(QEMUFile *f, <span class="keyword">void</span> *opaque,</span><br><span class="line">                              <span class="keyword">uint64_t</span> threshold_size,</span><br><span class="line">                              <span class="keyword">uint64_t</span> *res_precopy_only,</span><br><span class="line">                              <span class="keyword">uint64_t</span> *res_compatible,</span><br><span class="line">                              <span class="keyword">uint64_t</span> *res_postcopy_only);</span><br><span class="line">    <span class="comment">/* Note for save_live_pending:</span></span><br><span class="line"><span class="comment">     * - res_precopy_only is for data which must be migrated in precopy phase</span></span><br><span class="line"><span class="comment">     *     or in stopped state, in other words - before target vm start</span></span><br><span class="line"><span class="comment">     * - res_compatible is for data which may be migrated in any phase</span></span><br><span class="line"><span class="comment">     * - res_postcopy_only is for data which must be migrated in postcopy phase</span></span><br><span class="line"><span class="comment">     *     or in stopped state, in other words - after source vm stop</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * Sum of res_postcopy_only, res_compatible and res_postcopy_only is the</span></span><br><span class="line"><span class="comment">     * whole amount of pending data.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    LoadStateHandler *load_state;</span><br><span class="line">    <span class="keyword">int</span> (*load_setup)(QEMUFile *f, <span class="keyword">void</span> *opaque);</span><br><span class="line">    <span class="keyword">int</span> (*load_cleanup)(<span class="keyword">void</span> *opaque);</span><br><span class="line">    <span class="comment">/* Called when postcopy migration wants to resume from failure */</span></span><br><span class="line">    <span class="keyword">int</span> (*resume_prepare)(MigrationState *s, <span class="keyword">void</span> *opaque);</span><br><span class="line">&#125; SaveVMHandlers;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> SaveVMHandlers savevm_ram_handlers = &#123;</span><br><span class="line">    .save_setup = ram_save_setup,</span><br><span class="line">    .save_live_iterate = ram_save_iterate,</span><br><span class="line">    .save_live_complete_postcopy = ram_save_complete,</span><br><span class="line">    .save_live_complete_precopy = ram_save_complete,</span><br><span class="line">    .has_postcopy = ram_has_postcopy,</span><br><span class="line">    .save_live_pending = ram_save_pending,</span><br><span class="line">    .load_state = ram_load,</span><br><span class="line">    .save_cleanup = ram_save_cleanup,</span><br><span class="line">    .load_setup = ram_load_setup,</span><br><span class="line">    .load_cleanup = ram_load_cleanup,</span><br><span class="line">    .resume_prepare = ram_resume_prepare,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>以这些callback函数为接口来研究Live Migration，也是学习源码的一个极佳途径，能掌握全局。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.linux-kvm.org/page/Migration" target="_blank" rel="noopener">Migration | KVM Docs</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/live-migration/">live migration</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/02/08/GDB-Conditional-Breakpoints/">
+        <span class="next-text nav-default">GDB Conditional Breakpoints</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/02/10/Introduction-to-QEMU-KVM-Live-Migration/';
+        this.page.identifier = '2022/02/10/Introduction-to-QEMU-KVM-Live-Migration/';
+        this.page.title = 'Introduction to QEMU-KVM Live Migration';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
