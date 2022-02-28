@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Usage"><span class="toc-text">Usage</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Usage"><span class="toc-text">Usage</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TSC-offsetting"><span class="toc-text">TSC offsetting</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TSC-scaling"><span class="toc-text">TSC scaling</span></a></li></ol>
     </div>
   </div>
 
@@ -294,7 +294,12 @@
       
         <p>本文将记录Time-Stamp Counter Virtualization相关内容。<a id="more"></a></p>
 <h3 id="Usage"><a href="#Usage" class="headerlink" title="Usage"></a>Usage</h3><p><img src="/images/2022/02/28.PNG" alt></p>
-<h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><hr>
+<p>The product means <em>the result obtained by multiplying two or more quantities together</em>.</p>
+<h3 id="TSC-offsetting"><a href="#TSC-offsetting" class="headerlink" title="TSC offsetting"></a>TSC offsetting</h3><p><strong>Timestamp-counter offsetting</strong> (<strong>TSC offsetting</strong>) is an existing feature that allows VMM software to specify a value (the <strong>TSC offset</strong>) that is added to the TSC when it is read by guest software. A VMM can use this feature to provide guest software with the illusion that it is operating at a time later or earlier than that represented by the current TSC value.</p>
+<h3 id="TSC-scaling"><a href="#TSC-scaling" class="headerlink" title="TSC scaling"></a>TSC scaling</h3><p>With TSC offsetting, guest software perceives a TSC that is offset from the real hardware, but which advances at the same rate. That may be adequate for usages in which the offset is used to account for execution time before virtual machine was created. But it might not suffice if the VMM migrates a virtual machine between platforms on which the TSC moves at different rates.</p>
+<p>TSC scaling provides VMM software with a mechanism by which is it can adjust the TSC rate perceived by guest software. When TSC scaling and TSC offsetting are both enabled, reads from the TSC in VMX nonroot operation multiply the actual TSC value by a new <strong>TSC multiplier</strong>, add the TSC offset to the product, and return the sum to guest software.</p>
+<p>With both TSC offsetting and TSC scaling, a VMM that migrates a virtual machine from one platform to another can configure the TSC offset and the TSC multiplier on the new platform so that the TSC (as perceived by the guest) appears to proceed from the same value that it had before the migration <strong>and at the same rate</strong>.</p>
+<hr>
 <p>参考资料:</p>
 <ol>
 <li><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/timestamp-counter-scaling-virtualization-white-paper.pdf" target="_blank" rel="noopener">Timestamp-Counter Scaling (TSC scaling) for Virtualization</a></li>
