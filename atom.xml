@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-03-01T10:42:53.651Z</updated>
+  <updated>2022-03-02T10:39:30.417Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Introduction to VT-x Page-Modification Logging</title>
+    <link href="http://liujunming.github.io/2022/03/02/Introduction-to-VT-x-Page-Modification-Logging/"/>
+    <id>http://liujunming.github.io/2022/03/02/Introduction-to-VT-x-Page-Modification-Logging/</id>
+    <published>2022-03-02T07:41:04.000Z</published>
+    <updated>2022-03-02T10:39:30.417Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将介绍VT-x中的Page-Modification Logging(PML)技术。<a id="more"></a></p><h3 id="1-Motivation"><a href="#1-Motivation" class="headerlink" title="1. Motivation"></a>1. Motivation</h3><p>在没有PML前，VMM要监控GPA的修改时，需要将EPT的页面结构设置为not-present或者read-only，这样会触发许多EPT violations,开销非常大。</p><p>PML建立在CPU对EPT中的accessed与dirty标志位支持上。<br>当启用PML时，对EPT中设置了dirty标志位的写操作都会产生一条in-memory记录，报告写操作的GPA，当记录写满时，触发一次VM Exit，然后VMM就可以监控被修改的页面。</p><h3 id="2-Introduction"><a href="#2-Introduction" class="headerlink" title="2. Introduction"></a>2. Introduction</h3><p>PML is a new feature on Intel’s Boardwell server platfrom targeted to reduce overhead of dirty logging mechanism.</p><p>The specification can be found at: <a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/page-modification-logging-vmm-white-paper.pdf" target="_blank" rel="noopener">Page Modification Logging for Virtual Machine Monitor White Paper</a></p><p>Currently, dirty logging is done by write protection, which write protects guest memory, and mark dirty GFN to dirty_bitmap in subsequent write fault. This works fine, except with overhead of additional write fault for logging each dirty GFN. The overhead can be large if the write operations from guest is intensive.</p><p>PML is a hardware-assisted efficient way for dirty logging. PML logs dirty GPA automatically to a 4K PML memory buffer <strong>when CPU changes EPT table’s D-bit from 0 to 1</strong>. To do this, A new 4K PML buffer base address, and a PML index were added to VMCS. Initially PML index is set to 512 (8 bytes for each GPA), and CPU decreases PML index after logging one GPA, and eventually a PML buffer full VMEXIT happens when PML buffer is fully logged.</p><p><img src="/images/2022/03/01.PNG" alt></p><p>With PML, we don’t have to use write protection so the intensive write fault EPT violation can be avoided, with an additional PML buffer full VMEXIT for 512 dirty GPAs. Theoretically, this can reduce hypervisor overhead when guest is in dirty logging mode, and therefore more CPU cycles can be allocated to guest, so it’s expected benchmarks in guest will have better performance comparing to non-PML.</p><h3 id="3-KVM-design"><a href="#3-KVM-design" class="headerlink" title="3. KVM design"></a>3. KVM design</h3><h4 id="3-1-Enable-Disable-PML"><a href="#3-1-Enable-Disable-PML" class="headerlink" title="3.1 Enable/Disable PML"></a>3.1 Enable/Disable PML</h4><p>PML is per-vcpu (per-VMCS), while EPT table can be shared by vcpus, so we need to enable/disable PML for all vcpus of guest. A dedicated 4K page will be allocated for each vcpu when PML is enabled for that vcpu.</p><p>Currently, we choose to always enable PML for guest, which means we enables PML when creating VCPU, and never disable it during guest’s life time. This avoids the complicated logic to enable PML by demand when guest is running. And to eliminate potential unnecessary GPA logging in non-dirty logging mode, we set D-bit manually for the slots with dirty logging disabled(<a href="https://lore.kernel.org/kvm/1422413668-3509-4-git-send-email-kai.huang@linux.intel.com/" target="_blank" rel="noopener">KVM: MMU: Explicitly set D-bit for writable spte.</a>).</p><h4 id="3-2-Flush-PML-buffer"><a href="#3-2-Flush-PML-buffer" class="headerlink" title="3.2 Flush PML buffer"></a>3.2 Flush PML buffer</h4><p>When userspace querys dirty_bitmap, it’s possible that there are GPAs logged in vcpu’s PML buffer, but as PML buffer is not full, so no VMEXIT happens. In this case, we’d better to manually flush PML buffer for all vcpus and update the dirty GPAs to dirty_bitmap.</p><p>We do PML buffer flush at the beginning of each VMEXIT, this makes dirty_bitmap more updated, and also makes logic of flushing PML buffer for all vcpus easier– we only need to kick all vcpus out of guest and PML buffer for each vcpu will be flushed automatically.</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Flush all vcpus' PML buffer and update logged GPAs to dirty_bitmap.</span></span><br><span class="line"><span class="comment"> * Called before reporting dirty_bitmap to userspace.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">kvm_flush_pml_buffers</span><span class="params">(struct kvm *kvm)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="keyword">int</span> i;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kvm_vcpu</span> *<span class="title">vcpu</span>;</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * We only need to kick vcpu out of guest mode here, as PML buffer</span></span><br><span class="line"><span class="comment"> * is flushed at beginning of all VMEXITs, and it's obvious that only</span></span><br><span class="line"><span class="comment"> * vcpus running in guest are possible to have unflushed GPAs in PML</span></span><br><span class="line"><span class="comment"> * buffer.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">kvm_for_each_vcpu(i, vcpu, kvm)</span><br><span class="line">kvm_vcpu_kick(vcpu);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/page-modification-logging-vmm-white-paper.pdf" target="_blank" rel="noopener">Page Modification Logging for Virtual Machine Monitor White Paper</a></li><li><a href="https://lore.kernel.org/kvm/1422413668-3509-1-git-send-email-kai.huang@linux.intel.com/" target="_blank" rel="noopener">KVM: VMX: Page Modification Logging (PML) support</a></li><li><a href="https://diting0x.github.io/20170821/intel-pml/" target="_blank" rel="noopener">Intel VT 页面修改记录(PML)</a></li><li><a href="https://arxiv.org/pdf/2001.09991.pdf" target="_blank" rel="noopener">Intel Page Modification Logging, a hardware virtualization feature: study and improvement for virtual machine working set estimation</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将介绍VT-x中的Page-Modification Logging(PML)技术。
+    
+    </summary>
+    
+      <category term="VT-x" scheme="http://liujunming.github.io/categories/VT-x/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="VT-x" scheme="http://liujunming.github.io/tags/VT-x/"/>
+    
+  </entry>
   
   <entry>
     <title>Introduction to umonitor/umwait/tpause instructions</title>
@@ -446,30 +470,6 @@
     <summary type="html">
     
       &lt;p&gt;VT-x FlexPriority是&lt;a href=&quot;/2020/10/08/The-motivation-of-APICv/&quot;&gt;APICv&lt;/a&gt;之前的一个过渡性的技术，本文特意考古一下。
-    
-    </summary>
-    
-      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>How to verify the difference between posted interrupt and event injection</title>
-    <link href="http://liujunming.github.io/2022/01/11/How-to-verify-the-difference-between-posted-interrupt-and-event-injection/"/>
-    <id>http://liujunming.github.io/2022/01/11/How-to-verify-the-difference-between-posted-interrupt-and-event-injection/</id>
-    <published>2022-01-11T06:38:25.000Z</published>
-    <updated>2022-01-11T10:34:52.524Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将介绍利用ftrace to verify the difference between posted interrupt and event injection.<a id="more"></a></p><h3 id="1-Posted-Interrupt-scenarios"><a href="#1-Posted-Interrupt-scenarios" class="headerlink" title="1. Posted Interrupt scenarios"></a>1. Posted Interrupt scenarios</h3><ul><li>Enable Posted Interrupt<ul><li>kernel parameter: <code>kvm_intel.enable_apicv=1</code></li><li><code>rmmod kvm-intel kvm &amp;&amp; modprobe kvm-intel enable_apicv=1</code></li></ul></li><li>Need to ensure <code>cat /sys/module/kvm_intel/parameters/enable_apicv</code> is <strong>Y</strong></li></ul><h3 id="2-Event-Injection-scenarios"><a href="#2-Event-Injection-scenarios" class="headerlink" title="2. Event Injection scenarios"></a>2. Event Injection scenarios</h3><ul><li><p>Disable Posted Interrupt</p><ul><li>kernel parameter: <code>kvm_intel.enable_apicv=0</code></li><li><code>rmmod kvm-intel kvm &amp;&amp; modprobe kvm-intel enable_apicv=0</code></li></ul></li><li><p>Need to ensure <code>cat /sys/module/kvm_intel/parameters/enable_apicv</code> is <strong>N</strong></p></li></ul><h3 id="3-Trace-verification"><a href="#3-Trace-verification" class="headerlink" title="3. Trace verification"></a>3. Trace verification</h3><ul><li>sudo trace-cmd record -e kvm_inj_virq</li><li>sudo trace-cmd report</li></ul><h4 id="3-1-trace-for-Posted-Interrupt"><a href="#3-1-trace-for-Posted-Interrupt" class="headerlink" title="3.1 trace for Posted Interrupt"></a>3.1 trace for Posted Interrupt</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86-930906 [173] 703091.577738: kvm_inj_virq:         irq 8</span><br><span class="line">qemu-system-x86-930906 [173] 703091.577741: kvm_inj_virq:         irq 8</span><br><span class="line">qemu-system-x86-930906 [173] 703091.581667: kvm_inj_virq:         irq 16</span><br><span class="line">qemu-system-x86-930906 [173] 703091.582496: kvm_inj_virq:         irq 16</span><br><span class="line">qemu-system-x86-930906 [173] 703091.592551: kvm_inj_virq:         irq 25</span><br></pre></td></tr></table></figure><h4 id="3-2-trace-for-Event-Injection"><a href="#3-2-trace-for-Event-Injection" class="headerlink" title="3.2 trace for Event Injection"></a>3.2 trace for Event Injection</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86-931437 [222] 703390.933279: kvm_inj_virq:         irq 8</span><br><span class="line">qemu-system-x86-931437 [222] 703390.933282: kvm_inj_virq:         irq 8</span><br><span class="line">qemu-system-x86-931437 [222] 703390.940684: kvm_inj_virq:         irq 16</span><br><span class="line">qemu-system-x86-931437 [222] 703390.941541: kvm_inj_virq:         irq 16</span><br><span class="line">qemu-system-x86-931437 [222] 703390.951859: kvm_inj_virq:         irq 25</span><br><span class="line">qemu-system-x86-931438 [223] 703391.322195: kvm_inj_virq:         irq 32</span><br><span class="line">qemu-system-x86-931437 [222] 703391.330941: kvm_inj_virq:         irq 236</span><br><span class="line">qemu-system-x86-931437 [222] 703391.331953: kvm_inj_virq:         irq 236</span><br><span class="line">qemu-system-x86-931437 [222] 703392.385846: kvm_inj_virq:         irq 236</span><br></pre></td></tr></table></figure><h4 id="3-3-summary"><a href="#3-3-summary" class="headerlink" title="3.3 summary"></a>3.3 summary</h4><p>Interrupts 32 to 255—User Defined Interrupts</p><p>相对于Event Injection，当enable Posted Interrupt之后，trace中没有出现User Defined Interrupts的kvm_inj_virq事件！</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将介绍利用ftrace to verify the difference between posted interrupt and event injection.
     
     </summary>
     
