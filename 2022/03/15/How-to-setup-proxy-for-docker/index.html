@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="Some notes about pause loop exiting">
+  <meta name="description" content="How to setup proxy for docker">
 
 
 
 
-  <meta name="keywords" content="虚拟化, Concurrency, VT-x, L">
+  <meta name="keywords" content="工具, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2020/10/23/Some-notes-about-pause-loop-exiting/">
+<link rel="canonical" href="http://liujunming.github.io/2022/03/15/How-to-setup-proxy-for-docker/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Some notes about pause loop exiting - L </title>
+    <title> How to setup proxy for docker - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,18 +260,18 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Some notes about pause loop exiting
+          How to setup proxy for docker
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2020-10-23
+          2022-03-15
         </span>
         
           <span class="post-category">
             
-              <a href="/categories/VT-x/">VT-x</a>
+              <a href="/categories/工具/">工具</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-background"><span class="toc-text">1. background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-motivation"><span class="toc-text">2. motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-details"><span class="toc-text">3. details</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Docker-daemon"><span class="toc-text">1. Docker daemon</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Running-container"><span class="toc-text">2. Running container</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Building-the-container"><span class="toc-text">3. Building the container</span></a></li></ol>
     </div>
   </div>
 
@@ -292,23 +292,64 @@
 
     <div class="post-content">
       
-        <h3 id="1-background"><a href="#1-background" class="headerlink" title="1. background"></a>1. background</h3><p>Spin-locking code typically uses <code>PAUSE</code> instructions in a loop.<a id="more"></a></p>
-<p>For more details, please refer to <a href="/2020/05/01/Introduction-to-halt-pause-monitor-mwait-instruction/#pause">pause</a>.</p>
-<h3 id="2-motivation"><a href="#2-motivation" class="headerlink" title="2. motivation"></a>2. motivation</h3><p>为什么需要pause loop exiting(ple)这一feature呢?<br><img src="/images/2020/10/21.PNG" alt></p>
-<p><img src="/images/2020/10/22.PNG" alt></p>
-<p><img src="/images/2020/10/23.PNG" alt></p>
-<p><img src="/images/2020/10/24.PNG" alt></p>
-<h3 id="3-details"><a href="#3-details" class="headerlink" title="3. details"></a>3. details</h3><p>Basic Exit Reason 40<br><img src="/images/2020/10/18.PNG" alt></p>
-<p>PLE_Gap - upper bound on the amount of time between two successive executions of PAUSE in a loop.<br>PLE_Window - upper bound on the amount of time a guest is allowed to execute in a PAUSE loop</p>
-<p>If the time, between this execution of PAUSE and previous one, exceeds the PLE_Gap, processor consider this PAUSE belongs to a new loop. Otherwise, processor determins the the total execution time of this loop(since 1st PAUSE in this loop), and triggers a VM exit if total time exceeds the PLE_Window.</p>
-<p>Pause-Loop Exiting can be used to detect Lock-Holder Preemption, where one VCPU is sched-out after hold a spinlock, then other VCPUs for same lock are sched-in to waste the CPU time.</p>
-<p>个人感觉PLE_Gap与PLE_Window的设置，就是调参吧。</p>
+        <p>本文将介绍docker中的代理设置。<a id="more"></a></p>
+<h3 id="1-Docker-daemon"><a href="#1-Docker-daemon" class="headerlink" title="1. Docker daemon"></a>1. Docker daemon</h3><p><a href="https://stackoverflow.com/questions/23111631/cannot-download-docker-images-behind-a-proxy" target="_blank" rel="noopener">Cannot download Docker images behind a proxy</a></p>
+<p>In order to download container images from the outside world when running commands like <code>docker pull busybox</code> ,set the proxies by:</p>
+<ul>
+<li>Create directory</li>
+</ul>
+<p><code>mkdir /etc/systemd/system/docker.service.d</code></p>
+<ul>
+<li>Create file</li>
+</ul>
+<p><code>vi /etc/systemd/system/docker.service.d/http-proxy.conf</code></p>
+<ul>
+<li>File content</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[Service]</span><br><span class="line">Environment=&quot;HTTP_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;HTTPS_PROXY=http://proxy.example.com:80/&quot;</span><br></pre></td></tr></table></figure>
+<p>If you have internal Docker registries that you need to contact without proxying you can specify them via the <code>NO_PROXY</code> environment variable:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Environment=&quot;HTTP_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;HTTPS_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;NO_PROXY=localhost,127.0.0.0/8,docker-registry.somecorporation.com&quot;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>Flush changes</li>
+</ul>
+<p><code>systemctl daemon-reload</code></p>
+<ul>
+<li>Verify that the configuration has been loaded</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ systemctl show --property Environment docker</span><br><span class="line">Environment=HTTP_PROXY=http://proxy.example.com:80/</span><br><span class="line">Environment=HTTPS_PROXY=http://proxy.example.com:80/</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Restart docker</li>
+</ul>
+<p><code>systemctl restart docker</code></p>
+<h3 id="2-Running-container"><a href="#2-Running-container" class="headerlink" title="2. Running container"></a>2. Running container</h3><p>In order for a running container to access the internet you need to fix the dns names since Google’s are the default and they don’t work. We need to update the dns names by using <a href="https://docs.docker.com/engine/reference/commandline/dockerd/" target="_blank" rel="noopener">daemon configuration file</a>.</p>
+<ul>
+<li>Create file</li>
+</ul>
+<p><code>/etc/docker/daemon.json</code></p>
+<ul>
+<li>File content</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	&quot;dns&quot;:[</span><br><span class="line">		&quot;*.*.*.*&quot;,</span><br><span class="line">		&quot;*.*.*.*&quot;,</span><br><span class="line">		&quot;*.*.*.*&quot;,</span><br><span class="line">	]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Reload daemon</li>
+</ul>
+<p><code>systemctl daemon-reload</code></p>
+<ul>
+<li>Restart docker</li>
+</ul>
+<p><code>systemctl restart docker</code></p>
+<ul>
+<li>Now you can run a container and pass the proxies like this</li>
+</ul>
+<p><code>docker run --env http_proxy=http://proxy.example.com:80/ --env https_proxy=http://proxy.example.com:80/ -ti ubuntu bash</code></p>
+<h3 id="3-Building-the-container"><a href="#3-Building-the-container" class="headerlink" title="3. Building the container"></a>3. Building the container</h3><ul>
+<li>You can use ENV in the docker file:</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">FROM ubuntu:16.04</span><br><span class="line"> </span><br><span class="line">ENV http_proxy http://proxy.example.com:80/</span><br><span class="line">ENV https_proxy http://proxy.example.com:80/</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
 <hr>
-<p>参考资料：</p>
+<p>参考资料:</p>
 <ol>
-<li><a href="https://surriel.com/system/files/riel_t_1620_kvm_performance.pdf" target="_blank" rel="noopener">riel_t_1620_kvm_performance.pdf</a></li>
-<li><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/linux-containers-hypervisor-based-vms-paper.pdf" target="_blank" rel="noopener">linux-containers-hypervisor-based-vms-paper.pdf</a></li>
-<li><a href="https://lore.kernel.org/kvm/20090708033235.GA577@edwin-srv.sh.intel.com/" target="_blank" rel="noopener">KVM: add support for Pause-Loop exit</a></li>
+<li><a href="https://elegantinfrastructure.com/docker/ultimate-guide-to-docker-http-proxy-configuration/" target="_blank" rel="noopener">Ultimate Guide to Docker HTTP Proxy Configuration</a></li>
+<li><a href="https://docs.docker.com/network/proxy/" target="_blank" rel="noopener">Configure Docker to use a proxy server</a></li>
 </ol>
 
       
@@ -329,11 +370,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/虚拟化/">虚拟化</a>
-            
-              <a href="/tags/Concurrency/">Concurrency</a>
-            
-              <a href="/tags/VT-x/">VT-x</a>
+              <a href="/tags/工具/">工具</a>
             
           </div>
         
@@ -341,15 +378,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2020/10/24/Introduction-to-SR-IOV/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Introduction to SR-IOV</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2020/10/11/VT-d-Posted-Interrupt/">
-        <span class="next-text nav-default">VT-d Posted Interrupt</span>
+      <a class="next" href="/2022/03/02/Introduction-to-VT-x-Page-Modification-Logging/">
+        <span class="next-text nav-default">Introduction to VT-x Page-Modification Logging</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -462,9 +493,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2020/10/23/Some-notes-about-pause-loop-exiting/';
-        this.page.identifier = '2020/10/23/Some-notes-about-pause-loop-exiting/';
-        this.page.title = 'Some notes about pause loop exiting';
+        this.page.url = 'http://liujunming.github.io/2022/03/15/How-to-setup-proxy-for-docker/';
+        this.page.identifier = '2022/03/15/How-to-setup-proxy-for-docker/';
+        this.page.title = 'How to setup proxy for docker';
     };
     (function() {
     var d = document, s = d.createElement('script');

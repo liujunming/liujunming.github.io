@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-03-02T10:39:30.417Z</updated>
+  <updated>2022-03-15T08:23:12.113Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>How to setup proxy for docker</title>
+    <link href="http://liujunming.github.io/2022/03/15/How-to-setup-proxy-for-docker/"/>
+    <id>http://liujunming.github.io/2022/03/15/How-to-setup-proxy-for-docker/</id>
+    <published>2022-03-15T06:02:49.000Z</published>
+    <updated>2022-03-15T08:23:12.113Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将介绍docker中的代理设置。<a id="more"></a></p><h3 id="1-Docker-daemon"><a href="#1-Docker-daemon" class="headerlink" title="1. Docker daemon"></a>1. Docker daemon</h3><p><a href="https://stackoverflow.com/questions/23111631/cannot-download-docker-images-behind-a-proxy" target="_blank" rel="noopener">Cannot download Docker images behind a proxy</a></p><p>In order to download container images from the outside world when running commands like <code>docker pull busybox</code> ,set the proxies by:</p><ul><li>Create directory</li></ul><p><code>mkdir /etc/systemd/system/docker.service.d</code></p><ul><li>Create file</li></ul><p><code>vi /etc/systemd/system/docker.service.d/http-proxy.conf</code></p><ul><li>File content</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[Service]</span><br><span class="line">Environment=&quot;HTTP_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;HTTPS_PROXY=http://proxy.example.com:80/&quot;</span><br></pre></td></tr></table></figure><p>If you have internal Docker registries that you need to contact without proxying you can specify them via the <code>NO_PROXY</code> environment variable:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Environment=&quot;HTTP_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;HTTPS_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;NO_PROXY=localhost,127.0.0.0/8,docker-registry.somecorporation.com&quot;</span><br></pre></td></tr></table></figure></p><ul><li>Flush changes</li></ul><p><code>systemctl daemon-reload</code></p><ul><li>Verify that the configuration has been loaded</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ systemctl show --property Environment docker</span><br><span class="line">Environment=HTTP_PROXY=http://proxy.example.com:80/</span><br><span class="line">Environment=HTTPS_PROXY=http://proxy.example.com:80/</span><br></pre></td></tr></table></figure><ul><li>Restart docker</li></ul><p><code>systemctl restart docker</code></p><h3 id="2-Running-container"><a href="#2-Running-container" class="headerlink" title="2. Running container"></a>2. Running container</h3><p>In order for a running container to access the internet you need to fix the dns names since Google’s are the default and they don’t work. We need to update the dns names by using <a href="https://docs.docker.com/engine/reference/commandline/dockerd/" target="_blank" rel="noopener">daemon configuration file</a>.</p><ul><li>Create file</li></ul><p><code>/etc/docker/daemon.json</code></p><ul><li>File content</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">&quot;dns&quot;:[</span><br><span class="line">&quot;*.*.*.*&quot;,</span><br><span class="line">&quot;*.*.*.*&quot;,</span><br><span class="line">&quot;*.*.*.*&quot;,</span><br><span class="line">]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><ul><li>Reload daemon</li></ul><p><code>systemctl daemon-reload</code></p><ul><li>Restart docker</li></ul><p><code>systemctl restart docker</code></p><ul><li>Now you can run a container and pass the proxies like this</li></ul><p><code>docker run --env http_proxy=http://proxy.example.com:80/ --env https_proxy=http://proxy.example.com:80/ -ti ubuntu bash</code></p><h3 id="3-Building-the-container"><a href="#3-Building-the-container" class="headerlink" title="3. Building the container"></a>3. Building the container</h3><ul><li>You can use ENV in the docker file:</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">FROM ubuntu:16.04</span><br><span class="line"> </span><br><span class="line">ENV http_proxy http://proxy.example.com:80/</span><br><span class="line">ENV https_proxy http://proxy.example.com:80/</span><br><span class="line">...</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://elegantinfrastructure.com/docker/ultimate-guide-to-docker-http-proxy-configuration/" target="_blank" rel="noopener">Ultimate Guide to Docker HTTP Proxy Configuration</a></li><li><a href="https://docs.docker.com/network/proxy/" target="_blank" rel="noopener">Configure Docker to use a proxy server</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将介绍docker中的代理设置。
+    
+    </summary>
+    
+      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
+    
+    
+      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
+    
+  </entry>
   
   <entry>
     <title>Introduction to VT-x Page-Modification Logging</title>
@@ -455,30 +477,6 @@
     
     
       <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Introduction to VT-x FlexPriority</title>
-    <link href="http://liujunming.github.io/2022/01/12/Introduction-to-VT-x-FlexPriority/"/>
-    <id>http://liujunming.github.io/2022/01/12/Introduction-to-VT-x-FlexPriority/</id>
-    <published>2022-01-12T04:36:09.000Z</published>
-    <updated>2022-01-12T10:11:09.083Z</updated>
-    
-    <content type="html"><![CDATA[<p>VT-x FlexPriority是<a href="/2020/10/08/The-motivation-of-APICv/">APICv</a>之前的一个过渡性的技术，本文特意考古一下。<a id="more"></a></p><p>VT-x FlexPriority引入了Shadow TPR，即VTPR寄存器（Virtual-APIC Page也是此时引入的）。此时，Virtual-APIC Page中仅实现了VTPR一个寄存器，并且尚未发明<strong>APIC Write</strong> VM Exit，因此对VTPR寄存器的写入会起到类似APIC-Write Emulation的效果，不会引起VM Exit。</p><p><img src="/images/2022/01/22.png" alt></p><p>考古patch <a href="https://lore.kernel.org/kvm/DB3BD37E3533EE46BED2FBA80995557F87DA24@pdsmsx414.ccr.corp.intel.com/" target="_blank" rel="noopener">Memory mapped TPR shadow feature enabling</a>，读者若有兴趣，可以读一读。</p><hr><p>参考资料:</p><ol><li><a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch29/" target="_blank" rel="noopener">Intel SDM Chapter 29: APIC Virtualizaton &amp; Virtual Interrupts</a></li><li><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/virtualization-enabling-intel-virtualization-technology-features-and-benefits-paper.pdf" target="_blank" rel="noopener">Enabling Intel® Virtualization Technology Features and Benefits</a></li><li><a href="https://lore.kernel.org/kvm/DB3BD37E3533EE46BED2FBA80995557F87DA24@pdsmsx414.ccr.corp.intel.com/" target="_blank" rel="noopener">Memory mapped TPR shadow feature enabling</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;VT-x FlexPriority是&lt;a href=&quot;/2020/10/08/The-motivation-of-APICv/&quot;&gt;APICv&lt;/a&gt;之前的一个过渡性的技术，本文特意考古一下。
-    
-    </summary>
-    
-      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
     
   </entry>
   
