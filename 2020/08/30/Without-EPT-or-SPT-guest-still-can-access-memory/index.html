@@ -289,6 +289,10 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">init_vmcs_guest</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/* 26.3 CHECKING AND LOADING GUEST STATE */</span></span><br><span class="line">	ulong guest_cr3;</span><br><span class="line">	<span class="comment">/* 26.3.1.1 */</span></span><br><span class="line">	guest_cr3 = read_cr3();</span><br><span class="line">	...</span><br><span class="line">	vmcs_write(GUEST_CR3, guest_cr3);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>答案便在上述代码片段中：将host的cr3赋值给guest的cr3。这样，直接将MMU pass-thru给guest，并且guest和host复用相同的页表。</p>
 <p>这样比较tricky做法的缺点是:失去了隔离性。</p>
+<p>Xen中有个叫<a href="https://lwn.net/Articles/520860/" target="_blank" rel="noopener">direct paging</a>的技术与此有异曲同工之妙。</p>
+<blockquote>
+<p> Xen PV had a approach called direct paging. It exposed a GPA-&gt;HPA mapping to the guest (this is the pfn2mfn table) and let the guest be responsible for creating GVA-&gt;HPA tables. The details are tricky but it was much faster than shadow paging.</p>
+</blockquote>
 
       
     </div>
