@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Introduction to Intel DDIO technology">
+
+
+
+
+  <meta name="keywords" content="体系结构, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/03/28/Introduction-to-Intel-DDIO-technology/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Introduction to Intel DDIO technology - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Introduction to Intel DDIO technology
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-03-28
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/体系结构/">体系结构</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-What-is-Intel®-Data-Direct-I-O"><span class="toc-text">1. What is  Intel® Data Direct I/O?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-How-does-it-work"><span class="toc-text">2. How does it work?</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-NIC-Reads"><span class="toc-text">2.1 NIC Reads</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-1-Without-DDIO"><span class="toc-text">2.1.1 Without DDIO</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-2-With-DDIO"><span class="toc-text">2.1.2 With DDIO</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-NIC-Writes"><span class="toc-text">2.2 NIC Writes</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-1-Without-DDIO"><span class="toc-text">2.2.1 Without DDIO</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-2-With-DDIO"><span class="toc-text">2.2.2 With DDIO</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍Intel DDIO(Data Direct I/O) technology。<a id="more"></a></p>
+<h2 id="1-What-is-Intel®-Data-Direct-I-O"><a href="#1-What-is-Intel®-Data-Direct-I-O" class="headerlink" title="1. What is  Intel® Data Direct I/O?"></a>1. What is  Intel® Data Direct I/O?</h2><p>Intel® Data Direct I/O (Intel® DDIO) is a feature to be introduced on the Intel® E5 Xeon® processors. Intel’s LAN Access Division (LAD) worked for the incorporation of Intel DDIO into the Xeon E5 processor because of its benefits for LAN I/O in terms of performance and system power consumption. With Intel DDIO, Intel’s Ethernet server NICs and controllers talk directly to the processor cache without a detour via system memory. Intel DDIO makes the processor cache the primary destination and source of I/O data rather than main memory. By avoiding system memory, Intel DDIO reduces latency, increases system I/O bandwidth, and reduces power consumption due to memory reads and writes.<br><img src="/images/2022/03/06.PNG" alt></p>
+<h2 id="2-How-does-it-work"><a href="#2-How-does-it-work" class="headerlink" title="2. How does it work?"></a>2. How does it work?</h2><p>Read and Writes的视角是NIC。<br>详情可以阅读<a href="https://blog.csdn.net/qq_40500045/article/details/109272627" target="_blank" rel="noopener">谈谈DDIO你该知道的事</a>。</p>
+<h3 id="2-1-NIC-Reads"><a href="#2-1-NIC-Reads" class="headerlink" title="2.1 NIC Reads"></a>2.1 NIC Reads</h3><p><img src="/images/2022/03/07.PNG" alt></p>
+<h4 id="2-1-1-Without-DDIO"><a href="#2-1-1-Without-DDIO" class="headerlink" title="2.1.1 Without DDIO"></a>2.1.1 Without DDIO</h4><ol>
+<li>处理器更新报文和控制结构体。由于分配的缓冲区在内存中， 因此会触发一次Cache不命中，处理器把内存读取到Cache中，然后更新控制结构体和报文信息。之后通知NIC来读取报文。</li>
+<li>NIC收到有报文需要传递到网络上的通知后，它首先需要读取控制结构体进而知道从哪里获取报文。由于之前处理器刚把该缓冲区从内存读到Cache中并且做了更新，很有可能Cache还没有来得及把更新的内容写回到内存中。因此，当NIC发起一个对内存的读请求时，很有可能这个请求会发送到Cache系统中，Cache系统会把数据写回到内存中，然后内存控制器再把数据写到PCI总线上去。因此，一个读内存的操作会产生多次内存的读写。</li>
+</ol>
+<h4 id="2-1-2-With-DDIO"><a href="#2-1-2-With-DDIO" class="headerlink" title="2.1.2 With DDIO"></a>2.1.2 With DDIO</h4><ol>
+<li>处理器更新报文和控制结构体。这个步骤和没有DDIO的技术类似，但是由于DDIO的引入，处理器会开始就把内存中的缓冲区和控制结构体预取到Cache，因此减少了内存读的时间。</li>
+<li>NIC收到有报文需要传递到网络上的通知后，通过PCI总线把控制结构体和报文送到NIC内部。利用DDIO技术，I/O访问可以直接将Cache的内容送到PCI总线上。这样，就减少了Cache写回时等待的时间。</li>
+</ol>
+<p>由此可以看出，由于DDIO技术的引入，网卡的读操作减少了访问内存的次数，因而提高了访问效率，减少了报文转发的延迟。在理想状况下，NIC和处理器无需访问内存，直接通过访问Cache就可以完成更新数据，把数据送到NIC内部，进而送到网络上的所有操作。</p>
+<h3 id="2-2-NIC-Writes"><a href="#2-2-NIC-Writes" class="headerlink" title="2.2 NIC Writes"></a>2.2 NIC Writes</h3><p><img src="/images/2022/03/08.PNG" alt></p>
+<h4 id="2-2-1-Without-DDIO"><a href="#2-2-1-Without-DDIO" class="headerlink" title="2.2.1 Without DDIO"></a>2.2.1 Without DDIO</h4><ol>
+<li>报文和控制结构体通过PCI总线送到指定的内存中。如果该内存恰好缓存在Cache中(有可能之前处理器有对该内存进行过读写操作)，则需要等待Cache把内容先写回到内存中，然后才能把报文和控制结构体写到内存中。</li>
+<li>运行在处理器上的驱动程序或者软件得到通知收到新报文，去内存中读取控制结构体和相应的报文，Cache不命中。之所以Cache一定不会命中，是因为即使该内存地址在Cache中，在步骤1中也被强制写回到内存中。因此，只能从内存中读取控制结构体和报文。</li>
+</ol>
+<h4 id="2-2-2-With-DDIO"><a href="#2-2-2-With-DDIO" class="headerlink" title="2.2.2 With DDIO"></a>2.2.2 With DDIO</h4><p>这时，报文和控制结构体通过PCI总线直接送到Cache中。这时有两种情形:</p>
+<ol>
+<li>a) 如果该内存恰好缓存在Cache中(有可能之前处理器有对该内存进行过读写操作)，则直接在Cache中更新内容，覆盖原有内容。<br>b) 如果该内存没有缓存在Cache中，则在最后一级Cache中分配一块区域，并相应更新Cache表，表明该内容是对应于内存中的某个地址的。</li>
+<li>运行在处理器上的驱动或者软件被通知到有报文到达，其产生一个内存读操作，由于该内容已经在Cache中，因此直接从Cache中读。</li>
+</ol>
+<p>由此可以看出，DDIO技术在处理器和外设之间交换数据时，减少了处理器和外设访问内存的次数，也减少了Cache写回的等待，提高了系统的吞吐率和数据的交换延迟。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.intel.com/content/www/us/en/io/data-direct-i-o-technology-brief.html" target="_blank" rel="noopener">Intel® Data Direct I/O Technology (Intel® DDIO): A Primer</a></li>
+<li><a href="https://www.intel.com/content/www/us/en/io/data-direct-i-o-faq.html" target="_blank" rel="noopener">Intel Data Direct I/O (Intel DDIO): Frequently Asked Questions</a></li>
+<li><a href="https://blog.csdn.net/qq_40500045/article/details/109272627" target="_blank" rel="noopener">谈谈DDIO你该知道的事</a></li>
+<li><a href="https://www.usenix.org/system/files/atc20-farshin.pdf" target="_blank" rel="noopener">Reexamining Direct Cache Access to Optimize I/O Intensive Applications for Multi-hundred-gigabit Networks</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/体系结构/">体系结构</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/03/16/thread-core-module-die-package/">
+        <span class="next-text nav-default">thread core module die package</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/03/28/Introduction-to-Intel-DDIO-technology/';
+        this.page.identifier = '2022/03/28/Introduction-to-Intel-DDIO-technology/';
+        this.page.title = 'Introduction to Intel DDIO technology';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
