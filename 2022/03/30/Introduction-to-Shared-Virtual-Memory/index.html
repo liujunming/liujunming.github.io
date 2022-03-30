@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Introduction to Shared Virtual Memory">
+
+
+
+
+  <meta name="keywords" content="VT-d, PCI&PCIe, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/03/30/Introduction-to-Shared-Virtual-Memory/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Introduction to Shared Virtual Memory - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Introduction to Shared Virtual Memory
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-03-30
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/VT-d/">VT-d</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Definition"><span class="toc-text">1. Definition</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-History"><span class="toc-text">2. History</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-引入SVM后的变化"><span class="toc-text">3. 引入SVM后的变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-支持SVM的条件"><span class="toc-text">4. 支持SVM的条件</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文内容主要转载自：<a href="http://blog.chinaunix.net/uid-28541347-id-5854016.html" target="_blank" rel="noopener">Shared Virtual Memory（SVM）介绍</a>。<a id="more"></a></p>
+<h3 id="1-Definition"><a href="#1-Definition" class="headerlink" title="1. Definition"></a>1. Definition</h3><p>Shared Virtual Addressing (SVA) allows the processor and device to use the same virtual addresses. SVA is what PCIe calls Shared Virtual Memory (SVM).<br><img src="/images/2022/03/23.PNG" alt><br><img src="/images/2022/03/24.PNG" alt></p>
+<p>VT-d SVM: Extends root complex IOMMU to comprehend x86 page table formats<br><img src="/images/2022/03/31.PNG" alt></p>
+<h3 id="2-History"><a href="#2-History" class="headerlink" title="2. History"></a>2. History</h3><p>共享虚拟内存（SVM）技术最初是为了解决在GPU场景下，设备（GPU）和host（CPU）之间共享内存的。目的是在设备GPU和CPU之间可以直接传递指针（地址），为了让设备可以直接使用进程空间的地址，简化编程模型。我们知道通常host侧采用的地址是主机的虚拟地址（VA），而设备侧通常使用的是物理地址（PA）或IOVA。</p>
+<p>如下图，传统内存访问的三个途径：</p>
+<ol>
+<li>CPU访存通过MMU（CPU的页表）将VA转为PA访问物理地址</li>
+<li>GPU访存通过GPU的页表访问物理地址</li>
+<li>PCIe设备直接使用物理地址PA访问</li>
+</ol>
+<p><img src="/images/2022/03/25.png" alt></p>
+<p>在引入了iommu（VT-d）后，如下图，PCIe设备也可以使用虚拟地址（IOVA）来访存了，也有设备自己对应的页表（iommu页表）完成IOVA到物理地址（PA）的映射。<br><img src="/images/2022/03/26.png" alt></p>
+<p>这种情况下CPU进程和设备的内存通信一般采用如下流程：</p>
+<ol>
+<li>CPU进程分配一块内存，并采用系统调用syscall或ioctl请求内核准备接收操作</li>
+<li>内核初始化设备的DMA操作，这里面有两种情况：一种是内核重新分配一块内核空间的内存，将其物理地址传递给设备进行DMA，另一种是如果应用程序将用户空间的内存pin住（这段内存的虚拟地址空间和物理地址空间不会发生变化）则可直接将用户空间的buffer地址传递给设备进行DMA</li>
+<li>设备将数据DMA到内存，对应上面这里也有两种情况，如果是内核设置的内核buffer的地址，则设备会先将数据DMA到内核buffer，再由内核将数据由内核空间拷贝到用户空间的buffer（我们通常使用内核协议栈进行收发报文的应用程序就是这种），另一种如果用户空间直接将内存pin住，则设备直接将数据DMA到应用程序的buffer（我们采用DPDK收发报文就是这种）</li>
+</ol>
+<p><img src="/images/2022/03/27.png" alt></p>
+<h3 id="3-引入SVM后的变化"><a href="#3-引入SVM后的变化" class="headerlink" title="3. 引入SVM后的变化"></a>3. 引入SVM后的变化</h3><p>下面我们看引入SVM后的效果，最大的区别是设备访问地址在经过iommu的DMAR转换时会参考引用CPU的mmu页表，在地址缺页时同样会产生缺页中断。为什么要这样设计呢？因为要想设备直接使用进程空间的虚拟地址可能采用的有两种方法。一种是把整个进程地址空间全部pin住，但这点一般是不现实的，除非类似DPDK应用程序全部采用静态内存，否则如果进程动态分配一个内存，那么这个地址设备是不感知的。另一种方法就是采用动态映射，就像进程访问虚拟地址一样，mmu发现缺页就会动态映射，所以从设备发来的地址请求也会经过CPU缺页处理，并将映射关系同步到iommu的页表中。<br><img src="/images/2022/03/28.png" alt></p>
+<p>有了以上的流程，CPU和设备的内存交互流程就变成了如下图所示。主要是第三步的变化，设备直接将数据DMA到进程空间的地址，并且不需要进程pin内存，而是通过page fault触发缺页处理进行映射。<br><img src="/images/2022/03/29.png" alt></p>
+<h3 id="4-支持SVM的条件"><a href="#4-支持SVM的条件" class="headerlink" title="4. 支持SVM的条件"></a>4. 支持SVM的条件</h3><p>那么支持SVM需要软硬件具备什么条件呢。首先是设备角度：</p>
+<ol>
+<li>要支持<a href="/2021/11/09/Notes%20about-PASID-Process-Address-Space-ID/">PASID</a>，因为一个设备会被多个进程访问，对应多个设备DMAR页表，需要通过PASID来区分采用哪个页表</li>
+<li>支持<a href="/2022/03/30/Notes-about-PCIe-Page-Request-Interface/">dma page fault</a>处理，当访问的虚拟地址引发缺页时能够等待或重试</li>
+</ol>
+<p>从驱动角度来说，</p>
+<ol>
+<li>操作设备的API需要通过PASID来区分不同进程</li>
+</ol>
+<p><img src="/images/2022/03/30.PNG" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.kernel.org/doc/html/latest/x86/sva.html" target="_blank" rel="noopener">Shared Virtual Addressing (SVA) with ENQCMD</a></li>
+<li><a href="https://archive.fosdem.org/2016/schedule/event/intel_svm/attachments/slides/1269/export/events/attachments/intel_svm/slides/1269/FOSDEM_2016___SVM_on_Intel_Graphics.pdf" target="_blank" rel="noopener">SVM on Intel Graphics</a></li>
+<li><a href="https://static.sched.com/hosted_files/kvmforum2018/52/kvm-forum-vSVA-yliu-jpan-jean-eric.pdf" target="_blank" rel="noopener">Shared Virtual Addressing in KVM kvm forum 2018</a></li>
+<li><a href="https://events19.linuxfoundation.cn/wp-content/uploads/2017/11/Shared-Virtual-Memory-in-KVM_Yi-Liu.pdf" target="_blank" rel="noopener">Shared Virtual Addressing in KVM</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/VT-d/">VT-d</a>
+            
+              <a href="/tags/PCI-PCIe/">PCI&PCIe</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/03/30/Notes-about-PCIe-Page-Request-Interface/">
+        <span class="next-text nav-default">Introduction to PCIe Page Request Interface</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/03/30/Introduction-to-Shared-Virtual-Memory/';
+        this.page.identifier = '2022/03/30/Introduction-to-Shared-Virtual-Memory/';
+        this.page.title = 'Introduction to Shared Virtual Memory';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
