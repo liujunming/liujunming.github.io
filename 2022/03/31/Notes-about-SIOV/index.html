@@ -304,7 +304,7 @@
 <h2 id="2-Limitation-of-SR-IOV"><a href="#2-Limitation-of-SR-IOV" class="headerlink" title="2. Limitation of SR-IOV"></a>2. Limitation of SR-IOV</h2><p>While SR-IOV enabled the ability to partition a device and provide direct access to VMs, it also imposed scalability limitations to modern cloud and containerized environments. For instance:</p>
 <ul>
 <li>Device BARs and headers must be duplicated for every VF.</li>
-<li>PCIe limits resources such as MSIx to maximum of 2048 vectors.</li>
+<li>PCIe limits resources such as MSI-X to maximum of 2048 vectors.</li>
 <li>BIOS Firmware must reserve a number of resources such as MMIO ranges, bus ranges to accommodate devices of any capability to be hotplugged.</li>
 </ul>
 <p>SR-IOV implementations typically provide only a small number of VFs due to the above resource requirements. Typical SR-IOV devices only support 64 or less VFs per physical device. Light-weight containerized usages in modern cloud environments expect to have thousands of containers and therefore will put pressure on potentially scarce resources. In these environments, SR-IOV will not scale.</p>
@@ -348,7 +348,7 @@
 <p>以上就是Scalable IOV的主要技术特征，可以看出和SR-IOV类似，它不仅仅是PCIe设备侧的一次革新，更是硬件设备，BIOS，操作系统，hypervisor，CPU，IOMMU等整个硬件的一次革新。<br><img src="/images/2022/03/39.png" alt></p>
 <ul>
 <li>Over-provisioning: 两个VDEV之间的Queue资源是可以share的</li>
-<li>Generational Compatability: vmm可以使用VDCM(Virtual Device Composition Module)在不同代的硬件设备上呈现相同的VDEV功能，这样即使在部署了不同代的siov设备的host之间虚拟机也能正常迁移</li>
+<li>Generational Compatability: vmm可以使用VDCM(Virtual Device Composition Module)在不同代的硬件设备上呈现相同的VDEV功能，这样即使在部署了不同代的SIOV设备的host之间虚拟机也能正常迁移</li>
 </ul>
 <h2 id="4-整体架构"><a href="#4-整体架构" class="headerlink" title="4. 整体架构"></a>4. 整体架构</h2><p>Scalable IOV的整体架构和构成如下图所示。<br><img src="/images/2022/03/40.png" alt></p>
 <h2 id="5-硬件架构"><a href="#5-硬件架构" class="headerlink" title="5. 硬件架构"></a>5. 硬件架构</h2><p><img src="/images/2022/03/45.png" alt></p>
@@ -368,11 +368,10 @@
 <h3 id="5-1-PCI配置空间"><a href="#5-1-PCI配置空间" class="headerlink" title="5.1 PCI配置空间"></a>5.1 PCI配置空间</h3><p>对PCIe设备进行初始化和枚举时，需要配置空间能够发现设备是否支持Scalable IOV技术，intel定义了一个Designated Vendor Specific Extended Capability (DVSEC) 域用于发现和配置支持Scalable IOV技术的设备。具体如下图所示：<br><img src="/images/2022/03/41.png" alt></p>
 <h3 id="5-2-MMIO"><a href="#5-2-MMIO" class="headerlink" title="5.2 MMIO"></a>5.2 MMIO</h3><p>ADI的MMIO，它是位于PF bar地址空间的一段连续的按页大小对齐的地址范围。每个ADI设备的MMIO是相互独立的，ADI设备的MMIO register又分为两类，一类是访问频率比较高的比如硬件层的doorbell，一类是不经常访问的或者慢路径访问的比如用来进行一些设备配置和管理等。</p>
 <h3 id="5-3-PASID-区分来自不同ADI设备的DMA请求"><a href="#5-3-PASID-区分来自不同ADI设备的DMA请求" class="headerlink" title="5.3 PASID(区分来自不同ADI设备的DMA请求)"></a>5.3 PASID(区分来自不同ADI设备的DMA请求)</h3><p>IOMMU提供DMA remapping的操作，进行地址转换，将不同的IO设备提供的IOVA地址转换成物理地址，用于设备的DMA。在intel IOMMU中，每个IO设备通过BDF找到属于自己的页表。为了支持Scalable IOV，DMA remapping增加了PASID的支持，其多级页表也进行了重新设计，具体如下图所示：<br><img src="/images/2022/03/42.png" alt></p>
-<h3 id="5-4-IMS"><a href="#5-4-IMS" class="headerlink" title="5.4 IMS"></a>5.4 IMS</h3><p>一个PCIe设备即使在msix的情况下，它支持的最大中断数目也只能到2048，那如果一个PF上支持的ADI数量所使用的总的中断数量超过了这个limit将如何处理呢？<br>为了解决这个中断limit的问题，SIOV引入了新的中断存储机制叫IMS(Iinterrupt Message Storage)，理论上IMS在支持的中断数量是没有上限的，从实现原理上来讲其仍然是message 格式的中断触发机制，每个message有一个DWORD 大小的payload和64-bit的address。这些message存储在 IMS的table里面，这个table可以有全部缓存在硬件上，也可以全部放在host memory里面。</p>
-<h2 id="6-软件架构"><a href="#6-软件架构" class="headerlink" title="6. 软件架构"></a>6. 软件架构</h2><p>软件层引入了Virtual Device Composition Module (VDCM)的概念，通过VDCM来实现设备的管理和intercepted path（慢速路径）的处理。如下图所示，VDCM可以作为一个模块在Host上，也可以在一个单独的嵌入式设备中（如smartNIC上）。其主要功能有两个：在ADI和虚拟设备（VDEV）之间建立映射关系，处理和仿真慢速路径的操作。<br><img src="/images/2022/03/43.png" alt></p>
-<p>除此之外还需要一个软件框架来完成VDEV设备声明周期的管理，对VDEV资源访问进行安全控制和管理，服务来自虚拟机、容器的慢速路径的请求。这些都需要大量的开发工作，为此intel巧妙的复用了目前linux内核已经推出的Mediated Device Framework。</p>
-<h3 id="6-1-VDCM"><a href="#6-1-VDCM" class="headerlink" title="6.1 VDCM"></a>6.1 VDCM</h3><p>VDCM (Virtual Device Composition Module)主要负责将一个或者多个ADI组合成一个VDEV然后呈现给vm使用，同时它也负责一些trap到后端的MMIO的解释执行，另外就是ADI设备的一些操作比如Reset和配置等。</p>
-<h3 id="6-2-VDEV"><a href="#6-2-VDEV" class="headerlink" title="6.2 VDEV"></a>6.2 VDEV</h3><p>其实上面也已经讲了它是由一个或者多个ADI设备组成，在guest里面看到的就是一个标准的PCIe 设备。每个VDEV都有虚拟的requester id, config space, memory BAR，MSIX-table等，它们都是由VDCM来进行模拟的。</p>
+<h3 id="5-4-IMS"><a href="#5-4-IMS" class="headerlink" title="5.4 IMS"></a>5.4 IMS</h3><p>一个PCIe设备即使在MSI-X的情况下，它支持的最大中断数目也只能到2048，那如果一个PF上支持的ADI数量所使用的总的中断数量超过了这个limit将如何处理呢？<br>为了解决这个中断limit的问题，SIOV引入了新的中断存储机制叫IMS(Iinterrupt Message Storage)，理论上IMS在支持的中断数量是没有上限的，从实现原理上来讲其仍然是message 格式的中断触发机制，每个message有一个DWORD 大小的payload和64-bit的address。这些message存储在 IMS的table里面，这个table可以有全部缓存在硬件上，也可以全部放在host memory里面。</p>
+<h2 id="6-软件架构"><a href="#6-软件架构" class="headerlink" title="6. 软件架构"></a>6. 软件架构</h2><p><img src="/images/2022/03/47.png" alt><br><img src="/images/2022/03/48.png" alt></p>
+<h3 id="6-1-VDCM"><a href="#6-1-VDCM" class="headerlink" title="6.1 VDCM"></a>6.1 VDCM</h3><p>VDCM (Virtual Device Composition Module)主要负责在ADI和虚拟设备（VDEV）之间建立映射关系，处理和仿真慢速路径的操作(负责一些trap到后端的MMIO的解释执行)，另外就是ADI设备的一些操作比如Reset和配置等。</p>
+<h3 id="6-2-VDEV"><a href="#6-2-VDEV" class="headerlink" title="6.2 VDEV"></a>6.2 VDEV</h3><p>其实上面也已经讲了它是由一个或者多个ADI设备组成，在guest里面看到的就是一个标准的PCIe 设备。每个VDEV都有虚拟的requester id, config space, memory BAR，MSI-X table等，它们都是由VDCM来进行模拟的。</p>
 <h3 id="6-3-VDEV-MMIO-and-interrupts"><a href="#6-3-VDEV-MMIO-and-interrupts" class="headerlink" title="6.3 VDEV MMIO and interrupts"></a>6.3 VDEV MMIO and interrupts</h3><p>从上面的分析来看，VDCM在整个软件架构上扮演着非常重要的角色，下面我们结合一张图来看一下相关实现：<br><img src="/images/2022/03/46.png" alt></p>
 <p>结合上图我们来分析一些细节的东西，比如vdev 的MMIO，中断等 。</p>
 <h4 id="6-3-1-VDEV-MMIO"><a href="#6-3-1-VDEV-MMIO" class="headerlink" title="6.3.1 VDEV MMIO"></a>6.3.1 VDEV MMIO</h4><p>从图中可以看到VDEV MMIO实现分为三类：</p>
@@ -381,7 +380,7 @@
 <li>通过VDCM 模拟的MMIO，guest里面在写这个MMIO的时候会trap到 VDCM，然后需要VDCM进行解释和模拟相关的action，通常这类MMIO是要是一些控制面的数据交互；</li>
 <li>map到host侧的memory上，这类MMIO通常存储的是一些参数或者数据，这样就避免了在读取或者写入的时候VDCM侧的解释和指令模拟。</li>
 </ol>
-<h4 id="6-3-2-VDEV-interrupts"><a href="#6-3-2-VDEV-interrupts" class="headerlink" title="6.3.2 VDEV interrupts"></a>6.3.2 VDEV interrupts</h4><p>VDEV 会通过VDCM 虚拟出MSI或者MSIX的能力呈现给guest，当guest driver 去programs msi 或者msix的时候会被VDCM截获到然后做相关的中断虚拟化操作。这里需要说明的是慢路径上的中断是可以通过VMM提供的中断注入接口来触发，而快路径或者说是数据面上的中断是通IOMMU的post interrupt来注入的。</p>
+<h4 id="6-3-2-VDEV-interrupts"><a href="#6-3-2-VDEV-interrupts" class="headerlink" title="6.3.2 VDEV interrupts"></a>6.3.2 VDEV interrupts</h4><p>VDEV 会通过VDCM 虚拟出MSI或者MSI-X的能力呈现给guest，当guest driver 去programs MSI 或者MSI-X的时候会被VDCM截获到然后做相关的中断虚拟化操作。这里需要说明的是慢路径上的中断是可以通过VMM提供的中断注入接口来触发，而快路径或者说是数据面上的中断是通IOMMU的post interrupt来注入的。</p>
 <h3 id="7-MISC"><a href="#7-MISC" class="headerlink" title="7. MISC"></a>7. MISC</h3><h3 id="7-1-Hardware-Assisted-Mediated-Pass-Through"><a href="#7-1-Hardware-Assisted-Mediated-Pass-Through" class="headerlink" title="7.1 Hardware-Assisted Mediated Pass-Through"></a>7.1 Hardware-Assisted Mediated Pass-Through</h3><p><img src="/images/2022/03/35.PNG" alt><br><img src="/images/2022/03/36.PNG" alt><br><img src="/images/2022/03/37.PNG" alt></p>
 <p>另外一个视角来看SIOV：同时结合了SR-IOV和Mediated pass-through的优点。</p>
 <hr>
