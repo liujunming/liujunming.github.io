@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="Introduction to VT-x Preemption Timer">
 
 
 
+
+  <meta name="keywords" content="VT-x, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2021/04/">
+<link rel="canonical" href="http://liujunming.github.io/2022/04/01/Introduction-to-VT-x-Preemption-Timer/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> Introduction to VT-x Preemption Timer - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,159 +256,115 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Introduction to VT-x Preemption Timer
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 448 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2022-04-01
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/VT-x/">VT-x</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-什么是Preemption-Timer"><span class="toc-text">1. 什么是Preemption Timer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-如何使用Preemption-Timer"><span class="toc-text">2. 如何使用Preemption Timer</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文转载自:<a href="https://blog.csdn.net/xelatex_kvm/article/details/17761415" target="_blank" rel="noopener">Intel VT技术中的Preemption Timer</a>。</p>
+<h3 id="1-什么是Preemption-Timer"><a href="#1-什么是Preemption-Timer" class="headerlink" title="1. 什么是Preemption Timer"></a>1. 什么是Preemption Timer</h3><p>Preemption Timer是一种可以周期性使VCPU触发VMExit的一种机制。即设置了Preemption Timer之后，可以使VCPU在指定的TSC cycle(注意文章最后的rate)之后产生一次VMExit。<a id="more"></a></p>
+<p>使用Preemption Timer时需要注意下面两个问题：</p>
+<ol>
+<li>在旧版本的Intel CPU中Preemption Timer是不精确的。在Intel的设计中，Preemption Timer应该是严格和TSC保持一致，但是在Haswell之前的处理器并不能严格保持一致。</li>
+<li>Preemption Timer只有在VCPU进入到non-root mode时才会开始工作，在VCPU进入VMM时或者VCPU被调度出CPU时，其值都不会变化。</li>
+</ol>
+<h3 id="2-如何使用Preemption-Timer"><a href="#2-如何使用Preemption-Timer" class="headerlink" title="2. 如何使用Preemption Timer"></a>2. 如何使用Preemption Timer</h3><p>Preemption Timer在VMCS中有三个域需要设置：</p>
+<ol>
+<li><strong>Pin-Based VM-Execution Controls</strong>,Bit 6,”Activate VMX preemption timer”: 该位如果设置为1，则打开Preemption Timer；如果为0，则下面两个域的设置均无效。</li>
+<li><strong>VM-Exit Controls</strong>,Bit 22,”Save VMX-preemption timer value”:This control determines whether the value of the VMX-preemption timer is saved on VM exit.</li>
+<li><strong>VMX-preemption timer value</strong>:This field contains the value that the VMX-preemption timer will use following the next VM entry with that setting. 如果设置了”Save VMX-preemption timer value”，那么在VM exit时会更新该域为新的值。</li>
+</ol>
+<p>和Preemption Timer相关的内容去SDM中全文搜索”Preemption Timer”。</p>
+<p>在使用时，需要首先设置” Activate VMX preemption  timer”和 “VMX-preemption timer value”，如果需要VM exit时保存VMX-preemption timer value的话，需要设置 “Save VMX-preemption  timer  value”，这样在VCPU因为其他原因VMExit的时候不会重置VMX-preemption timer value。</p>
+<p>注意：在由Preemption Timer Time-out产生的VMExit中，是需要重置VMX-preemption timer value的。</p>
+<p><img src="/images/2022/04/06.PNG" alt><br>注意下这个rate。</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2021</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/VT-x/">VT-x</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-17
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/04/17/What-is-the-fPIE-option-for-position-independent-executables-in-gcc-and-ld/" class="archive-post-link">
-            What is the -fPIE option for position-independent executables in gcc and ld?
-          </a>
-        </span>
-      </div>
+        
+        
+  <nav class="post-nav">
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-16
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/04/16/How-to-use-GDB-to-analyze-core-dump-file/" class="archive-post-link">
-            How to use GDB to analyze core dump file
-          </a>
-        </span>
-      </div>
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-11
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/04/11/每周分享第22期/" class="archive-post-link">
-            每周分享第22期
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-11
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/04/11/How-to-use-x64-RIP-addressing/" class="archive-post-link">
-            How to use x64 RIP-relative addressing
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-10
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/04/10/Notes-about-system-call/" class="archive-post-link">
-            Notes about system call
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/04/01/The-usage-of-byte-in-GAS/" class="archive-post-link">
-            The usage of .byte in GAS
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
+      <a class="next" href="/2022/04/01/Notes-about-NVLink-and-NVSwitch/">
+        <span class="next-text nav-default">Notes about NVLink and NVSwitch</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -494,6 +448,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/04/01/Introduction-to-VT-x-Preemption-Timer/';
+        this.page.identifier = '2022/04/01/Introduction-to-VT-x-Preemption-Timer/';
+        this.page.title = 'Introduction to VT-x Preemption Timer';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
