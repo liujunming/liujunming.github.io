@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-04-03T05:52:06.933Z</updated>
+  <updated>2022-04-05T06:46:16.603Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Non-Transparent Bridge</title>
+    <link href="http://liujunming.github.io/2022/04/05/Notes-about-Non-Transparent-Bridge/"/>
+    <id>http://liujunming.github.io/2022/04/05/Notes-about-Non-Transparent-Bridge/</id>
+    <published>2022-04-05T05:49:49.000Z</published>
+    <updated>2022-04-05T06:46:16.603Z</updated>
+    
+    <content type="html"><![CDATA[<p>Notes about NTB(Non-Transparent Bridge)。大部分内容转载自:<a href="https://mp.weixin.qq.com/s?__biz=MzU4MTczMDg1Nw==&amp;mid=2247484277&amp;idx=1&amp;sn=fbf2141d7207404c4c03b853d3e27bb2&amp;chksm=fd425433ca35dd25a5fc8433dd069b8e22fa6b2efae8bba2b8a2a84a2983a974cc569a287fa0&amp;mpshare=1&amp;scene=1&amp;srcid=0404PvRlkgNWWUnMFglvMpQH&amp;sharer_sharetime=1649064843142&amp;sharer_shareid=fcd8378fa2afcbc997c8bd7f888f36e6&amp;exportkey=AQAbJioxo7WN4x2RsvEn5QY%3D&amp;acctmode=0&amp;pass_ticket=ma00ex2i0F1kMOWK2Porzd5P%2FmNQ7AfIlJ0uq9k3qPYV6Yw%2FRqAI1lQuV4GWNOx5&amp;wx_header=0#rd" target="_blank" rel="noopener">非透明桥 Non-Transparent Bridging</a>。<a id="more"></a></p><h2 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h2><p><img src="/images/2022/04/20.png" alt></p><p>问：系统A的CPU有没有可能直接访问系统B的内存和外设呢？<br>答：有！PCIe Non-Transparent Bridging功能就可以实现，也就是非透明桥！</p><p>我们首先来回顾一下PCIe系统里面，数据包的路由方式。以地址路由为例：<br><img src="/images/2022/04/21.jpg" alt></p><p>PCIe系统里面，每个设备、每个Switch，都有明确的属于自己的地址、地址范围。数据包在系统里面，根据某个确定的地址路由、寻址。每个地址具有唯一性。下面，让我们考虑两个PCIe系统的场景：<br><img src="/images/2022/04/22.jpg" alt></p><p>系统A如果需要访问到另外一个系统B的某个地址，存在两个问题：</p><ol><li>通过什么物理路径？</li><li>假设解决了问题1，同样存在地址冲突的问题：例如A系统访问地址2500h，这个地址在A系统里存在于左下方的Switch下，同时这个2500h地址也存在于B系统里的左下方的Switch下。由系统A的CPU发起的2500h地址访问，到底该访问哪一个呢？</li></ol><p>（<em>为什么两个host系统不能通过透明桥连接？PCIe数据路由是基于地址的，两个系统可能资源分配冲突，这意味着两个设备具有相同的资源分配，因此具有该地址的数据包无法正确路由</em>）</p><p><strong>解决方案是什么？当数据包通过结构从一个系统传输到另一个系统时进行地址转换，这是通过非透明桥（NT）完成的。</strong></p><p>我们来看看传统透明桥的路由：<br><img src="/images/2022/04/23.jpg" alt></p><p>①某个访问地址1500h的数据报文到达上行口P-P桥，P-P桥一看，这个地址在我的窗口范围内，向下行端口转发。<br>②图中高亮的下行端口P-P透明桥，一看，这个地址在我的桥下窗口范围内，继续向下转发。<br>③穿过透明P-P桥的数据报文，地址仍然为1500h。</p><p>对比透明桥，非透明桥的路由如下：<br><img src="/images/2022/04/24.jpg" alt></p><p>①某个访问地址Δ + 1500h的数据报文到达上行口P-P桥，P-P桥一看，这个地址在我的窗口范围内，向下行端口转发。<br>②图中高亮的下行端口P-P透明桥，一看，这个地址在我的桥下窗口范围内，继续向下转发。<br>③穿过非透明P-P桥的数据报文，<em>地址进行了翻译！从Δ +1500h变成1500h</em>。<br>④⑤是数据报文在系统B里的路由。</p><p>有意思了！非透明桥NT经过一个简单的地址翻译，把在A系统中的地址，翻译到了对应的B系统的地址！这里需要注意的是：</p><ol><li>为什么是Δ + 1500h？因为如果是1500h的话，肯定和本系统的1500h冲突。</li><li>Δ + 1500h所在的资源范围是怎么申请的？是非透明桥NT的BAR资源，向系统申请的。</li></ol><p>可以看出：非透明桥和透明桥看上去功能很像，最大的不同是：透明桥是进来什么地址，出去就是什么地址，对于桥上下两侧是“透明”的。非透明桥是有翻译功能的，可以把一个地址翻译成另一个地址。所谓非透明的部分意义也是在于此。</p><h2 id="2-地址转换与内部构造"><a href="#2-地址转换与内部构造" class="headerlink" title="2. 地址转换与内部构造"></a>2. 地址转换与内部构造</h2><p>当数据包通过结构从一个系统传输到另一个系统时进行地址转换，这是通过非透明桥（Non-Transparent）完成的。NT桥到底是怎么进行地址转换的？NT桥的内部构造又是啥样的呢？</p><p><img src="/images/2022/04/25.jpg" alt></p><p>NTB由两个PCIe设备组成，每个设备的配置方式都是Type 0，并通过桥接连接。这两个Type 0 PCI设备被称为两个非透明（NT）端点（也称为NT功能）。如下图：<br><img src="/images/2022/04/26.png" alt></p><p>既然是EP就有6个BAR空间。BAR 0 到BAR 5。所谓BAR（Base Address Register）就是每个EP设备的一个寄存器，这个寄存器会向系统申请一段一定大小的空间地址，系统所有访问这个空间地址的报文，都会被路由到这个EP来处理。</p><p>通常，BAR0是用作映射到EP设备的配置空间，访问BAR0可以映射访问所有的寄存器。而NT的BAR2 到 BAR5通常都是用于NT桥接地址转换用的。如下，我们以BAR 2为例：<br><img src="/images/2022/04/27.png" alt></p><p>NT EP向系统申请了个两段空间，一个是BAR0，所有访问BAR0地址范围的报文都将落入到EP的内存映射寄存器里面去。另一个就是BAR2，这个BAR2的地址空间，我们称为NT窗口。所有访问BAR2地址范围的报文都将进入NT，然后被地址转换！如何转换的呢？<br><img src="/images/2022/04/28.png" alt></p><p>进入NT Window的报文，会根据我们自己设置的NT桥转换基址（Translated Base Addres）做运算，运算之后的地址刚好要等于我们想访问的B系统里面的目标地址（Target Adress）。这样，即使我们加上一定的偏移（Offset），也能顺利转化为B系统里对应偏移的地址。</p><p><img src="/images/2022/04/29.png" alt></p><p>了解完大概的转换原理之后，我们跳出来再看一看这个系统图：<br><img src="/images/2022/04/30.png" alt></p><p>大家注意一下我标注的不同的颜色，从PCIe域以及地址归属来看，NT桥两边的两个EP设备，其实是分别归属于两个系统的（蓝色属于系统A，绿色属于系统B）。至于两个NT EP中间的NT Bridge，那是厂商芯片自己内部的实现。逻辑上在两个系统内都看不到。</p><p>另外，我们前面只讨论了从系统A到系统B穿过NT桥的转换，反之，从系统B到系统A类似，只不多是在B系统里面配置绿色的NT  EP设备而已。我们可以画出如下的地址转换示意图</p><p><img src="/images/2022/04/31.png" alt></p><h2 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h2><p>A PCI-Express non-transparent bridge (NTB) is a point-to-point PCIe bus connecting 2 systems, providing electrical isolation between the two subsystems. A non-transparent bridge is functionally similar to a transparent bridge except that both sides of the bridge have their own independent address domains.  The host on one side of the bridge will not have the visibility of the complete memory or I/O space on the other side of the bridge.  To communicate across the non-transparent bridge, each NTB endpoint has one (or more) apertures exposed to the local system.  Writes to these apertures are mirrored to memory on the remote system.  Communications can also occur through the use of doorbell registers that initiate interrupts to the alternate domain, and scratch-pad registers accessible from both sides.</p><p><em>scratch pad</em>(A small, fast memory for the temporary storage of data)</p><p><img src="/images/2022/04/32.PNG" alt><br><img src="/images/2022/04/33.PNG" alt><br><img src="/images/2022/04/34.PNG" alt></p><p><img src="/images/2022/04/35.PNG" alt><br><img src="/images/2022/04/36.PNG" alt></p><p>再次回到文章开头。<br>问：系统A的CPU有没有可能直接访问系统B的内存和外设呢？<br>答：有！PCIe Non-Transparent Bridging功能就可以实现，也就是非透明桥！</p><hr><p>参考资料:</p><ol><li><a href="https://book.douban.com/subject/4728656/" target="_blank" rel="noopener">PCI Express 体系结构导读</a></li><li><a href="https://www.kernel.org/doc/Documentation/ntb.txt" target="_blank" rel="noopener">Kernel ntb.txt</a></li><li><a href="https://events.static.linuxfound.org/sites/events/files/slides/Linux%20NTB_0.pdf" target="_blank" rel="noopener">Linux NTB</a></li><li><a href="https://lwn.net/Articles/506761/" target="_blank" rel="noopener">PCI-Express Non-Transparent Bridge Support</a></li><li><a href="https://mp.weixin.qq.com/s?__biz=MzU4MTczMDg1Nw==&amp;mid=2247484277&amp;idx=1&amp;sn=fbf2141d7207404c4c03b853d3e27bb2&amp;chksm=fd425433ca35dd25a5fc8433dd069b8e22fa6b2efae8bba2b8a2a84a2983a974cc569a287fa0&amp;mpshare=1&amp;scene=1&amp;srcid=0404PvRlkgNWWUnMFglvMpQH&amp;sharer_sharetime=1649064843142&amp;sharer_shareid=fcd8378fa2afcbc997c8bd7f888f36e6&amp;exportkey=AQAbJioxo7WN4x2RsvEn5QY%3D&amp;acctmode=0&amp;pass_ticket=ma00ex2i0F1kMOWK2Porzd5P%2FmNQ7AfIlJ0uq9k3qPYV6Yw%2FRqAI1lQuV4GWNOx5&amp;wx_header=0#rd" target="_blank" rel="noopener">非透明桥 Non-Transparent Bridging (一)</a></li><li><a href="https://mp.weixin.qq.com/s?__biz=MzU4MTczMDg1Nw==&amp;mid=2247484288&amp;idx=1&amp;sn=1c8dff6a288e6089e7eba49f833dfb28&amp;chksm=fd4254c6ca35ddd045368be02885b7375eb39e25ef628e9003a9d3fbc689237775327a90f59e&amp;mpshare=1&amp;scene=1&amp;srcid=04041kgNPltlFUtAEjlxCUxM&amp;sharer_sharetime=1649064850883&amp;sharer_shareid=fcd8378fa2afcbc997c8bd7f888f36e6&amp;exportkey=AWzT7MFaawwPXbZ%2BXuad8Tc%3D&amp;acctmode=0&amp;pass_ticket=ma00ex2i0F1kMOWK2Porzd5P%2FmNQ7AfIlJ0uq9k3qPYV6Yw%2FRqAI1lQuV4GWNOx5&amp;wx_header=0#rd" target="_blank" rel="noopener">非透明桥 Non-Transparent Bridging (二)</a></li><li><a href="https://mp.weixin.qq.com/s?__biz=MzU4MTczMDg1Nw==&amp;mid=2247484298&amp;idx=1&amp;sn=f4c4e66c3a4faa27fd0f0157b0a0bbbe&amp;chksm=fd4254ccca35dddaf5fde69be5961d63f5ddc17a24368fe99e634bc9fe1766746e8c15cd93df&amp;mpshare=1&amp;scene=1&amp;srcid=0404eYkmrLSbk8SiK63otkGI&amp;sharer_sharetime=1649064857822&amp;sharer_shareid=fcd8378fa2afcbc997c8bd7f888f36e6&amp;exportkey=AYWWAwuG%2Bv5c6UjdEAoiNJ8%3D&amp;acctmode=0&amp;pass_ticket=ma00ex2i0F1kMOWK2Porzd5P%2FmNQ7AfIlJ0uq9k3qPYV6Yw%2FRqAI1lQuV4GWNOx5&amp;wx_header=0#rd" target="_blank" rel="noopener">非透明桥 Non-Transparent Bridging (三)</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Notes about NTB(Non-Transparent Bridge)。大部分内容转载自:&lt;a href=&quot;https://mp.weixin.qq.com/s?__biz=MzU4MTczMDg1Nw==&amp;amp;mid=2247484277&amp;amp;idx=1&amp;amp;sn=fbf2141d7207404c4c03b853d3e27bb2&amp;amp;chksm=fd425433ca35dd25a5fc8433dd069b8e22fa6b2efae8bba2b8a2a84a2983a974cc569a287fa0&amp;amp;mpshare=1&amp;amp;scene=1&amp;amp;srcid=0404PvRlkgNWWUnMFglvMpQH&amp;amp;sharer_sharetime=1649064843142&amp;amp;sharer_shareid=fcd8378fa2afcbc997c8bd7f888f36e6&amp;amp;exportkey=AQAbJioxo7WN4x2RsvEn5QY%3D&amp;amp;acctmode=0&amp;amp;pass_ticket=ma00ex2i0F1kMOWK2Porzd5P%2FmNQ7AfIlJ0uq9k3qPYV6Yw%2FRqAI1lQuV4GWNOx5&amp;amp;wx_header=0#rd&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;非透明桥 Non-Transparent Bridging&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NVMe protocol</title>
@@ -455,32 +477,6 @@
     
     
       <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Introduction to Intel VT-rp</title>
-    <link href="http://liujunming.github.io/2022/02/16/Introduction-to-Intel-VT-rp/"/>
-    <id>http://liujunming.github.io/2022/02/16/Introduction-to-Intel-VT-rp/</id>
-    <published>2022-02-16T08:50:20.000Z</published>
-    <updated>2022-02-16T13:01:30.095Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将介绍Intel的VT-rp技术。<a id="more"></a></p><h3 id="1-Material"><a href="#1-Material" class="headerlink" title="1. Material"></a>1. Material</h3><ul><li>SPEC:<a href="https://software.intel.com/content/www/us/en/develop/download/intel-architecture-instruction-set-extensions-programming-reference.html" target="_blank" rel="noopener">ISE</a></li><li><a href="https://static.sched.com/hosted_files/kvmforum2020/34/kvm2020_hypervisor-managed%20linear%20address%20translation_v3.pdf" target="_blank" rel="noopener">Hypervisor-managed Linear Address Translation by Chao Gao slides</a></li><li><a href="https://www.youtube.com/watch?v=j2T90htYSko" target="_blank" rel="noopener">Hypervisor-managed Linear Address Translation by Chao Gao video</a></li></ul><h3 id="2-Background"><a href="#2-Background" class="headerlink" title="2. Background"></a>2. Background</h3><p><img src="/images/2022/02/08.png" alt><br>对于write-protecting CR3 page table leads to high performance penalty的解释如下：<br>VMMs could enforce the integrity of these specific guest linear to guest physical mappings (paging structures) by using legacy EPT permissions to mark the guest physical memory containing the relevant guest paging structures as read-only. The intent of marking these guest paging structures as read-only is to ensure an invalid mapping is not created by guest software. However, such page-table edit control techniques are known to cause very high overheads(EPT violation VM Exit)  due to the requirement that the VMM must monitor all paging contexts created by the (Guest) operating system.<br><img src="/images/2022/02/09.png" alt></p><h3 id="3-Terms"><a href="#3-Terms" class="headerlink" title="3. Terms"></a>3. Terms</h3><ul><li>Intel VT-rp(Intel Virtualization Technology - Redirect Protection)</li><li>HLAT(Hypervisor-managed Linear Address Translation)</li><li>PLR(Protected Linear Range)</li><li>PW(Paging Write)</li><li>VPW(Verify Paging-Write)</li></ul><h3 id="4-VT-rp"><a href="#4-VT-rp" class="headerlink" title="4. VT-rp"></a>4. VT-rp</h3><p><img src="/images/2022/02/10.png" alt></p><h4 id="4-1-HLAT"><a href="#4-1-HLAT" class="headerlink" title="4.1 HLAT"></a>4.1 HLAT</h4><p><img src="/images/2022/02/11.png" alt><br><img src="/images/2022/02/12.png" alt><br><img src="/images/2022/02/13.png" alt></p><h4 id="4-2-EPT-Control-Bit-“Paging-Write”"><a href="#4-2-EPT-Control-Bit-“Paging-Write”" class="headerlink" title="4.2 EPT Control Bit “Paging-Write”"></a>4.2 EPT Control Bit “Paging-Write”</h4><p>A new EPT control bit called <strong>“Paging-Write”</strong> specified in EPT leaf entries. </p><p><img src="/images/2022/02/16.png" alt></p><p><img src="/images/2022/02/14.png" alt></p><p>硬件会更新guest paging structure pages的A/D bits without EPT violation VM exits</p><h4 id="4-3-EPT-Control-Bit-“Verify-Paging-write”"><a href="#4-3-EPT-Control-Bit-“Verify-Paging-write”" class="headerlink" title="4.3 EPT Control Bit “Verify Paging-write”"></a>4.3 EPT Control Bit “Verify Paging-write”</h4><p>A new EPT control bit called <strong>“Verify Paging-Write”</strong> specified in EPT leaf entries (that refer to the final host physical page in the translation).</p><p><img src="/images/2022/02/17.png" alt></p><p><img src="/images/2022/02/15.png" alt></p><h4 id="4-4-Prevent-Alias-Mapping-with-PW-amp-VPW"><a href="#4-4-Prevent-Alias-Mapping-with-PW-amp-VPW" class="headerlink" title="4.4 Prevent Alias Mapping with PW &amp; VPW"></a>4.4 Prevent Alias Mapping with PW &amp; VPW</h4><p><img src="/images/2022/02/19.png" alt></p><h3 id="5-Implementaion"><a href="#5-Implementaion" class="headerlink" title="5. Implementaion"></a>5. Implementaion</h3><p><img src="/images/2022/02/18.png" alt></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将介绍Intel的VT-rp技术。
-    
-    </summary>
-    
-      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
-    
-      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
     
   </entry>
   
