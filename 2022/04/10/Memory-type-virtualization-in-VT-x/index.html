@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="Memory Type virtualization in VT-x">
 
 
 
+
+  <meta name="keywords" content="VT-x, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2022/04/">
+<link rel="canonical" href="http://liujunming.github.io/2022/04/10/Memory-type-virtualization-in-VT-x/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> Memory Type virtualization in VT-x - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,219 +256,131 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Memory Type virtualization in VT-x
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 455 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2022-04-10
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/VT-x/">VT-x</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-History"><span class="toc-text">1. History</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-EPT-and-Memory-Typing"><span class="toc-text">2. EPT and Memory Typing</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>已经介绍过了native下的<a href="/2022/04/09/Memory-Cache-Control-Memory-Type/">Memory Type</a>，那么，虚拟化下的Memory Type又是何般境地呢？<a id="more"></a></p>
+<h2 id="1-History"><a href="#1-History" class="headerlink" title="1. History"></a>1. History</h2><p>前辈们在影子页表时代探索过Memory Type的虚拟化。可以参考<a href="http://www-archive.xenproject.org/files/xensummitboston08/Cache-Virtualization.pdf" target="_blank" rel="noopener">Maintaining cache coherency</a>和<a href="https://vimeo.com/12847592" target="_blank" rel="noopener">Disheng Su: Cache Attribute Virtualization in Xen</a>。反正我也看不明白细节，但是，需要知道的是：在影子页表时代，Memory Type的虚拟化需要软件做很多事情。当来到EPT页表时代，软件需要做的事情就没有那么多了。</p>
+<p>EPT中的Memory Type在SDM Vol3的28.3.7 EPT and Memory Typing有详细的介绍。</p>
+<h2 id="2-EPT-and-Memory-Typing"><a href="#2-EPT-and-Memory-Typing" class="headerlink" title="2. EPT and Memory Typing"></a>2. EPT and Memory Typing</h2><p>中文翻译转载自<a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch28/" target="_blank" rel="noopener">Intel SDM Chapter 28: VMX Support for Address Translation</a>。</p>
+<p>涉及EPT的Memory Type有两个，首先是walk EPT时，访问EPT各级页表项所采用的Memory Type：</p>
+<ul>
+<li>若<code>CR0.CD = 0</code>，则采用的Memory Type由EPTP的第0-2位决定，取0表示UC，取6表示WB</li>
+<li>若<code>CR0.CD = 1</code>，则采用的Memory Type为UC</li>
+</ul>
+<p>其次是Guest访问内存时，采用的Memory Type，它由两个因素决定：</p>
+<ul>
+<li>EPT Memory Type：即EPT中最后一级页表项的第3-5位，起相当于MTRR的作用<ul>
+<li>取0表示UC，取1表示WC，取4表示WT，取5表示WP，取6表示WB，这与MTRR中Type的含义相同</li>
+<li>此时MTRR完全不起作用</li>
+</ul>
+</li>
+<li>PAT Memory Type：<ul>
+<li>若<code>CR0.PG = 0</code>，则PAT Memory Type为WB</li>
+<li>若<code>CR0.PG = 1</code>，则PAT Memory Type为Guest页表翻译时根据<code>MSR[IA32_PAT]</code>确定的PAT Memory Type</li>
+</ul>
+</li>
+</ul>
+<p>最终产生的Memory Type如下：</p>
+<ul>
+<li>若<code>CR0.CD = 0</code><ul>
+<li>若末级页表项的<code>IPAT = 0</code>，则Memory Type就是将EPT Memory Type当做MTRR Memory Type和PAT Memory Type合并后的结果</li>
+<li>若末级页表项的<code>IPAT = 1</code>，则Memory Type就是EPT Memory Type</li>
+</ul>
+</li>
+<li>若<code>CR0.CD = 1</code>，则Memory Type为UC</li>
+</ul>
+<p>IPAT即Ignore PAT(末级页表项的第6位)，如下图标注所示：<br><img src="/images/2022/04/66.PNG" alt></p>
+<p>MTRR Memory Type和PAT Memory Type合并后的结果:<br><img src="/images/2022/04/49.PNG" alt></p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2022</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/VT-x/">VT-x</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-10
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/10/Memory-type-virtualization-in-VT-x/" class="archive-post-link">
-            Memory Type virtualization in VT-x
-          </a>
-        </span>
-      </div>
+        
+        
+  <nav class="post-nav">
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-09
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/09/Memory-Cache-Control-Memory-Type/" class="archive-post-link">
-            Memory Cache Control:Memory Type
-          </a>
-        </span>
-      </div>
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-07
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/07/一致性DMA映射与流式DMA映射/" class="archive-post-link">
-            一致性DMA映射与流式DMA映射
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-05
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/05/每周分享第26期/" class="archive-post-link">
-            每周分享第26期
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-05
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/05/Notes-about-Non-Transparent-Bridge/" class="archive-post-link">
-            Notes about Non-Transparent Bridge
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-02
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/02/Notes-about-NVMe/" class="archive-post-link">
-            Notes about NVMe protocol
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-02
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/02/Introduction-to-GPUDirect-RDMA/" class="archive-post-link">
-            Introduction to GPUDirect RDMA
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/01/Introduction-to-VT-x-Preemption-Timer/" class="archive-post-link">
-            Introduction to VT-x Preemption Timer
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/01/Notes-about-NVLink-and-NVSwitch/" class="archive-post-link">
-            Notes about NVLink and NVSwitch
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
+      <a class="next" href="/2022/04/09/Memory-Cache-Control-Memory-Type/">
+        <span class="next-text nav-default">Memory Cache Control:Memory Type</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -554,6 +464,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/04/10/Memory-type-virtualization-in-VT-x/';
+        this.page.identifier = '2022/04/10/Memory-type-virtualization-in-VT-x/';
+        this.page.title = 'Memory Type virtualization in VT-x';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     

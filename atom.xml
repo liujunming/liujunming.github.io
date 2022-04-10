@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-04-09T15:44:05.209Z</updated>
+  <updated>2022-04-10T03:56:09.328Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Memory Type virtualization in VT-x</title>
+    <link href="http://liujunming.github.io/2022/04/10/Memory-type-virtualization-in-VT-x/"/>
+    <id>http://liujunming.github.io/2022/04/10/Memory-type-virtualization-in-VT-x/</id>
+    <published>2022-04-09T16:02:22.000Z</published>
+    <updated>2022-04-10T03:56:09.328Z</updated>
+    
+    <content type="html"><![CDATA[<p>已经介绍过了native下的<a href="/2022/04/09/Memory-Cache-Control-Memory-Type/">Memory Type</a>，那么，虚拟化下的Memory Type又是何般境地呢？<a id="more"></a></p><h2 id="1-History"><a href="#1-History" class="headerlink" title="1. History"></a>1. History</h2><p>前辈们在影子页表时代探索过Memory Type的虚拟化。可以参考<a href="http://www-archive.xenproject.org/files/xensummitboston08/Cache-Virtualization.pdf" target="_blank" rel="noopener">Maintaining cache coherency</a>和<a href="https://vimeo.com/12847592" target="_blank" rel="noopener">Disheng Su: Cache Attribute Virtualization in Xen</a>。反正我也看不明白细节，但是，需要知道的是：在影子页表时代，Memory Type的虚拟化需要软件做很多事情。当来到EPT页表时代，软件需要做的事情就没有那么多了。</p><p>EPT中的Memory Type在SDM Vol3的28.3.7 EPT and Memory Typing有详细的介绍。</p><h2 id="2-EPT-and-Memory-Typing"><a href="#2-EPT-and-Memory-Typing" class="headerlink" title="2. EPT and Memory Typing"></a>2. EPT and Memory Typing</h2><p>中文翻译转载自<a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch28/" target="_blank" rel="noopener">Intel SDM Chapter 28: VMX Support for Address Translation</a>。</p><p>涉及EPT的Memory Type有两个，首先是walk EPT时，访问EPT各级页表项所采用的Memory Type：</p><ul><li>若<code>CR0.CD = 0</code>，则采用的Memory Type由EPTP的第0-2位决定，取0表示UC，取6表示WB</li><li>若<code>CR0.CD = 1</code>，则采用的Memory Type为UC</li></ul><p>其次是Guest访问内存时，采用的Memory Type，它由两个因素决定：</p><ul><li>EPT Memory Type：即EPT中最后一级页表项的第3-5位，起相当于MTRR的作用<ul><li>取0表示UC，取1表示WC，取4表示WT，取5表示WP，取6表示WB，这与MTRR中Type的含义相同</li><li>此时MTRR完全不起作用</li></ul></li><li>PAT Memory Type：<ul><li>若<code>CR0.PG = 0</code>，则PAT Memory Type为WB</li><li>若<code>CR0.PG = 1</code>，则PAT Memory Type为Guest页表翻译时根据<code>MSR[IA32_PAT]</code>确定的PAT Memory Type</li></ul></li></ul><p>最终产生的Memory Type如下：</p><ul><li>若<code>CR0.CD = 0</code><ul><li>若末级页表项的<code>IPAT = 0</code>，则Memory Type就是将EPT Memory Type当做MTRR Memory Type和PAT Memory Type合并后的结果</li><li>若末级页表项的<code>IPAT = 1</code>，则Memory Type就是EPT Memory Type</li></ul></li><li>若<code>CR0.CD = 1</code>，则Memory Type为UC</li></ul><p>IPAT即Ignore PAT(末级页表项的第6位)，如下图标注所示：<br><img src="/images/2022/04/66.PNG" alt></p><p>MTRR Memory Type和PAT Memory Type合并后的结果:<br><img src="/images/2022/04/49.PNG" alt></p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;已经介绍过了native下的&lt;a href=&quot;/2022/04/09/Memory-Cache-Control-Memory-Type/&quot;&gt;Memory Type&lt;/a&gt;，那么，虚拟化下的Memory Type又是何般境地呢？
+    
+    </summary>
+    
+      <category term="VT-x" scheme="http://liujunming.github.io/categories/VT-x/"/>
+    
+    
+      <category term="VT-x" scheme="http://liujunming.github.io/tags/VT-x/"/>
+    
+  </entry>
   
   <entry>
     <title>Memory Cache Control:Memory Type</title>
@@ -452,32 +474,6 @@
     
     
       <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Time-Stamp Counter Virtualization</title>
-    <link href="http://liujunming.github.io/2022/02/28/Time-Stamp-Counter-virtualization/"/>
-    <id>http://liujunming.github.io/2022/02/28/Time-Stamp-Counter-virtualization/</id>
-    <published>2022-02-28T06:56:25.000Z</published>
-    <updated>2022-02-28T10:17:23.634Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将记录Time-Stamp Counter Virtualization相关内容。<a id="more"></a></p><h3 id="Usage"><a href="#Usage" class="headerlink" title="Usage"></a>Usage</h3><p><img src="/images/2022/02/28.PNG" alt></p><p>The product means <em>the result obtained by multiplying two or more quantities together</em>.</p><h3 id="TSC-offsetting"><a href="#TSC-offsetting" class="headerlink" title="TSC offsetting"></a>TSC offsetting</h3><p><strong>Timestamp-counter offsetting</strong> (<strong>TSC offsetting</strong>) is an existing feature that allows VMM software to specify a value (the <strong>TSC offset</strong>) that is added to the TSC when it is read by guest software. A VMM can use this feature to provide guest software with the illusion that it is operating at a time later or earlier than that represented by the current TSC value.</p><h3 id="TSC-scaling"><a href="#TSC-scaling" class="headerlink" title="TSC scaling"></a>TSC scaling</h3><p>With TSC offsetting, guest software perceives a TSC that is offset from the real hardware, but which advances at the same rate. That may be adequate for usages in which the offset is used to account for execution time before virtual machine was created. But it might not suffice if the VMM migrates a virtual machine between platforms on which the TSC moves at different rates.</p><p>TSC scaling provides VMM software with a mechanism by which is it can adjust the TSC rate perceived by guest software. When TSC scaling and TSC offsetting are both enabled, reads from the TSC in VMX nonroot operation multiply the actual TSC value by a new <strong>TSC multiplier</strong>, add the TSC offset to the product, and return the sum to guest software.</p><p>With both TSC offsetting and TSC scaling, a VMM that migrates a virtual machine from one platform to another can configure the TSC offset and the TSC multiplier on the new platform so that the TSC (as perceived by the guest) appears to proceed from the same value that it had before the migration <strong>and at the same rate</strong>.</p><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/timestamp-counter-scaling-virtualization-white-paper.pdf" target="_blank" rel="noopener">Timestamp-Counter Scaling (TSC scaling) for Virtualization</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将记录Time-Stamp Counter Virtualization相关内容。
-    
-    </summary>
-    
-      <category term="VT-x" scheme="http://liujunming.github.io/categories/VT-x/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="VT-x" scheme="http://liujunming.github.io/tags/VT-x/"/>
-    
-      <category term="Time" scheme="http://liujunming.github.io/tags/Time/"/>
     
   </entry>
   
