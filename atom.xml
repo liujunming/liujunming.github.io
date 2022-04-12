@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-04-10T03:56:09.328Z</updated>
+  <updated>2022-04-12T08:02:10.673Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>浅谈TLB in Intel CPU</title>
+    <link href="http://liujunming.github.io/2022/04/12/%E6%B5%85%E8%B0%88TLB-in-Intel-CPU/"/>
+    <id>http://liujunming.github.io/2022/04/12/浅谈TLB-in-Intel-CPU/</id>
+    <published>2022-04-12T14:46:51.000Z</published>
+    <updated>2022-04-12T08:02:10.673Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将结合SDM，浅谈下TLB。<a id="more"></a></p><h2 id="1-TLB"><a href="#1-TLB" class="headerlink" title="1. TLB"></a>1. TLB</h2><h3 id="1-1-Why"><a href="#1-1-Why" class="headerlink" title="1.1 Why"></a>1.1 Why</h3><p>没有TLB的话，每次内存寻址时，都需要访问页表（页表位于内存中），开销较大。TLB缓存了VA(Virtual Address)到PA(Physical Address)的映射，当TLB hit时，就无需从内存中访问页表了。</p><h3 id="1-2-What"><a href="#1-2-What" class="headerlink" title="1.2 What"></a>1.2 What</h3><p>The upper bits of a linear address (called the <strong>page number</strong>) determine the upper bits of the physical address (called the <strong>page frame</strong>); the lower bits of the linear address (called the page offset) determine the lower bits of the physical address. The boundary between the page number and the page offset is determined by the <strong>page size</strong>. </p><p><img src="/images/2022/04/67.PNG" alt></p><h2 id="2-全局TLB-flush"><a href="#2-全局TLB-flush" class="headerlink" title="2. 全局TLB flush"></a>2. 全局TLB flush</h2><p>每次进程切换时，需要更换CR3寄存器，flush掉全部的TLB Entries，开销较大。为此，硬件上引入了<a href="/2022/04/12/浅谈TLB-in-Intel-CPU/#3-Global-page">Global page</a>与<a href="/2022/04/12/浅谈TLB-in-Intel-CPU/#4-PCID">PCID</a>机制，避免进程切换时flush掉所有的TLB Entries。</p><h2 id="3-Global-page"><a href="#3-Global-page" class="headerlink" title="3. Global page"></a>3. Global page</h2><p>Linux内存管理中，内核空间是所有进程共享的，每个进程有自己独立的用户空间。进程切换时，是否可以不flush掉内核空间的TLB Entries呢？当然可以，Global page正是为此而生。</p><p>The Intel-64 and IA-32 architectures also allow for global pages when the PGE flag (bit 7) is 1 in CR4. If the G flag(bit 8) is 1 in a paging-structure entry that maps a page (either a PTE or a paging-structure entry in which the PS flag is 1), any TLB entry cached for a linear address using that paging-structure entry is considered to be global.</p><h2 id="4-PCID"><a href="#4-PCID" class="headerlink" title="4. PCID"></a>4. PCID</h2><p>以前，是以(VA)这个一元组为key来唯一索引TLB Entry。PCID(Process-Context Identifier)的引入，硬件以(VA,进程信息)来唯一索引TLB Entry。这样，进程切换时，无需刷掉TLB Entries了，因为不同进程的(VA,进程信息)二元组是不同的。</p><p><img src="/images/2022/04/68.PNG" alt></p><h3 id="4-1-Overlap-between-PCID-and-Global-page"><a href="#4-1-Overlap-between-PCID-and-Global-page" class="headerlink" title="4.1 Overlap between PCID and Global page"></a>4.1 Overlap between PCID and Global page</h3><p>A logical processor may use a global TLB entry to translate a linear address, even if the TLB entry is associated with a PCID different from the current PCID.</p><h2 id="5-TLB-shootdown"><a href="#5-TLB-shootdown" class="headerlink" title="5. TLB shootdown"></a>5. TLB shootdown</h2><p><img src="/images/2022/04/69.PNG" alt></p><h2 id="6-VPID"><a href="#6-VPID" class="headerlink" title="6. VPID"></a>6. VPID</h2><p>虚拟化下，以(VA,进程信息)已经不能唯一索引TLB Entry了，因为不同virtual processors间，可能产生相同的(VA,进程信息)二元组，为此，在同一个物理CPU上，不同vCPU调度时，Hypervisor需要flush掉所有的TLB Entries。为此，VPID(Virtual-Processor IDentifier)应运而生。以(VA,进程信息，virtual processor信息)这个三元组来唯一索引TLB Entry。这样，在同一个物理CPU上，不同vCPU调度时，Hypervisor无需flush掉TLB Entries。</p><p>当然，VPID与PCID的使用不是绑定的，要看具体(Hypervisor和Guest OS)的实现了。例如，Hypervisor可以使用VPID，Guest OS不使用PCID，那么，此刻硬件是以(VA,virtual processor信息)来索引TLB Entry了。在同一个物理CPU上，不同vCPU调度时，Hypervisor无需flush掉TLB Entries，但是，在Guest OS中，每次进程切换时，Guest OS需要Flush掉TLB Entries来保证正确性。</p><p><img src="/images/2022/04/70.PNG" alt></p><h2 id="7-Rethinking-Protection-Keys"><a href="#7-Rethinking-Protection-Keys" class="headerlink" title="7. Rethinking Protection Keys"></a>7. Rethinking Protection Keys</h2><p>之前已经介绍过了<a href="/2020/03/07/Introduction-to-pkeys/">PKU</a>与<a href="/2022/02/27/Introduction-to-PKS/">PKS</a>，这里，从TLB的视角，重新看下Protection Keys。</p><p>Memory Protection Keys (pkeys) are an extension to existing page-based memory permissions. Normal page permissions using page tables require expensive system calls and TLB invalidations when changing permissions. Memory Protection Keys provide a mechanism for changing protections without requiring modification of the page tables on every permission change.</p><p>Protection Keys是无需flush TLB的。留下的open是：</p><ol><li>通过Protection Keys更改permissions，最终硬件是否会更改物理TLB Entry中的access rights位呢?</li><li>如果1成立的话，对于Multiple Processors，是否需要类似于propagating这个过程呢？这个过程是由软件or硬件来完成呢？</li></ol><p>这些问题我当前并不知道答案，等待后续的更新。</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将结合SDM，浅谈下TLB。
+    
+    </summary>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
+    
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
+    
+  </entry>
   
   <entry>
     <title>Memory Type virtualization in VT-x</title>
@@ -452,28 +476,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="VT-x" scheme="http://liujunming.github.io/tags/VT-x/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Introduction to umonitor/umwait/tpause instructions</title>
-    <link href="http://liujunming.github.io/2022/03/01/Introduction-to-umonitor-umwait-tpause-instructions/"/>
-    <id>http://liujunming.github.io/2022/03/01/Introduction-to-umonitor-umwait-tpause-instructions/</id>
-    <published>2022-03-01T01:36:39.000Z</published>
-    <updated>2022-03-01T10:42:53.651Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将介绍<code>umonitor</code>、<code>umwait</code>和<code>tpause</code> 这三个指令的相关知识点。<a id="more"></a></p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>最权威的描述当然来自于SDM。</p><h4 id="1-1-UMONITOR—User-Level-Set-Up-Monitor-Address"><a href="#1-1-UMONITOR—User-Level-Set-Up-Monitor-Address" class="headerlink" title="1.1 UMONITOR—User Level Set Up Monitor Address"></a>1.1 UMONITOR—User Level Set Up Monitor Address</h4><p>The UMONITOR instruction arms address <strong>monitoring hardware</strong> using an address specified in the source register(the address range that the monitoring hardware checks for store operations can be determined by using the CPUID monitor leaf function, EAX=05H). A store to an address within the specified address range triggers the monitoring hardware. The state of monitor hardware is used by <strong>UMWAIT</strong>.</p><p>UMONITOR sets up an address range for the monitor hardware using the content of source register as an effective address and puts the monitor hardware in armed state. A store to the specified address range will <strong>trigger</strong> the monitor hardware.</p><h4 id="1-2-UMWAIT—User-Level-Monitor-Wait"><a href="#1-2-UMWAIT—User-Level-Monitor-Wait" class="headerlink" title="1.2 UMWAIT—User Level Monitor Wait"></a>1.2 UMWAIT—User Level Monitor Wait</h4><p>A hint that allows the processor to stop instruction execution and enter an implementation-dependent optimized state until occurrence of a class of events.</p><p>a class of events:</p><ul><li>the monitoring hardware is triggered</li><li>when the time-stamp counter reaches or exceeds the implicit EDX:EAX 64-bit input value(if the monitoring hardware did not trigger beforehand)</li></ul><p>UMWAIT instructs the processor to enter an implementation-dependent optimized state while monitoring a range of addresses. The optimized state may be either a light-weight power/performance optimized state or an improved power/performance optimized state. The selection between the two states is governed by the explicit input register bit[0] source operand.</p><h4 id="1-3-Timed-PAUSE"><a href="#1-3-Timed-PAUSE" class="headerlink" title="1.3 Timed PAUSE"></a>1.3 Timed PAUSE</h4><p>Directs the processor to enter an implementation dependent optimized state until the TSC reaches the value in EDX:EAX.</p><p>TPAUSE instructs the processor to enter an implementation-dependent optimized state. There are two such optimized states to choose from: light-weight power/performance optimized state, and improved power/performance optimized state. The selection between the two is governed by the explicit input register bit[0] source operand.</p><h3 id="2-Usage"><a href="#2-Usage" class="headerlink" title="2. Usage"></a>2. Usage</h3><h4 id="2-1-spin-lock"><a href="#2-1-spin-lock" class="headerlink" title="2.1 spin-lock"></a>2.1 spin-lock</h4><p>Today, if an application needs to wait for a very short duration they have to have spinloops. Spinloops consume more power and continue to use execution resources that could hurt its thread siblings in a core with hyperthreads(HT). New instructions <code>umonitor</code>, <code>umwait</code> and <code>tpause</code> allow a low power alternative waiting at the same time could improve the HT sibling perform while giving it any power headroom. These instructions can be used in both user space and kernel space.</p><p>A new MSR IA32_UMWAIT_CONTROL allows kernel to set a time limit(how long the <code>umwait</code> and <code>tpause</code> instructions can wait before normal execution continues) in TSC-quanta that prevents user applications from waiting for a long time.</p><p>The processor supports two levels of optimized states: a light-weight power/performance optimized state (C0.1 state) or an improved power/performance optimized state (C0.2 state with deeper power saving and higher exit latency). It is conceivable that system administrators might not want to allow the system to go into C0.2 if, for example, it is handling workloads with realtime response requirements. </p><h4 id="2-2-DPDK"><a href="#2-2-DPDK" class="headerlink" title="2.2 DPDK"></a>2.2 DPDK</h4><p><a href="https://lore.kernel.org/dpdk-dev/1639360.KZQzHLtdKU@thomas/T/#m1cfc1a8d08b92f52416ac81fc0559dfebf59f55d" target="_blank" rel="noopener">Power-optimized RX for Ethernet devices</a></p><p>This patchset proposes a simple API for Ethernet drivers to cause the CPU to enter a power-optimized state while waiting for packets to arrive, along with a set of(hopefully generic) intrinsics that facilitate that. This is achieved through cooperation with the NIC driver that will allow us to know address of the next NIC RX(Receive) ring packet descriptor, and wait for writes on it.</p><hr><p>参考资料:</p><ol><li><a href="https://lwn.net/Articles/790920/" target="_blank" rel="noopener">Short waits with umwait</a></li><li><a href="https://lore.kernel.org/lkml/1560994438-235698-1-git-send-email-fenghua.yu@intel.com/" target="_blank" rel="noopener">x86/umwait: Enable user wait instructions</a></li><li><a href="https://lore.kernel.org/lkml/20190716065551.27264-1-tao3.xu@intel.com/" target="_blank" rel="noopener">KVM: x86: Enable user wait instructions</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将介绍&lt;code&gt;umonitor&lt;/code&gt;、&lt;code&gt;umwait&lt;/code&gt;和&lt;code&gt;tpause&lt;/code&gt; 这三个指令的相关知识点。
-    
-    </summary>
-    
-      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
-    
-    
-      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
     
   </entry>
   

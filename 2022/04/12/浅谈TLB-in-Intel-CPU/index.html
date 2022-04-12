@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="浅谈TLB in Intel CPU">
+
+
+
+
+  <meta name="keywords" content="体系结构, SDM, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/04/12/浅谈TLB-in-Intel-CPU/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 浅谈TLB in Intel CPU - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          浅谈TLB in Intel CPU
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-04-12
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/SDM/">SDM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-TLB"><span class="toc-text">1. TLB</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Why"><span class="toc-text">1.1 Why</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-What"><span class="toc-text">1.2 What</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-全局TLB-flush"><span class="toc-text">2. 全局TLB flush</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Global-page"><span class="toc-text">3. Global page</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-PCID"><span class="toc-text">4. PCID</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-Overlap-between-PCID-and-Global-page"><span class="toc-text">4.1 Overlap between PCID and Global page</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-TLB-shootdown"><span class="toc-text">5. TLB shootdown</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-VPID"><span class="toc-text">6. VPID</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-Rethinking-Protection-Keys"><span class="toc-text">7. Rethinking Protection Keys</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将结合SDM，浅谈下TLB。<a id="more"></a></p>
+<h2 id="1-TLB"><a href="#1-TLB" class="headerlink" title="1. TLB"></a>1. TLB</h2><h3 id="1-1-Why"><a href="#1-1-Why" class="headerlink" title="1.1 Why"></a>1.1 Why</h3><p>没有TLB的话，每次内存寻址时，都需要访问页表（页表位于内存中），开销较大。TLB缓存了VA(Virtual Address)到PA(Physical Address)的映射，当TLB hit时，就无需从内存中访问页表了。</p>
+<h3 id="1-2-What"><a href="#1-2-What" class="headerlink" title="1.2 What"></a>1.2 What</h3><p>The upper bits of a linear address (called the <strong>page number</strong>) determine the upper bits of the physical address (called the <strong>page frame</strong>); the lower bits of the linear address (called the page offset) determine the lower bits of the physical address. The boundary between the page number and the page offset is determined by the <strong>page size</strong>. </p>
+<p><img src="/images/2022/04/67.PNG" alt></p>
+<h2 id="2-全局TLB-flush"><a href="#2-全局TLB-flush" class="headerlink" title="2. 全局TLB flush"></a>2. 全局TLB flush</h2><p>每次进程切换时，需要更换CR3寄存器，flush掉全部的TLB Entries，开销较大。为此，硬件上引入了<a href="/2022/04/12/浅谈TLB-in-Intel-CPU/#3-Global-page">Global page</a>与<a href="/2022/04/12/浅谈TLB-in-Intel-CPU/#4-PCID">PCID</a>机制，避免进程切换时flush掉所有的TLB Entries。</p>
+<h2 id="3-Global-page"><a href="#3-Global-page" class="headerlink" title="3. Global page"></a>3. Global page</h2><p>Linux内存管理中，内核空间是所有进程共享的，每个进程有自己独立的用户空间。进程切换时，是否可以不flush掉内核空间的TLB Entries呢？当然可以，Global page正是为此而生。</p>
+<p>The Intel-64 and IA-32 architectures also allow for global pages when the PGE flag (bit 7) is 1 in CR4. If the G flag(bit 8) is 1 in a paging-structure entry that maps a page (either a PTE or a paging-structure entry in which the PS flag is 1), any TLB entry cached for a linear address using that paging-structure entry is considered to be global.</p>
+<h2 id="4-PCID"><a href="#4-PCID" class="headerlink" title="4. PCID"></a>4. PCID</h2><p>以前，是以(VA)这个一元组为key来唯一索引TLB Entry。PCID(Process-Context Identifier)的引入，硬件以(VA,进程信息)来唯一索引TLB Entry。这样，进程切换时，无需刷掉TLB Entries了，因为不同进程的(VA,进程信息)二元组是不同的。</p>
+<p><img src="/images/2022/04/68.PNG" alt></p>
+<h3 id="4-1-Overlap-between-PCID-and-Global-page"><a href="#4-1-Overlap-between-PCID-and-Global-page" class="headerlink" title="4.1 Overlap between PCID and Global page"></a>4.1 Overlap between PCID and Global page</h3><p>A logical processor may use a global TLB entry to translate a linear address, even if the TLB entry is associated with a PCID different from the current PCID.</p>
+<h2 id="5-TLB-shootdown"><a href="#5-TLB-shootdown" class="headerlink" title="5. TLB shootdown"></a>5. TLB shootdown</h2><p><img src="/images/2022/04/69.PNG" alt></p>
+<h2 id="6-VPID"><a href="#6-VPID" class="headerlink" title="6. VPID"></a>6. VPID</h2><p>虚拟化下，以(VA,进程信息)已经不能唯一索引TLB Entry了，因为不同virtual processors间，可能产生相同的(VA,进程信息)二元组，为此，在同一个物理CPU上，不同vCPU调度时，Hypervisor需要flush掉所有的TLB Entries。为此，VPID(Virtual-Processor IDentifier)应运而生。以(VA,进程信息，virtual processor信息)这个三元组来唯一索引TLB Entry。这样，在同一个物理CPU上，不同vCPU调度时，Hypervisor无需flush掉TLB Entries。</p>
+<p>当然，VPID与PCID的使用不是绑定的，要看具体(Hypervisor和Guest OS)的实现了。例如，Hypervisor可以使用VPID，Guest OS不使用PCID，那么，此刻硬件是以(VA,virtual processor信息)来索引TLB Entry了。在同一个物理CPU上，不同vCPU调度时，Hypervisor无需flush掉TLB Entries，但是，在Guest OS中，每次进程切换时，Guest OS需要Flush掉TLB Entries来保证正确性。</p>
+<p><img src="/images/2022/04/70.PNG" alt></p>
+<h2 id="7-Rethinking-Protection-Keys"><a href="#7-Rethinking-Protection-Keys" class="headerlink" title="7. Rethinking Protection Keys"></a>7. Rethinking Protection Keys</h2><p>之前已经介绍过了<a href="/2020/03/07/Introduction-to-pkeys/">PKU</a>与<a href="/2022/02/27/Introduction-to-PKS/">PKS</a>，这里，从TLB的视角，重新看下Protection Keys。</p>
+<p>Memory Protection Keys (pkeys) are an extension to existing page-based memory permissions. Normal page permissions using page tables require expensive system calls and TLB invalidations when changing permissions. Memory Protection Keys provide a mechanism for changing protections without requiring modification of the page tables on every permission change.</p>
+<p>Protection Keys是无需flush TLB的。留下的open是：</p>
+<ol>
+<li>通过Protection Keys更改permissions，最终硬件是否会更改物理TLB Entry中的access rights位呢?</li>
+<li>如果1成立的话，对于Multiple Processors，是否需要类似于propagating这个过程呢？这个过程是由软件or硬件来完成呢？</li>
+</ol>
+<p>这些问题我当前并不知道答案，等待后续的更新。</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/体系结构/">体系结构</a>
+            
+              <a href="/tags/SDM/">SDM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/04/10/Memory-type-virtualization-in-VT-x/">
+        <span class="next-text nav-default">Memory Type virtualization in VT-x</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/04/12/浅谈TLB-in-Intel-CPU/';
+        this.page.identifier = '2022/04/12/浅谈TLB-in-Intel-CPU/';
+        this.page.title = '浅谈TLB in Intel CPU';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
