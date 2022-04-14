@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-04-13T01:58:47.371Z</updated>
+  <updated>2022-04-14T06:00:53.011Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Data Integrity Field(DIF) and Data Integrity Extension (DIX)</title>
+    <link href="http://liujunming.github.io/2022/04/14/Notes-about-Data-Integrity-Field-DIF-and-Data-Integrity-Extension-DIX/"/>
+    <id>http://liujunming.github.io/2022/04/14/Notes-about-Data-Integrity-Field-DIF-and-Data-Integrity-Extension-DIX/</id>
+    <published>2022-04-14T00:24:55.000Z</published>
+    <updated>2022-04-14T06:00:53.011Z</updated>
+    
+    <content type="html"><![CDATA[<p>Notes about Data Integrity Field(DIF) and Data Integrity Extension (DIX).<a id="more"></a></p><h2 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h2><p>Some vendors have adopted the name Protection Information (PI) to refer to the DIF/DIX functionality. </p><p><img src="/images/2022/04/84.PNG" alt></p><h3 id="1-1-Normal-I-O"><a href="#1-1-Normal-I-O" class="headerlink" title="1.1 Normal I/O"></a>1.1 Normal I/O</h3><p><img src="/images/2022/04/86.PNG" alt></p><p>从图中可以知道，对于Normal I/O，从Application-&gt;OS-&gt;I/O Controller-&gt;SAN-&gt;Disk Array-&gt;Disk Driver之间，各层都有自己的integrity measures。这些integrity measures需要存储error checking information。比如硬盘的sector大小为512个字节，因为需要额外的空间存储error checking information，所以，实际能存储的有效数据是低于512字节的。</p><h2 id="2-Data-Integrity-Field-DIF"><a href="#2-Data-Integrity-Field-DIF" class="headerlink" title="2. Data Integrity Field(DIF)"></a>2. Data Integrity Field(DIF)</h2><p>Terms: <a href="https://en.wikipedia.org/wiki/Host_adapter" target="_blank" rel="noopener">HBA</a> </p><p>In computer hardware, a host controller, host adapter, or host bus adapter (HBA), connects a computer, which acts as the host system, to other network and storage devices. The terms are primarily used to refer to devices for connecting SCSI, Fibre Channel and SATA devices.</p><p>DIF is a feature added to the SCSI Standard. It adds 8 bytes to the end of each sector on disk.</p><p><img src="/images/2022/04/85.PNG" alt></p><p>It increases the size of the commonly-used 512-byte disk block from 512 to 520 bytes. The extra bytes comprise the Data Integrity Field (DIF). The basic idea is that the HBA will calculate a checksum value for the data block on writes, and store it in the DIF. The storage device will confirm the checksum on receive, and store the data plus checksum. On a read, the checksum will be checked by the storage device and by the receiving HBA.</p><p><img src="/images/2022/04/87.PNG" alt></p><h2 id="3-Data-Integrity-Extension-DIX"><a href="#3-Data-Integrity-Extension-DIX" class="headerlink" title="3. Data Integrity Extension (DIX)"></a>3. Data Integrity Extension (DIX)</h2><p><img src="/images/2022/04/89.PNG" alt></p><p>SCSI controllers就是HBA。</p><p><img src="/images/2022/04/83.PNG" alt></p><p><img src="/images/2022/04/84.PNG" alt></p><p>个人对end-to-end data integrity的理解：Application-&gt;OS-&gt;I/O Controller-&gt;SAN-&gt;Disk Array-&gt;Disk Driver之间，共用error checking information，而非各层用自己的error checking information。</p><p><img src="/images/2022/04/88.PNG" alt></p><hr><p>参考资料:</p><ol><li><a href="https://access.redhat.com/solutions/41548" target="_blank" rel="noopener">What is DIF/DIX</a></li><li><a href="https://www.landley.net/kdocs/ols/2008/ols2008v2-pages-151-156.pdf" target="_blank" rel="noopener">Linux Data Integrity Extensions paper</a></li><li><a href="http://mkp.net/pubs/ols2008-slides.pdf" target="_blank" rel="noopener">DIF, DIX and Linux Data Integrity slides</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Notes about Data Integrity Field(DIF) and Data Integrity Extension (DIX).
+    
+    </summary>
+    
+      <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
+    
+    
+      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about EPT Sub-Page Write Permissions</title>
@@ -452,28 +474,6 @@
     
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>How to setup proxy for docker</title>
-    <link href="http://liujunming.github.io/2022/03/15/How-to-setup-proxy-for-docker/"/>
-    <id>http://liujunming.github.io/2022/03/15/How-to-setup-proxy-for-docker/</id>
-    <published>2022-03-15T06:02:49.000Z</published>
-    <updated>2022-03-15T08:23:12.113Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将介绍docker中的代理设置。<a id="more"></a></p><h3 id="1-Docker-daemon"><a href="#1-Docker-daemon" class="headerlink" title="1. Docker daemon"></a>1. Docker daemon</h3><p><a href="https://stackoverflow.com/questions/23111631/cannot-download-docker-images-behind-a-proxy" target="_blank" rel="noopener">Cannot download Docker images behind a proxy</a></p><p>In order to download container images from the outside world when running commands like <code>docker pull busybox</code> ,set the proxies by:</p><ul><li>Create directory</li></ul><p><code>mkdir /etc/systemd/system/docker.service.d</code></p><ul><li>Create file</li></ul><p><code>vi /etc/systemd/system/docker.service.d/http-proxy.conf</code></p><ul><li>File content</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[Service]</span><br><span class="line">Environment=&quot;HTTP_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;HTTPS_PROXY=http://proxy.example.com:80/&quot;</span><br></pre></td></tr></table></figure><p>If you have internal Docker registries that you need to contact without proxying you can specify them via the <code>NO_PROXY</code> environment variable:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Environment=&quot;HTTP_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;HTTPS_PROXY=http://proxy.example.com:80/&quot;</span><br><span class="line">Environment=&quot;NO_PROXY=localhost,127.0.0.0/8,docker-registry.somecorporation.com&quot;</span><br></pre></td></tr></table></figure></p><ul><li>Flush changes</li></ul><p><code>systemctl daemon-reload</code></p><ul><li>Verify that the configuration has been loaded</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ systemctl show --property Environment docker</span><br><span class="line">Environment=HTTP_PROXY=http://proxy.example.com:80/</span><br><span class="line">Environment=HTTPS_PROXY=http://proxy.example.com:80/</span><br></pre></td></tr></table></figure><ul><li>Restart docker</li></ul><p><code>systemctl restart docker</code></p><h3 id="2-Running-container"><a href="#2-Running-container" class="headerlink" title="2. Running container"></a>2. Running container</h3><p>In order for a running container to access the internet you need to fix the dns names since Google’s are the default and they don’t work. We need to update the dns names by using <a href="https://docs.docker.com/engine/reference/commandline/dockerd/" target="_blank" rel="noopener">daemon configuration file</a>.</p><ul><li>Create file</li></ul><p><code>/etc/docker/daemon.json</code></p><ul><li>File content</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">&quot;dns&quot;:[</span><br><span class="line">&quot;*.*.*.*&quot;,</span><br><span class="line">&quot;*.*.*.*&quot;,</span><br><span class="line">&quot;*.*.*.*&quot;,</span><br><span class="line">]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><ul><li>Reload daemon</li></ul><p><code>systemctl daemon-reload</code></p><ul><li>Restart docker</li></ul><p><code>systemctl restart docker</code></p><ul><li>Now you can run a container and pass the proxies like this</li></ul><p><code>docker run --env http_proxy=http://proxy.example.com:80/ --env https_proxy=http://proxy.example.com:80/ -ti ubuntu bash</code></p><h3 id="3-Building-the-container"><a href="#3-Building-the-container" class="headerlink" title="3. Building the container"></a>3. Building the container</h3><ul><li>You can use ENV in the docker file:</li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">FROM ubuntu:16.04</span><br><span class="line"> </span><br><span class="line">ENV http_proxy http://proxy.example.com:80/</span><br><span class="line">ENV https_proxy http://proxy.example.com:80/</span><br><span class="line">...</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://elegantinfrastructure.com/docker/ultimate-guide-to-docker-http-proxy-configuration/" target="_blank" rel="noopener">Ultimate Guide to Docker HTTP Proxy Configuration</a></li><li><a href="https://docs.docker.com/network/proxy/" target="_blank" rel="noopener">Configure Docker to use a proxy server</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将介绍docker中的代理设置。
-    
-    </summary>
-    
-      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
-    
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
   </entry>
   
