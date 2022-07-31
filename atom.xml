@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-07-29T14:47:17.669Z</updated>
+  <updated>2022-07-31T05:37:43.940Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about PV TLB Shootdown</title>
+    <link href="http://liujunming.github.io/2022/07/30/Notes-about-PV-TLB-Shootdown/"/>
+    <id>http://liujunming.github.io/2022/07/30/Notes-about-PV-TLB-Shootdown/</id>
+    <published>2022-07-30T14:28:28.000Z</published>
+    <updated>2022-07-31T05:37:43.940Z</updated>
+    
+    <content type="html"><![CDATA[<p>Notes about PV TLB Shootdown.<a id="more"></a></p><p>A TLB is a cache of translation from memory virtual address to physical address. When a CPU changes virtual to physical mapping of an address, it needs to invalidate other CPUs’ stale mapping in their respective caches. This process is called TLB shootdown.</p><p>Modern operating systems consider TLB shootdown operations to be performance critical and so optimize them to exhibit very low latency.The implementation of these operations is therefore architected to ensure that shootdowns can be completed with very low latencies through the use of IPI based signalling.</p><p>Remote TLB flush does a busy wait which is fine in bare-metal scenario.But within the guest, the vCPUs might have been preempted or blocked. In this scenario, the initiator vCPU would end up busy-waiting for a long amount of time; it also consumes CPU unnecessarily to wake up the target of the shootdown.</p><p><strong>Idea:</strong><br>In PV TLB shootdown, the TLB flush initiator vCPU will not wait the sleeping vCPU, instead it just set a flag in the guest-vmm shared area and then kvm will check this flag and do the TLB flush when the sleeping vCPU come to run.</p><p><img src="/images/2022/07/02.jpg" alt></p><p>实现细节也很有意思，感兴趣的读者可以去仔细阅读代码+文末的参考资料，本文就不赘述了。</p><hr><p>参考资料:</p><ol><li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/09/10/kvm-performance-1" target="_blank" rel="noopener">kvm performance optimization technologies, part one</a></li><li><a href="https://lwn.net/Articles/740363/" target="_blank" rel="noopener">KVM: X86: Add Paravirt TLB Shootdown</a></li><li><a href="https://events19.linuxfoundation.org/wp-content/uploads/2017/12/Update_Wanpeng-LI_Torwards-a-more-Scalable-KVM-Hypervisor.pdf" target="_blank" rel="noopener">Torwards a more Scalable KVM Hypervisor</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Notes about PV TLB Shootdown.
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about multiqueue virtio-net</title>
@@ -467,28 +489,6 @@
     
     
       <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about EPT Sub-Page Write Permissions</title>
-    <link href="http://liujunming.github.io/2022/04/13/Notes-about-EPT-Sub-Page-Write-Permissions/"/>
-    <id>http://liujunming.github.io/2022/04/13/Notes-about-EPT-Sub-Page-Write-Permissions/</id>
-    <published>2022-04-12T16:28:54.000Z</published>
-    <updated>2022-04-13T01:58:47.000Z</updated>
-    
-    <content type="html"><![CDATA[<p>一直都听说过SPP(Sub-Page Protection)这个技术，但是一直没有深入研究过，本文将mark下EPT Sub-Page Write Permissions(也就是SPP)相关笔记。<a id="more"></a></p><p>个人觉得最好的材料应该是<a href="/pdf/spp_xen_summit2018_V2.PPTX">Spp Xen Summit2018 V2 </a>了，<a href="https://xensummit18.sched.com/event/EeHb/ept-based-sub-page-write-protection-on-xenc-yi-zhang-intel" target="_blank" rel="noopener">slides</a>源于xensummit18，感兴趣的读者也可以观看<a href="https://www.youtube.com/watch?v=TVrrN3ol6hY" target="_blank" rel="noopener">视频</a>。</p><p><img src="/images/2022/04/72.PNG" alt></p><p><img src="/images/2022/04/73.PNG" alt></p><p><img src="/images/2022/04/74.PNG" alt></p><p><img src="/images/2022/04/75.PNG" alt></p><p>For each guest-physical address eligible for sub-page write permissions, there is a 64-bit <strong>sub-page permission vector</strong> (<strong>SPP vector</strong>). All addresses on a 4-KByte page use the same SPP vector.<br>SPPT以GPA为key，以SPP vector为value。</p><p><img src="/images/2022/04/76.PNG" alt></p><p><img src="/images/2022/04/77.PNG" alt></p><p><img src="/images/2022/04/78.PNG" alt></p><p><img src="/images/2022/04/79.PNG" alt></p><p><img src="/images/2022/04/80.PNG" alt></p><p><img src="/images/2022/04/81.PNG" alt></p><p><img src="/images/2022/04/82.PNG" alt></p><p>Spec在SDM中Sub-Page Write Permissions一节。<br><img src="/images/2022/04/71.PNG" alt></p><p>如果还想研究代码的话，不妨看下<a href="https://lore.kernel.org/kvm/20200119040507.23113-1-weijiang.yang@intel.com/" target="_blank" rel="noopener">Enable Sub-Page Write Protection Support</a>。</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;一直都听说过SPP(Sub-Page Protection)这个技术，但是一直没有深入研究过，本文将mark下EPT Sub-Page Write Permissions(也就是SPP)相关笔记。
-    
-    </summary>
-    
-      <category term="VT-x" scheme="http://liujunming.github.io/categories/VT-x/"/>
-    
-    
-      <category term="VT-x" scheme="http://liujunming.github.io/tags/VT-x/"/>
     
   </entry>
   

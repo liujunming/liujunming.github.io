@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="Notes about PV TLB Shootdown">
 
 
 
+
+  <meta name="keywords" content="虚拟化, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2021/02/">
+<link rel="canonical" href="http://liujunming.github.io/2022/07/30/Notes-about-PV-TLB-Shootdown/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> Notes about PV TLB Shootdown - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,99 +256,105 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about PV TLB Shootdown
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 452 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2022-07-30
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+
+
+    <div class="post-content">
+      
+        <p>Notes about PV TLB Shootdown.<a id="more"></a></p>
+<p>A TLB is a cache of translation from memory virtual address to physical address. When a CPU changes virtual to physical mapping of an address, it needs to invalidate other CPUs’ stale mapping in their respective caches. This process is called TLB shootdown.</p>
+<p>Modern operating systems consider TLB shootdown operations to be performance critical and so optimize them to exhibit very low latency.The implementation of these operations is therefore architected to ensure that shootdowns can be completed with very low latencies through the use of IPI based signalling.</p>
+<p>Remote TLB flush does a busy wait which is fine in bare-metal scenario.But within the guest, the vCPUs might have been preempted or blocked. In this scenario, the initiator vCPU would end up busy-waiting for a long amount of time; it also consumes CPU unnecessarily to wake up the target of the shootdown.</p>
+<p><strong>Idea:</strong><br>In PV TLB shootdown, the TLB flush initiator vCPU will not wait the sleeping vCPU, instead it just set a flag in the guest-vmm shared area and then kvm will check this flag and do the TLB flush when the sleeping vCPU come to run.</p>
+<p><img src="/images/2022/07/02.jpg" alt></p>
+<p>实现细节也很有意思，感兴趣的读者可以去仔细阅读代码+文末的参考资料，本文就不赘述了。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/09/10/kvm-performance-1" target="_blank" rel="noopener">kvm performance optimization technologies, part one</a></li>
+<li><a href="https://lwn.net/Articles/740363/" target="_blank" rel="noopener">KVM: X86: Add Paravirt TLB Shootdown</a></li>
+<li><a href="https://events19.linuxfoundation.org/wp-content/uploads/2017/12/Update_Wanpeng-LI_Torwards-a-more-Scalable-KVM-Hypervisor.pdf" target="_blank" rel="noopener">Torwards a more Scalable KVM Hypervisor</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2021</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            02-09
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/02/09/高级操作系统-清华大学-陈渝/" class="archive-post-link">
-            高级操作系统-清华大学-陈渝
-          </a>
-        </span>
-      </div>
+        
+        
+  <nav class="post-nav">
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            02-04
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/02/04/虚拟化学习心得-learn-from-native/" class="archive-post-link">
-            虚拟化学习心得:learn from native
-          </a>
-        </span>
-      </div>
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            02-03
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/02/03/Notes-about-instruction-boundaries/" class="archive-post-link">
-            Notes about instruction boundaries
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
+      <a class="next" href="/2022/07/29/Notes-about-multiqueue-virtio-net/">
+        <span class="next-text nav-default">Notes about multiqueue virtio-net</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -434,6 +438,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/07/30/Notes-about-PV-TLB-Shootdown/';
+        this.page.identifier = '2022/07/30/Notes-about-PV-TLB-Shootdown/';
+        this.page.title = 'Notes about PV TLB Shootdown';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
