@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-08-11T13:36:02.682Z</updated>
+  <updated>2022-08-12T12:44:27.129Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about netlink</title>
+    <link href="http://liujunming.github.io/2022/08/12/Notes-about-netlink/"/>
+    <id>http://liujunming.github.io/2022/08/12/Notes-about-netlink/</id>
+    <published>2022-08-12T13:58:11.000Z</published>
+    <updated>2022-08-12T12:44:27.129Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将从What、Why和How这三个角度去介绍netlink。</p><h3 id="What"><a href="#What" class="headerlink" title="What"></a>What</h3><p>netlink is used to transfer information between the kernel and user-space processes.  It consists of a standard sockets-based interface for user space processes and an internal kernel API for kernel modules.<a id="more"></a></p><h3 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h3><p>How can kernel code and user-space code communicate with each other?</p><p>The answer is the various IPC methods that exist between kernel and user space, such as system call, ioctl, proc filesystem or netlink socket. This article discusses netlink socket and reveals its advantages as a network feature-friendly IPC.</p><p>Netlink socket is a special IPC used for transferring information between kernel and user-space processes. It provides a full-duplex communication link between the two by way of standard socket APIs for user-space processes and a special kernel API for kernel modules. Netlink socket uses the address family AF_NETLINK, as compared to AF_INET used by TCP/IP socket. Each netlink socket feature defines its own protocol type.</p><p>Why do some features use netlink instead of system calls, ioctls or proc filesystems for communication between user and kernel worlds? It is a nontrivial task to add system calls, ioctls or proc files for new features; we risk polluting the kernel and damaging the stability of the system. Netlink socket is simple, though: only a constant, the protocol type, needs to be added. Then, the kernel module and application can talk using socket-style APIs immediately.</p><p>Netlink is asynchronous because, as with any other socket API, it provides a socket queue to smooth the burst of messages. The system call for sending a netlink message queues the message to the receiver’s netlink queue and then invokes the receiver’s reception handler. The receiver, within the reception handler’s context, can decide whether to process the message immediately or leave the message in the queue and process it later in a different context. Unlike netlink, system calls require synchronous processing. Therefore, if we use a system call to pass a message from user space to the kernel, the kernel scheduling granularity may be affected if the time to process that message is long.</p><p>The code implementing a system call in the kernel is linked statically to the kernel in compilation time; thus, it is not appropriate to include system call code in a loadable module, which is the case for most device drivers. With netlink socket, no compilation time dependency exists between the netlink core of Linux kernel and the netlink application living in loadable kernel modules.</p><p>Netlink socket supports multicast, which is another benefit over system calls, ioctls and proc. One process can multicast a message to a netlink group address, and any number of other processes can listen to that group address. This provides a near-perfect mechanism for event distribution from kernel to user space.</p><p>System call and ioctl are simplex IPCs in the sense that a session for these IPCs can be initiated only by user-space applications. But, what if a kernel module has an urgent message for a user-space application? There is no way of doing that directly using these IPCs. Normally, applications periodically need to poll the kernel to get the state changes, although intensive polling is expensive. Netlink solves this problem gracefully by allowing the kernel to initiate sessions too. We call it the duplex characteristic of the netlink socket.</p><p>Finally, netlink socket provides a BSD socket-style API that is well understood by the software development community. Therefore, training costs are less as compared to using the rather cryptic system call APIs and ioctls.</p><h3 id="How"><a href="#How" class="headerlink" title="How"></a>How</h3><p>运行<a href="https://github.com/mwarning/netlink-examples/tree/master/unicast_example" target="_blank" rel="noopener">unicast_example</a>，并结合以下链接，仔细阅读代码，会有不少收获。</p><ul><li><a href="https://man7.org/linux/man-pages/man7/address_families.7.html" target="_blank" rel="noopener">man address_families</a></li><li><a href="https://man7.org/linux/man-pages/man2/socket.2.html" target="_blank" rel="noopener">man socket</a></li><li><a href="https://man7.org/linux/man-pages/man7/netlink.7.html" target="_blank" rel="noopener">man netlink</a></li><li><a href="https://elixir.bootlin.com/linux/v4.9/source/include/uapi/linux/netlink.h" target="_blank" rel="noopener">include/uapi/linux/netlink.h</a></li><li><a href="https://elixir.bootlin.com/linux/v4.9/source/include/linux/netlink.h" target="_blank" rel="noopener">include/linux/netlink.h</a></li></ul><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ./nl_recv &quot;Hello you!&quot;</span><br><span class="line">Send to kernel: Hello you!</span><br><span class="line">Received from kernel: Hello you!</span><br></pre></td></tr></table></figure><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[946021.892960] netlink_test: Received from pid 1322: Hello you!</span><br><span class="line">[946021.893074] netlink_test: Send Hello you!</span><br></pre></td></tr></table></figure><p>如果想要进一步的了解，可以运行<a href="https://github.com/mwarning/netlink-examples" target="_blank" rel="noopener">mwarning/netlink-examples</a>上的所有示例。</p><hr><p>参考资料:</p><ol><li><a href="https://www.linuxjournal.com/article/7356" target="_blank" rel="noopener">Kernel Korner - Why and How to Use Netlink Socket</a></li><li><a href="https://github.com/xgfone/snippet/blob/master/snippet/docs/linux/netlink/netlink-note.md" target="_blank" rel="noopener">Linux Netlink 详解</a></li><li><a href="https://github.com/mwarning/netlink-examples" target="_blank" rel="noopener">mwarning/netlink-examples</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将从What、Why和How这三个角度去介绍netlink。&lt;/p&gt;
+&lt;h3 id=&quot;What&quot;&gt;&lt;a href=&quot;#What&quot; class=&quot;headerlink&quot; title=&quot;What&quot;&gt;&lt;/a&gt;What&lt;/h3&gt;&lt;p&gt;netlink is used to transfer information between the kernel and user-space processes.  It consists of a standard sockets-based interface for user space processes and an internal kernel API for kernel modules.
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about /proc/self/</title>
@@ -464,31 +487,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MDev-NVMe: A NVMe Storage Virtualization Solution with Mediated Pass-Through</title>
-    <link href="http://liujunming.github.io/2022/05/05/MDev-NVMe-A-NVMe-Storage-Virtualization-Solution-with-Mediated-Pass-Through/"/>
-    <id>http://liujunming.github.io/2022/05/05/MDev-NVMe-A-NVMe-Storage-Virtualization-Solution-with-Mediated-Pass-Through/</id>
-    <published>2022-05-05T13:18:13.000Z</published>
-    <updated>2022-07-24T08:22:39.583Z</updated>
-    
-    <content type="html"><![CDATA[<p><a href="https://github.com/liujunming/paper_reading_notes/issues/13" target="_blank" rel="noopener">https://github.com/liujunming/paper_reading_notes/issues/13</a></p><p>Notes about ATC’18 paper. <a id="more"></a></p><p>个人对Mediated Pass-Through的理解是软件版的SR-IOV。看了这篇论文，有助于理解NVMe SR-IOV的一些实现细节吧。Mediated Pass-Through软件模拟的一部分操作，SR-IOV是用硬件来实现的。比如文章中的DMA translation，在SR-IOV中，由IOMMU的DMA Remapping来完成；SLBA的translation由SSD的firmware或者硬件来完成，反正不需要Hypervisor去做转换！</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;a href=&quot;https://github.com/liujunming/paper_reading_notes/issues/13&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https://github.com/liujunming/paper_reading_notes/issues/13&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;Notes about ATC’18 paper.
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
     
   </entry>
   

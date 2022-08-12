@@ -17,7 +17,7 @@
 
 
 
-  <meta name="description" content="Notes about /proc/self/">
+  <meta name="description" content="Notes about netlink">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2022/08/11/Notes-about-proc-self/">
+<link rel="canonical" href="http://liujunming.github.io/2022/08/12/Notes-about-netlink/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Notes about /proc/self/ - L </title>
+    <title> Notes about netlink - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,13 +260,13 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Notes about /proc/self/
+          Notes about netlink
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2022-08-11
+          2022-08-12
         </span>
         
           <span class="post-category">
@@ -281,14 +281,46 @@
 
     
     
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#What"><span class="toc-text">What</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Why"><span class="toc-text">Why</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#How"><span class="toc-text">How</span></a></li></ol>
+    </div>
+  </div>
+
 
 
     <div class="post-content">
       
-        <p>转载自：<a href="https://blog.csdn.net/dillanzhou/article/details/82876575" target="_blank" rel="noopener">/proc/self/目录的意义</a>和<a href="https://unix.stackexchange.com/questions/333225/which-process-is-proc-self-for" target="_blank" rel="noopener">Which process is <code>/proc/self/</code> for?</a>。<a id="more"></a></p>
-<p>可以通过/proc/$pid/来获取指定进程的信息，例如内存映射、CPU绑定信息等等。如果某个进程想要获取本进程的系统信息，就可以通过进程的pid来访问/proc/$pid/目录。但是这个方法还需要获取进程pid，在fork、daemon等情况下pid还可能发生变化。为了更方便的获取本进程的信息，linux提供了/proc/self/目录，这个目录比较独特，不同的进程访问该目录时获得的信息是不同的，内容等价于/proc/本进程pid/。进程可以通过访问/proc/self/目录来获取自己的系统信息，而不用每次都获取pid。</p>
-<p>When the kernel has to answer the question “What does <code>/proc/self</code> point to?”, it simply <a href="https://elixir.bootlin.com/linux/latest/source/fs/proc/self.c" target="_blank" rel="noopener">picks the currently-scheduled pid</a>, i.e. the currently running process (on the current logical CPU). The effect is that <code>/proc/self</code> always points to the asking program’s pid; if you run<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -l /proc/self</span><br></pre></td></tr></table></figure></p>
-<p>you’ll see <code>ls</code>‘s pid; if you write code which uses <code>/proc/self</code> then code will see its own pid, etc.</p>
+        <p>本文将从What、Why和How这三个角度去介绍netlink。</p>
+<h3 id="What"><a href="#What" class="headerlink" title="What"></a>What</h3><p>netlink is used to transfer information between the kernel and user-space processes.  It consists of a standard sockets-based interface for user space processes and an internal kernel API for kernel modules.<a id="more"></a></p>
+<h3 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h3><p>How can kernel code and user-space code communicate with each other?</p>
+<p>The answer is the various IPC methods that exist between kernel and user space, such as system call, ioctl, proc filesystem or netlink socket. This article discusses netlink socket and reveals its advantages as a network feature-friendly IPC.</p>
+<p>Netlink socket is a special IPC used for transferring information between kernel and user-space processes. It provides a full-duplex communication link between the two by way of standard socket APIs for user-space processes and a special kernel API for kernel modules. Netlink socket uses the address family AF_NETLINK, as compared to AF_INET used by TCP/IP socket. Each netlink socket feature defines its own protocol type.</p>
+<p>Why do some features use netlink instead of system calls, ioctls or proc filesystems for communication between user and kernel worlds? It is a nontrivial task to add system calls, ioctls or proc files for new features; we risk polluting the kernel and damaging the stability of the system. Netlink socket is simple, though: only a constant, the protocol type, needs to be added. Then, the kernel module and application can talk using socket-style APIs immediately.</p>
+<p>Netlink is asynchronous because, as with any other socket API, it provides a socket queue to smooth the burst of messages. The system call for sending a netlink message queues the message to the receiver’s netlink queue and then invokes the receiver’s reception handler. The receiver, within the reception handler’s context, can decide whether to process the message immediately or leave the message in the queue and process it later in a different context. Unlike netlink, system calls require synchronous processing. Therefore, if we use a system call to pass a message from user space to the kernel, the kernel scheduling granularity may be affected if the time to process that message is long.</p>
+<p>The code implementing a system call in the kernel is linked statically to the kernel in compilation time; thus, it is not appropriate to include system call code in a loadable module, which is the case for most device drivers. With netlink socket, no compilation time dependency exists between the netlink core of Linux kernel and the netlink application living in loadable kernel modules.</p>
+<p>Netlink socket supports multicast, which is another benefit over system calls, ioctls and proc. One process can multicast a message to a netlink group address, and any number of other processes can listen to that group address. This provides a near-perfect mechanism for event distribution from kernel to user space.</p>
+<p>System call and ioctl are simplex IPCs in the sense that a session for these IPCs can be initiated only by user-space applications. But, what if a kernel module has an urgent message for a user-space application? There is no way of doing that directly using these IPCs. Normally, applications periodically need to poll the kernel to get the state changes, although intensive polling is expensive. Netlink solves this problem gracefully by allowing the kernel to initiate sessions too. We call it the duplex characteristic of the netlink socket.</p>
+<p>Finally, netlink socket provides a BSD socket-style API that is well understood by the software development community. Therefore, training costs are less as compared to using the rather cryptic system call APIs and ioctls.</p>
+<h3 id="How"><a href="#How" class="headerlink" title="How"></a>How</h3><p>运行<a href="https://github.com/mwarning/netlink-examples/tree/master/unicast_example" target="_blank" rel="noopener">unicast_example</a>，并结合以下链接，仔细阅读代码，会有不少收获。</p>
+<ul>
+<li><a href="https://man7.org/linux/man-pages/man7/address_families.7.html" target="_blank" rel="noopener">man address_families</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/socket.2.html" target="_blank" rel="noopener">man socket</a></li>
+<li><a href="https://man7.org/linux/man-pages/man7/netlink.7.html" target="_blank" rel="noopener">man netlink</a></li>
+<li><a href="https://elixir.bootlin.com/linux/v4.9/source/include/uapi/linux/netlink.h" target="_blank" rel="noopener">include/uapi/linux/netlink.h</a></li>
+<li><a href="https://elixir.bootlin.com/linux/v4.9/source/include/linux/netlink.h" target="_blank" rel="noopener">include/linux/netlink.h</a></li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ./nl_recv &quot;Hello you!&quot;</span><br><span class="line">Send to kernel: Hello you!</span><br><span class="line">Received from kernel: Hello you!</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[946021.892960] netlink_test: Received from pid 1322: Hello you!</span><br><span class="line">[946021.893074] netlink_test: Send Hello you!</span><br></pre></td></tr></table></figure>
+<p>如果想要进一步的了解，可以运行<a href="https://github.com/mwarning/netlink-examples" target="_blank" rel="noopener">mwarning/netlink-examples</a>上的所有示例。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.linuxjournal.com/article/7356" target="_blank" rel="noopener">Kernel Korner - Why and How to Use Netlink Socket</a></li>
+<li><a href="https://github.com/xgfone/snippet/blob/master/snippet/docs/linux/netlink/netlink-note.md" target="_blank" rel="noopener">Linux Netlink 详解</a></li>
+<li><a href="https://github.com/mwarning/netlink-examples" target="_blank" rel="noopener">mwarning/netlink-examples</a></li>
+</ol>
 
       
     </div>
@@ -316,15 +348,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2022/08/12/Notes-about-netlink/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Notes about netlink</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2022/07/31/Notes-about-TUN-TAP-Interface/">
-        <span class="next-text nav-default">Notes about TUN/TAP Interface</span>
+      <a class="next" href="/2022/08/11/Notes-about-proc-self/">
+        <span class="next-text nav-default">Notes about /proc/self/</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -437,9 +463,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2022/08/11/Notes-about-proc-self/';
-        this.page.identifier = '2022/08/11/Notes-about-proc-self/';
-        this.page.title = 'Notes about /proc/self/';
+        this.page.url = 'http://liujunming.github.io/2022/08/12/Notes-about-netlink/';
+        this.page.identifier = '2022/08/12/Notes-about-netlink/';
+        this.page.title = 'Notes about netlink';
     };
     (function() {
     var d = document, s = d.createElement('script');
