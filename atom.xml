@@ -88,6 +88,36 @@
   </entry>
   
   <entry>
+    <title>MSI/MSI-x及其虚拟化</title>
+    <link href="http://liujunming.github.io/2022/08/07/MSI-MSI-x%E5%8F%8A%E5%85%B6%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    <id>http://liujunming.github.io/2022/08/07/MSI-MSI-x及其虚拟化/</id>
+    <published>2022-08-07T09:11:47.000Z</published>
+    <updated>2022-08-13T09:25:21.265Z</updated>
+    
+    <content type="html"><![CDATA[<p><a href="/pdf/深入理解MSI-X中断和中断虚拟化.pdf">深入理解 MSI/MSI-X 中断和中断虚拟化</a><br><a href="/pdf/MSI-x及其虚拟化.pdf">MSI/MSI-x及其虚拟化</a></p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;&lt;a href=&quot;/pdf/深入理解MSI-X中断和中断虚拟化.pdf&quot;&gt;深入理解 MSI/MSI-X 中断和中断虚拟化&lt;/a&gt;&lt;br&gt;&lt;a href=&quot;/pdf/MSI-x及其虚拟化.pdf&quot;&gt;MSI/MSI-x及其虚拟化&lt;/a&gt;&lt;/p&gt;
+
+      
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Notes about TUN/TAP Interface</title>
     <link href="http://liujunming.github.io/2022/07/31/Notes-about-TUN-TAP-Interface/"/>
     <id>http://liujunming.github.io/2022/07/31/Notes-about-TUN-TAP-Interface/</id>
@@ -468,28 +498,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>浅谈IOMMU寻址方式</title>
-    <link href="http://liujunming.github.io/2022/05/14/%E6%B5%85%E8%B0%88IOMMU-pageing-structures/"/>
-    <id>http://liujunming.github.io/2022/05/14/浅谈IOMMU-pageing-structures/</id>
-    <published>2022-05-14T04:38:23.000Z</published>
-    <updated>2022-07-24T08:22:39.588Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将记录个人对于IOMMU寻址方式的理解。<a id="more"></a></p><h2 id="1-背景"><a href="#1-背景" class="headerlink" title="1. 背景"></a>1. 背景</h2><p><img src="/images/2022/05/04.jpg" alt></p><ul><li>1st level translation</li><li>2nd level translation</li><li>Nested translation</li><li>Pass-through translation</li></ul><p>如果没有太多背景知识的话，对于这四种IOMMU寻址方式，读者可能很难理解。因此，在接下来的内容中，将用MMU、EPT中的寻址方式与IOMMU做类比，便于读者理解。</p><h2 id="2-IOMMU寻址方式"><a href="#2-IOMMU寻址方式" class="headerlink" title="2. IOMMU寻址方式"></a>2. IOMMU寻址方式</h2><h3 id="Pass-through-translation"><a href="#Pass-through-translation" class="headerlink" title="Pass-through translation"></a>Pass-through translation</h3><p>在host上，传统的DMA不用IOMMU，指定的地址即为HPA。</p><p>这个case类比于host刚刚启动，进入实模式时，CPU不用MMU，指定的地址即为HPA。</p><h3 id="2nd-level-translation"><a href="#2nd-level-translation" class="headerlink" title="2nd level translation"></a>2nd level translation</h3><p>将device pass-thru给guest时，guest中的DMA并未使用IOMMU，因此，在guest中，DMA指定的地址即为GPA。此时，Hypervisor需要在IOMMU页表中建立GPA到HPA的映射。</p><p>这个case类比于vCPU在non-root中进入实模式时，CPU寻址用的就是GPA，Hypervisor需要在EPT页表中建立GPA到HPA的映射。</p><h3 id="1st-level-translation"><a href="#1st-level-translation" class="headerlink" title="1st level translation"></a>1st level translation</h3><p>在host上的DPDK或者SPDK用户态驱动（基于VFIO框架），DMA中指定的地址是HVA，IOMMU页表中填充的是HVA到HPA的映射。</p><p>这个case类比于host上已经开启了paging，CPU寻址用的是HVA，MMU页表中填充的是HVA到HPA的映射。</p><h3 id="Nested-translation"><a href="#Nested-translation" class="headerlink" title="Nested translation"></a>Nested translation</h3><p>将device pass-thru给guest时，guest运行了DPDK这样的用户态驱动，此时，在guest中，DMA指定的地址是GVA。此刻，IOMMU寻址用到的就是Nested translation了，1st level translation完成GVA到GPA的映射，2nd level translation完成GPA到HPA的映射。</p><p>这个case类比于vCPU在non-root下寻址时，已经开启了paging，此时CPU指定的地址是GVA。CPU寻址用的也是嵌套页表，guest中的页表完成GVA到GPA的映射，EPT页表完成GPA到HPA的映射。</p><h2 id="3-总结"><a href="#3-总结" class="headerlink" title="3. 总结"></a>3. 总结</h2><p>安利下<a href="https://zhuanlan.zhihu.com/p/64566042" target="_blank" rel="noopener">类比思维</a>:通过相似事物之间的对比，可以让我们能够更好地理解新的事物和概念。</p><p>假设读者对MMU、EPT页表有着很深的理解，此刻，将它们与IOMMU的页表进行类比，读者就能很快理解IOMMU页表了！抓住关键要点：MMU、EPT页表解决的是CPU侧的寻址，而IOMMU页表解决的是device侧（即DMA）的寻址！</p><hr><p>参考资料：</p><ol><li><a href="https://events19.linuxfoundation.org/wp-content/uploads/2017/12/Hardware-Assisted-Mediated-Pass-Through-with-VFIO-Kevin-Tian-Intel.pdf" target="_blank" rel="noopener">Hardware-Assisted-Mediated-Pass-Through-with-VFIO-Kevin-Tian-Intel</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将记录个人对于IOMMU寻址方式的理解。
-    
-    </summary>
-    
-      <category term="IOMMU" scheme="http://liujunming.github.io/categories/IOMMU/"/>
-    
-    
-      <category term="IOMMU" scheme="http://liujunming.github.io/tags/IOMMU/"/>
     
   </entry>
   
