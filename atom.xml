@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-08-14T13:47:09.028Z</updated>
+  <updated>2022-08-15T05:21:45.624Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>IOMMU的探测</title>
+    <link href="http://liujunming.github.io/2022/08/15/IOMMU%E7%9A%84%E6%8E%A2%E6%B5%8B/"/>
+    <id>http://liujunming.github.io/2022/08/15/IOMMU的探测/</id>
+    <published>2022-08-15T03:04:44.000Z</published>
+    <updated>2022-08-15T05:21:45.624Z</updated>
+    
+    <content type="html"><![CDATA[<p>如果机器上存在多个IOMMU，怎么知道某设备使用哪个IOMMU呢？以这个问题为索引，引出本文。<a id="more"></a></p><h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p><img src="https://projectacrn.github.io/3.0/_images/vt-d-image90.png" alt></p><h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><p>先看一个典型的x86物理服务器：<br><img src="https://kernelgo.org/images/iommu-platform.png" alt><br>服务器上可以有多个DMAR Unit（这里可以直接理解为多个IOMMU硬件）， 每个DMAR会负责处理其下挂载设备的DMA请求。 例如上图中， PCIE Root Port (dev:fun) (14:0)下面挂载的所有设备的DMA请求由DMAR #1负责处理， PCIE Root Port (dev:fun) (14:1)下面挂载的所有设备的DMA请求由DMAR #2负责处理， 而DMAR #3下挂载的是一个Root-Complex集成设备[29:0]，这个设备的DMA请求被DMAR #3承包， DMAR #4的情况比较复杂，它负责处理Root-Complex集成设备[30:0]以及I/OxAPIC设备的DMA请求。 这些和IOMMU相关的硬件拓扑信息需要BIOS通过ACPI表呈现给OS，这样OS才能正确驱动IOMMU硬件工作。</p><p>BIOS通过在ACPI表中提供一套DMA Remapping Reporting Structure 信息来表述物理服务器上的IOMMU拓扑信息， 这样OS在加载IOMMU驱动的时候就知道如何建立映射关系了。</p><p>VT-d spec描述的更为详细！<br><img src="/images/2022/07/09.jpg" alt></p><h3 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h3><p>查看主机上的DMAR信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">acpidump -n DMAR -b</span><br><span class="line">iasl -d dmar.dat</span><br><span class="line">cat dmar.dsl</span><br></pre></td></tr></table></figure></p><p>结合<a href="https://software.intel.com/content/dam/develop/external/us/en/documents-tps/vt-directed-io-spec.pdf" target="_blank" rel="noopener">Intel VT-d spec</a>的”BIOS Considerations”一节与<a href="https://github.com/projectacrn/acrn-hypervisor/blob/v3.0/hypervisor/acpi_parser/dmar_parse.c" target="_blank" rel="noopener">ACRN hypervisor</a>，慢慢去解析相关field。</p><p>蓝皮书中也有相关描述:<br><img src="/images/2022/07/08.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://projectacrn.github.io/3.0/developer-guides/hld/hv-vt-d.html#dma-remapping-report-acpi-table" target="_blank" rel="noopener">DMA Remapping Report ACPI Table</a></li><li><a href="https://kernelgo.org/intel_iommu.html" target="_blank" rel="noopener">Intel IOMMU Introduction</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;如果机器上存在多个IOMMU，怎么知道某设备使用哪个IOMMU呢？以这个问题为索引，引出本文。
+    
+    </summary>
+    
+      <category term="ACPI" scheme="http://liujunming.github.io/categories/ACPI/"/>
+    
+    
+      <category term="ACPI" scheme="http://liujunming.github.io/tags/ACPI/"/>
+    
+      <category term="IOMMU" scheme="http://liujunming.github.io/tags/IOMMU/"/>
+    
+  </entry>
   
   <entry>
     <title>Linux kernel hrtimers</title>
@@ -466,33 +490,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Virtio 虚拟化技术趋势与 DPU 实践</title>
-    <link href="http://liujunming.github.io/2022/05/29/Virtio-%E8%99%9A%E6%8B%9F%E5%8C%96%E6%8A%80%E6%9C%AF%E8%B6%8B%E5%8A%BF%E4%B8%8E-DPU-%E5%AE%9E%E8%B7%B5/"/>
-    <id>http://liujunming.github.io/2022/05/29/Virtio-虚拟化技术趋势与-DPU-实践/</id>
-    <published>2022-05-29T04:17:30.000Z</published>
-    <updated>2022-07-24T08:22:39.584Z</updated>
-    
-    <content type="html"><![CDATA[<p>转载自：龙蜥大讲堂第16期</p><ul><li><a href="https://openanolis.cn/video/566837307090997810" target="_blank" rel="noopener">video</a></li><li><a href="https://www.yuque.com/anolis-docs/courses" target="_blank" rel="noopener">slides</a><a id="more"></a></li></ul><h3 id="Virtio简介"><a href="#Virtio简介" class="headerlink" title="Virtio简介"></a>Virtio简介</h3><p>概述、演进、关键技术</p><p><img src="/images/2022/05/21.jpg" alt></p><p><img src="/images/2022/05/22.jpg" alt></p><p><img src="/images/2022/05/23.jpg" alt></p><p><img src="/images/2022/05/24.jpg" alt></p><p><img src="/images/2022/05/25.jpg" alt></p><p><img src="/images/2022/05/26.jpg" alt></p><h3 id="Virtio与DPU"><a href="#Virtio与DPU" class="headerlink" title="Virtio与DPU"></a>Virtio与DPU</h3><p>Virtio硬化</p><p><img src="/images/2022/05/27.jpg" alt><br>BM指的是BareMetal<br><img src="/images/2022/05/28.jpg" alt></p><p><img src="/images/2022/05/29.jpg" alt></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;转载自：龙蜥大讲堂第16期&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;https://openanolis.cn/video/566837307090997810&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;video&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;https://www.yuque.com/anolis-docs/courses&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;slides&lt;/a&gt;
-    
-    </summary>
-    
-      <category term="virtio" scheme="http://liujunming.github.io/categories/virtio/"/>
-    
-    
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
-    
-      <category term="DPU" scheme="http://liujunming.github.io/tags/DPU/"/>
     
   </entry>
   
