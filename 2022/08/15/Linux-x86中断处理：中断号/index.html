@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Linux/x86中断处理：中断号">
+
+
+
+
+  <meta name="keywords" content="Kernel, SDM, linux, 中断, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/08/15/Linux-x86中断处理：中断号/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Linux/x86中断处理：中断号 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Linux/x86中断处理：中断号
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-08-15
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/中断/">中断</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-架构相关部分（x86）"><span class="toc-text">1. 架构相关部分（x86）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-物理中断号到逻辑中断号的映射"><span class="toc-text">1.1 物理中断号到逻辑中断号的映射</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-架构无关部分"><span class="toc-text">2. 架构无关部分</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-procfs-amp-sysfs里的中断相关文件"><span class="toc-text">3. procfs &amp; sysfs里的中断相关文件</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-proc-interrupts"><span class="toc-text">3.1 /proc/interrupts</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-1-proc-interrupts有中断看不到？！"><span class="toc-text">3.1.1 /proc/interrupts有中断看不到？！</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-proc-irq"><span class="toc-text">3.2 /proc/irq/*</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-sys-…-irq-和-sys-…-msi-irqs"><span class="toc-text">3.3 /sys/…/irq 和 /sys/…/msi_irqs</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-总结：怎么知道设备的中断号？"><span class="toc-text">4. 总结：怎么知道设备的中断号？</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文转载自:<a href="https://github.com/eternalNight/blog-pages/blob/master/_posts/linux-intr-irq.md" target="_blank" rel="noopener">Linux/x86中断处理：中断号</a>。<a id="more"></a></p>
+<h2 id="1-架构相关部分（x86）"><a href="#1-架构相关部分（x86）" class="headerlink" title="1. 架构相关部分（x86）"></a>1. 架构相关部分（x86）</h2><p>特别要注意的是，架构无关部分所用的中断号纯粹是个逻辑值，和硬件上所用的中断号没有必然联系！换句话说，只要和架构相关的代码串通好了，我们就完全可以说时钟的中断号是0xbeef，串口的中断号是0xdead，硬盘的中断号是0xbaddad，尽管硬件使用的中断号可能都没超过256。区别起见，以下把架构无关部分用的中断号叫做“逻辑中断号”，硬件使用的中断号（具体到x86上就是用哪个IDT表项）叫做“物理中断号”。对于x86架构来说，物理中断号的范围就是0-255，0号是除0错，14号是缺页等等。</p>
+<h3 id="1-1-物理中断号到逻辑中断号的映射"><a href="#1-1-物理中断号到逻辑中断号的映射" class="headerlink" title="1.1 物理中断号到逻辑中断号的映射"></a>1.1 物理中断号到逻辑中断号的映射</h3><p>建立物理中断号到逻辑中断号的映射，是架构相关的中断处理例程需要完成的主要任务之一。对于x86_64来说，汇编部分的IDT表项入口是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">ENTRY(irq_entries_start)</span><br><span class="line">        INTR_FRAME</span><br><span class="line">    vector=FIRST_EXTERNAL_VECTOR</span><br><span class="line">    .rept (FIRST_SYSTEM_VECTOR - FIRST_EXTERNAL_VECTOR)</span><br><span class="line">        pushq_cfi $(~vector+0x80)    /* Note: always in signed byte range */</span><br><span class="line">    vector=vector+1</span><br><span class="line">        jmp     common_interrupt</span><br><span class="line">        CFI_ADJUST_CFA_OFFSET -8</span><br><span class="line">        .align  8</span><br><span class="line">    .endr</span><br><span class="line">        CFI_ENDPROC</span><br><span class="line">END(irq_entries_start)</span><br></pre></td></tr></table></figure></p>
+<p>C部分的IDT建立是：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">for_each_clear_bit_from(i, used_vectors, first_system_vector) &#123;</span><br><span class="line">        <span class="comment">/* IA32_SYSCALL_VECTOR could be used in trap_init already. */</span></span><br><span class="line">        set_intr_gate(i, irq_entries_start +</span><br><span class="line">                        <span class="number">8</span> * (i - FIRST_EXTERNAL_VECTOR));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>FIRST_EXTERNAL_VECTOR是0x20（和Intel手册上的内容一致）。进入中断后的一系列操作包括汇编里的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">common_interrupt:</span><br><span class="line">        XCPT_FRAME</span><br><span class="line">        ASM_CLAC</span><br><span class="line">        addq $-0x80,(%rsp)              /* Adjust vector to [-256,-1] range */</span><br><span class="line">        interrupt do_IRQ</span><br></pre></td></tr></table></figure></p>
+<p>和C里的：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsigned</span> <span class="keyword">int</span> __<span class="function">irq_entry <span class="title">do_IRQ</span><span class="params">(struct pt_regs *regs)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="built_in">vector</span> = ~regs-&gt;orig_ax;</span><br><span class="line">        <span class="keyword">unsigned</span> irq;</span><br><span class="line">		...</span><br><span class="line">		irq = __this_cpu_read(vector_irq[<span class="built_in">vector</span>]);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!handle_irq(irq, regs))</span><br><span class="line">		...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其中regs-&gt;orig_ax就是irq_entries_start里那些IDT入口push到栈上的值。那么，do_IRQ里的vector（记作v’）和IDT入口里的vector（记作v）的关系就应该是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">v&apos; = ~((~v + 0x80) + (-0x80)) = v</span><br></pre></td></tr></table></figure></p>
+<p>不就是一样的嘛……</p>
+<p>拿到vector之后，接下去还有一个per_cpu的vector_irq，把vector映射成irq，这个才是麻烦的部分，因为对于x86平台上大部分中断，无论是物理中断号还是发给哪个CPU都是可配置的，所以静态没办法决定物理中断号、CPU号和逻辑中断号间的关系，只好弄一个per_cpu的vector_irq，遇到一个存一个。</p>
+<h2 id="2-架构无关部分"><a href="#2-架构无关部分" class="headerlink" title="2. 架构无关部分"></a>2. 架构无关部分</h2><p>在架构无关部分，中断处理的大致流程很直观：handle_irq（架构无关部分的中断处理入口）拿到一个中断号，找先前在这个中断号上注册过的中断处理例程，每个例程调一遍，完事。所谓“在这个中断号上注册”，指的就是以这个中断号为参数，调用request_irq。</p>
+<p>数据结构也很直接：一个中断号对应一个irq_desc，irq_desc里面记录了所有先前注册了这个中断号的中断处理例程（irqaction）。irq_desc里的handle_irq是一级的处理入口，由它一边处理一些通用的细节问题（比如边沿/电平触发的分别处理），一边一个一个地调action链表里注册过的例程。irq_chip是对应中断控制器的结构，里面存放的是一系列函数指针，实现像开关中断这样的由中断控制器提供的中断管理服务。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">                       irq_desc</span><br><span class="line">      irq == ?? ==&gt; +------------+</span><br><span class="line">                    | handle_irq |</span><br><span class="line">   irq_chip      +--|    chip    |        irqaction</span><br><span class="line">+------------+&lt;--+  |   action   | ---&gt; +-----------+  +-&gt;+-----------+  +-&gt; ...</span><br><span class="line">|  irq_mask  |      |    name    |      |  handler  |  |  |  handler  |  |</span><br><span class="line">| irq_unmask |      .            .      | thread_fn |  |  | thread_fn |  |</span><br><span class="line">.            .      .            .      |   next    |--+  |   next    |--+</span><br><span class="line">.            .                          .           .     .           .</span><br></pre></td></tr></table></figure></p>
+<p>对于从中断号（上图中的irq）到irq_desc的映射，Linux里默认是用了一个NR_IRQS个单元的irq_desc数组做的，也就是说中断号仅限于0到NR_IRQS-1之间。如果配置选项CONFIG_SPARSE_IRQ开启，那么中断号到irq_desc的映射就会用一个radix tree来维护，那样的话中断号多大都无所谓了。</p>
+<p>irq_desc有几个设置函数，用来设置handle_irq、name、chip（严格来说是irq_desc里的irq_data的chip）等，包括：</p>
+<ul>
+<li>irq_set_chip：设置chip</li>
+<li>__irq_set_handler：设置handle_irq和name</li>
+<li>irq_set_chip_and_handler_name：handle_irq、name、chip全包</li>
+</ul>
+<h2 id="3-procfs-amp-sysfs里的中断相关文件"><a href="#3-procfs-amp-sysfs里的中断相关文件" class="headerlink" title="3. procfs &amp; sysfs里的中断相关文件"></a>3. procfs &amp; sysfs里的中断相关文件</h2><h3 id="3-1-proc-interrupts"><a href="#3-1-proc-interrupts" class="headerlink" title="3.1 /proc/interrupts"></a>3.1 /proc/interrupts</h3><p>这大概是最著名的一个了。文件的创建位置是proc_interrupts_init，内容由show_interrupts函数提供，主要流程是遍历一遍所有有效的逻辑中断号，对于带了action（也就是被注册过的）的中断，打印的域包括：</p>
+<ul>
+<li>逻辑中断号；</li>
+<li>每个CPU上中断次数的统计；</li>
+<li>对应chip的名称，诸如IO-APIC、PCI-MSI之类；</li>
+<li>中断的名称，即irq_desc里的name，通常是空的；</li>
+<li>每个action的名称，也就是request_irq时给的name，多个action的话用逗号分隔。</li>
+</ul>
+<p>遍历了所有逻辑中断号之后，还会调用arch_show_interrupts获得体系结构相关部分的中断信息，在x86上所有第一列不是数字的部分就是x86的arch_show_interrupts捣腾出来的内容，主要的信息包括中断类型和每个CPU上的中断计数。</p>
+<h4 id="3-1-1-proc-interrupts有中断看不到？！"><a href="#3-1-1-proc-interrupts有中断看不到？！" class="headerlink" title="3.1.1 /proc/interrupts有中断看不到？！"></a>3.1.1 /proc/interrupts有中断看不到？！</h4><p>这个可以有，因为首先处理中断的总是内核的架构相关部分，如果它默默地自己处理了某些中断，既不用handle_irq（架构无关部分的中断处理入口），也不request_irq，还不在arch_show_interrupts里给你看，那/proc/interrupts里自然就找不到这些中断的痕迹。</p>
+<p>x86就有架构相关部分默默处理掉的中断，比如LAPIC时钟。虽说LAPIC时钟中断默认是0x20，但在__setup_APIC_LVTT里就把它改成0xEF了，而0xEF的IDT表项又在apic_intr_init中专门设成了apic_timer_interrupt，而不是irq_entries_start那张表里的通用入口。所以要是在/proc/interrupts里看到这么一行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">         CPU0       CPU1       CPU2       CPU3</span><br><span class="line">0:        134          0          0          0   IO-APIC-edge      timer</span><br></pre></td></tr></table></figure></p>
+<p>这货才不是运行时的时钟（不排除系统启动的时候暂时用过它）！真正的时钟应该是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">LOC:  919608278  869138540  868188298  901247206   Local timer interrupts</span><br></pre></td></tr></table></figure></p>
+<h3 id="3-2-proc-irq"><a href="#3-2-proc-irq" class="headerlink" title="3.2 /proc/irq/*"></a>3.2 /proc/irq/*</h3><p>这个目录主要是用来控制中断亲和性的，目录下面每个被注册过的逻辑中断号有一个目录，用得比较多的是下面两个文件：</p>
+<ul>
+<li>smp_affinity：bitmap形式的亲和性设置；</li>
+<li>smp_affinity_list：CPU id列表形式的亲和性设置；</li>
+</ul>
+<p>其它几个文件只读，其内容的含义待考。</p>
+<h3 id="3-3-sys-…-irq-和-sys-…-msi-irqs"><a href="#3-3-sys-…-irq-和-sys-…-msi-irqs" class="headerlink" title="3.3 /sys/…/irq 和 /sys/…/msi_irqs"></a>3.3 /sys/…/irq 和 /sys/…/msi_irqs</h3><p>基本每个device的目录下面都有，irq是每个设备所使用的逻辑中断号，不过奇怪的是有些逻辑中断号没有在/proc/interrupts里出现，原因不明。msi_irqs目录下面是一些以逻辑中断号命名的文件，每个都是这个设备所申请的msi或msix中断，没有申请过msi和msix中断的设备没有这个目录。</p>
+<h2 id="4-总结：怎么知道设备的中断号？"><a href="#4-总结：怎么知道设备的中断号？" class="headerlink" title="4. 总结：怎么知道设备的中断号？"></a>4. 总结：怎么知道设备的中断号？</h2><p>绕了这么一大圈下来，可以明显感觉到x86平台为了让一套中断系统适应各种各样奇奇怪怪的环境，在“可配置”这一点上下了多大功夫。这也让搞内核开发的有点头疼：找个中断号怎么就那么麻烦？！</p>
+<p>根据x86中断系统的结构，在Linux里找一个设备的中断号大概分这么几步：</p>
+<ol>
+<li>确定逻辑中断号：先看/proc/interrupts，有名字跟设备直接对应的最好，看不出的话就去sysfs这个符号链接的迷宫，从总线、功能、驱动模块……等等角度，找那个device对应的目录，看文件irq和目录msi_irqs的内容；</li>
+<li>确定物理中断号：插printk，在适当的位置（比如arch_show_interrupts）把vector_irq这个数组打出来，找哪个物理中断号对应了上面确定的逻辑中断号；</li>
+<li>确定物理中断号的配置情况：先从/proc/interrupts搞清楚管理这个中断的chip，然后：</li>
+</ol>
+<ul>
+<li>如果是IOAPIC，找调用ioapic_write_entry和__ioapic_write_entry（更新I/O Redirection Table的函数）的地方；</li>
+<li>如果是MSI，找驱动初始化时申请msi的地方；</li>
+<li>如果是其它东西，那一般是一个级联的中断控制器，先翻翻这个中断控制器的驱动，看看有没有设置中断号之类的API再做商榷；</li>
+<li>对于中断号用字母缩写的中断，在apic.h里找对应的寄存器，然后找apic_write这个寄存器的地方。</li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://github.com/eternalNight/blog-pages/blob/master/_posts/linux-intr-irq.md" target="_blank" rel="noopener">Linux/x86中断处理：中断号</a></li>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MzA5NTM3MjIxMw==&amp;mid=2247490602&amp;idx=2&amp;sn=4d973784bb61cb1b422b122f6b5239c4&amp;chksm=90410af0a73683e64af7c2593a3bd3c4be04729204548fc8b530c0bbdad01211e0bfb8c8de73&amp;mpshare=1&amp;scene=1&amp;srcid=0322dXqrZHc4i5osgoZomhKG&amp;sharer_sharetime=1616389873996&amp;sharer_shareid=a9a36119fdda2f083962ae6839e2e602&amp;key=fafdc124f4ee647bb0faa403b80208ef8ac0b1661dc3c5bb4ce4a39ce07c8824fcfab78d3a4e7dcb7aee0bcd1713edcf83928a51e956654938343cbb08310d4ae50c7e217888e430e52004715065e53d2226cfa0aecb6a428ae73be4b31649adc006c2c55f79b93a2ab0f85174ed62f92cb81cc30c46fb3d2d4c1d83720fbc3a&amp;ascene=1&amp;uin=MTcwOTQ4NzA0MQ%3D%3D&amp;devicetype=Windows+7&amp;version=6206014b&amp;lang=zh_CN&amp;exportkey=AU79XKScyoT9GEt1KS9SgHU%3D&amp;pass_ticket=DvZ2hOy2IlirucyQl09vTYciz0pynAY1RZ7s06iR710rBFtKcFVvIrOPi9vbGDkO&amp;wx_header=0&amp;winzoom=1#" target="_blank" rel="noopener">Linux中断子系统-通用框架处理</a></li>
+<li><a href="http://www.wowotech.net/irq_subsystem/irq-domain.html" target="_blank" rel="noopener">IRQ Domain介绍</a></li>
+<li><a href="http://www.wowotech.net/irq_subsystem/interrupt_descriptor.html" target="_blank" rel="noopener">IRQ number和中断描述符</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/SDM/">SDM</a>
+            
+              <a href="/tags/linux/">linux</a>
+            
+              <a href="/tags/中断/">中断</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/08/15/IOMMU的探测/">
+        <span class="next-text nav-default">IOMMU的探测</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/08/15/Linux-x86中断处理：中断号/';
+        this.page.identifier = '2022/08/15/Linux-x86中断处理：中断号/';
+        this.page.title = 'Linux/x86中断处理：中断号';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
