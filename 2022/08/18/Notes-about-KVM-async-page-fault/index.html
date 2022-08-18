@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="Notes about Post-Copy Live Migration">
+  <meta name="description" content="Notes about KVM async page fault">
 
 
 
 
-  <meta name="keywords" content="live migration, L">
+  <meta name="keywords" content="内存管理, KVM, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2022/08/13/Notes-about-Post-Copy-Live-Migration/">
+<link rel="canonical" href="http://liujunming.github.io/2022/08/18/Notes-about-KVM-async-page-fault/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Notes about Post-Copy Live Migration - L </title>
+    <title> Notes about KVM async page fault - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,18 +260,18 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Notes about Post-Copy Live Migration
+          Notes about KVM async page fault
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2022-08-13
+          2022-08-18
         </span>
         
           <span class="post-category">
             
-              <a href="/categories/live-migration/">live migration</a>
+              <a href="/categories/KVM/">KVM</a>
             
           </span>
         
@@ -281,34 +281,32 @@
 
     
     
-  <div class="post-toc" id="post-toc">
-    <h2 class="post-toc-title">文章目录</h2>
-    <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Post-Copy-steps"><span class="toc-text">Post-Copy steps</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#trade-off"><span class="toc-text">trade-off</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#资料"><span class="toc-text">资料</span></a></li></ol>
-    </div>
-  </div>
-
 
 
     <div class="post-content">
       
-        <h3 id="Post-Copy-steps"><a href="#Post-Copy-steps" class="headerlink" title="Post-Copy steps"></a>Post-Copy steps</h3><ol>
-<li>suspends the migrating VM at the source node</li>
-<li>copies minimal processor state to the target node</li>
-<li>resumes the virtual machine</li>
-<li>begins fetching memory pages over the network from the source.<br>The manner in which pages are fetched gives rise to different variants<a id="more"></a></li>
+        <p>Notes about KVM apf(async page fault)。<a id="more"></a>转载自:<a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/03/24/kvm-async-page-fault" target="_blank" rel="noopener">KVM async page fault</a>。</p>
+<p>The qemu/kvm VM’s physical memory is the virtual memory of qemu process. When the virtual memory of qemu has been commit and is setup with physical memory the host can swap out this physical memory. When the guest vcpu access memory swapped out by host, its execution is suspended until memory is swapped back. Asynchronous page fault is a way to try and use guest vcpu more efficiently by allowing it to execute other tasks while page is brought back into memory. Following give a summary of these processes.</p>
+<ol>
+<li><p>page fault when the EPT page table is not setup</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. VMEXIT</span><br><span class="line">2. kvm_mmu_page_fault()</span><br><span class="line">3. gfn_to_pfn()</span><br><span class="line">4. get_user_pages_unlocked()</span><br><span class="line">     no previously mapped page and no swap entry found</span><br><span class="line">     empty page is allocated</span><br><span class="line">5. page is added into shadow/nested page table</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>page fault when the physical memory is swapped out(without apf)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. VMEXIT</span><br><span class="line">2. kvm_mmu_page_fault()</span><br><span class="line">3. gfn_to_pfn()</span><br><span class="line">4. get_user_pages_unlocked()</span><br><span class="line">    swap entry is found</span><br><span class="line">    page swap-in process is initiated</span><br><span class="line">    vcpu thread goes to sleep until page is swapped in</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>page fault when the phycial memory is swapped out(with apf)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1. VMEXIT</span><br><span class="line">2. kvm_mmu_page_fault()</span><br><span class="line">3. gfn_to_pfn()</span><br><span class="line">4. get_user_pages_nowait()</span><br><span class="line">5. gup(get_user_pages) is done by dedicated thread, inject &apos;page not present&apos; exception to guest</span><br><span class="line">6. guest puts process A(which caused this page fault) to sleep and schedule another process</span><br><span class="line">7. page is swapped in, inject &apos;page ready&apos; exception to guest</span><br><span class="line">8. guest can schedule process A back to run on vcpu</span><br></pre></td></tr></table></figure>
+</li>
 </ol>
-<h3 id="trade-off"><a href="#trade-off" class="headerlink" title="trade-off"></a>trade-off</h3><ul>
-<li>For VMs with read-intensive workloads, pre-copy would be the better approach</li>
-<li>For large-memory or write-intensive workloads, post-copy would better suited.</li>
-</ul>
-<p>Pre-copy是为了能够尽量地减少downtime，并且不影响服务的运作;而post-copy则是为了减少total migration time且让程序能够持续的执行。</p>
-<h3 id="资料"><a href="#资料" class="headerlink" title="资料"></a>资料</h3><ul>
-<li><a href="https://github.com/liujunming/paper_reading_notes/issues/12" target="_blank" rel="noopener">Post-Copy Live Migration of Virtual Machines</a></li>
-<li><a href="https://www.iteye.com/blog/cloudtech-1614643" target="_blank" rel="noopener">[论文笔记]Post-copy based live virtual machine migration</a></li>
-<li><a href="http://cshuo.top/2016/09/10/live_migration/" target="_blank" rel="noopener">VM 热迁移详解</a></li>
-<li><a href="https://www.linux-kvm.org/images/f/f7/2012-forum-postcopy.pdf" target="_blank" rel="noopener">Postcopy Live migration for QEmu/KVM</a></li>
-</ul>
+<p>Following shows the process of kvm async page fault process.<br><img src="/images/2022/07/10.jpeg" alt><br>From description we know that kvm apf need the guest do something, such as recognize the apf ‘page not present’ and ‘page ready’ exception, and also the pv guest should hook the exception to process these two new exception. apf contains following steps.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1. the guest should be initialized to process the new exception</span><br><span class="line">2. kvm page fault handler should recognize the swapped out case and initialize a work to swap in the page, inject a &apos;page not present&apos; to guest</span><br><span class="line">3. the guest receive this exception and schedule another process to run </span><br><span class="line">4. when the page caused page fault in step 2 has been swapped in, the kvm inject a &apos;page ready&apos; exception to guest</span><br><span class="line">5. the guest can do schedule to run process that was blocked by page fault in step 2</span><br></pre></td></tr></table></figure></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/03/24/kvm-async-page-fault" target="_blank" rel="noopener">KVM async page fault</a></li>
+<li><a href="https://www.linux-kvm.org/images/a/ac/2010-forum-Async-page-faults.pdf" target="_blank" rel="noopener">2010-forum-Async-page-faults</a></li>
+<li><a href="https://lore.kernel.org/lkml/20091108164706.GB3286@elte.hu/T/" target="_blank" rel="noopener">Add shared memory hypercall to PV Linux guest</a></li>
+<li><a href="https://xingguotian.github.io/2019/08/23/qemu-kvm%20%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/" target="_blank" rel="noopener">Qemu-kvm memory 虚拟化</a></li>
+</ol>
 
       
     </div>
@@ -328,7 +326,9 @@
         
           <div class="post-tags">
             
-              <a href="/tags/live-migration/">live migration</a>
+              <a href="/tags/内存管理/">内存管理</a>
+            
+              <a href="/tags/KVM/">KVM</a>
             
           </div>
         
@@ -336,15 +336,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2022/08/13/How-to-dump-ACPI-table/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">How to dump ACPI table</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2022/08/12/Notes-about-netlink/">
-        <span class="next-text nav-default">Notes about netlink</span>
+      <a class="next" href="/2022/08/15/Linux-x86中断处理：中断号/">
+        <span class="next-text nav-default">Linux/x86中断处理：中断号</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -457,9 +451,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2022/08/13/Notes-about-Post-Copy-Live-Migration/';
-        this.page.identifier = '2022/08/13/Notes-about-Post-Copy-Live-Migration/';
-        this.page.title = 'Notes about Post-Copy Live Migration';
+        this.page.url = 'http://liujunming.github.io/2022/08/18/Notes-about-KVM-async-page-fault/';
+        this.page.identifier = '2022/08/18/Notes-about-KVM-async-page-fault/';
+        this.page.title = 'Notes about KVM async page fault';
     };
     (function() {
     var d = document, s = d.createElement('script');
