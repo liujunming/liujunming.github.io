@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about KVM steal time">
+
+
+
+
+  <meta name="keywords" content="KVM, Time, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/08/20/Notes-about-KVM-steal-time/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about KVM steal time - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about KVM steal time
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-08-20
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/KVM/">KVM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Background"><span class="toc-text">1. Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Motivation"><span class="toc-text">2. Motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Identify-steal-time-in-Guest"><span class="toc-text">3. Identify steal time in Guest</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Guest-register-steal-time"><span class="toc-text">4. Guest register steal time</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Host-calculate-steal-time"><span class="toc-text">5. Host calculate steal time</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-Guest-scheduler处理steal-time"><span class="toc-text">6. Guest scheduler处理steal time</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将参考<a href="https://cloud.tencent.com/developer/article/1087403" target="_blank" rel="noopener">steal time技术分析</a>，并结合<a href="https://elixir.bootlin.com/linux/v4.19/source" target="_blank" rel="noopener">v4.19 kernel</a>来解析steal time。<a id="more"></a></p>
+<h3 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h3><p>当前Host的墙上时间是HWT1，此时Guest中的墙上时间GWT1，如果是同一个时区的话，此时HWT1和GWT1是相等的。</p>
+<p>如果此时Host中发生了调度，Guest所在的qemu进程不执行了，那么HWT1将继续增长，GWT1是否应该增长呢？</p>
+<ul>
+<li><p>如果GWT1不增长，那么等到Guest继续执行的时候，就会继续在原来的GWT1基础上增长，那么HWT2到HWT1之间的时间就发生了丢失；现象就是Guest中的时间变慢了。</p>
+</li>
+<li><p>如果GWT1同时增长，那么就会在Guest进程切回来继续执行的时候，Guest中的时间会瞬间增大了HWT2减掉HWT1的差值。现象就是Guest的墙上时间是对的。可是新的问题又来了：在Guest的qemu进程被Host切换之前，Guest中刚刚切换走redis，开始执行Nginx；等到Guest继续执行的时候，因为Guest中的时钟跳变增大了很多，Guest会认为Nginx执行了大量的CPU时间。如果Linux Guest中采用的是cfs调度算法，那么Nginx下次被调度会隔比较长的时间。可是实际上呢，Nginx根本没有得到执行！</p>
+</li>
+</ul>
+<h3 id="2-Motivation"><a href="#2-Motivation" class="headerlink" title="2. Motivation"></a>2. Motivation</h3><p>为了解决上述Guest中的调度问题，就引入了steal time。<br>Steal time的原理就是：告诉Guest，哪些时间被Host给steal了，调度的时候，忽略这部分时间，就可以正确调度了。<br>所以，基本就是两个部分：</p>
+<ol>
+<li>在Host中通知Guest具体的steal time是多少</li>
+<li>在Guest中处理这些时间，修正因时间跳变引起的调度错误</li>
+</ol>
+<h3 id="3-Identify-steal-time-in-Guest"><a href="#3-Identify-steal-time-in-Guest" class="headerlink" title="3. Identify steal time in Guest"></a>3. Identify steal time in Guest</h3><p><img src="/images/2022/07/11.jpg" alt><br>可以在<code>/proc/stat</code>中的第八项看到steal time(<code>top</code>就是从<code>/proc/stat</code>获取的数据)。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v4.19/source/fs/proc/stat.c</span></span><br><span class="line">steal = kcpustat_cpu(i).cpustat[CPUTIME_STEAL];</span><br></pre></td></tr></table></figure></p>
+<h3 id="4-Guest-register-steal-time"><a href="#4-Guest-register-steal-time" class="headerlink" title="4. Guest register steal time"></a>4. Guest register steal time</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">kvm_register_steal_time</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> cpu = smp_processor_id();</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kvm_steal_time</span> *<span class="title">st</span> = &amp;<span class="title">per_cpu</span>(<span class="title">steal_time</span>, <span class="title">cpu</span>);</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!has_steal_clock)</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	wrmsrl(MSR_KVM_STEAL_TIME, (slow_virt_to_phys(st) | KVM_MSR_ENABLED));</span><br><span class="line">	pr_info(<span class="string">"kvm-stealtime: cpu %d, msr %llx\n"</span>,</span><br><span class="line">		cpu, (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>) slow_virt_to_phys(st));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>guest通过写MSR MSR_KVM_STEAL_TIME，把per_cpu变量steal_time的物理地址（Guest Physical Address）告诉Host。</p>
+<p>MSR_KVM_STEAL_TIME MSR的描述:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">MSR_KVM_STEAL_TIME: <span class="number">0x4b564d03</span></span><br><span class="line"></span><br><span class="line">	data: <span class="number">64</span>-byte alignment physical address of a memory area which must be</span><br><span class="line">	in guest RAM, plus an enable bit in bit <span class="number">0.</span> This memory is expected to</span><br><span class="line">	hold a copy of the following structure:</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kvm_steal_time</span> &#123;</span></span><br><span class="line">		__u64 steal;</span><br><span class="line">		__u32 version;</span><br><span class="line">		__u32 flags;</span><br><span class="line">		__u8  preempted;</span><br><span class="line">		__u8  u8_pad[<span class="number">3</span>];</span><br><span class="line">		__u32 pad[<span class="number">11</span>];</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	whose data will be filled in by the hypervisor periodically. Only one</span><br><span class="line">	write, <span class="keyword">or</span> registration, is needed <span class="keyword">for</span> each VCPU. The interval between</span><br><span class="line">	updates of <span class="keyword">this</span> structure is arbitrary <span class="keyword">and</span> implementation-dependent.</span><br><span class="line">	The hypervisor may update <span class="keyword">this</span> structure at any time it sees fit until</span><br><span class="line">	anything with bit0 == <span class="number">0</span> is written to it. Guest is required to make sure</span><br><span class="line">	<span class="keyword">this</span> structure is initialized to zero.</span><br><span class="line"></span><br><span class="line">	Fields have the following meanings:</span><br><span class="line"></span><br><span class="line">		version: a sequence counter. In other words, guest has to check</span><br><span class="line">		<span class="keyword">this</span> field before <span class="keyword">and</span> after grabbing time information <span class="keyword">and</span> make</span><br><span class="line">		sure they are both equal <span class="keyword">and</span> even. An odd version indicates an</span><br><span class="line">		in-progress update.</span><br><span class="line"></span><br><span class="line">		flags: At <span class="keyword">this</span> point, always zero. May be used to indicate</span><br><span class="line">		changes in <span class="keyword">this</span> structure in the future.</span><br><span class="line"></span><br><span class="line">		steal: the amount of time in which <span class="keyword">this</span> vCPU did <span class="keyword">not</span> run, in</span><br><span class="line">		nanoseconds. Time during which the vcpu is idle, will <span class="keyword">not</span> be</span><br><span class="line">		reported as steal time.</span><br><span class="line"></span><br><span class="line">		preempted: indicate the vCPU who owns <span class="keyword">this</span> struct is running <span class="keyword">or</span></span><br><span class="line">		<span class="keyword">not</span>. Non-zero values mean the vCPU has been preempted. Zero</span><br><span class="line">		means the vCPU is <span class="keyword">not</span> preempted. NOTE, it is always zero <span class="keyword">if</span> the</span><br><span class="line">		the hypervisor doesn't support <span class="keyword">this</span> field.</span><br></pre></td></tr></table></figure></p>
+<h3 id="5-Host-calculate-steal-time"><a href="#5-Host-calculate-steal-time" class="headerlink" title="5. Host calculate steal time"></a>5. Host calculate steal time</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v4.19/source/include/linux/sched.h#L290</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sched_info</span> &#123;</span></span><br><span class="line">        ...</span><br><span class="line">	<span class="comment">/* Time spent waiting on a runqueue: */</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>		run_delay;</span><br><span class="line">        ...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>注意看<code>run_delay</code>，如注释，就是task等待的时间，也就是没有执行的时间（例子中Guest的qemu被切换走的时间）。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v4.19/source/arch/x86/kvm/x86.c#L2292</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">record_steal_time</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	...</span><br><span class="line">	vcpu-&gt;arch.st.steal.version += <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	kvm_write_guest_cached(vcpu-&gt;kvm, &amp;vcpu-&gt;arch.st.stime,</span><br><span class="line">		&amp;vcpu-&gt;arch.st.steal, <span class="keyword">sizeof</span>(struct kvm_steal_time));</span><br><span class="line"></span><br><span class="line">	smp_wmb();</span><br><span class="line"></span><br><span class="line">	vcpu-&gt;arch.st.steal.steal += current-&gt;sched_info.run_delay -</span><br><span class="line">		vcpu-&gt;arch.st.last_steal;</span><br><span class="line">	vcpu-&gt;arch.st.last_steal = current-&gt;sched_info.run_delay;</span><br><span class="line"></span><br><span class="line">	kvm_write_guest_cached(vcpu-&gt;kvm, &amp;vcpu-&gt;arch.st.stime,</span><br><span class="line">		&amp;vcpu-&gt;arch.st.steal, <span class="keyword">sizeof</span>(struct kvm_steal_time));</span><br><span class="line"></span><br><span class="line">	smp_wmb();</span><br><span class="line"></span><br><span class="line">	vcpu-&gt;arch.st.steal.version += <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	kvm_write_guest_cached(vcpu-&gt;kvm, &amp;vcpu-&gt;arch.st.stime,</span><br><span class="line">		&amp;vcpu-&gt;arch.st.steal, <span class="keyword">sizeof</span>(struct kvm_steal_time));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在Host中，用<code>run_delay</code>计算出Guest的steal time，并通过<code>kvm_write_guest_cached</code>告诉Guest（前文中Guest向Host注册的地址，Host直接修改）。<br>这样，在Guest恢复执行的时候，就可以知道steal time的具体大小了。</p>
+<h3 id="6-Guest-scheduler处理steal-time"><a href="#6-Guest-scheduler处理steal-time" class="headerlink" title="6. Guest scheduler处理steal time"></a>6. Guest scheduler处理steal time</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://elixir.bootlin.com/linux/v4.19/source/kernel/sched/core.c#L132</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * RQ-clock updating methods:</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">update_rq_clock_task</span><span class="params">(struct rq *rq, s64 delta)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	...</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_PARAVIRT_TIME_ACCOUNTING</span></span><br><span class="line">	<span class="keyword">if</span> (static_key_false((&amp;paravirt_steal_rq_enabled))) &#123;</span><br><span class="line">		steal = paravirt_steal_clock(cpu_of(rq));</span><br><span class="line">		steal -= rq-&gt;prev_steal_time_rq;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (unlikely(steal &gt; delta))</span><br><span class="line">			steal = delta;</span><br><span class="line"></span><br><span class="line">		rq-&gt;prev_steal_time_rq += steal;</span><br><span class="line">		delta -= steal;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	rq-&gt;clock_task += delta;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>clock_task</code>记录的是队列中任务执行的时间，其由函数<code>update_rq_clock_task()</code>负责更新。steal time是guest可以意识到的时间，这个时间不被计算到具体的调度队列的运行时间，因而虚拟化下guest中的task调度正常，不会出现时间跳变引起的调度错误。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://cloud.tencent.com/developer/article/1087403" target="_blank" rel="noopener">steal time技术分析</a></li>
+<li><a href="https://lore.kernel.org/kvm/1309793548-16714-1-git-send-email-glommer@redhat.com/" target="_blank" rel="noopener">Steal time for KVM</a></li>
+<li><a href="https://oenhan.com/kvm-steal-time" target="_blank" rel="noopener">KVM下STEAL_TIME源代码分析</a></li>
+<li><a href="https://blog.csdn.net/wu7244582/article/details/111366245" target="_blank" rel="noopener">kvm steal 溯源</a></li>
+<li><a href="https://www.site24x7.com/learn/linux/cpu-steal-time.html" target="_blank" rel="noopener">What is CPU steal time?</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/KVM/">KVM</a>
+            
+              <a href="/tags/Time/">Time</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/08/18/Notes-about-KVM-async-page-fault/">
+        <span class="next-text nav-default">Notes about KVM async page fault</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/08/20/Notes-about-KVM-steal-time/';
+        this.page.identifier = '2022/08/20/Notes-about-KVM-steal-time/';
+        this.page.title = 'Notes about KVM steal time';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
