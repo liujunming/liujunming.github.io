@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about IVT(Interrupt Vector Table)">
+
+
+
+
+  <meta name="keywords" content="中断, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/09/02/Notes-about-IVT-Interrupt-Vector-Table/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about IVT(Interrupt Vector Table) - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about IVT(Interrupt Vector Table)
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-09-02
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/中断/">中断</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-What"><span class="toc-text">1. What</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-IVT-vs-IDT"><span class="toc-text">2. IVT vs IDT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Usage"><span class="toc-text">3. Usage</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-Common-functions"><span class="toc-text">3.1 Common functions</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-e820"><span class="toc-text">3.2 e820</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将记录IVT(Interrupt Vector Table)相关笔记。<a id="more"></a></p>
+<h3 id="1-What"><a href="#1-What" class="headerlink" title="1. What"></a>1. What</h3><p>On the x86 architecture, the Interrupt Vector Table (IVT) is a table that specifies the addresses of all the 256 interrupt handlers used in real mode.</p>
+<h3 id="2-IVT-vs-IDT"><a href="#2-IVT-vs-IDT" class="headerlink" title="2. IVT vs IDT"></a>2. IVT vs IDT</h3><p>In the real addressing mode the structure just contains addresses of ISRs. This format of it is known as IVT. In the protected mode the structure is more complex and is called IDT. The CPU manual from Intel or AMD will tell you all the details about interrupt handling.</p>
+<p>Modern OSes operate almost fully in protected mode and hence use the IDT. The IVT is only necessary when the OS boots, because that happens in real mode.</p>
+<h3 id="3-Usage"><a href="#3-Usage" class="headerlink" title="3. Usage"></a>3. Usage</h3><p>To access a BIOS function, you generally set the AH CPU register (or AX, or EAX) to a particular value, and then do an INT opcode. The value in AH (or AX, or EAX), combined with the particular interrupt number selected requests a specific BIOS function.</p>
+<p>It is simplest to create a listing of BIOS functions by specifying the interrupt number, and the value of AH (or AX, or EAX) that selects the function. It is also easiest to refer to particular BIOS functions this way in discussions. For example, INT 0x13, AH=0 is a BIOS function that resets hard disks or floppy disks.</p>
+<p>To an extent, the BIOS functions are organized by interrupt number:</p>
+<ul>
+<li>INT 0x10 = Video display functions (including VESA/VBE)</li>
+<li>INT 0x13 = mass storage (disk, floppy) access</li>
+<li>INT 0x15 = memory size functions</li>
+<li>INT 0x16 = keyboard functions</li>
+</ul>
+<h4 id="3-1-Common-functions"><a href="#3-1-Common-functions" class="headerlink" title="3.1 Common functions"></a>3.1 Common functions</h4><p><img src="/images/2022/09/01.jpg" alt></p>
+<h4 id="3-2-e820"><a href="#3-2-e820" class="headerlink" title="3.2 e820"></a>3.2 e820</h4><p><strong>BIOS Function: INT 0x15, EAX = 0xE820</strong></p>
+<p><a href="/2019/12/15/从硬件获得内存布局-e820/">从硬件获得内存布局–e820</a></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://wiki.osdev.org/IVT" target="_blank" rel="noopener">osdev IVT</a></li>
+<li><a href="https://wiki.osdev.org/BIOS" target="_blank" rel="noopener">osdev BIOS</a></li>
+<li><a href="https://stackoverflow.com/questions/11540095/what-is-the-difference-between-ivt-and-idt" target="_blank" rel="noopener">what is the difference between IVT and IDT?</a></li>
+<li><a href="https://wiki.osdev.org/Detecting_Memory_(x86)" target="_blank" rel="noopener">https://wiki.osdev.org/Detecting_Memory_(x86)</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/中断/">中断</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/08/27/RTC-virtualization-in-QEMU/">
+        <span class="next-text nav-default">RTC virtualization in QEMU</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/09/02/Notes-about-IVT-Interrupt-Vector-Table/';
+        this.page.identifier = '2022/09/02/Notes-about-IVT-Interrupt-Vector-Table/';
+        this.page.title = 'Notes about IVT(Interrupt Vector Table)';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
