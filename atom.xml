@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-09-12T11:14:31.684Z</updated>
+  <updated>2022-09-12T14:37:40.988Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Intel&#39;s Linear Address Masking</title>
+    <link href="http://liujunming.github.io/2022/09/12/Notes-about-Intel-s-Linear-Address-Masking/"/>
+    <id>http://liujunming.github.io/2022/09/12/Notes-about-Intel-s-Linear-Address-Masking/</id>
+    <published>2022-09-12T13:35:56.000Z</published>
+    <updated>2022-09-12T14:37:40.988Z</updated>
+    
+    <content type="html"><![CDATA[<p>Notes about Intel’s Linear Address Masking(LAM).<a id="more"></a> </p><h3 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h3><p>A 64-bit pointer can address a lot of memory — far more than just about any application could ever need. As a result, there are bits within that pointer that are not really needed to address memory, and which might be put to other needs. Storing a few bits of metadata within a pointer is a common enough use case.</p><h3 id="2-Motivation"><a href="#2-Motivation" class="headerlink" title="2. Motivation"></a>2. Motivation</h3><p>In Intel CPU, 假设使用64 bit pointer(虚拟地址)的57位到62位存放metadata，当想要<a href="https://stackoverflow.com/questions/4955198/what-does-dereferencing-a-pointer-mean" target="_blank" rel="noopener">dereferencing a pointer</a>时：</p><ul><li>Without LAM，软件需要显示地unmask掉pointer的57位到62位，说白了，每次dereferencing时，软件都需要做一个<code>与</code>操作</li><li>With LAM，软件无需unmask掉pointer的57位到62位，硬件直接完成unmask的功能，这样，每次dereferencing时，软件无需<code>与</code>操作了</li></ul><p>通俗地说，LAM的作用是将软件unmask pointer meatadata的功能offload到硬件上了。</p><h3 id="3-Details"><a href="#3-Details" class="headerlink" title="3. Details"></a>3. Details</h3><p>Intel’s LAM feature offers two modes:</p><ul><li><code>LAM_U57</code> allows six bits of metadata in bits 62 to 57.</li><li><code>LAM_U48</code> allows 15 bits of metadata in bits 62 to 48.</li></ul><h4 id="3-1-Why-not-use-bit-64-as-metadata"><a href="#3-1-Why-not-use-bit-64-as-metadata" class="headerlink" title="3.1 Why not use bit 64 as metadata"></a>3.1 Why not use bit 64 as metadata</h4><p>可以带着这个问题去<a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a>中寻找答案。</p><h4 id="3-2-LAM-U48与five-level-page-tables的配合使用"><a href="#3-2-LAM-U48与five-level-page-tables的配合使用" class="headerlink" title="3.2 LAM_U48与five-level page tables的配合使用"></a>3.2 <code>LAM_U48</code>与five-level page tables的配合使用</h4><p>说白了，五级页表会使用到<code>LAM_U48</code>中的bit 48到56，因而可能会产生冲突。如何解决这个冲突呢？可以带着这个问题去<a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a>中寻找答案。</p><hr><p>参考资料:</p><ol><li><a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a></li><li><a href="https://mp.weixin.qq.com/s/xnEGKub5iGacr76tsNhSHg" target="_blank" rel="noopener">LWN：支持Intel线性地址屏蔽功能！</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Notes about Intel’s Linear Address Masking(LAM).
+    
+    </summary>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
+    
+    
+      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
+    
+  </entry>
   
   <entry>
     <title>Injection Exitless LAPIC Timer</title>
@@ -475,30 +497,6 @@
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
       <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about TUN/TAP Interface</title>
-    <link href="http://liujunming.github.io/2022/07/31/Notes-about-TUN-TAP-Interface/"/>
-    <id>http://liujunming.github.io/2022/07/31/Notes-about-TUN-TAP-Interface/</id>
-    <published>2022-07-31T10:30:57.000Z</published>
-    <updated>2022-07-31T13:38:29.709Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about TUN/TAP Interface。内容主要转载自:<a href="https://hechao.li/2018/05/21/Tun-Tap-Interface/" target="_blank" rel="noopener">TUN/TAP Interface</a>。<a id="more"></a></p><h3 id="Concept"><a href="#Concept" class="headerlink" title="Concept"></a>Concept</h3><p>From the Linux kernel <a href="https://www.kernel.org/doc/html/latest/networking/tuntap.html" target="_blank" rel="noopener">documentation</a>:</p><blockquote><p>TUN/TAP provides packet reception and transmission for user space programs. It can be seen as a simple Point-to-Point or Ethernet device, which, instead of receiving packets from physical media, receives them from user space program and instead of sending packets via physical media writes them to the user space program.</p></blockquote><p>In other words, TUN/TAP interfaces are virtual interfaces that does not have physical devices associated. A user space program can attach to a TUN/TAP interface and handle the traffic sent to the interface.</p><h3 id="Difference"><a href="#Difference" class="headerlink" title="Difference"></a>Difference</h3><p>There are two types of virtual network interfaces managed by <code>/dev/net/tun</code>:</p><ul><li>TUN interfaces transport IP packets (layer 3);</li><li>TAP interfaces transport Ethernet frames (layer 2).</li></ul><p>A TUN interface is a virtual IP Point-to-Point interface(L3) and a TAP interface is a virtual Ethernet interface(L2). That means the user program can only read/write IP packets from/to a TUN interface and Ethernet frames from/to a TAP interface.</p><h3 id="Use-Cases"><a href="#Use-Cases" class="headerlink" title="Use Cases"></a>Use Cases</h3><p>The typical use case of a TUN interface is IP tunneling. For example, <a href="https://openvpn.net/" target="_blank" rel="noopener">OpenVPN</a> receives packets from a TUN interface such as <code>tun0</code> and encrypts it before sending to the real ethernet interface <code>eth0</code>. Then the OpenVPN client on the peer receives the packet from <code>eth0</code> and decrypts it before sending it to <code>tun0</code>. In other words, OpenVPN works as a proxy between <code>tun0</code> and <code>eth0</code> and creates a encrypted UDP connection over the internet between two hosts.<br><img src="/images/2022/07/03.png" alt></p><p>The typical use case of a TAP interface is virtual networking. For example, in <a href="https://hechao.li/2017/12/13/linux-bridge-part1" target="_blank" rel="noopener">Linux Bridge Part 1</a>, we’ve seen that when we create a VM in the KVM with bridged network, it creates a TAP interface like <code>vnet0</code> and adds it to the Linux bridge. In this case, KVM is the userspace program which reads from and writes to the TAP interfaces. When VM0 sends a packet to its <code>eth0</code>, KVM sends it to TAP interface <code>vnet0</code> so that the bridge will forward it to <code>vnet1</code>. Then KVM receives it and sends it to VM1’s <code>eth0</code>.<br><img src="/images/2022/07/04.png" alt></p><h3 id="Managing-TUN-TAP-interfaces"><a href="#Managing-TUN-TAP-interfaces" class="headerlink" title="Managing TUN/TAP interfaces"></a>Managing TUN/TAP interfaces</h3><p><code>ip tuntap</code> can be used to manage TUN/TAP interfaces. For example:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ ip tuntap help</span><br><span class="line">Usage: ip tuntap &#123; add | del | show | list | lst | help &#125; [ dev PHYS_DEV ]</span><br><span class="line">          [ mode &#123; tun | tap &#125; ] [ user USER ] [ group GROUP ]</span><br><span class="line">          [ one_queue ] [ pi ] [ vnet_hdr ] [ multi_queue ]</span><br><span class="line"></span><br><span class="line">Where: USER  := &#123; STRING | NUMBER &#125;</span><br><span class="line">       GROUP := &#123; STRING | NUMBER &#125;</span><br></pre></td></tr></table></figure></p><h3 id="文章推荐"><a href="#文章推荐" class="headerlink" title="文章推荐"></a>文章推荐</h3><p>精读<a href="/images/2022/07/Linux 虚拟网络设备之 TUN_TAP 设备 - 知乎.pdf">Linux 虚拟网络设备之 TUN/TAP 设备</a>，会收获颇丰。</p><p><img src="/images/2022/07/05.jpeg" alt></p><hr><p><img src="/images/2022/07/06.jpeg" alt></p><hr><p><img src="/images/2022/07/07.jpeg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://hechao.li/2018/05/21/Tun-Tap-Interface/" target="_blank" rel="noopener">TUN/TAP Interface</a></li><li><a href="https://www.gabriel.urdhr.fr/2021/05/08/tuntap/" target="_blank" rel="noopener">TUN/TAP interface (on Linux)</a></li><li><a href="https://zhuanlan.zhihu.com/p/388742230" target="_blank" rel="noopener">Linux 虚拟网络设备之 TUN/TAP 设备</a></li><li><a href="https://www.kernel.org/doc/html/latest/networking/tuntap.html" target="_blank" rel="noopener">kernel document Universal TUN/TAP device driver</a></li><li><a href="https://backreference.org/2010/03/26/tuntap-interface-tutorial/" target="_blank" rel="noopener">Tun/Tap interface tutorial</a></li><li><a href="https://man7.org/linux/man-pages/man7/netdevice.7.html" target="_blank" rel="noopener">man netdevice</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about TUN/TAP Interface。内容主要转载自:&lt;a href=&quot;https://hechao.li/2018/05/21/Tun-Tap-Interface/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;TUN/TAP Interface&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
     
   </entry>
   

@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="Notes about Intel's Linear Address Masking">
 
 
 
+
+  <meta name="keywords" content="SDM, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/page/13/">
+<link rel="canonical" href="http://liujunming.github.io/2022/09/12/Notes-about-Intel-s-Linear-Address-Masking/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> Notes about Intel's Linear Address Masking - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,241 +256,119 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about Intel's Linear Address Masking
+        
+      </h1>
 
-  <section id="archive" class="archive">
+      <div class="post-meta">
+        <span class="post-time">
+          2022-09-12
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/SDM/">SDM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
     
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Background"><span class="toc-text">1. Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Motivation"><span class="toc-text">2. Motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Details"><span class="toc-text">3. Details</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-Why-not-use-bit-64-as-metadata"><span class="toc-text">3.1 Why not use bit 64 as metadata</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-LAM-U48与five-level-page-tables的配合使用"><span class="toc-text">3.2 LAM_U48与five-level page tables的配合使用</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Notes about Intel’s Linear Address Masking(LAM).<a id="more"></a> </p>
+<h3 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h3><p>A 64-bit pointer can address a lot of memory — far more than just about any application could ever need. As a result, there are bits within that pointer that are not really needed to address memory, and which might be put to other needs. Storing a few bits of metadata within a pointer is a common enough use case.</p>
+<h3 id="2-Motivation"><a href="#2-Motivation" class="headerlink" title="2. Motivation"></a>2. Motivation</h3><p>In Intel CPU, 假设使用64 bit pointer(虚拟地址)的57位到62位存放metadata，当想要<a href="https://stackoverflow.com/questions/4955198/what-does-dereferencing-a-pointer-mean" target="_blank" rel="noopener">dereferencing a pointer</a>时：</p>
+<ul>
+<li>Without LAM，软件需要显示地unmask掉pointer的57位到62位，说白了，每次dereferencing时，软件都需要做一个<code>与</code>操作</li>
+<li>With LAM，软件无需unmask掉pointer的57位到62位，硬件直接完成unmask的功能，这样，每次dereferencing时，软件无需<code>与</code>操作了</li>
+</ul>
+<p>通俗地说，LAM的作用是将软件unmask pointer meatadata的功能offload到硬件上了。</p>
+<h3 id="3-Details"><a href="#3-Details" class="headerlink" title="3. Details"></a>3. Details</h3><p>Intel’s LAM feature offers two modes:</p>
+<ul>
+<li><code>LAM_U57</code> allows six bits of metadata in bits 62 to 57.</li>
+<li><code>LAM_U48</code> allows 15 bits of metadata in bits 62 to 48.</li>
+</ul>
+<h4 id="3-1-Why-not-use-bit-64-as-metadata"><a href="#3-1-Why-not-use-bit-64-as-metadata" class="headerlink" title="3.1 Why not use bit 64 as metadata"></a>3.1 Why not use bit 64 as metadata</h4><p>可以带着这个问题去<a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a>中寻找答案。</p>
+<h4 id="3-2-LAM-U48与five-level-page-tables的配合使用"><a href="#3-2-LAM-U48与five-level-page-tables的配合使用" class="headerlink" title="3.2 LAM_U48与five-level page tables的配合使用"></a>3.2 <code>LAM_U48</code>与five-level page tables的配合使用</h4><p>说白了，五级页表会使用到<code>LAM_U48</code>中的bit 48到56，因而可能会产生冲突。如何解决这个冲突呢？可以带着这个问题去<a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a>中寻找答案。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a></li>
+<li><a href="https://mp.weixin.qq.com/s/xnEGKub5iGacr76tsNhSHg" target="_blank" rel="noopener">LWN：支持Intel线性地址屏蔽功能！</a></li>
+</ol>
+
+      
+    </div>
 
     
       
-        
-        
+      
 
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
         
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2021</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/SDM/">SDM</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            11-14
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/11/14/VT-x-Posted-Interrupt-Code-Analysis/" class="archive-post-link">
-            VT-x Posted Interrupt Code Analysis
-          </a>
-        </span>
-      </div>
-    
-      
         
         
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            11-12
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/11/12/Notes-about-XSAVE-feature-set/" class="archive-post-link">
-            Notes about XSAVE feature set
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            11-11
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/11/11/Notes-about-ivshmem/" class="archive-post-link">
-            Notes about ivshmem
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            11-09
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/11/09/Notes about-PASID-Process-Address-Space-ID/" class="archive-post-link">
-            Notes about PASID (Process Address Space ID)
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            10-27
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/10/27/Dive-into-irqfd-KVM-side-mechanism/" class="archive-post-link">
-            Dive into irqfd(KVM side) mechanism
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            10-26
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/10/26/Dive-into-ioeventfd(kvm side)-mechanism/" class="archive-post-link">
-            Dive into ioeventfd(KVM side) mechanism
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            10-25
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/10/25/eventfd-system-call内核实现/" class="archive-post-link">
-            eventfd system call内核实现
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            10-22
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/10/22/x86-64-Instruction-Encoding/" class="archive-post-link">
-            x86-64 Instruction Encoding
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            10-19
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/10/19/PIO-virtualization-in-QEMU-KVM/" class="archive-post-link">
-            PIO virtualization in QEMU/KVM
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            10-17
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2021/10/17/KVM-MMIO-Emulation/" class="archive-post-link">
-            KVM MMIO Emulation
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
-      <a class="prev" href="/archives/page/12/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text">上一页</span>
-      </a>
+  <nav class="post-nav">
     
     
-      <a class="next" href="/archives/page/14/">
-        <span class="next-text">下一页</span>
+      <a class="next" href="/2022/09/11/LAPIC-Implement-Exitless-Timer/">
+        <span class="next-text nav-default">Injection Exitless LAPIC Timer</span>
+        <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -576,6 +452,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/09/12/Notes-about-Intel-s-Linear-Address-Masking/';
+        this.page.identifier = '2022/09/12/Notes-about-Intel-s-Linear-Address-Masking/';
+        this.page.title = 'Notes about Intel's Linear Address Masking';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
