@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Linux中的tick模式">
+
+
+
+
+  <meta name="keywords" content="Time, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/09/06/Linux中的tick模式/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Linux中的tick模式 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Linux中的tick模式
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-09-06
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Time/">Time</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#基本概念"><span class="toc-text">基本概念</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#dyntick-idle-模式"><span class="toc-text">dyntick-idle 模式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#adaptive-ticks-模式"><span class="toc-text">adaptive-ticks 模式</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>转载自：<br>Linux中的tick模式 - 兰新宇的文章 - 知乎<br><a href="https://zhuanlan.zhihu.com/p/133211285" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/133211285</a><a id="more"></a></p>
+<h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><p>tick就是周期性的时钟中断，作为OS的心跳，它可以驱动scheduler运转，并且统计相关的运行信息（比如”utime”和”stime”的计算）。<br><img src="/images/2022/09/08.jpg" alt></p>
+<p>根据硬件频率的不同，tick发生的间隔有所不同，比如x86支持100 Hz, 250 Hz和1000 Hz，则对应的间隔分别是10ms, 4ms和1ms。具体选用的数值可通过<code>grep CONFIG_HZ /boot/config-$(uname -r)</code>命令查看。<br><img src="/images/2022/09/09.jpg" alt></p>
+<p>从系统开始启动后经过的ticks被记作”jiffies”，每发生一次时钟中断，jiffies的数值就加上1。<br><img src="/images/2022/09/10.jpg" alt></p>
+<h3 id="dyntick-idle-模式"><a href="#dyntick-idle-模式" class="headerlink" title="dyntick-idle 模式"></a>dyntick-idle 模式</h3><p>当CPU进入idle低功耗模式时，其实是不希望被tick打断的。为此，自2007年的2.6.21版本，可通过<code>CONFIG_NO_HZ_IDLE</code>配置选项（曾用名<code>CONFIG_NO_HZ</code>），于idle模式时关闭tick（不需要HZ）。<br><img src="/images/2022/09/11.jpg" alt></p>
+<p>这种方式有很多种叫法，主流的是”dyntick-idle”，其他还有”nohz”啦，”tickless”啦等等。其带来的收益是功耗的减少，付出的代价则是进入和退出dyntick-idle模式的指令开销，以及需重新填充clock相关的寄存器信息等。<br><img src="/images/2022/09/12.jpg" alt></p>
+<p>除非workload中idle的次数少、时间短，或者不在乎功耗，又对延迟敏感，否则对于大多数场景来说，dyntick-idle的使用都是利大于弊的，因此是目前内核默认采用的tick模式。</p>
+<h3 id="adaptive-ticks-模式"><a href="#adaptive-ticks-模式" class="headerlink" title="adaptive-ticks 模式"></a>adaptive-ticks 模式</h3><p>更进一步，如果一个CPU上只有一个runnable的任务，同样也是不需要tick的。这种需求在2013年的3.10版本被支持，称为”adaptive-ticks”模式，对应的配置选项为<code>CONFIG_NO_HZ_FULL</code>，”full”可理解为1个task在一段时间内完全地占有一个CPU。</p>
+<p>对于需要开启这项功能的CPU，应在内核启动参数中设置，比如<code>nohz_full=1,6-8</code>，就表明CPU 1, 6, 7, 8是adaptive-ticks的，系统运行后不可再动态更改（想更改只能reboot）。</p>
+<p>但要注意的是，即便系统的每个CPU上都只有一个runnable的任务，也不能把全部CPU都设为nohz full模式。这是因为对于处在adaptive-ticks状态的CPU，还是存在任务运行，还是需要使用jiffies或者walltime，因此系统应该至少保留一个CPU来承担timekeeping的工作，被选择作为timekeeper的是负责boot的那个CPU。</p>
+<p>一旦CPU上有新的任务加入进来，那么就又需要tick了，只有一个任务运行的限制似乎显得有些理想化。不过，在一些高性能计算和realtime的场景中，将一个CPU单独拿给一个线程用是完全可能的（就连现在的手机不也动辄都是4核8核么）。</p>
+<p>此外，一个CPU上虽然有多个runnable的任务，但包含的是一个高优先级的SCHED_FIFO任务和多个低优先级的SCHED_OTHER任务，除非这个SCHED_FIFO的任务block，否则它会一直运行，这种情况其实也可以不使用tick。还有就是任务获得的timeslice比较长，也可以考虑在这段时间内暂时关闭tick。</p>
+<p>“dyntick-idle”模式需额外付出的effort对”adaptive-ticks”模式也是存在的，而后者还有一些其他方面的问题。当CPU上唯一runnable的线程从用户态进入内核态执行后，并不会发生task切换，依然满足adaptive-ticks的条件，这就对线程”utime”和”stime”的统计造成了困难。目前，”nohz full”的配置默认是关闭的。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://blog.linuxplumbersconf.org/2013/ocw/system/presentations/1143/original/dynticks-lpc.pdf" target="_blank" rel="noopener">Status of Linux dynticks</a></li>
+<li><a href="https://lwn.net/Articles/549580/" target="_blank" rel="noopener">(Nearly) full tickless operation in 3.10</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/timers/NO_HZ.txt" target="_blank" rel="noopener">Documentation/timers/NO_HZ.txt</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Time/">Time</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2022/09/07/isolated-CPU-vs-housekeeping-CPU/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">isolated CPU vs housekeeping CPU</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2022/09/05/The-relationship-between-LAPIC-timer-and-TSC/">
+        <span class="next-text nav-default">The relationship between LAPIC timer and TSC</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/09/06/Linux中的tick模式/';
+        this.page.identifier = '2022/09/06/Linux中的tick模式/';
+        this.page.title = 'Linux中的tick模式';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

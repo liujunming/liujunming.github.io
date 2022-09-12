@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-09-05T13:20:15.236Z</updated>
+  <updated>2022-09-12T11:14:31.684Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,78 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Injection Exitless LAPIC Timer</title>
+    <link href="http://liujunming.github.io/2022/09/11/LAPIC-Implement-Exitless-Timer/"/>
+    <id>http://liujunming.github.io/2022/09/11/LAPIC-Implement-Exitless-Timer/</id>
+    <published>2022-09-11T03:56:04.000Z</published>
+    <updated>2022-09-12T11:14:31.684Z</updated>
+    
+    <content type="html"><![CDATA[<p><img src="/images/2022/09/13.jpg" alt></p><p><img src="/images/2022/09/14.jpg" alt></p><p><img src="/images/2022/09/15.jpg" alt><br><a id="more"></a><br>建议先阅读<a href="/2022/09/06/Linux中的tick模式/">Linux中的tick模式</a>和<a href="/2022/09/07/isolated-CPU-vs-housekeeping-CPU/">isolated CPU vs housekeeping CPU</a>。</p><p>Dedicated instances are currently disturbed by unnecessary jitter due  to the emulated lapic timers fire on the same pCPUs which vCPUs resident. There is no hardware virtual timer on Intel for guest like ARM. Both  programming timer in guest and the emulated timer fires incur vmexits. This patchset tries to avoid vmexit which is incurred by the emulated  timer fires in dedicated instance scenario. </p><p>When nohz_full is enabled in dedicated instances scenario, the unpinned  timer will be moved to the nearest busy housekeepers after commit 9642d18eee2cd (nohz: Affine unpinned timers to housekeepers) and commit  444969223c8 (“sched/nohz: Fix affine unpinned timers mess”). However, KVM always makes lapic timer pinned to the pCPU which vCPU residents, the reason is explained by commit 61abdbe0 (kvm: x86: make lapic hrtimer pinned). Actually, these emulated timers can be offload to the housekeeping cpus since APICv is really common in recent years. The guest timer interrupt is injected by posted-interrupt which is delivered by housekeeping cpu once the emulated timer fires. </p><p>The host admin should fine tuned, e.g. dedicated instances scenario w/ nohz_full cover the pCPUs which vCPUs resident, several pCPUs surplus for busy housekeeping, disable mwait/hlt/pause vmexits to keep in non-root mode, ~3% redis performance benefit can be observed on Skylake server.</p><hr><p>参考资料:</p><ol><li><a href="https://lore.kernel.org/all/1562376411-3533-1-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">KVM: LAPIC: Implement Exitless Timer</a></li><li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/10/01/kvm-performance-2" target="_blank" rel="noopener">Exitless timer</a></li><li><a href="https://static.sched.com/hosted_files/kvmforum2019/e3/Boosting%20Dedicated%20Instances%20by%20KVM%20Tax%20Cut.pdf" target="_blank" rel="noopener">Boosting Dedicated Instance via KVM Tax Cut</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;img src=&quot;/images/2022/09/13.jpg&quot; alt&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/images/2022/09/14.jpg&quot; alt&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/images/2022/09/15.jpg&quot; alt&gt;&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Time" scheme="http://liujunming.github.io/categories/Time/"/>
+    
+    
+      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
+    
+      <category term="Time" scheme="http://liujunming.github.io/tags/Time/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>isolated CPU vs housekeeping CPU</title>
+    <link href="http://liujunming.github.io/2022/09/07/isolated-CPU-vs-housekeeping-CPU/"/>
+    <id>http://liujunming.github.io/2022/09/07/isolated-CPU-vs-housekeeping-CPU/</id>
+    <published>2022-09-07T03:47:39.000Z</published>
+    <updated>2022-09-12T11:14:31.684Z</updated>
+    
+    <content type="html"><![CDATA[<p>An isolated CPU incurs reduced jitter and reduced interruptions by  the  kernel. <a id="more"></a> This  is achived   by   clearing  the  CPU  from  user-space  processes,  movable  kernel  threads, interruption handlers, kernel timers, etc. The only fixed source of interruptions  is  the 1Hz  tick  maintained  by the kernel to keep CPU usage statistics. Otherwise, the incurred jitter and interruptions, if any, depend on the kernel services used by the thread running on  the  isolated  CPU.  Threads  that run a busy loop without doing system calls, such as user-space drivers that access the hardware directly, are only expected to be  interrupted once a second by the 1Hz tick.</p><p>A  housekeeping CPU is the opposite of an isolated CPU. Housekeeping CPUs run all daemons, shell processes, kernel threads, interruption handlers and work  that  can  be  dispatched from isolated CPUs such as disk I/O, RCU work, timers, etc.</p><hr><p>参考资料;</p><ol><li><a href="https://manpages.ubuntu.com/manpages/focal/en/man7/tuned-profiles-cpu-partitioning.7.html" target="_blank" rel="noopener">tuned-profiles-cpu-partitioning</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;An isolated CPU incurs reduced jitter and reduced interruptions by  the  kernel.
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Linux中的tick模式</title>
+    <link href="http://liujunming.github.io/2022/09/06/Linux%E4%B8%AD%E7%9A%84tick%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://liujunming.github.io/2022/09/06/Linux中的tick模式/</id>
+    <published>2022-09-06T02:14:19.000Z</published>
+    <updated>2022-09-12T11:14:31.684Z</updated>
+    
+    <content type="html"><![CDATA[<p>转载自：<br>Linux中的tick模式 - 兰新宇的文章 - 知乎<br><a href="https://zhuanlan.zhihu.com/p/133211285" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/133211285</a><a id="more"></a></p><h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><p>tick就是周期性的时钟中断，作为OS的心跳，它可以驱动scheduler运转，并且统计相关的运行信息（比如”utime”和”stime”的计算）。<br><img src="/images/2022/09/08.jpg" alt></p><p>根据硬件频率的不同，tick发生的间隔有所不同，比如x86支持100 Hz, 250 Hz和1000 Hz，则对应的间隔分别是10ms, 4ms和1ms。具体选用的数值可通过<code>grep CONFIG_HZ /boot/config-$(uname -r)</code>命令查看。<br><img src="/images/2022/09/09.jpg" alt></p><p>从系统开始启动后经过的ticks被记作”jiffies”，每发生一次时钟中断，jiffies的数值就加上1。<br><img src="/images/2022/09/10.jpg" alt></p><h3 id="dyntick-idle-模式"><a href="#dyntick-idle-模式" class="headerlink" title="dyntick-idle 模式"></a>dyntick-idle 模式</h3><p>当CPU进入idle低功耗模式时，其实是不希望被tick打断的。为此，自2007年的2.6.21版本，可通过<code>CONFIG_NO_HZ_IDLE</code>配置选项（曾用名<code>CONFIG_NO_HZ</code>），于idle模式时关闭tick（不需要HZ）。<br><img src="/images/2022/09/11.jpg" alt></p><p>这种方式有很多种叫法，主流的是”dyntick-idle”，其他还有”nohz”啦，”tickless”啦等等。其带来的收益是功耗的减少，付出的代价则是进入和退出dyntick-idle模式的指令开销，以及需重新填充clock相关的寄存器信息等。<br><img src="/images/2022/09/12.jpg" alt></p><p>除非workload中idle的次数少、时间短，或者不在乎功耗，又对延迟敏感，否则对于大多数场景来说，dyntick-idle的使用都是利大于弊的，因此是目前内核默认采用的tick模式。</p><h3 id="adaptive-ticks-模式"><a href="#adaptive-ticks-模式" class="headerlink" title="adaptive-ticks 模式"></a>adaptive-ticks 模式</h3><p>更进一步，如果一个CPU上只有一个runnable的任务，同样也是不需要tick的。这种需求在2013年的3.10版本被支持，称为”adaptive-ticks”模式，对应的配置选项为<code>CONFIG_NO_HZ_FULL</code>，”full”可理解为1个task在一段时间内完全地占有一个CPU。</p><p>对于需要开启这项功能的CPU，应在内核启动参数中设置，比如<code>nohz_full=1,6-8</code>，就表明CPU 1, 6, 7, 8是adaptive-ticks的，系统运行后不可再动态更改（想更改只能reboot）。</p><p>但要注意的是，即便系统的每个CPU上都只有一个runnable的任务，也不能把全部CPU都设为nohz full模式。这是因为对于处在adaptive-ticks状态的CPU，还是存在任务运行，还是需要使用jiffies或者walltime，因此系统应该至少保留一个CPU来承担timekeeping的工作，被选择作为timekeeper的是负责boot的那个CPU。</p><p>一旦CPU上有新的任务加入进来，那么就又需要tick了，只有一个任务运行的限制似乎显得有些理想化。不过，在一些高性能计算和realtime的场景中，将一个CPU单独拿给一个线程用是完全可能的（就连现在的手机不也动辄都是4核8核么）。</p><p>此外，一个CPU上虽然有多个runnable的任务，但包含的是一个高优先级的SCHED_FIFO任务和多个低优先级的SCHED_OTHER任务，除非这个SCHED_FIFO的任务block，否则它会一直运行，这种情况其实也可以不使用tick。还有就是任务获得的timeslice比较长，也可以考虑在这段时间内暂时关闭tick。</p><p>“dyntick-idle”模式需额外付出的effort对”adaptive-ticks”模式也是存在的，而后者还有一些其他方面的问题。当CPU上唯一runnable的线程从用户态进入内核态执行后，并不会发生task切换，依然满足adaptive-ticks的条件，这就对线程”utime”和”stime”的统计造成了困难。目前，”nohz full”的配置默认是关闭的。</p><hr><p>参考资料:</p><ol><li><a href="https://blog.linuxplumbersconf.org/2013/ocw/system/presentations/1143/original/dynticks-lpc.pdf" target="_blank" rel="noopener">Status of Linux dynticks</a></li><li><a href="https://lwn.net/Articles/549580/" target="_blank" rel="noopener">(Nearly) full tickless operation in 3.10</a></li><li><a href="https://www.kernel.org/doc/Documentation/timers/NO_HZ.txt" target="_blank" rel="noopener">Documentation/timers/NO_HZ.txt</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;转载自：&lt;br&gt;Linux中的tick模式 - 兰新宇的文章 - 知乎&lt;br&gt;&lt;a href=&quot;https://zhuanlan.zhihu.com/p/133211285&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https://zhuanlan.zhihu.com/p/133211285&lt;/a&gt;
+    
+    </summary>
+    
+      <category term="Time" scheme="http://liujunming.github.io/categories/Time/"/>
+    
+    
+      <category term="Time" scheme="http://liujunming.github.io/tags/Time/"/>
+    
+  </entry>
   
   <entry>
     <title>The relationship between LAPIC timer and TSC</title>
@@ -199,9 +271,9 @@
       <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
     
     
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
       <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
     
@@ -427,74 +499,6 @@
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>linux network tun interface示例</title>
-    <link href="http://liujunming.github.io/2022/07/31/Example-of-linux-network-tun-interface/"/>
-    <id>http://liujunming.github.io/2022/07/31/Example-of-linux-network-tun-interface/</id>
-    <published>2022-07-31T09:38:38.000Z</published>
-    <updated>2022-07-31T13:38:29.708Z</updated>
-    
-    <content type="html"><![CDATA[<p>示例源于<a href="https://segmentfault.com/a/1190000009249039" target="_blank" rel="noopener">Linux虚拟网络设备之tun/tap</a>。<a id="more"></a></p><h3 id="示例程序"><a href="#示例程序" class="headerlink" title="示例程序"></a>示例程序</h3><p>收到tun设备的数据包之后，只打印出收到了多少字节的数据包，其它的什么都不做<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;net/if.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/ioctl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/stat.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/if_tun.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">tun_alloc</span><span class="params">(<span class="keyword">int</span> flags)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">ifreq</span> <span class="title">ifr</span>;</span></span><br><span class="line">    <span class="keyword">int</span> fd, err;</span><br><span class="line">    <span class="keyword">char</span> *clonedev = <span class="string">"/dev/net/tun"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((fd = open(clonedev, O_RDWR)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> fd;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memset</span>(&amp;ifr, <span class="number">0</span>, <span class="keyword">sizeof</span>(ifr));</span><br><span class="line">    ifr.ifr_flags = flags;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((err = ioctl(fd, TUNSETIFF, (<span class="keyword">void</span> *) &amp;ifr)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        close(fd);</span><br><span class="line">        <span class="keyword">return</span> err;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Open tun/tap device: %s for reading...\n"</span>, ifr.ifr_name);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> fd;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> tun_fd, nread;</span><br><span class="line">    <span class="keyword">char</span> buffer[<span class="number">1500</span>];</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Flags: IFF_TUN   - TUN device (no Ethernet headers)</span></span><br><span class="line"><span class="comment">     *        IFF_TAP   - TAP device</span></span><br><span class="line"><span class="comment">     *        IFF_NO_PI - Do not provide packet information</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    tun_fd = tun_alloc(IFF_TUN | IFF_NO_PI);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (tun_fd &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        perror(<span class="string">"Allocating interface"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">        nread = read(tun_fd, buffer, <span class="keyword">sizeof</span>(buffer));</span><br><span class="line">        <span class="keyword">if</span> (nread &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">"Reading from interface"</span>);</span><br><span class="line">            close(tun_fd);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"Read %d bytes from tun/tap device\n"</span>, nread);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p><a href="https://man7.org/linux/man-pages/man7/netdevice.7.html" target="_blank" rel="noopener">man netdevice</a></p><h3 id="演示"><a href="#演示" class="headerlink" title="演示"></a>演示</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">#--------------------------第一个shell窗口----------------------</span><br><span class="line">#将上面的程序保存成tun.c，然后编译</span><br><span class="line">dev@debian:~$ gcc tun.c -o tun</span><br><span class="line"></span><br><span class="line">#启动tun程序，程序会创建一个新的tun设备，</span><br><span class="line">#程序会阻塞在这里，等着数据包过来</span><br><span class="line">dev@debian:~$ sudo ./tun</span><br><span class="line">Open tun/tap device tun1 for reading...</span><br><span class="line">Read 84 bytes from tun/tap device</span><br><span class="line">Read 84 bytes from tun/tap device</span><br><span class="line">Read 84 bytes from tun/tap device</span><br><span class="line">Read 84 bytes from tun/tap device</span><br><span class="line"></span><br><span class="line">#--------------------------第二个shell窗口----------------------</span><br><span class="line">#启动抓包程序，抓经过tun1的包</span><br><span class="line"># tcpdump -i tun1</span><br><span class="line">tcpdump: verbose output suppressed, use -v or -vv for full protocol decode</span><br><span class="line">listening on tun1, link-type RAW (Raw IP), capture size 262144 bytes</span><br><span class="line">19:57:13.473101 IP 192.168.3.11 &gt; 192.168.3.12: ICMP echo request, id 24028, seq 1, length 64</span><br><span class="line">19:57:14.480362 IP 192.168.3.11 &gt; 192.168.3.12: ICMP echo request, id 24028, seq 2, length 64</span><br><span class="line">19:57:15.488246 IP 192.168.3.11 &gt; 192.168.3.12: ICMP echo request, id 24028, seq 3, length 64</span><br><span class="line">19:57:16.496241 IP 192.168.3.11 &gt; 192.168.3.12: ICMP echo request, id 24028, seq 4, length 64</span><br><span class="line"></span><br><span class="line">#--------------------------第三个shell窗口----------------------</span><br><span class="line">#./tun启动之后，通过ip link命令就会发现系统多了一个tun设备，</span><br><span class="line">#在我的测试环境中，多出来的设备名称叫tun1，在你的环境中可能叫tun0</span><br><span class="line">#新的设备没有ip，我们先给tun1配上IP地址</span><br><span class="line">dev@debian:~$ sudo ip addr add 192.168.3.11/24 dev tun1</span><br><span class="line"></span><br><span class="line">#默认情况下，tun1没有起来，用下面的命令将tun1启动起来</span><br><span class="line">dev@debian:~$ sudo ip link set tun1 up</span><br><span class="line"></span><br><span class="line">#尝试ping一下192.168.3.0/24网段的IP，</span><br><span class="line">#根据默认路由，该数据包会走tun1设备，</span><br><span class="line">#由于我们的程序中收到数据包后，啥都没干，相当于把数据包丢弃了，</span><br><span class="line">#所以这里的ping根本收不到返回包，</span><br><span class="line">#但在前两个窗口中可以看到这里发出去的四个icmp echo请求包，</span><br><span class="line">#说明数据包正确的发送到了应用程序里面，只是应用程序没有处理该包</span><br><span class="line">dev@debian:~$ ping -c 4 192.168.3.12</span><br><span class="line">PING 192.168.3.12 (192.168.3.12) 56(84) bytes of data.</span><br><span class="line"></span><br><span class="line">--- 192.168.3.12 ping statistics ---</span><br><span class="line">4 packets transmitted, 0 received, 100% packet loss, time 3023ms</span><br></pre></td></tr></table></figure>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;示例源于&lt;a href=&quot;https://segmentfault.com/a/1190000009249039&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Linux虚拟网络设备之tun/tap&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about PV TLB Shootdown</title>
-    <link href="http://liujunming.github.io/2022/07/30/Notes-about-PV-TLB-Shootdown/"/>
-    <id>http://liujunming.github.io/2022/07/30/Notes-about-PV-TLB-Shootdown/</id>
-    <published>2022-07-30T14:28:28.000Z</published>
-    <updated>2022-07-31T05:37:43.940Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about PV TLB Shootdown.<a id="more"></a></p><p>A TLB is a cache of translation from memory virtual address to physical address. When a CPU changes virtual to physical mapping of an address, it needs to invalidate other CPUs’ stale mapping in their respective caches. This process is called TLB shootdown.</p><p>Modern operating systems consider TLB shootdown operations to be performance critical and so optimize them to exhibit very low latency.The implementation of these operations is therefore architected to ensure that shootdowns can be completed with very low latencies through the use of IPI based signalling.</p><p>Remote TLB flush does a busy wait which is fine in bare-metal scenario.But within the guest, the vCPUs might have been preempted or blocked. In this scenario, the initiator vCPU would end up busy-waiting for a long amount of time; it also consumes CPU unnecessarily to wake up the target of the shootdown.</p><p><strong>Idea:</strong><br>In PV TLB shootdown, the TLB flush initiator vCPU will not wait the sleeping vCPU, instead it just set a flag in the guest-vmm shared area and then kvm will check this flag and do the TLB flush when the sleeping vCPU come to run.</p><p><img src="/images/2022/07/02.jpg" alt></p><p>实现细节也很有意思，感兴趣的读者可以去仔细阅读代码+文末的参考资料，本文就不赘述了。</p><hr><p>参考资料:</p><ol><li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/09/10/kvm-performance-1" target="_blank" rel="noopener">kvm performance optimization technologies, part one</a></li><li><a href="https://lwn.net/Articles/740363/" target="_blank" rel="noopener">KVM: X86: Add Paravirt TLB Shootdown</a></li><li><a href="https://events19.linuxfoundation.org/wp-content/uploads/2017/12/Update_Wanpeng-LI_Torwards-a-more-Scalable-KVM-Hypervisor.pdf" target="_blank" rel="noopener">Torwards a more Scalable KVM Hypervisor</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about PV TLB Shootdown.
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about multiqueue virtio-net</title>
-    <link href="http://liujunming.github.io/2022/07/29/Notes-about-multiqueue-virtio-net/"/>
-    <id>http://liujunming.github.io/2022/07/29/Notes-about-multiqueue-virtio-net/</id>
-    <published>2022-07-29T13:41:23.000Z</published>
-    <updated>2022-07-29T14:47:17.669Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将记录multiqueue virtio-net相关笔记。<a id="more"></a></p><h3 id="1-Introduction"><a href="#1-Introduction" class="headerlink" title="1. Introduction"></a>1. Introduction</h3><p>Multi-queue virtio-net provides an approach that scales the network performance as the number of vCPUs increases, by allowing them to transfer packets through more than one virtqueue pair at a time.</p><p>Today’s high-end servers have more processors, and guests running on them often have an increasing number of vCPUs. In single queue virtio-net, the scale of the protocol stack in a guest is restricted, as the network performance does not scale as the number of vCPUs increases. Guests cannot transmit or retrieve packets in parallel, as virtio-net has only one TX and RX queue.</p><p>Multi-queue support removes these bottlenecks by allowing paralleled packet processing.</p><p>Multi-queue virtio-net provides the greatest performance benefit when:</p><ul><li>Traffic packets are relatively large.</li><li>The guest is active on many connections at the same time, with traffic running between guests, guest to host, or guest to an external system.</li><li>The number of queues is equal to the number of vCPUs. This is because multi-queue support optimizes RX interrupt affinity and TX queue selection in order to make a specific queue private to a specific vCPU.</li></ul><h3 id="2-Parallel-send-receive-processing"><a href="#2-Parallel-send-receive-processing" class="headerlink" title="2. Parallel send/receive processing"></a>2. Parallel send/receive processing</h3><p>To make sure the whole stack could be worked in parallel, the parallelism of not only the front-end (guest driver) but also the back-end (vhost and tap/macvtap) must be explored. This is done by:</p><ul><li>Allowing multiple sockets to be attached to tap/macvtap</li><li>Using multiple threaded vhost to serve as the backend of a multiqueue capable virtio-net adapter</li><li>Use a multi-queue awared virtio-net driver to send and receive packets to/from each queue</li></ul><p><img src="https://www.linux-kvm.org/images/e/e3/Ver1.jpg" alt></p><h3 id="3-Configuration"><a href="#3-Configuration" class="headerlink" title="3. Configuration"></a>3. Configuration</h3><h3 id="3-1-If-using-qemu"><a href="#3-1-If-using-qemu" class="headerlink" title="3.1 If using qemu"></a>3.1 If using qemu</h3><ul><li>create tap device with multiple queues, please reference<br><code>Documentation/networking/tuntap.txt:(3.3 Multiqueue tuntap interface)</code></li><li>enable mq for tap (suppose N queue pairs) -netdev tap,vhost=on,queues=N</li><li>enable mq and specify msix vectors in qemu cmdline (2N+2 vectors, N for tx queues, N for rx queues, 1 for config, and one for possible control vq): -device virtio-net-pci,mq=on,vectors=2N+2…</li></ul><h3 id="3-2-If-using-libvirt"><a href="#3-2-If-using-libvirt" class="headerlink" title="3.2 If using libvirt"></a>3.2 If using libvirt</h3><p>To use multi-queue virtio-net, enable support in the guest by adding the following to the guest XML configuration (where the value of N is from 1 to 256, as the kernel supports up to 256 queues for a multi-queue tap device):<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;interface type=&apos;network&apos;&gt;</span><br><span class="line">      &lt;source network=&apos;default&apos;/&gt;</span><br><span class="line">      &lt;model type=&apos;virtio&apos;/&gt;</span><br><span class="line">      &lt;driver name=&apos;vhost&apos; queues=&apos;N&apos;/&gt;</span><br><span class="line">&lt;/interface&gt;</span><br></pre></td></tr></table></figure></p><h3 id="3-3-In-guest"><a href="#3-3-In-guest" class="headerlink" title="3.3 In guest"></a>3.3 In guest</h3><p>When running a virtual machine with N virtio-net queues in the guest, enable the multi-queue support with the following command (where the value of M is from 1 to N):<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ethtool -L eth0 combined M</span><br></pre></td></tr></table></figure></p><h3 id="4-Verification"><a href="#4-Verification" class="headerlink" title="4. Verification"></a>4. Verification</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ ethtool -l eth0</span><br><span class="line">Channel parameters for eth0:</span><br><span class="line">Pre-set maximums:</span><br><span class="line">RX:        0</span><br><span class="line">TX:        0</span><br><span class="line">Other:        0</span><br><span class="line">Combined:    4</span><br><span class="line">Current hardware settings:</span><br><span class="line">RX:        0</span><br><span class="line">TX:        0</span><br><span class="line">Other:        0</span><br><span class="line">Combined:    4</span><br></pre></td></tr></table></figure><p>验证多队列生效的方法是观察中断，即<code>cat /proc/interrupts</code></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ cat /proc/interrupts</span><br><span class="line">           CPU0       CPU1</span><br><span class="line">...</span><br><span class="line"> 27:       1352          0   PCI-MSI-edge      virtio0-input.0</span><br><span class="line"> 28:          1          0   PCI-MSI-edge      virtio0-output.0</span><br><span class="line"> 29:        378          0   PCI-MSI-edge      virtio0-input.1</span><br><span class="line"> 30:          1          0   PCI-MSI-edge      virtio0-output.1</span><br><span class="line"> 31:        151          0   PCI-MSI-edge      virtio0-input.2</span><br><span class="line"> 32:          1          0   PCI-MSI-edge      virtio0-output.2</span><br><span class="line"> 33:        268          0   PCI-MSI-edge      virtio0-input.3</span><br><span class="line"> 34:          0          0   PCI-MSI-edge      virtio0-output.3</span><br></pre></td></tr></table></figure><p>可以观察到中断分布在4个<code>virtio0</code>队列设备上。</p><hr><p>参考资料:</p><ol><li><a href="https://www.linux-kvm.org/page/Multiqueue" target="_blank" rel="noopener">Multiqueue virtio-net</a></li><li><a href="https://huataihuang.gitbooks.io/cloud-atlas/content/virtual/kvm/performance/kvm_performance_tunning_in_action/multi_queue-virtio-net.html" target="_blank" rel="noopener">多队列 virtio-net</a></li><li><a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/virtualization_tuning_and_optimization_guide/sect-virtualization_tuning_optimization_guide-networking-techniques" target="_blank" rel="noopener">Network Tuning Techniques</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将记录multiqueue virtio-net相关笔记。
-    
-    </summary>
-    
-      <category term="virtio" scheme="http://liujunming.github.io/categories/virtio/"/>
-    
-    
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
     
   </entry>
   
