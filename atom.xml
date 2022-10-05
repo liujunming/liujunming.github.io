@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-10-05T08:37:46.919Z</updated>
+  <updated>2022-10-05T13:59:49.981Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Linux watch命令</title>
+    <link href="http://liujunming.github.io/2022/10/05/Linux-watch-command/"/>
+    <id>http://liujunming.github.io/2022/10/05/Linux-watch-command/</id>
+    <published>2022-10-05T13:10:29.000Z</published>
+    <updated>2022-10-05T13:59:49.981Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark watch命令相关notes。<a id="more"></a> </p><p>watch命令以周期性的方式执行给定的指令，指令输出以全屏方式显示。watch是一个非常实用的命令，基本所有的Linux发行版都带有这个小工具，如同名字一样，watch可以帮你监测一个命令的运行结果，省得你一遍遍的手动运行。</p><p>下面将介绍下watch命令的一个用例。</p><p>在虚拟化环境下，如何确认TLB shootdown是引起性能下降的因素之一？<br>在 Guest 中执行：<br><code>watch -d -n 1 &quot;cat /proc/interrupts | grep TLB&quot;</code></p><p>如果看到数据上涨比较厉害，那么基本就可以看到问题了。</p><hr><p>参考资料:</p><ol><li><a href="https://man7.org/linux/man-pages/man1/watch.1.html" target="_blank" rel="noopener">man</a></li><li><a href="https://wangchujiang.com/linux-command/c/watch.html" target="_blank" rel="noopener">watch</a></li><li><a href="https://blog.csdn.net/ByteDanceTech/article/details/104765810" target="_blank" rel="noopener">深入理解 Linux 内核–jemalloc 引起的 TLB shootdown 及优化</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark watch命令相关notes。
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>Linux 中 2＞&amp;1 详解</title>
@@ -454,30 +476,6 @@
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
     
       <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>IOMMU的探测</title>
-    <link href="http://liujunming.github.io/2022/08/15/IOMMU%E7%9A%84%E6%8E%A2%E6%B5%8B/"/>
-    <id>http://liujunming.github.io/2022/08/15/IOMMU的探测/</id>
-    <published>2022-08-15T03:04:44.000Z</published>
-    <updated>2022-08-15T05:21:45.624Z</updated>
-    
-    <content type="html"><![CDATA[<p>如果机器上存在多个IOMMU，怎么知道某设备使用哪个IOMMU呢？以这个问题为索引，引出本文。<a id="more"></a></p><h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p><img src="https://projectacrn.github.io/3.0/_images/vt-d-image90.png" alt></p><h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><p>先看一个典型的x86物理服务器：<br><img src="https://kernelgo.org/images/iommu-platform.png" alt><br>服务器上可以有多个DMAR Unit（这里可以直接理解为多个IOMMU硬件）， 每个DMAR会负责处理其下挂载设备的DMA请求。 例如上图中， PCIE Root Port (dev:fun) (14:0)下面挂载的所有设备的DMA请求由DMAR #1负责处理， PCIE Root Port (dev:fun) (14:1)下面挂载的所有设备的DMA请求由DMAR #2负责处理， 而DMAR #3下挂载的是一个Root-Complex集成设备[29:0]，这个设备的DMA请求被DMAR #3承包， DMAR #4的情况比较复杂，它负责处理Root-Complex集成设备[30:0]以及I/OxAPIC设备的DMA请求。 这些和IOMMU相关的硬件拓扑信息需要BIOS通过ACPI表呈现给OS，这样OS才能正确驱动IOMMU硬件工作。</p><p>BIOS通过在ACPI表中提供一套DMA Remapping Reporting Structure 信息来表述物理服务器上的IOMMU拓扑信息， 这样OS在加载IOMMU驱动的时候就知道如何建立映射关系了。</p><p>VT-d spec描述的更为详细！<br><img src="/images/2022/07/09.jpg" alt></p><h3 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h3><p>查看主机上的DMAR信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">acpidump -n DMAR -b</span><br><span class="line">iasl -d dmar.dat</span><br><span class="line">cat dmar.dsl</span><br></pre></td></tr></table></figure></p><p>结合<a href="https://software.intel.com/content/dam/develop/external/us/en/documents-tps/vt-directed-io-spec.pdf" target="_blank" rel="noopener">Intel VT-d spec</a>的”BIOS Considerations”一节与<a href="https://github.com/projectacrn/acrn-hypervisor/blob/v3.0/hypervisor/acpi_parser/dmar_parse.c" target="_blank" rel="noopener">ACRN hypervisor</a>，慢慢去解析相关field。</p><p>蓝皮书中也有相关描述:<br><img src="/images/2022/07/08.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://projectacrn.github.io/3.0/developer-guides/hld/hv-vt-d.html#dma-remapping-report-acpi-table" target="_blank" rel="noopener">DMA Remapping Report ACPI Table</a></li><li><a href="https://kernelgo.org/intel_iommu.html" target="_blank" rel="noopener">Intel IOMMU Introduction</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;如果机器上存在多个IOMMU，怎么知道某设备使用哪个IOMMU呢？以这个问题为索引，引出本文。
-    
-    </summary>
-    
-      <category term="ACPI" scheme="http://liujunming.github.io/categories/ACPI/"/>
-    
-    
-      <category term="ACPI" scheme="http://liujunming.github.io/tags/ACPI/"/>
-    
-      <category term="IOMMU" scheme="http://liujunming.github.io/tags/IOMMU/"/>
     
   </entry>
   
