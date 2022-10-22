@@ -299,12 +299,13 @@
 <p>QEMU写了<code>irqfd</code>后，KVM内核模块中的irqfd poll就收到一个<code>POLL_IN</code>事件，然后将MSIx中断自动投递给对应的LAPIC。 大致流程是：<code>POLL_IN</code> -&gt; <code>kvm_arch_set_irq_inatomic</code> -&gt; <code>kvm_set_msi_irq</code>, <code>kvm_irq_delivery_to_apic_fast</code></p>
 </blockquote>
 <p><a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/irq_comm.c#L157" target="_blank" rel="noopener">kvm_arch_set_irq_inatomic</a>最终会调用<a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/lapic.c#L1015" target="_blank" rel="noopener">kvm_irq_delivery_to_apic_fast</a>来给guest注入interrupt。</p>
-<h4 id="1-2-kvm-irq-delivery-to-apic-fast"><a href="#1-2-kvm-irq-delivery-to-apic-fast" class="headerlink" title="1.2 kvm_irq_delivery_to_apic_fast"></a>1.2 kvm_irq_delivery_to_apic_fast</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kvm_irq_delivery_to_apic_fast</span><br><span class="line">        kvm_apic_set_irq</span><br><span class="line">                __apic_accept_irq</span><br><span class="line">                        vmx_deliver_interrupt</span><br><span class="line">                                vmx_deliver_posted_interrupt</span><br><span class="line">                                        kvm_vcpu_trigger_posted_interrupt</span><br></pre></td></tr></table></figure>
+<h4 id="1-2-kvm-irq-delivery-to-apic-fast"><a href="#1-2-kvm-irq-delivery-to-apic-fast" class="headerlink" title="1.2 kvm_irq_delivery_to_apic_fast"></a>1.2 kvm_irq_delivery_to_apic_fast</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kvm_irq_delivery_to_apic_fast</span><br><span class="line">└── kvm_apic_set_irq</span><br><span class="line">    └── __apic_accept_irq</span><br><span class="line">        └── vmx_deliver_interrupt</span><br><span class="line">            └── vmx_deliver_posted_interrupt</span><br><span class="line">                └── kvm_vcpu_trigger_posted_interrupt</span><br></pre></td></tr></table></figure>
 <h3 id="2-apic-accept-irq"><a href="#2-apic-accept-irq" class="headerlink" title="2. __apic_accept_irq"></a>2. __apic_accept_irq</h3><p><a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/lapic.c#L1098" target="_blank" rel="noopener">__apic_accept_irq</a>其实就会使用VT-x的posted interrupt完成中断的注入。</p>
 <p><code>KVM_SIGNAL_MSI</code>、<code>KVM_IRQ_LINE</code>等ioctl其实会在KVM中调用<code>__apic_accept_irq</code>函数，因此，最终会使用到posted interrupt来完成虚拟中断的注入。</p>
 <p>根据我的理解(待实验验证)，在VNC中的鼠标键盘操作，其实本质上是给虚拟机注入中断，对于这种中断，也是可以使用posted interrupt的。</p>
 <h3 id="3-在虚拟化下，lapic-timer可以用VT-x-posted-interrupt呢？"><a href="#3-在虚拟化下，lapic-timer可以用VT-x-posted-interrupt呢？" class="headerlink" title="3. 在虚拟化下，lapic timer可以用VT-x posted interrupt呢？"></a>3. 在虚拟化下，lapic timer可以用VT-x posted interrupt呢？</h3><p>在虚拟化场景下，假设vCPU与pCPU一一绑定，那么，lapic timer可以使用VT-x posted interrupt吗？<br>在KVM架构下，答案是否定的，分析如下:<br><img src="/images/2022/10/12.jpg" alt><br>当前是设置了External-interrupt exiting这个位的。当vCPU在non-root mode，此时物理的lapic timer的中断来了，那么就会导致VM Exit，此时使用VT-x posted interrupt已经没有意义了。</p>
 <p><a href="/2022/09/11/LAPIC-Implement-Exitless-Timer/">Injection Exitless LAPIC Timer</a>的Idea是offload lapic timer to housekeeping cpus，然后由housekeeping cpu利用VT-x posted interrupt为vCPU注入中断！</p>
+<p>ps:如果<a href="/2022/10/22/lapic-timer-virtualization/">vCPU的lapic timer</a>由preemption timer进行模拟的话，定时器到期后vCPU会陷出，此时也没有必要用posted interrupt了。</p>
 <h3 id="4-WNV的发送in-VT-d"><a href="#4-WNV的发送in-VT-d" class="headerlink" title="4. WNV的发送in VT-d"></a>4. WNV的发送in VT-d</h3><p><a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/vmx/posted_intr.c#L163" target="_blank" rel="noopener">new.nv = POSTED_INTR_WAKEUP_VECTOR</a></p>
 <p>当vCPU处于ready-to-run或者halted状态时，物理中断来了，此时IOMMU会发送WNV来<a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/vmx/posted_intr.c#L212" target="_blank" rel="noopener">唤醒vCPU</a>。<br>值得注意的是: WNV是IOMMU发送的，而非软件。</p>
 <hr>
@@ -345,6 +346,12 @@
         
         
   <nav class="post-nav">
+    
+      <a class="prev" href="/2022/10/22/每周分享第33期/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">每周分享第33期</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
     
     
       <a class="next" href="/2022/10/15/bytedance-trace-irqoff-tool/">
