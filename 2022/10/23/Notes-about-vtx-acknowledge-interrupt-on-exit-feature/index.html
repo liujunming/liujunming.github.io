@@ -22,7 +22,7 @@
 
 
 
-  <meta name="keywords" content="虚拟化, 中断, L">
+  <meta name="keywords" content="VT-x, 中断, 虚拟化 , L">
 
 
 
@@ -271,7 +271,7 @@
         
           <span class="post-category">
             
-              <a href="/categories/中断/">中断</a>
+              <a href="/categories/VT-x/">VT-x</a>
             
           </span>
         
@@ -307,7 +307,7 @@
 <ul>
 <li>当“acknowledge interrupt on exit” VM-exit control位为1：</li>
 </ul>
-<p>当vCPU在non-root mode时，external interrupt会导致VM Exit，此时VM Exit interruption information field is marked as valid，并且会记录external interrupt的vector号，此时lapic的IRR对应的bit位并没有被置上，但lapic ISR对应的bit位会被置上(logical processor acknowledges the interrupt controller)。在root mode下，由于lapic的IRR对应的bit位并没有被置上，此时就不会走interrupt evaluation和interrupt recognition这条路径了，也就不会发生interrupt delivery了，处理器不会通过IDT调用中断处理函数。此时，需要hypervisor手动调用IDT的中断处理函数。</p>
+<p>当vCPU在non-root mode时，external interrupt会导致VM Exit，此时VM Exit interruption information field is marked as valid，并且会记录external interrupt的vector号，此时lapic的IRR对应的bit位并没有被置上，但lapic ISR对应的bit位会被置上(logical processor acknowledges the interrupt controller)。在root mode下，由于lapic的IRR对应的bit位并没有被置上，此时就不会走interrupt evaluation和interrupt recognition这条路径了，也就不会发生interrupt delivery了，处理器不会通过IDT调用中断处理函数。此时需要hypervisor手动调用IDT的中断处理函数。</p>
 <h3 id="代码解析"><a href="#代码解析" class="headerlink" title="代码解析"></a>代码解析</h3><p>本文参考的内核版本为<a href="https://elixir.bootlin.com/linux/v5.0/source/" target="_blank" rel="noopener">v5.0</a>。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">int</span> <span class="params">(*kvm_vmx_exit_handlers[])</span><span class="params">(struct kvm_vcpu *vcpu)</span> </span>= &#123;</span><br><span class="line">	...</span><br><span class="line">	[EXIT_REASON_EXTERNAL_INTERRUPT]      = handle_external_interrupt,</span><br><span class="line">	...</span><br></pre></td></tr></table></figure>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> __<span class="function">always_inline <span class="keyword">int</span> <span class="title">handle_external_interrupt</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	++vcpu-&gt;stat.irq_exits;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -341,15 +341,23 @@
         
           <div class="post-tags">
             
-              <a href="/tags/虚拟化/">虚拟化</a>
+              <a href="/tags/VT-x/">VT-x</a>
             
               <a href="/tags/中断/">中断</a>
+            
+              <a href="/tags/虚拟化/">虚拟化 </a>
             
           </div>
         
         
         
   <nav class="post-nav">
+    
+      <a class="prev" href="/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Notes about Intel Data Streaming Accelerator(DSA)</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
     
     
       <a class="next" href="/2022/10/22/lapic-timer-virtualization/">
