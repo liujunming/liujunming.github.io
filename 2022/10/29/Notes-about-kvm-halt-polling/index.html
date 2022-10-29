@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="KVM halt-polling机制分析">
 
 
 
+
+  <meta name="keywords" content="虚拟化, KVM, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2022/page/8/">
+<link rel="canonical" href="http://liujunming.github.io/2022/10/29/Notes-about-kvm-halt-polling/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> KVM halt-polling机制分析 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,241 +256,126 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          KVM halt-polling机制分析
+        
+      </h1>
 
-  <section id="archive" class="archive">
+      <div class="post-meta">
+        <span class="post-time">
+          2022-10-29
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/KVM/">KVM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
     
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#简介"><span class="toc-text">简介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#注意事项"><span class="toc-text">注意事项</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#延伸阅读"><span class="toc-text">延伸阅读</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>   本文转载自:<a href="https://www.cnblogs.com/163yun/p/10114699.html" target="_blank" rel="noopener">KVM halt-polling机制分析</a>。<a id="more"></a> </p>
+<h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>在实际业务中，guest执行HLT指令是导致虚拟化overhead的一个重要原因。如[1]。</p>
+<p>KVM halt polling特性就是为了解决这一个问题被引入的，它在Linux 4.3-rc1被合入主干内核，其基本原理是当guest idle发生vm-exit时，host 继续polling一段时间，用于减少guest的业务时延。进一步讲，在vcpu进入idle之后，guest内核默认处理是执行HLT指令，就会发生vm-exit，host kernel并不马上让出物理核给调度器，而是poll一段时间，若guest在这段时间内被唤醒，便可以马上调度回该vcpu线程继续运行。</p>
+<p>polling机制带来时延上的降低，至少是一个线程调度周期，通常是几微妙，但最终的性能提升是跟guest内业务模型相关的。如果在host kernel polling期间，没有唤醒事件发生或是运行队列里面其他任务变成runnable状态，那么调度器就会被唤醒去干其他任务的事。因此，halt polling机制对于那些在很短时间间隔就会被唤醒一次的业务特别有效。</p>
+<h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><ol>
+<li>该机制有可能导致物理CPU实际空闲的情况下占用率表现为100%。因为如果guest上业务模型是隔一段时间被唤醒一次来处理很少量的流量，并且这个时间间隔比kvm halt_poll_ns短，那么host将poll整个虚拟机的block时间，cpu占用率也会冲上100%。</li>
+<li>halt polling是电源能耗和业务时延的一个权衡。为了减少进入guest的时延，idle cpu时间转换为host kernel时间。</li>
+<li>该机制只有在CPU上没有其他running任务的情况得以应用，不然polling动作被立马终止，唤醒调度器，调度其他进程。</li>
+</ol>
+<h3 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h3><p>业界针对虚拟机idle这个课题有比较多的研究，因为它带来了比较大的overhead。主要可以归结为以下几种：</p>
+<ol>
+<li><p>idle=poll，即把虚拟机idle时一直polling，空转，不退出。这样不利于物理CPU超线程的发挥。</p>
+</li>
+<li><p>阿里提出guest里面提供halt polling机制，即在VM退出前先等会儿，这样可以减少VM退出次数。 优点：性能较kvm halt polling机制好；缺点：需要修改guest内核；状态：社区未接收 <a href="https://lore.kernel.org/kvm/1510567565-5118-1-git-send-email-quan.xu0@gmail.com/" target="_blank" rel="noopener">x86/idle: add halt poll support</a> 值得注意的是， 类似idea的工作<a href="/2022/10/28/Notes-about-Guest-halt-polling/">guest halt polling</a>社区已接受</p>
+</li>
+<li><p>腾讯考虑guest HLT指令不退出。优点：性能较阿里好；缺点：只适用于vcpu独占物理核场景；状态：社区已接受。<a href="https://lore.kernel.org/kvm/1517813878-22248-1-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">KVM: X86: Add per-VM no-HLT-exiting capability</a></p>
+</li>
+</ol>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.linux-kvm.org/images/2/27/Kvm-forum-2013-idle-latency.pdf" target="_blank" rel="noopener">KVM vs. Message Passing Throughput</a></li>
+<li><a href="http://events17.linuxfoundation.org/sites/events/files/slides/Message%20Passing%20Workloads%20in%20KVM%20%28SLIDES%29.pdf" target="_blank" rel="noopener">Message Passing Workloads in KVM</a></li>
+<li><a href="http://events17.linuxfoundation.org/sites/events/files/slides/KVM%20performance%20tuning%20on%20Alibaba%20Cloud.pdf" target="_blank" rel="noopener">KVM performance tuning</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/virtual/kvm/halt-polling.txt" target="_blank" rel="noopener">The KVM halt polling system</a></li>
+</ol>
+
+      
+    </div>
 
     
       
-        
-        
+      
 
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
         
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2022</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/KVM/">KVM</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/01/Introduction-to-VT-x-Preemption-Timer/" class="archive-post-link">
-            Introduction to VT-x Preemption Timer
-          </a>
-        </span>
-      </div>
-    
-      
         
         
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            04-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/04/01/Notes-about-NVLink-and-NVSwitch/" class="archive-post-link">
-            Notes about NVLink and NVSwitch
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            03-31
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/03/31/Notes-about-SIOV/" class="archive-post-link">
-            Notes about SIOV
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            03-31
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/03/31/Misc-about-PCI-PCIe-1/" class="archive-post-link">
-            Misc about PCI&&PCIe(1)
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            03-30
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/03/30/Introduction-to-Shared-Virtual-Memory/" class="archive-post-link">
-            Introduction to Shared Virtual Memory
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            03-30
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/03/30/Notes-about-PCIe-Page-Request-Interface/" class="archive-post-link">
-            Introduction to PCIe Page Request Interface
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            03-29
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/03/29/Introduction-to-Intel-I-OAT/" class="archive-post-link">
-            Introduction to Intel I/OAT
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            03-28
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/03/28/Introduction-to-Compute-Express-Link-CXL/" class="archive-post-link">
-            Introduction to Compute Express Link (CXL)
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            03-28
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/03/28/Introduction-to-Intel-DDIO-technology/" class="archive-post-link">
-            Introduction to Intel DDIO technology
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            03-16
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2022/03/16/thread-core-module-die-package/" class="archive-post-link">
-            thread core module die package
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
-      <a class="prev" href="/archives/2022/page/7/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text">上一页</span>
-      </a>
+  <nav class="post-nav">
     
     
-      <a class="next" href="/archives/2022/page/9/">
-        <span class="next-text">下一页</span>
+      <a class="next" href="/2022/10/28/Notes-about-Guest-halt-polling/">
+        <span class="next-text nav-default">Notes about guest halt polling</span>
+        <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -576,6 +459,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/10/29/Notes-about-kvm-halt-polling/';
+        this.page.identifier = '2022/10/29/Notes-about-kvm-halt-polling/';
+        this.page.title = 'KVM halt-polling机制分析';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     

@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-10-28T13:35:34.026Z</updated>
+  <updated>2022-10-29T08:51:57.874Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -17,11 +17,35 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>KVM halt-polling机制分析</title>
+    <link href="http://liujunming.github.io/2022/10/29/Notes-about-kvm-halt-polling/"/>
+    <id>http://liujunming.github.io/2022/10/29/Notes-about-kvm-halt-polling/</id>
+    <published>2022-10-29T07:35:53.000Z</published>
+    <updated>2022-10-29T08:51:57.874Z</updated>
+    
+    <content type="html"><![CDATA[<p>   本文转载自:<a href="https://www.cnblogs.com/163yun/p/10114699.html" target="_blank" rel="noopener">KVM halt-polling机制分析</a>。<a id="more"></a> </p><h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>在实际业务中，guest执行HLT指令是导致虚拟化overhead的一个重要原因。如[1]。</p><p>KVM halt polling特性就是为了解决这一个问题被引入的，它在Linux 4.3-rc1被合入主干内核，其基本原理是当guest idle发生vm-exit时，host 继续polling一段时间，用于减少guest的业务时延。进一步讲，在vcpu进入idle之后，guest内核默认处理是执行HLT指令，就会发生vm-exit，host kernel并不马上让出物理核给调度器，而是poll一段时间，若guest在这段时间内被唤醒，便可以马上调度回该vcpu线程继续运行。</p><p>polling机制带来时延上的降低，至少是一个线程调度周期，通常是几微妙，但最终的性能提升是跟guest内业务模型相关的。如果在host kernel polling期间，没有唤醒事件发生或是运行队列里面其他任务变成runnable状态，那么调度器就会被唤醒去干其他任务的事。因此，halt polling机制对于那些在很短时间间隔就会被唤醒一次的业务特别有效。</p><h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><ol><li>该机制有可能导致物理CPU实际空闲的情况下占用率表现为100%。因为如果guest上业务模型是隔一段时间被唤醒一次来处理很少量的流量，并且这个时间间隔比kvm halt_poll_ns短，那么host将poll整个虚拟机的block时间，cpu占用率也会冲上100%。</li><li>halt polling是电源能耗和业务时延的一个权衡。为了减少进入guest的时延，idle cpu时间转换为host kernel时间。</li><li>该机制只有在CPU上没有其他running任务的情况得以应用，不然polling动作被立马终止，唤醒调度器，调度其他进程。</li></ol><h3 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h3><p>业界针对虚拟机idle这个课题有比较多的研究，因为它带来了比较大的overhead。主要可以归结为以下几种：</p><ol><li><p>idle=poll，即把虚拟机idle时一直polling，空转，不退出。这样不利于物理CPU超线程的发挥。</p></li><li><p>阿里提出guest里面提供halt polling机制，即在VM退出前先等会儿，这样可以减少VM退出次数。 优点：性能较kvm halt polling机制好；缺点：需要修改guest内核；状态：社区未接收 <a href="https://lore.kernel.org/kvm/1510567565-5118-1-git-send-email-quan.xu0@gmail.com/" target="_blank" rel="noopener">x86/idle: add halt poll support</a> 值得注意的是， 类似idea的工作<a href="/2022/10/28/Notes-about-Guest-halt-polling/">guest halt polling</a>社区已接受</p></li><li><p>腾讯考虑guest HLT指令不退出。优点：性能较阿里好；缺点：只适用于vcpu独占物理核场景；状态：社区已接受。<a href="https://lore.kernel.org/kvm/1517813878-22248-1-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">KVM: X86: Add per-VM no-HLT-exiting capability</a></p></li></ol><hr><p>参考资料:</p><ol><li><a href="https://www.linux-kvm.org/images/2/27/Kvm-forum-2013-idle-latency.pdf" target="_blank" rel="noopener">KVM vs. Message Passing Throughput</a></li><li><a href="http://events17.linuxfoundation.org/sites/events/files/slides/Message%20Passing%20Workloads%20in%20KVM%20%28SLIDES%29.pdf" target="_blank" rel="noopener">Message Passing Workloads in KVM</a></li><li><a href="http://events17.linuxfoundation.org/sites/events/files/slides/KVM%20performance%20tuning%20on%20Alibaba%20Cloud.pdf" target="_blank" rel="noopener">KVM performance tuning</a></li><li><a href="https://www.kernel.org/doc/Documentation/virtual/kvm/halt-polling.txt" target="_blank" rel="noopener">The KVM halt polling system</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;   本文转载自:&lt;a href=&quot;https://www.cnblogs.com/163yun/p/10114699.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;KVM halt-polling机制分析&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="KVM" scheme="http://liujunming.github.io/categories/KVM/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Notes about guest halt polling</title>
     <link href="http://liujunming.github.io/2022/10/28/Notes-about-Guest-halt-polling/"/>
     <id>http://liujunming.github.io/2022/10/28/Notes-about-Guest-halt-polling/</id>
     <published>2022-10-28T13:20:37.000Z</published>
-    <updated>2022-10-28T13:35:34.026Z</updated>
+    <updated>2022-10-29T08:49:07.967Z</updated>
     
     <content type="html"><![CDATA[<p>Notes about guest halt polling feature.<a id="more"></a> </p><p>前提:    需要对intel的<a href="/2020/05/01/Introduction-to-halt-pause-monitor-mwait-instruction/#hlt">hlt</a>指令有一定的了解。 </p><p>The cpuidle_haltpoll driver, with the haltpoll governor, allows the guest vcpus to poll for a specified amount of time before halting.</p><p>This provides the following benefits to host side polling:</p><ol><li>The POLL flag is set while polling is performed, which allows a remote vCPU to avoid sending an IPI (and the associated cost of handling the IPI) when performing a wakeup.</li><li>The VM-exit cost can be avoided.</li></ol><p>The downside of guest side polling is that polling is performed even with other runnable tasks in the host.</p><p>The basic logic as follows: A global value, <code>guest_halt_poll_ns</code>, is configured by the user, indicating the maximum amount of time polling is allowed. This value is fixed.</p><p>Each vcpu has an adjustable <code>guest_halt_poll_ns</code> (“per-cpu <code>guest_halt_poll_ns</code>”), which is adjusted by the algorithm in response to events.</p><p>The module parameters can be set from the debugfs files in:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/sys/module/haltpoll/parameters/</span><br></pre></td></tr></table></figure></p><hr><p>参考资料:</p><ol><li><a href="https://www.kernel.org/doc/html/latest/virt/guest-halt-polling.html" target="_blank" rel="noopener">Guest halt polling</a></li><li><a href="https://lore.kernel.org/kvm/20190613224532.949768676@redhat.com/" target="_blank" rel="noopener">cpuidle haltpoll driver and governor</a></li></ol>]]></content>
     
@@ -449,34 +473,6 @@
     
     
       <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Injection Exitless LAPIC Timer</title>
-    <link href="http://liujunming.github.io/2022/09/11/LAPIC-Implement-Exitless-Timer/"/>
-    <id>http://liujunming.github.io/2022/09/11/LAPIC-Implement-Exitless-Timer/</id>
-    <published>2022-09-11T03:56:04.000Z</published>
-    <updated>2022-09-12T11:14:31.684Z</updated>
-    
-    <content type="html"><![CDATA[<p><img src="/images/2022/09/13.jpg" alt></p><p><img src="/images/2022/09/14.jpg" alt></p><p><img src="/images/2022/09/15.jpg" alt><br><a id="more"></a><br>建议先阅读<a href="/2022/09/06/Linux中的tick模式/">Linux中的tick模式</a>和<a href="/2022/09/07/isolated-CPU-vs-housekeeping-CPU/">isolated CPU vs housekeeping CPU</a>。</p><p>Dedicated instances are currently disturbed by unnecessary jitter due  to the emulated lapic timers fire on the same pCPUs which vCPUs resident. There is no hardware virtual timer on Intel for guest like ARM. Both  programming timer in guest and the emulated timer fires incur vmexits. This patchset tries to avoid vmexit which is incurred by the emulated  timer fires in dedicated instance scenario. </p><p>When nohz_full is enabled in dedicated instances scenario, the unpinned  timer will be moved to the nearest busy housekeepers after commit 9642d18eee2cd (nohz: Affine unpinned timers to housekeepers) and commit  444969223c8 (“sched/nohz: Fix affine unpinned timers mess”). However, KVM always makes lapic timer pinned to the pCPU which vCPU residents, the reason is explained by commit 61abdbe0 (kvm: x86: make lapic hrtimer pinned). Actually, these emulated timers can be offload to the housekeeping cpus since APICv is really common in recent years. The guest timer interrupt is injected by posted-interrupt which is delivered by housekeeping cpu once the emulated timer fires. </p><p>The host admin should fine tuned, e.g. dedicated instances scenario w/ nohz_full cover the pCPUs which vCPUs resident, several pCPUs surplus for busy housekeeping, disable mwait/hlt/pause vmexits to keep in non-root mode, ~3% redis performance benefit can be observed on Skylake server.</p><hr><p>参考资料:</p><ol><li><a href="https://lore.kernel.org/all/1562376411-3533-1-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">KVM: LAPIC: Implement Exitless Timer</a></li><li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/10/01/kvm-performance-2" target="_blank" rel="noopener">Exitless timer</a></li><li><a href="https://static.sched.com/hosted_files/kvmforum2019/e3/Boosting%20Dedicated%20Instances%20by%20KVM%20Tax%20Cut.pdf" target="_blank" rel="noopener">Boosting Dedicated Instance via KVM Tax Cut</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;img src=&quot;/images/2022/09/13.jpg&quot; alt&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/images/2022/09/14.jpg&quot; alt&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/images/2022/09/15.jpg&quot; alt&gt;&lt;br&gt;
-    
-    </summary>
-    
-      <category term="Time" scheme="http://liujunming.github.io/categories/Time/"/>
-    
-    
-      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
-    
-      <category term="Time" scheme="http://liujunming.github.io/tags/Time/"/>
-    
-      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
     
   </entry>
   
