@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-10-29T08:51:57.874Z</updated>
+  <updated>2022-10-30T01:39:38.435Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about virtual IPI fastpath and virtual TSC-Deadline timer fastpath</title>
+    <link href="http://liujunming.github.io/2022/10/30/Notes-about-virtual-IPI-fastpath/"/>
+    <id>http://liujunming.github.io/2022/10/30/Notes-about-virtual-IPI-fastpath/</id>
+    <published>2022-10-29T17:20:02.000Z</published>
+    <updated>2022-10-30T01:39:38.435Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文参考的内核版本为<a href="https://elixir.bootlin.com/linux/v6.0/source" target="_blank" rel="noopener">v6.0</a>。<a id="more"></a></p><h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p><img src="/images/2022/10/18.jpg" alt></p><h3 id="virtual-IPI-fastpath"><a href="#virtual-IPI-fastpath" class="headerlink" title="virtual IPI fastpath"></a>virtual IPI fastpath</h3><p><img src="/images/2022/10/19.jpg" alt></p><p><img src="/images/2022/10/20.jpg" alt></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vmx_vcpu_run</span><br><span class="line">└── vmx_exit_handlers_fastpath</span><br><span class="line">    └── handle_fastpath_set_msr_irqoff</span><br><span class="line">        └── handle_fastpath_set_x2apic_icr_irqoff</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The fast path for frequent and performance sensitive wrmsr emulation,</span></span><br><span class="line"><span class="comment"> * i.e. the sending of IPI, sending IPI early in the VM-Exit flow reduces</span></span><br><span class="line"><span class="comment"> * the latency of virtual IPI by avoiding the expensive bits of transitioning</span></span><br><span class="line"><span class="comment"> * from guest to host, e.g. reacquiring KVM's SRCU lock. In contrast to the</span></span><br><span class="line"><span class="comment"> * other cases which must be called after interrupts are enabled on the host.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">handle_fastpath_set_x2apic_icr_irqoff</span><span class="params">(struct kvm_vcpu *vcpu, u64 data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="keyword">if</span> (!lapic_in_kernel(vcpu) || !apic_x2apic_mode(vcpu-&gt;arch.apic))</span><br><span class="line"><span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (((data &amp; APIC_SHORT_MASK) == APIC_DEST_NOSHORT) &amp;&amp;</span><br><span class="line">    ((data &amp; APIC_DEST_MASK) == APIC_DEST_PHYSICAL) &amp;&amp;</span><br><span class="line">    ((data &amp; APIC_MODE_MASK) == APIC_DM_FIXED) &amp;&amp;</span><br><span class="line">    ((u32)(data &gt;&gt; <span class="number">32</span>) != X2APIC_BROADCAST))</span><br><span class="line"><span class="keyword">return</span> kvm_x2apic_icr_write(vcpu-&gt;arch.apic, data);</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h3 id="virtual-TSC-Deadline-timer-fastpath"><a href="#virtual-TSC-Deadline-timer-fastpath" class="headerlink" title="virtual TSC-Deadline timer fastpath"></a>virtual TSC-Deadline timer fastpath</h3><p><img src="/images/2022/10/21.jpg" alt></p><p><img src="/images/2022/10/22.jpg" alt></p><p><a href="https://lore.kernel.org/kvm/1587709364-19090-5-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">KVM: X86: TSCDEADLINE MSR emulation fastpath</a><br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">vmx_vcpu_run</span><br><span class="line">└── vmx_exit_handlers_fastpath</span><br><span class="line">    └── handle_fastpath_set_msr_irqoff</span><br><span class="line">        └── handle_fastpath_set_tscdeadline</span><br><span class="line">            └── kvm_set_lapic_tscdeadline_msr</span><br></pre></td></tr></table></figure></p><p><img src="/images/2022/10/23.jpg" alt></p><p><a href="https://lore.kernel.org/kvm/1587709364-19090-6-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">KVM: VMX: Handle preemption timer fastpath</a><br>该patch优化的是<a href="/2022/10/22/lapic-timer-virtualization/">使用preemption timer模拟lapic timer的case</a>。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vmx_vcpu_run</span><br><span class="line">└── vmx_exit_handlers_fastpath</span><br><span class="line">    └── handle_fastpath_preemption_timer</span><br></pre></td></tr></table></figure></p><p><img src="/images/2022/10/24.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://static.sched.com/hosted_files/kvmforum2020/6e/KVM%20Latency%20and%20Scalability%20Performance%20Tuning.pdf" target="_blank" rel="noopener">KVM Latency and Scalability Performance Tuning</a></li><li><a href="https://lore.kernel.org/kvm/1574306232-872-1-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">KVM: VMX: FIXED+PHYSICAL mode single target IPI fastpath</a></li><li><a href="https://lore.kernel.org/kvm/1587709364-19090-1-git-send-email-wanpengli@tencent.com/" target="_blank" rel="noopener">KVM: VMX: Tscdeadline timer emulation fastpath</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文参考的内核版本为&lt;a href=&quot;https://elixir.bootlin.com/linux/v6.0/source&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;v6.0&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="KVM" scheme="http://liujunming.github.io/categories/KVM/"/>
+    
+    
+      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
   
   <entry>
     <title>KVM halt-polling机制分析</title>
@@ -451,28 +475,6 @@
     
     
       <category term="VFIO" scheme="http://liujunming.github.io/tags/VFIO/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Intel&#39;s Linear Address Masking</title>
-    <link href="http://liujunming.github.io/2022/09/12/Notes-about-Intel-s-Linear-Address-Masking/"/>
-    <id>http://liujunming.github.io/2022/09/12/Notes-about-Intel-s-Linear-Address-Masking/</id>
-    <published>2022-09-12T13:35:56.000Z</published>
-    <updated>2022-09-12T14:37:40.988Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about Intel’s Linear Address Masking(LAM).<a id="more"></a> </p><h3 id="1-Background"><a href="#1-Background" class="headerlink" title="1. Background"></a>1. Background</h3><p>A 64-bit pointer can address a lot of memory — far more than just about any application could ever need. As a result, there are bits within that pointer that are not really needed to address memory, and which might be put to other needs. Storing a few bits of metadata within a pointer is a common enough use case.</p><h3 id="2-Motivation"><a href="#2-Motivation" class="headerlink" title="2. Motivation"></a>2. Motivation</h3><p>In Intel CPU, 假设使用64 bit pointer(虚拟地址)的57位到62位存放metadata，当想要<a href="https://stackoverflow.com/questions/4955198/what-does-dereferencing-a-pointer-mean" target="_blank" rel="noopener">dereferencing a pointer</a>时：</p><ul><li>Without LAM，软件需要显示地unmask掉pointer的57位到62位，说白了，每次dereferencing时，软件都需要做一个<code>与</code>操作</li><li>With LAM，软件无需unmask掉pointer的57位到62位，硬件直接完成unmask的功能，这样，每次dereferencing时，软件无需<code>与</code>操作了</li></ul><p>通俗地说，LAM的作用是将软件unmask pointer meatadata的功能offload到硬件上了。</p><h3 id="3-Details"><a href="#3-Details" class="headerlink" title="3. Details"></a>3. Details</h3><p>Intel’s LAM feature offers two modes:</p><ul><li><code>LAM_U57</code> allows six bits of metadata in bits 62 to 57.</li><li><code>LAM_U48</code> allows 15 bits of metadata in bits 62 to 48.</li></ul><h4 id="3-1-Why-not-use-bit-64-as-metadata"><a href="#3-1-Why-not-use-bit-64-as-metadata" class="headerlink" title="3.1 Why not use bit 64 as metadata"></a>3.1 Why not use bit 64 as metadata</h4><p>可以带着这个问题去<a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a>中寻找答案。</p><h4 id="3-2-LAM-U48与five-level-page-tables的配合使用"><a href="#3-2-LAM-U48与five-level-page-tables的配合使用" class="headerlink" title="3.2 LAM_U48与five-level page tables的配合使用"></a>3.2 <code>LAM_U48</code>与five-level page tables的配合使用</h4><p>说白了，五级页表会使用到<code>LAM_U48</code>中的bit 48到56，因而可能会产生冲突。如何解决这个冲突呢？可以带着这个问题去<a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a>中寻找答案。</p><hr><p>参考资料:</p><ol><li><a href="https://lwn.net/Articles/902094/" target="_blank" rel="noopener">Support for Intel’s Linear Address Masking</a></li><li><a href="https://mp.weixin.qq.com/s/xnEGKub5iGacr76tsNhSHg" target="_blank" rel="noopener">LWN：支持Intel线性地址屏蔽功能！</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about Intel’s Linear Address Masking(LAM).
-    
-    </summary>
-    
-      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
-    
-    
-      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
     
   </entry>
   
