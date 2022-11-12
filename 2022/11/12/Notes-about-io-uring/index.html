@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about io_uring">
+
+
+
+
+  <meta name="keywords" content="I/O系统, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/11/12/Notes-about-io-uring/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about io_uring - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about io_uring
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-11-12
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/I-O系统/">I/O系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Motivation"><span class="toc-text">Motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Communication-channel"><span class="toc-text">Communication channel</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#System-call"><span class="toc-text">System call</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#默认流程"><span class="toc-text">默认流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Submission-Queue-Polling"><span class="toc-text">Submission Queue Polling</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#io-polling"><span class="toc-text">io polling</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#liburing"><span class="toc-text">liburing</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将记录io_uring相关笔记。<a id="more"></a> </p>
+<h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p>The native Linux AIO framework suffers from various limitations, which io_uring aims to overcome:</p>
+<ul>
+<li>It does not support buffered I/O, only direct I/O is supported.</li>
+<li>It has non-deterministic behavior which may block under various circumstances.</li>
+<li>It has a sub-optimal API, which requires at least two system calls per I/O, one to submit a request, and one to wait for its completion.<ul>
+<li>Each submission needs to copy 64 + 8 bytes of data, and each completion needs to copy 32 bytes.</li>
+</ul>
+</li>
+</ul>
+<h3 id="Communication-channel"><a href="#Communication-channel" class="headerlink" title="Communication channel"></a>Communication channel</h3><p><img src="/images/2022/11/01.jpg" alt></p>
+<p>An io_uring instance has two rings, a submission queue (SQ) and a completion queue (CQ), shared between the kernel and the application. The queues are single producer, single consumer, and power of two in size.</p>
+<p>The queues provide a lock-less access interface, coordinated with memory barriers.</p>
+<p>The application creates one or more SQ entries (SQE), and then updates the SQ tail. The kernel consumes the SQEs , and updates the SQ head.</p>
+<p>The kernel creates CQ entries (CQE) for one or more completed requests, and updates the CQ tail. The application consumes the CQEs and updates the CQ head.</p>
+<p>Completion events may arrive in any order but they are always associated with specific SQEs.</p>
+<h3 id="System-call"><a href="#System-call" class="headerlink" title="System call"></a>System call</h3><p><img src="/images/2022/11/02.jpg" alt></p>
+<h3 id="默认流程"><a href="#默认流程" class="headerlink" title="默认流程"></a>默认流程</h3><p>默认情形下，提交任务的流程，以及获取结果的方式:</p>
+<ol>
+<li>把sqe放入sqring</li>
+<li>调用<code>io_uring_enter</code>通知内核</li>
+<li><strong>可以轮询cqring等待结果</strong>或者通过带<code>IORING_ENTER_GETEVENTS</code>和<code>min_complete</code>参数的<code>io_uring_enter</code>阻塞等待指定数目的任务完成，再去cqring中检查结果</li>
+</ol>
+<h3 id="Submission-Queue-Polling"><a href="#Submission-Queue-Polling" class="headerlink" title="Submission Queue Polling"></a>Submission Queue Polling</h3><p>如果在调用<code>io_uring_setup</code> 时设置了 <code>IORING_SETUP_SQPOLL</code> 的 flag，内核会额外启动一个内核线程，我们称作 SQ 线程。这个内核线程可以运行在某个指定的 core 上（通过 <code>sq_thread_cpu</code> 配置）。这个内核线程会不停的 Poll SQ，除非在一段时间内没有 Poll 到任何请求（通过 <code>sq_thread_idle</code> 配置），才会被挂起。</p>
+<p><img src="/images/2022/11/04.jpeg" alt></p>
+<p>当程序在用户态设置完 SQE，并通过修改 SQ 的 tail 完成一次插入时，如果此时 SQ 线程处于唤醒状态，那么可以立刻捕获到这次提交，这样就避免了用户程序调用<code>io_uring_enter</code>这个系统调用。如果 SQ 线程处于休眠状态，则需要通过调用<code>io_uring_enter</code>，并使用<code>IORING_SQ_NEED_WAKEUP</code> 参数，来唤醒 SQ 线程。用户态可以通过 sqring 的 flags 变量获取 SQ 线程的状态。</p>
+<h3 id="io-polling"><a href="#io-polling" class="headerlink" title="io polling"></a>io polling</h3><p>在默认情况下，当设备处理完IO请求后，设备会发送中断通知内核往cqring添加cqe，并更新cqring的tail指针。用户态程序会轮询cqring获取新的cqe。</p>
+<p>但是对于IO low latency或者high IOPS的场景，使用中断并不合适，应该使用polling(refers to performing IO without relying on hardware interrupts to signal a completion event)。此时因为没有中断通知，内核就不会往 cqring中填充cqe，因此用户态程序就不能去轮询cqring了。此时，用户态程序必须调用<code>io_uring_enter</code> with <code>IORING_ENTER_GETEVENTS</code> set and <code>min_complete</code> set to 0来下发轮询任务给内核，内核会轮询检查是否有结果产生，如果有，则将结果放入cqring。 </p>
+<p>Tips:搞清楚内核什么时候更新cqring，分为如下两种case:</p>
+<ol>
+<li><p>硬件中断通知内核</p>
+</li>
+<li><p>用户态程序调用<code>io_uring_enter</code>来下发polling任务给内核</p>
+</li>
+</ol>
+<h3 id="liburing"><a href="#liburing" class="headerlink" title="liburing"></a>liburing</h3><p>为了简化使用io_uring， liburing 库应用而生。用户无需了解诸多 io_uring 细节便可以使用起来，如无需关心 memory barrier，以及 ring buffer 的管理等。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><img src="/images/2022/11/03.jpg" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://blogs.oracle.com/linux/post/an-introduction-to-the-io-uring-asynchronous-io-framework" target="_blank" rel="noopener">An Introduction to the io_uring Asynchronous I/O Framework</a></li>
+<li><a href="https://unixism.net/loti/what_is_io_uring.html" target="_blank" rel="noopener">What is io_uring?</a></li>
+<li><a href="https://kernel.dk/io_uring.pdf" target="_blank" rel="noopener">Efficient IO with io_uring</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/62682475" target="_blank" rel="noopener">AIO 的新归宿：io_uring</a></li>
+<li><a href="https://kernel.dk/axboe-kr2022.pdf" target="_blank" rel="noopener">What’s new with io_uring</a></li>
+<li><a href="https://mp.weixin.qq.com/s/4hXwPhCOJFjUjMJqzjKWgg" target="_blank" rel="noopener">io_uring 新异步 IO 机制，性能提升超 150%，堪比 SPDK</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/361955546" target="_blank" rel="noopener">浅析开源项目之io_uring</a></li>
+<li><a href="https://mp.weixin.qq.com/s/fzvkGpvxFXYEWMCWcfTb-w" target="_blank" rel="noopener">下一代异步 IO io_uring 技术解密</a></li>
+<li><a href="Submission Queue Polling[¶](https://unixism.net/loti/tutorial/sq_poll.html#submission-queue-polling">Submission Queue Polling</a>)</li>
+<li><a href="https://www.jianshu.com/p/32a3c72da1c1" target="_blank" rel="noopener">io_uring</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/I-O系统/">I/O系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/10/30/Notes-about-virtual-IPI-fastpath/">
+        <span class="next-text nav-default">Notes about virtual IPI fastpath and virtual TSC-Deadline timer fastpath</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/11/12/Notes-about-io-uring/';
+        this.page.identifier = '2022/11/12/Notes-about-io-uring/';
+        this.page.title = 'Notes about io_uring';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

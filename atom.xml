@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-10-30T01:39:38.435Z</updated>
+  <updated>2022-11-12T12:12:51.776Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about io_uring</title>
+    <link href="http://liujunming.github.io/2022/11/12/Notes-about-io-uring/"/>
+    <id>http://liujunming.github.io/2022/11/12/Notes-about-io-uring/</id>
+    <published>2022-11-12T05:13:37.000Z</published>
+    <updated>2022-11-12T12:12:51.776Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将记录io_uring相关笔记。<a id="more"></a> </p><h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p>The native Linux AIO framework suffers from various limitations, which io_uring aims to overcome:</p><ul><li>It does not support buffered I/O, only direct I/O is supported.</li><li>It has non-deterministic behavior which may block under various circumstances.</li><li>It has a sub-optimal API, which requires at least two system calls per I/O, one to submit a request, and one to wait for its completion.<ul><li>Each submission needs to copy 64 + 8 bytes of data, and each completion needs to copy 32 bytes.</li></ul></li></ul><h3 id="Communication-channel"><a href="#Communication-channel" class="headerlink" title="Communication channel"></a>Communication channel</h3><p><img src="/images/2022/11/01.jpg" alt></p><p>An io_uring instance has two rings, a submission queue (SQ) and a completion queue (CQ), shared between the kernel and the application. The queues are single producer, single consumer, and power of two in size.</p><p>The queues provide a lock-less access interface, coordinated with memory barriers.</p><p>The application creates one or more SQ entries (SQE), and then updates the SQ tail. The kernel consumes the SQEs , and updates the SQ head.</p><p>The kernel creates CQ entries (CQE) for one or more completed requests, and updates the CQ tail. The application consumes the CQEs and updates the CQ head.</p><p>Completion events may arrive in any order but they are always associated with specific SQEs.</p><h3 id="System-call"><a href="#System-call" class="headerlink" title="System call"></a>System call</h3><p><img src="/images/2022/11/02.jpg" alt></p><h3 id="默认流程"><a href="#默认流程" class="headerlink" title="默认流程"></a>默认流程</h3><p>默认情形下，提交任务的流程，以及获取结果的方式:</p><ol><li>把sqe放入sqring</li><li>调用<code>io_uring_enter</code>通知内核</li><li><strong>可以轮询cqring等待结果</strong>或者通过带<code>IORING_ENTER_GETEVENTS</code>和<code>min_complete</code>参数的<code>io_uring_enter</code>阻塞等待指定数目的任务完成，再去cqring中检查结果</li></ol><h3 id="Submission-Queue-Polling"><a href="#Submission-Queue-Polling" class="headerlink" title="Submission Queue Polling"></a>Submission Queue Polling</h3><p>如果在调用<code>io_uring_setup</code> 时设置了 <code>IORING_SETUP_SQPOLL</code> 的 flag，内核会额外启动一个内核线程，我们称作 SQ 线程。这个内核线程可以运行在某个指定的 core 上（通过 <code>sq_thread_cpu</code> 配置）。这个内核线程会不停的 Poll SQ，除非在一段时间内没有 Poll 到任何请求（通过 <code>sq_thread_idle</code> 配置），才会被挂起。</p><p><img src="/images/2022/11/04.jpeg" alt></p><p>当程序在用户态设置完 SQE，并通过修改 SQ 的 tail 完成一次插入时，如果此时 SQ 线程处于唤醒状态，那么可以立刻捕获到这次提交，这样就避免了用户程序调用<code>io_uring_enter</code>这个系统调用。如果 SQ 线程处于休眠状态，则需要通过调用<code>io_uring_enter</code>，并使用<code>IORING_SQ_NEED_WAKEUP</code> 参数，来唤醒 SQ 线程。用户态可以通过 sqring 的 flags 变量获取 SQ 线程的状态。</p><h3 id="io-polling"><a href="#io-polling" class="headerlink" title="io polling"></a>io polling</h3><p>在默认情况下，当设备处理完IO请求后，设备会发送中断通知内核往cqring添加cqe，并更新cqring的tail指针。用户态程序会轮询cqring获取新的cqe。</p><p>但是对于IO low latency或者high IOPS的场景，使用中断并不合适，应该使用polling(refers to performing IO without relying on hardware interrupts to signal a completion event)。此时因为没有中断通知，内核就不会往 cqring中填充cqe，因此用户态程序就不能去轮询cqring了。此时，用户态程序必须调用<code>io_uring_enter</code> with <code>IORING_ENTER_GETEVENTS</code> set and <code>min_complete</code> set to 0来下发轮询任务给内核，内核会轮询检查是否有结果产生，如果有，则将结果放入cqring。 </p><p>Tips:搞清楚内核什么时候更新cqring，分为如下两种case:</p><ol><li><p>硬件中断通知内核</p></li><li><p>用户态程序调用<code>io_uring_enter</code>来下发polling任务给内核</p></li></ol><h3 id="liburing"><a href="#liburing" class="headerlink" title="liburing"></a>liburing</h3><p>为了简化使用io_uring， liburing 库应用而生。用户无需了解诸多 io_uring 细节便可以使用起来，如无需关心 memory barrier，以及 ring buffer 的管理等。</p><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><img src="/images/2022/11/03.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://blogs.oracle.com/linux/post/an-introduction-to-the-io-uring-asynchronous-io-framework" target="_blank" rel="noopener">An Introduction to the io_uring Asynchronous I/O Framework</a></li><li><a href="https://unixism.net/loti/what_is_io_uring.html" target="_blank" rel="noopener">What is io_uring?</a></li><li><a href="https://kernel.dk/io_uring.pdf" target="_blank" rel="noopener">Efficient IO with io_uring</a></li><li><a href="https://zhuanlan.zhihu.com/p/62682475" target="_blank" rel="noopener">AIO 的新归宿：io_uring</a></li><li><a href="https://kernel.dk/axboe-kr2022.pdf" target="_blank" rel="noopener">What’s new with io_uring</a></li><li><a href="https://mp.weixin.qq.com/s/4hXwPhCOJFjUjMJqzjKWgg" target="_blank" rel="noopener">io_uring 新异步 IO 机制，性能提升超 150%，堪比 SPDK</a></li><li><a href="https://zhuanlan.zhihu.com/p/361955546" target="_blank" rel="noopener">浅析开源项目之io_uring</a></li><li><a href="https://mp.weixin.qq.com/s/fzvkGpvxFXYEWMCWcfTb-w" target="_blank" rel="noopener">下一代异步 IO io_uring 技术解密</a></li><li><a href="Submission Queue Polling[¶](https://unixism.net/loti/tutorial/sq_poll.html#submission-queue-polling">Submission Queue Polling</a>)</li><li><a href="https://www.jianshu.com/p/32a3c72da1c1" target="_blank" rel="noopener">io_uring</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将记录io_uring相关笔记。
+    
+    </summary>
+    
+      <category term="I/O系统" scheme="http://liujunming.github.io/categories/I-O%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+      <category term="I/O系统" scheme="http://liujunming.github.io/tags/I-O%E7%B3%BB%E7%BB%9F/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about virtual IPI fastpath and virtual TSC-Deadline timer fastpath</title>
@@ -453,28 +475,6 @@
     
     
       <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about VFIO-User</title>
-    <link href="http://liujunming.github.io/2022/09/25/Notes-about-VFIO-User/"/>
-    <id>http://liujunming.github.io/2022/09/25/Notes-about-VFIO-User/</id>
-    <published>2022-09-25T08:42:41.000Z</published>
-    <updated>2022-10-03T07:56:11.535Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下VFIO-User相关笔记。<a id="more"></a> 建议先观看视频<a href="https://www.bilibili.com/video/BV1t44y177T3/" target="_blank" rel="noopener">刘长鹏-SPDK高性能NVMe虚拟化方案</a>。<br><img src="/images/2022/09/16.jpg" alt></p><p><a href="/pdf/SPDK VFIO-USER虚拟化方案实现介绍.pdf">SPDK VFIO-USER虚拟化方案实现介绍</a></p><p><a href="https://static.sched.com/hosted_files/kvmforum2021/6a/Johnson_Raman_Ufimtseva_Vfio-user.pdf" target="_blank" rel="noopener">VFIO-User:Remote Device Emulation using VFIO</a></p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/vMxm98bQrHhhuBIHyy0aeA" target="_blank" rel="noopener">SPDK VFIO-USER虚拟化方案实现介绍</a></li><li><a href="https://www.youtube.com/watch?v=NBT8rImx3VE" target="_blank" rel="noopener">VFIO User - Using VFIO as the IPC Protocol in Multi-process QEMU - John Johnson &amp; Jagannathan Raman</a></li><li><a href="https://www.bilibili.com/video/BV1t44y177T3/" target="_blank" rel="noopener">刘长鹏-SPDK高性能NVMe虚拟化方案</a></li><li><a href="https://github.com/nutanix/libvfio-user" target="_blank" rel="noopener">libvfio-user</a></li><li><a href="https://spdk.io/news/2021/05/04/vfio-user/" target="_blank" rel="noopener">VFIO-USER: A new virtualization protocol</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下VFIO-User相关笔记。
-    
-    </summary>
-    
-      <category term="VFIO" scheme="http://liujunming.github.io/categories/VFIO/"/>
-    
-    
-      <category term="VFIO" scheme="http://liujunming.github.io/tags/VFIO/"/>
     
   </entry>
   
