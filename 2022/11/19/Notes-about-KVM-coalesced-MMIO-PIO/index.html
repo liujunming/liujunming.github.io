@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about KVM coalesced MMIO/PIO">
+
+
+
+
+  <meta name="keywords" content="QEMU&&KVM, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/11/19/Notes-about-KVM-coalesced-MMIO-PIO/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about KVM coalesced MMIO/PIO - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about KVM coalesced MMIO/PIO
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-11-19
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/QEMU-KVM/">QEMU&&KVM</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#背景"><span class="toc-text">背景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Motivation"><span class="toc-text">Motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#API"><span class="toc-text">API</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#QEMU-example"><span class="toc-text">QEMU example</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下KVM coalesced MMIO/PIO相关notes。<a id="more"></a> </p>
+<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p><a href="https://elixir.bootlin.com/linux/v6.0/source/virt/kvm" target="_blank" rel="noopener">https://elixir.bootlin.com/linux/v6.0/source/virt/kvm</a><br><img src="/images/2022/11/06.jpg" alt><br>在KVM源码中经常看到coalesced MMIO，本文将一探究竟。当然本文只侧重于high level层面，不涉及源码中的细节。</p>
+<h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><blockquote>
+<p>When kernel has to send MMIO writes to userspace, it stores them in memory until it has to pass the hand to userspace for another reason. This avoids to have too many context switches on operations that can wait.</p>
+</blockquote>
+<blockquote>
+<p>Coalesced I/O is used if one or more write accesses to a hardware register can be deferred until a read or a write to another hardware register on the same device.  This last access will cause a vmexit and userspace will process accesses from the ring buffer before emulating it. That will avoid exiting to userspace on repeated writes.</p>
+</blockquote>
+<ul>
+<li><p>Without KVM coalesced MMIO/PIO</p>
+<ul>
+<li>可deferred的MMIO/PIO write导致Non-root mode VM Exit -&gt; KVM -&gt; QEMU(处理可deferred的MMIO/PIO write) -&gt; KVM -&gt; 返回到Non-root mode</li>
+</ul>
+</li>
+<li><p>With KVM coalesced MMIO/PIO</p>
+<ul>
+<li>可deferred的MMIO/PIO write导致Non-root mode VM Exit -&gt; KVM(将可deferred的MMIO/PIO write记录到ring buffer) -&gt;  返回到Non-root mode</li>
+<li>不可deferred的MMIO/PIO导致Non-root mode VM Exit -&gt; KVM -&gt; QEMU(先处理完ring buffer中记录的可deferred的MMIO/PIO write，再处理这次不可deferred的MMIO/PIO) -&gt; KVM -&gt; 返回到Non-root mode</li>
+</ul>
+</li>
+</ul>
+<p>从上述的对比可知，KVM coalesced MMIO/PIO可以在KVM中记录可deferred的MMIO/PIO write，不用退出的qemu来处理，可以将这些请求dealy到下一次不可deferred的MMIO/PIO来处理。That will avoid exiting to userspace on repeated writes.</p>
+<h3 id="API"><a href="#API" class="headerlink" title="API"></a>API</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">4.116 KVM_(UN)REGISTER_COALESCED_MMIO</span><br><span class="line"></span><br><span class="line">Capability: KVM_CAP_COALESCED_MMIO (for coalesced mmio)</span><br><span class="line">	    KVM_CAP_COALESCED_PIO (for coalesced pio)</span><br><span class="line">Architectures: all</span><br><span class="line">Type: vm ioctl</span><br><span class="line">Parameters: struct kvm_coalesced_mmio_zone</span><br><span class="line">Returns: 0 on success, &lt; 0 on error</span><br><span class="line"></span><br><span class="line">Coalesced I/O is a performance optimization that defers hardware</span><br><span class="line">register write emulation so that userspace exits are avoided.  It is</span><br><span class="line">typically used to reduce the overhead of emulating frequently accessed</span><br><span class="line">hardware registers.</span><br><span class="line"></span><br><span class="line">When a hardware register is configured for coalesced I/O, write accesses</span><br><span class="line">do not exit to userspace and their value is recorded in a ring buffer</span><br><span class="line">that is shared between kernel and userspace.</span><br><span class="line"></span><br><span class="line">Coalesced I/O is used if one or more write accesses to a hardware</span><br><span class="line">register can be deferred until a read or a write to another hardware</span><br><span class="line">register on the same device.  This last access will cause a vmexit and</span><br><span class="line">userspace will process accesses from the ring buffer before emulating</span><br><span class="line">it. That will avoid exiting to userspace on repeated writes.</span><br><span class="line"></span><br><span class="line">Coalesced pio is based on coalesced mmio. There is little difference</span><br><span class="line">between coalesced mmio and pio except that coalesced pio records accesses</span><br><span class="line">to I/O ports.</span><br></pre></td></tr></table></figure>
+<h3 id="QEMU-example"><a href="#QEMU-example" class="headerlink" title="QEMU example"></a>QEMU example</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://gitlab.com/qemu-project/qemu/-/blob/stable-6.0/hw/net/e1000.c#L1631-L1647</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">e1000_mmio_setup(E1000State *d)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">int</span> i;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">uint32_t</span> excluded_regs[] = &#123;</span><br><span class="line">        E1000_MDIC, E1000_ICR, E1000_ICS, E1000_IMS,</span><br><span class="line">        E1000_IMC, E1000_TCTL, E1000_TDT, PNPMMIO_SIZE</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    memory_region_init_io(&amp;d-&gt;mmio, OBJECT(d), &amp;e1000_mmio_ops, d,</span><br><span class="line">                          <span class="string">"e1000-mmio"</span>, PNPMMIO_SIZE);</span><br><span class="line">    memory_region_add_coalescing(&amp;d-&gt;mmio, <span class="number">0</span>, excluded_regs[<span class="number">0</span>]);</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; excluded_regs[i] != PNPMMIO_SIZE; i++)</span><br><span class="line">        memory_region_add_coalescing(&amp;d-&gt;mmio, excluded_regs[i] + <span class="number">4</span>,</span><br><span class="line">                                     excluded_regs[i+<span class="number">1</span>] - excluded_regs[i] - <span class="number">4</span>);</span><br><span class="line">    memory_region_init_io(&amp;d-&gt;io, OBJECT(d), &amp;e1000_io_ops, d, <span class="string">"e1000-io"</span>, IOPORT_SIZE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>本case的<code>memory_region_add_coalescing</code>注册了coalesced MMIO region。对于细节，需要结合e1000的spec与qemu、kvm相关代码了，在此不再描述。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://lore.kernel.org/kvm/1212156357946-git-send-email-Laurent.Vivier@bull.net/" target="_blank" rel="noopener">kvm: Batch writes to MMIO</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt" target="_blank" rel="noopener">Documentation/virtual/kvm/api.txt</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/QEMU-KVM/">QEMU&&KVM</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/11/13/Comparing-VIRTIO-NVMe-and-io-uring-queue-designs/">
+        <span class="next-text nav-default">Comparing VIRTIO, NVMe, and io_uring queue designs</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/11/19/Notes-about-KVM-coalesced-MMIO-PIO/';
+        this.page.identifier = '2022/11/19/Notes-about-KVM-coalesced-MMIO-PIO/';
+        this.page.title = 'Notes about KVM coalesced MMIO/PIO';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
