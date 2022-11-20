@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-11-19T11:08:50.049Z</updated>
+  <updated>2022-11-20T08:39:58.395Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>利用bpftrace打印内核函数调用栈</title>
+    <link href="http://liujunming.github.io/2022/11/20/%E5%88%A9%E7%94%A8bpftrace%E6%89%93%E5%8D%B0%E5%86%85%E6%A0%B8%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8%E6%A0%88/"/>
+    <id>http://liujunming.github.io/2022/11/20/利用bpftrace打印内核函数调用栈/</id>
+    <published>2022-11-20T08:30:23.000Z</published>
+    <updated>2022-11-20T08:39:58.395Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将以<code>vp_notify</code>函数为例，介绍下如何利用bpftrace打印内核函数调用栈。<a id="more"></a> </p><ul><li><p>确定目标内核函数</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ bpftrace -l &apos;kprobe:*&apos; | grep vp_notify</span><br><span class="line">kprobe:vp_notify</span><br></pre></td></tr></table></figure></li><li><p><code>kstack</code>: Stack Traces, Kernel</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ bpftrace -e &apos;kprobe:vp_notify &#123; @[kstack] = count(); &#125;&apos;</span><br><span class="line">Attaching 1 probe...</span><br><span class="line">^C</span><br></pre></td></tr></table></figure></li></ul><p><a href="https://github.com/iovisor/bpftrace/blob/master/docs/reference_guide.md#7-kstack-stack-traces-kernel" target="_blank" rel="noopener">https://github.com/iovisor/bpftrace/blob/master/docs/reference_guide.md#7-kstack-stack-traces-kernel</a></p><p><a href="https://github.com/iovisor/bpftrace/blob/master/docs/reference_guide.md#2-count-count" target="_blank" rel="noopener">count()</a>的含义</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将以&lt;code&gt;vp_notify&lt;/code&gt;函数为例，介绍下如何利用bpftrace打印内核函数调用栈。
+    
+    </summary>
+    
+      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
+    
+    
+      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
+    
+      <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Intel TME and MKTME technology</title>
@@ -455,28 +479,6 @@
     
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about strace</title>
-    <link href="http://liujunming.github.io/2022/10/05/Notes-about-strace/"/>
-    <id>http://liujunming.github.io/2022/10/05/Notes-about-strace/</id>
-    <published>2022-10-05T02:20:51.000Z</published>
-    <updated>2022-10-05T08:13:42.572Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将记录strace相关笔记。<a id="more"></a> </p><h3 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h3><p>strace is a diagnostic, debugging and instructional userspace utility for Linux. It is used to monitor and tamper with interactions between processes and the Linux kernel, which include system calls, signal deliveries, and changes of process state.</p><p>System administrators, diagnosticians and trouble-shooters will find it invaluable for solving problems with programs for which the source is not readily available since they do not need to be recompiled in order to trace them.</p><p>The operation of strace is made possible by the kernel feature known as <code>ptrace</code>.</p><p><img src="/images/2022/10/05.jpg" alt></p><blockquote><p>strace解决的问题都是关于寻找程序依赖的文件、找出程序卡住或慢的原因、或者找出程序失败的原因。</p></blockquote><h3 id="资料"><a href="#资料" class="headerlink" title="资料"></a>资料</h3><p><a href="https://man7.org/linux/man-pages/man1/strace.1.html" target="_blank" rel="noopener">man strace</a><br><a href="https://nanxiao.github.io/strace-little-book/" target="_blank" rel="noopener">Strace little book</a></p><p><img src="/images/2022/10/04.jpg" alt></p><h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><ul><li><p>Print stack trace of every system call<br><code>-k</code> option is used to print stack trace of every system call.<br><a href="https://nanxiao.github.io/strace-little-book/posts/print-stack-trace-of-every-system-call.html" target="_blank" rel="noopener">Print stack trace of every system call</a></p></li><li><p><code>-f</code>跟踪目标进程，以及目标进程创建的所有子进程</p></li><li><p><code>-t</code> 在输出中的每一行前加上时间信息(<code>-tt</code> 表示微秒级)</p></li><li><p><code>-T</code> 显示每个系统调用所耗的时间</p></li><li><p><code>-o</code> filename: Write the trace output to the file filename rather than to stderr.</p></li><li><p><code>-c</code> Count time, calls, and errors for each system call and report a summary on program exit, suppressing the regular output. </p></li></ul><h3 id="Case"><a href="#Case" class="headerlink" title="Case"></a>Case</h3><ul><li><a href="https://blog.csdn.net/joeyon1985/article/details/72986412" target="_blank" rel="noopener">手把手教你用Strace诊断问题</a></li><li><a href="https://zhuanlan.zhihu.com/p/180053751" target="_blank" rel="noopener">Linux神器strace的使用方法及实践</a></li><li><a href="https://zhuanlan.zhihu.com/p/362348075" target="_blank" rel="noopener">strace 可以解决什么问题?</a><ul><li>配置文件在哪里？</li><li>这个程序还依赖什么文件？</li><li>为什么这个程序会挂掉？</li><li>这个程序卡住了吗？</li><li>为什么这个程序很慢？</li><li>隐藏的权限错误</li><li>正在使用什么命令行参数？</li><li>为什么这个网络连接失败？</li><li>为什么这个程序以一种方式运行时成功，以另一种方式运行时失败？</li></ul></li></ul><h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><ul><li><a href="https://blog.packagecloud.io/how-does-strace-work/" target="_blank" rel="noopener">How does strace work?</a></li></ul><hr><p>参考资料:</p><ol><li><a href="https://www.cnblogs.com/chenxinshuo/p/11986858.html" target="_blank" rel="noopener">Debug 利器：pstack &amp; strace</a></li><li><a href="https://blog.csdn.net/joeyon1985/article/details/72986412" target="_blank" rel="noopener">Linux strace、pstack 命令 使用详解</a></li><li><a href="https://blog.csdn.net/ByteDanceTech/article/details/104765810" target="_blank" rel="noopener">深入理解 Linux 内核–jemalloc 引起的 TLB shootdown 及优化</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将记录strace相关笔记。
-    
-    </summary>
-    
-      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
-    
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
     
   </entry>
   
