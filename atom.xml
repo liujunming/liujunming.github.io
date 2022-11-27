@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-11-27T06:33:40.495Z</updated>
+  <updated>2022-11-27T11:15:38.702Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about sysctl</title>
+    <link href="http://liujunming.github.io/2022/11/27/Notes-about-sysctl/"/>
+    <id>http://liujunming.github.io/2022/11/27/Notes-about-sysctl/</id>
+    <published>2022-11-27T07:28:45.000Z</published>
+    <updated>2022-11-27T11:15:38.702Z</updated>
+    
+    <content type="html"><![CDATA[<p><code>sysctl</code>的用法可参考<code>man sysctl</code>。<a id="more"></a><br>本文主要转载自<a href="https://cloud.tencent.com/developer/article/1657639" target="_blank" rel="noopener">Linux 下的 Sysctl 命令</a>。</p><p>作为一个 Linux 系统管理员，有时候你需要修改默认的内核行为。例如，你可能想要启用 SysRq 或者增加 Kernel 能够接受的连接数量。 内核参数可以在构建内核的时候，在系统启动时，或者在运行时进行设置。</p><p>本文讲解如何使用<code>sysct</code>l命令在运行时进行查看并且修改内核参数。</p><h3 id="1-使用sysctl查看-Kernel-参数"><a href="#1-使用sysctl查看-Kernel-参数" class="headerlink" title="1. 使用sysctl查看 Kernel 参数"></a>1. 使用sysctl查看 Kernel 参数</h3><p>想要查看所有的当前内核参数，运行<code>sysctl</code> 命令加上<code>-a</code>选项：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -a</span><br></pre></td></tr></table></figure></p><p>这将会输出一个很大的列表，看起来像下面这样，每行包含一个参数和对应的值：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">abi.vsyscall32 = 1</span><br><span class="line">debug.exception-trace = 1</span><br><span class="line">debug.kprobes-optimization = 1</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p><p>所有用户可以查看当前的内核参数；仅仅 root 用户可以修改它们的值。</p><p>通过将参数名传递给<code>sysctl</code>,你可以检查单个参数的取值。例如，想要检查当前的 swappiness 取值，你可以输入：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl vm.swappiness</span><br></pre></td></tr></table></figure></p><p>输出：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vm.swappiness = 60</span><br></pre></td></tr></table></figure></p><p>Swappiness 是一个内核属性，它定义了系统多长时间会使用swap space。</p><p>这个<code>sysctl</code>命令将会从<code>/proc/sys</code>目录下读取信息。 <code>/proc/sys</code>是一个虚拟目录，它包含文件对象，可以被用来查看或者设置当前的内核参数。</p><p>你也可以通过显示合适的文件，来查看参数值。唯一的不同就是文件如何被展示。例如，<code>sysctl vm.swappiness</code>和<code>cat /proc/sys/vm/swappiness</code>都将给出同样的输出。当使用<code>sysctl</code>时，目录中的斜杠将会被点所替代，并且<code>proc.sys</code>部分被去掉了。</p><h3 id="2-使用sysctl来修改内核参数"><a href="#2-使用sysctl来修改内核参数" class="headerlink" title="2. 使用sysctl来修改内核参数"></a>2. 使用sysctl来修改内核参数</h3><p>想要在系统运行时设置一个内核参数，按照下面的格式运行<code>sysctl</code>命令加上参数名和取值：</p><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -w parameter=value</span><br></pre></td></tr></table></figure><p>如果这个取值包含空格或者特殊符号，使用双引号包裹取值。你还可以在同一个命令中传递多个<code>parameter=value</code> 键值对。</p><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">在生产系统中修改内核设置必须非常小心，这可能会使得内核不稳当，并且你需要重启系统。</span><br></pre></td></tr></table></figure><p>例如，想要允许 IPV4 包转发，你需要运行：</p><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -w net.ipv4.ip_forward=<span class="number">1</span></span><br></pre></td></tr></table></figure><p>这个修改立即生效，但是它不是持久化的。在系统重启后，默认值会被重新加载。</p><p>想要永久修改一个参数，你需要修改设置到文件<code>/etc/sysctl.conf</code> ：</p><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -w net.ipv4.ip_forward=<span class="number">1</span> &gt;&gt; <span class="regexp">/etc/</span>sysctl.conf</span><br></pre></td></tr></table></figure><p>另外修改参数的方式就是使用<code>echo</code>命令将设置写入到<code>/proc/sys</code>目录下的文件中。例如，不使用上面的命令，你还可以用：</p><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo <span class="number">1</span> &gt; <span class="regexp">/proc/</span>sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure><p>这个<code>-p</code>选项允许你从一个配置文件中加载设置：</p><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -p /etc/sysctl.d/file_name.conf</span><br></pre></td></tr></table></figure><p>如果没有给出文件，那么 <code>sysctl</code> 从 <code>/etc/sysctl.conf</code>文件中读取。</p><h3 id="3-总结"><a href="#3-总结" class="headerlink" title="3. 总结"></a>3. 总结</h3><p><code>sysctl</code> 命令允许你查看并且修改 Linux 内核参数。</p><hr><p>参考资料:</p><ol><li><a href="https://linux.die.net/man/8/sysctl" target="_blank" rel="noopener">man sysctl</a></li><li><a href="https://cloud.tencent.com/developer/article/1657639" target="_blank" rel="noopener">Linux 下的 Sysctl 命令</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;code&gt;sysctl&lt;/code&gt;的用法可参考&lt;code&gt;man sysctl&lt;/code&gt;。
+    
+    </summary>
+    
+      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
+    
+    
+      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
+    
+  </entry>
   
   <entry>
     <title>Linux Hungtask机制</title>
@@ -452,28 +474,6 @@
         &lt;p&gt;在Linux内核中，可以使用&lt;code&gt;dump_pagetable&lt;/code&gt;函数来dump虚拟地址对应的页表信息。&lt;/p&gt;
 &lt;p&gt;&lt;a href=&quot;https://elixir.bootlin.com/linux/v5.19/source/arch/x86/mm/fa
       
-    
-    </summary>
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>如何获得内核函数地址</title>
-    <link href="http://liujunming.github.io/2022/10/06/%E5%A6%82%E4%BD%95%E8%8E%B7%E5%BE%97%E5%86%85%E6%A0%B8%E5%87%BD%E6%95%B0%E5%9C%B0%E5%9D%80/"/>
-    <id>http://liujunming.github.io/2022/10/06/如何获得内核函数地址/</id>
-    <published>2022-10-06T11:38:23.000Z</published>
-    <updated>2022-10-11T13:44:01.052Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文内容主要转载自<a href="https://blog.csdn.net/gatieme/article/details/78310036" target="_blank" rel="noopener">获得内核函数地址的四种方法</a>。<a id="more"></a> </p><p>本文以获取内核函数<code>vfs_read()</code>的地址为例。</p><h2 id="1-从-System-map-文件中直接得到地址"><a href="#1-从-System-map-文件中直接得到地址" class="headerlink" title="1. 从 System.map 文件中直接得到地址"></a>1. 从 System.map 文件中直接得到地址</h2><p>内核镜像的<code>System.map</code>文件存储了内核符号表的信息, 可以通过此文件获取到具体的信息。</p><p>查看内核函数的地址:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo grep vfs_read /boot/System.map-`uname -r`</span><br></pre></td></tr></table></figure></p><h2 id="2-从-proc-kallsyms-文件获得地址"><a href="#2-从-proc-kallsyms-文件获得地址" class="headerlink" title="2. 从 /proc/kallsyms 文件获得地址"></a>2. 从 /proc/kallsyms 文件获得地址</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/kallsyms | grep vfs_read</span><br></pre></td></tr></table></figure><p><img src="/images/2022/10/08.jpg" alt></p><h2 id="3-使用内核函数接口"><a href="#3-使用内核函数接口" class="headerlink" title="3. 使用内核函数接口"></a>3. 使用内核函数接口</h2><h3 id="3-1-已知内核符号，获取内核符号地址"><a href="#3-1-已知内核符号，获取内核符号地址" class="headerlink" title="3.1 已知内核符号，获取内核符号地址"></a>3.1 已知内核符号，获取内核符号地址</h3><p>使用 <code>kallsyms_lookup_name()</code>。</p><p>该函数在 <code>kernel/kallsyms.c</code> 文件中定义的, 要使用它必须启用 <code>CONFIG_KALLSYMS</code> 编译内核.</p><p><code>kallsyms_lookup_name()</code> 接受一个字符串格式内核函数名, 返回那个内核函数的地址.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kallsyms_lookup_name(<span class="string">"函数名"</span>);</span><br></pre></td></tr></table></figure></p><h3 id="3-2-已知内核符号地址-获取内核符号名"><a href="#3-2-已知内核符号地址-获取内核符号名" class="headerlink" title="3.2 已知内核符号地址, 获取内核符号名"></a>3.2 已知内核符号地址, 获取内核符号名</h3><p>使用 <code>sprint_symbol</code> 内核函数。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kallsyms.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sprint_symbol</span><span class="params">(<span class="keyword">char</span> *buffer, <span class="keyword">unsigned</span> <span class="keyword">long</span> address)</span></span></span><br></pre></td></tr></table></figure></p><p>该函数根据一个内存中的地址 <code>address</code> 查找一个内核符号, 并将该符号的基本信息, 如符号名 <code>name</code>, 它在内核符号表中的偏移 <code>offset</code> 和大小 <code>size</code>, 所属的模块名(如果有的话)等信息连接成字符串赋值给文本缓冲区 <code>buffer</code>. 其中所查找的内核符号可以是原本就存在于内核中的符号, 也可以是位于动态插入的模块中的符号.</p><hr><p>参考资料:</p><ol><li><a href="https://blog.csdn.net/gatieme/article/details/78310036" target="_blank" rel="noopener">获得内核函数地址的四种方法</a></li><li><a href="https://blog.csdn.net/qq_34258344/article/details/103547971" target="_blank" rel="noopener">如何使用Linux内核中没有被导出的变量或函数</a></li><li><a href="http://kerneltravel.net/blog/2020/syscall_ljr_1/" target="_blank" rel="noopener">LINUX使用内核模块添加系统调用的方法（无需编译内核）</a></li><li><a href="https://developer.aliyun.com/article/53679" target="_blank" rel="noopener">linux内核符号表kallsyms简介</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文内容主要转载自&lt;a href=&quot;https://blog.csdn.net/gatieme/article/details/78310036&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;获得内核函数地址的四种方法&lt;/a&gt;。
     
     </summary>
     
