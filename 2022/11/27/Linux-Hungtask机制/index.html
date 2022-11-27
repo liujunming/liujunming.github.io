@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Linux Hungtask机制">
+
+
+
+
+  <meta name="keywords" content="Kernel, linux, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/11/27/Linux-Hungtask机制/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Linux Hungtask机制 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Linux Hungtask机制
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-11-27
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-现象"><span class="toc-text">1. 现象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-背景知识"><span class="toc-text">2. 背景知识</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-基本原理"><span class="toc-text">3. 基本原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-源码解析"><span class="toc-text">4. 源码解析</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-初始化"><span class="toc-text">4.1 初始化</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-watchdog"><span class="toc-text">4.2 watchdog</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-check-hung-uninterruptible-tasks"><span class="toc-text">4.3 check_hung_uninterruptible_tasks</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-4-check-hung-task"><span class="toc-text">4.4 check_hung_task</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Hungtask定位思路"><span class="toc-text">5. Hungtask定位思路</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将总结Linux的Hungtask机制。<a id="more"></a><br>本文参考的内核源码版本为<a href="https://elixir.bootlin.com/linux/v4.0/source" target="_blank" rel="noopener">v4.0</a>。</p>
+<h3 id="1-现象"><a href="#1-现象" class="headerlink" title="1. 现象"></a>1. 现象</h3><p>内核日志会看到如下信息:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">INFO: task filebench:7143 blocked for more than 120 seconds.</span><br><span class="line">21794 Oct 24 13:21:33 localhost kernel: &quot;echo 0 &gt; /proc/sys/kernel/hung_task_timeout_secs&quot; disables this message.</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-背景知识"><a href="#2-背景知识" class="headerlink" title="2. 背景知识"></a>2. 背景知识</h3><p>长期以来，处于D状态(<code>TASK_UNINTERRUPTIBLE</code>状态)的进程都是让人比较烦恼的问题，处于D状态的进程不能接收信号，kill不掉。在一些场景下，常见的进程长期处于D状态，用户对此无能为力，也不知道原因，只能重启恢复。<br>其实进程长期处于D状态肯定是不正常的，内核中设计D状态的目的是为了让进程等待IO完成，正常情况下IO应该会顺利完成，然后唤醒相应的D状态进程，即使在异常情况下(比如磁盘离或损坏、磁阵链路断开等)，IO处理也是有超时机制的，原理上不会存在永久处于D状态的进程。但是因为内核代码流程中可能存在一些bug，或者用户内核模块中的相关机制不合理，可能导致进程长期处于D状态，无法唤醒，类似于死锁状态。<br>针对这种情况，内核中提供了hung task机制用于检测系统中是否存在处于D状态超过120s(时长可以设置)的进程，如果存在，则打印相关警告和进程堆栈。如果配置了<code>hung_task_panic</code>，则直接发起panic，结合kdump可以搜集到vmcore。从内核的角度看，如果有进程处于D状态的时间超过了120s，那肯定已经出现异常了，以此机制来收集相关的异常信息，用于分析定位问题。</p>
+<h3 id="3-基本原理"><a href="#3-基本原理" class="headerlink" title="3. 基本原理"></a>3. 基本原理</h3><p>创建一个内核线程(khungtaskd)，定期(120s)唤醒后，遍历系统中的所有进程，检查是否存在处于D状态超过120s(时长可以设置)的进程，如果存在，则打印相关警告和进程堆栈。如果配置了hung_task_panic（proc或内核启动参数），则直接发起panic。</p>
+<h3 id="4-源码解析"><a href="#4-源码解析" class="headerlink" title="4. 源码解析"></a>4. 源码解析</h3><p><a href="https://elixir.bootlin.com/linux/v4.0/source/kernel/hung_task.c" target="_blank" rel="noopener">kernel/hung_task.c</a><br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hung_task_init</span><br><span class="line">└── watchdog</span><br><span class="line">    └── check_hung_uninterruptible_tasks</span><br><span class="line">        └── check_hung_task</span><br></pre></td></tr></table></figure></p>
+<h4 id="4-1-初始化"><a href="#4-1-初始化" class="headerlink" title="4.1 初始化"></a>4.1 初始化</h4><p>初始化一个内核线程来检测系统中是否存在D状态超过120s的进程。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">hung_task_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/*注册panic通知链，在panic时执行相关操作。*/</span></span><br><span class="line">	atomic_notifier_chain_register(&amp;panic_notifier_list, &amp;panic_block);</span><br><span class="line">	<span class="comment">/*创建内核线程khungtaskd，执行函数为watchdog*/</span></span><br><span class="line">	watchdog_task = kthread_run(watchdog, <span class="literal">NULL</span>, <span class="string">"khungtaskd"</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="4-2-watchdog"><a href="#4-2-watchdog" class="headerlink" title="4.2 watchdog"></a>4.2 watchdog</h4><p>khungtaskd内核线程的处理函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * kthread which checks for tasks stuck in D state</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">watchdog</span><span class="params">(<span class="keyword">void</span> *dummy)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/*设置当前khungtaskd内核线程的nice为0，即普通优先级，为了不影响业务运行*/</span></span><br><span class="line">	set_user_nice(current, <span class="number">0</span>);</span><br><span class="line">	<span class="comment">/*死循环进行检测*/</span></span><br><span class="line">	<span class="keyword">for</span> ( ; ; ) &#123;</span><br><span class="line">		<span class="comment">/*进程处于D状态的时间上限可通过sysctl/proc控制，默认为120s*/</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> timeout = sysctl_hung_task_timeout_secs;</span><br><span class="line">		<span class="comment">/*检测线程(khungtaskd)sleep 120s(默认)后，再次唤醒。*/</span></span><br><span class="line">		<span class="keyword">while</span> (schedule_timeout_interruptible(timeout_jiffies(timeout)))</span><br><span class="line">			timeout = sysctl_hung_task_timeout_secs;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (atomic_xchg(&amp;reset_hung_task, <span class="number">0</span>))</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		<span class="comment">/*醒来后执行实际的检测操作*/</span></span><br><span class="line">		check_hung_uninterruptible_tasks(timeout);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="4-3-check-hung-uninterruptible-tasks"><a href="#4-3-check-hung-uninterruptible-tasks" class="headerlink" title="4.3 check_hung_uninterruptible_tasks"></a>4.3 check_hung_uninterruptible_tasks</h4><p>遍历系统中的所有进程，检测是否有处于D状态超过120s的进程，如果有则打印警告或panic。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Check whether a TASK_UNINTERRUPTIBLE does not get woken up for</span></span><br><span class="line"><span class="comment"> * a really long time (120 seconds). If that happens, print out</span></span><br><span class="line"><span class="comment"> * a warning.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">check_hung_uninterruptible_tasks</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> timeout)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/*hung task检测是检查的最大进程数，默认为最大的进程号*/</span></span><br><span class="line">	<span class="keyword">int</span> max_count = sysctl_hung_task_check_count;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * 每次遍历进程数的上限，默认为1024，这样做的目的是为了:</span></span><br><span class="line"><span class="comment">	 * 1、防止rcu_read_lock的占用时间太长。</span></span><br><span class="line"><span class="comment">	 * 2、hung task的watchdog占用CPU时间太长。如果没开内核抢占，则如果内核线程不主动调度的话，是不能发生进程切换的</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * 如果系统中的进程数比较多，那么就可能检测不到部分D状态进程了?不会，因为这里只是会调度一次，调度回来后，会继续遍历后面的进程</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">int</span> batch_count = HUNG_TASK_BATCHING;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">g</span>, *<span class="title">t</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * If the system crashed already then all bets are off,</span></span><br><span class="line"><span class="comment">	 * do not report extra hung tasks:</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="comment">/*如果系统已经处于crash状态了，就不再报hung task了。*/</span></span><br><span class="line">	<span class="keyword">if</span> (test_taint(TAINT_DIE) || did_panic)</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	rcu_read_lock();</span><br><span class="line">	<span class="comment">/*遍历系统中的所有进程*/</span></span><br><span class="line">	do_each_thread(g, t) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!max_count--)</span><br><span class="line">			<span class="keyword">goto</span> unlock;</span><br><span class="line">		<span class="comment">/*如果每次检测的进程数量超过1024了，则需要发起调度，结束rcu优雅周期*/</span></span><br><span class="line">		<span class="keyword">if</span> (!--batch_count) &#123;</span><br><span class="line">			batch_count = HUNG_TASK_BATCHING;</span><br><span class="line">			<span class="comment">/*释放rcu，并主动调度，调度回来后检查相应进程是否还在，如果不在了，则退出遍历，否则继续*/</span></span><br><span class="line">			<span class="keyword">if</span> (!rcu_lock_break(g, t))</span><br><span class="line">				<span class="keyword">goto</span> unlock;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/* use "==" to skip the TASK_KILLABLE tasks waiting on NFS */</span></span><br><span class="line">		<span class="comment">/*检测进程状态是否为D*/</span></span><br><span class="line">		<span class="keyword">if</span> (t-&gt;state == TASK_UNINTERRUPTIBLE)</span><br><span class="line">			<span class="comment">/*检测进程处于D状态的时间是否超过120s。*/</span></span><br><span class="line">			check_hung_task(t, timeout);</span><br><span class="line">	&#125; while_each_thread(g, t);</span><br><span class="line"> unlock:</span><br><span class="line">	rcu_read_unlock();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="4-4-check-hung-task"><a href="#4-4-check-hung-task" class="headerlink" title="4.4 check_hung_task"></a>4.4 check_hung_task</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">check_hung_task</span><span class="params">(struct task_struct *t, <span class="keyword">unsigned</span> <span class="keyword">long</span> timeout)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/*进程上下文切换计数，以此来判断该进程是否发生过调度*/</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> switch_count = t-&gt;nvcsw + t-&gt;nivcsw;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Ensure the task is not frozen.</span></span><br><span class="line"><span class="comment">	 * Also, skip vfork and any other user process that freezer should skip.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (unlikely(t-&gt;flags &amp; (PF_FROZEN | PF_FREEZER_SKIP)))</span><br><span class="line">	    <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * When a freshly created task is scheduled once, changes its state to</span></span><br><span class="line"><span class="comment">	 * TASK_UNINTERRUPTIBLE without having ever been switched out once, it</span></span><br><span class="line"><span class="comment">	 * musn't be checked.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (unlikely(!switch_count))</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * 如果当前switch_count等于last_switch_count，则说明在khungtaskd进程被唤醒期间，该进程没有发生过调度。</span></span><br><span class="line"><span class="comment">	 * 也就是说，该进程一直处于D状态，因为last_switch_count只在这里更新，其它地方不会。</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (switch_count != t-&gt;last_switch_count) </span><br><span class="line">		<span class="comment">/* 更新last_switch_count计数，只在这里更新，该计数专用于hung task的检测。*/</span></span><br><span class="line">		t-&gt;last_switch_count = switch_count;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	trace_sched_process_hang(t);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * hung task错误打印次数限制，防止dos攻击。默认为10次，由于是全局变量，</span></span><br><span class="line"><span class="comment">	 * 表示系统运行期间最多打印10次，超过后就不打印了。该参数应该可以</span></span><br><span class="line"><span class="comment">	 * 通过sysctl修改</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (!sysctl_hung_task_warnings)</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (sysctl_hung_task_warnings &gt; <span class="number">0</span>)</span><br><span class="line">		sysctl_hung_task_warnings--;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Ok, the task did not get scheduled for more than 2 minutes,</span></span><br><span class="line"><span class="comment">	 * complain:</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="comment">/*如下就是我们平常常见的hung task打印了*/</span></span><br><span class="line">	pr_err(<span class="string">"INFO: task %s:%d blocked for more than %ld seconds.\n"</span>,</span><br><span class="line">		t-&gt;comm, t-&gt;pid, timeout);</span><br><span class="line">	pr_err(<span class="string">"      %s %s %.*s\n"</span>,</span><br><span class="line">		print_tainted(), init_utsname()-&gt;release,</span><br><span class="line">		(<span class="keyword">int</span>)<span class="built_in">strcspn</span>(init_utsname()-&gt;version, <span class="string">" "</span>),</span><br><span class="line">		init_utsname()-&gt;version);</span><br><span class="line">	pr_err(<span class="string">"\"echo 0 &gt; /proc/sys/kernel/hung_task_timeout_secs\""</span></span><br><span class="line">		<span class="string">" disables this message.\n"</span>);</span><br><span class="line">	<span class="comment">/*打印堆栈*/</span></span><br><span class="line">	sched_show_task(t);</span><br><span class="line">	<span class="comment">/*如果开启了debug_lock，则打印锁的占用情况*/</span></span><br><span class="line">	debug_show_held_locks(t);</span><br><span class="line"></span><br><span class="line">	touch_nmi_watchdog();</span><br><span class="line">	<span class="comment">/*检测是否配置了/proc/sys/kernel/hung_task_panic，如果配置则直接触发panic*/</span></span><br><span class="line">	<span class="keyword">if</span> (sysctl_hung_task_panic) &#123;</span><br><span class="line">		<span class="comment">/*打印所有CPU的堆栈*/</span></span><br><span class="line">		trigger_all_cpu_backtrace();</span><br><span class="line">		<span class="comment">/*触发panic，如果配置了kdump就有用了*/</span></span><br><span class="line">		panic(<span class="string">"hung_task: blocked tasks"</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="5-Hungtask定位思路"><a href="#5-Hungtask定位思路" class="headerlink" title="5. Hungtask定位思路"></a>5. Hungtask定位思路</h3><p><img src="/images/2022/11/14.jpg" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://mp.weixin.qq.com/s/Jpex9c0_GBZsxB4J21ojxA" target="_blank" rel="noopener">Hungtask原理及分析</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/463433198" target="_blank" rel="noopener">内核Hungtask原理和定位思路总结</a></li>
+<li><a href="https://blog.csdn.net/weixin_33921089/article/details/86390346" target="_blank" rel="noopener">hung task机制</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/linux/">linux</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/11/26/Notes-about-进程D状态/">
+        <span class="next-text nav-default">Notes about linux进程D状态</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/11/27/Linux-Hungtask机制/';
+        this.page.identifier = '2022/11/27/Linux-Hungtask机制/';
+        this.page.title = 'Linux Hungtask机制';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
