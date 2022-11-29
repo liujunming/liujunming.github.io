@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-11-27T11:15:38.702Z</updated>
+  <updated>2022-11-29T15:35:56.810Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>How to use IO poll in Linux NVMe driver</title>
+    <link href="http://liujunming.github.io/2022/11/29/How-to-use-IO-poll-in-Linux-NVMe-driver/"/>
+    <id>http://liujunming.github.io/2022/11/29/How-to-use-IO-poll-in-Linux-NVMe-driver/</id>
+    <published>2022-11-29T15:09:37.000Z</published>
+    <updated>2022-11-29T15:35:56.810Z</updated>
+    
+    <content type="html"><![CDATA[<p>使用NVMe driver的<code>poll_queues</code>参数即可开启IO queue的poll。<a id="more"></a> </p><h3 id="内核源码"><a href="#内核源码" class="headerlink" title="内核源码"></a>内核源码</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//https://elixir.bootlin.com/linux/v6.0/source/drivers/nvme/host/pci.c</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> poll_queues;</span><br><span class="line">module_param_cb(poll_queues, &amp;io_queue_count_ops, &amp;poll_queues, <span class="number">0644</span>);</span><br><span class="line">MODULE_PARM_DESC(poll_queues, <span class="string">"Number of queues to use for polled IO."</span>);</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">nvme_setup_io_queues</span><span class="params">(struct nvme_dev *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">...</span><br><span class="line">dev-&gt;nr_poll_queues = poll_queues;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><p>当只有一个IO queue时，设置<code>poll_queues</code>为1后，发现依然有中断。其实这是符合预取的。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">nvme_setup_irqs</span><span class="params">(struct nvme_dev *dev, <span class="keyword">unsigned</span> <span class="keyword">int</span> nr_io_queues)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pci_dev</span> *<span class="title">pdev</span> = <span class="title">to_pci_dev</span>(<span class="title">dev</span>-&gt;<span class="title">dev</span>);</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">irq_affinity</span> <span class="title">affd</span> = &#123;</span></span><br><span class="line">.pre_vectors= <span class="number">1</span>,</span><br><span class="line">.calc_sets= nvme_calc_irq_sets,</span><br><span class="line">.priv= dev,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">int</span> irq_queues, poll_queues;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Poll queues don't need interrupts, but we need at least one I/O queue</span></span><br><span class="line"><span class="comment"> * left over for non-polled I/O.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">poll_queues = min(dev-&gt;nr_poll_queues, nr_io_queues - <span class="number">1</span>);</span><br><span class="line">dev-&gt;io_queues[HCTX_TYPE_POLL] = poll_queues;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Initialize for the single interrupt case, will be updated in</span></span><br><span class="line"><span class="comment"> * nvme_calc_irq_sets().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">dev-&gt;io_queues[HCTX_TYPE_DEFAULT] = <span class="number">1</span>;</span><br><span class="line">dev-&gt;io_queues[HCTX_TYPE_READ] = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * We need interrupts for the admin queue and each non-polled I/O queue,</span></span><br><span class="line"><span class="comment"> * but some Apple controllers require all queues to use the first</span></span><br><span class="line"><span class="comment"> * vector.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">irq_queues = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">if</span> (!(dev-&gt;ctrl.quirks &amp; NVME_QUIRK_SINGLE_VECTOR))</span><br><span class="line">irq_queues += (nr_io_queues - poll_queues);</span><br><span class="line"><span class="keyword">return</span> pci_alloc_irq_vectors_affinity(pdev, <span class="number">1</span>, irq_queues,</span><br><span class="line">      PCI_IRQ_ALL_TYPES | PCI_IRQ_AFFINITY, &amp;affd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p>由上述代码可知，driver至少留一个IO queue使用interrupt而非poll。</p><p>因此，当只有一个IO queue时，即使driver参数设置了<code>poll_queues</code>为1，其实是不生效的(<code>nvme_setup_irqs</code>中的<code>poll_queues</code>变量为0)，这个唯一的IO queue使用的依然是interrupt而非poll。</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;使用NVMe driver的&lt;code&gt;poll_queues&lt;/code&gt;参数即可开启IO queue的poll。
+    
+    </summary>
+    
+      <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
+    
+    
+      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about sysctl</title>
@@ -455,32 +477,6 @@
     
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Linux kernel dump_pagetable function</title>
-    <link href="http://liujunming.github.io/2022/10/06/Linux-kernel-dump-pagetable-function/"/>
-    <id>http://liujunming.github.io/2022/10/06/Linux-kernel-dump-pagetable-function/</id>
-    <published>2022-10-06T12:26:48.000Z</published>
-    <updated>2022-10-06T12:58:10.525Z</updated>
-    
-    <content type="html"><![CDATA[<p>在Linux内核中，可以使用<code>dump_pagetable</code>函数来dump虚拟地址对应的页表信息。</p><p><a href="https://elixir.bootlin.com/linux/v5.19/source/arch/x86/mm/fault.c#L348" target="_blank" rel="noopener">https://elixir.bootlin.com/linux/v5.19/source/arch/x86/mm/fault.c#L348</a></p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;在Linux内核中，可以使用&lt;code&gt;dump_pagetable&lt;/code&gt;函数来dump虚拟地址对应的页表信息。&lt;/p&gt;
-&lt;p&gt;&lt;a href=&quot;https://elixir.bootlin.com/linux/v5.19/source/arch/x86/mm/fa
-      
-    
-    </summary>
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
   </entry>
   
