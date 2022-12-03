@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-11-29T15:35:56.810Z</updated>
+  <updated>2022-12-03T11:38:55.483Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Intel turbo boost</title>
+    <link href="http://liujunming.github.io/2022/12/03/Notes-about-Intel-turbo-boost/"/>
+    <id>http://liujunming.github.io/2022/12/03/Notes-about-Intel-turbo-boost/</id>
+    <published>2022-12-03T11:08:59.000Z</published>
+    <updated>2022-12-03T11:38:55.483Z</updated>
+    
+    <content type="html"><![CDATA[<p>Intel turbo boost的中文翻译为”睿频加速”，一般情况下turbo(睿频)指的就是Intel turbo boost。本文将记录turbo相关notes。<a id="more"></a> </p><p><img src="/images/2022/12/01.jpg" alt></p><p>CPUs don’t always need to run at their maximum frequency. Some programs are more dependent on memory to run smoothly, while others are CPU-intensive. Intel Turbo Boost Technology is an energy-efficient solution to this imbalance: it lets the CPU run at its base clock speed when handling light workloads, then jump to a higher clock speed for heavy workloads.</p><p>Running at a lower clock rate (the number of cycles executed by the processor every second) allows the processor to use less power, which can reduce heat and positively impact battery life in laptops. But when more speed is needed, Intel Turbo Boost Technology dynamically increases the clock rate to compensate.</p><p>Intel Turbo Boost Technology can potentially increase CPU speeds up to the Max Turbo Frequency while staying within safe temperature and power limits. This can increase performance in both single-threaded and multithreaded applications (programs that utilize several processor cores).</p><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/www/us/en/support/articles/000030893/processors.html" target="_blank" rel="noopener">What Is Intel® Turbo Boost Technology and How Does It Work?</a></li><li><a href="https://www.intel.com/content/www/us/en/gaming/resources/turbo-boost.htm" target="_blank" rel="noopener">What Is Intel® Turbo Boost Technology?</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Intel turbo boost的中文翻译为”睿频加速”，一般情况下turbo(睿频)指的就是Intel turbo boost。本文将记录turbo相关notes。
+    
+    </summary>
+    
+      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
+    
+    
+      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
+    
+  </entry>
   
   <entry>
     <title>How to use IO poll in Linux NVMe driver</title>
@@ -455,28 +477,6 @@
     
     
       <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about linux swapper task</title>
-    <link href="http://liujunming.github.io/2022/10/09/Notes-about-linux-swapper-task/"/>
-    <id>http://liujunming.github.io/2022/10/09/Notes-about-linux-swapper-task/</id>
-    <published>2022-10-09T10:13:02.000Z</published>
-    <updated>2022-10-11T13:44:01.051Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about linux swapper task.<a id="more"></a> </p><h3 id="What"><a href="#What" class="headerlink" title="What"></a>What</h3><p>The swapper task is the task running, if no other task is runnable. It has the lowest possible priority, so that’s why it’s running if no other task is runnable.</p><h3 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h3><h4 id="Programmatic-reason"><a href="#Programmatic-reason" class="headerlink" title="Programmatic reason"></a>Programmatic reason</h4><p>This simplifies process scheduling a lot, because you don’t have to care about the special case: “What happens if no task is runnable?”, because there always is at least one task runnable, the idle task. Also you can count the amount of cpu time used per task. Without the idle task, which task gets the cpu-time accounted no one needs?</p><h4 id="Historical-reason"><a href="#Historical-reason" class="headerlink" title="Historical reason"></a>Historical reason</h4><p>Before we had cpus which are able to step-down or go into power saving modes, it had to run on full speed at any time. It ran a series of NOP-instructions, if no tasks were runnable. Today the scheduling of the idle task usually steps down the cpu by using HLT-instructions (halt), so power is saved. So there is a functionality somehow in the idle task in our days.</p><h3 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h3><p>How can you believe that swapper (PID 0) even exists? if you can’t see it using <code>ps</code>. I am going to use <code>bpftrace</code> for demonstrating that. In the demo I am going to trace the kernel function <code>hrtimer_wakeup</code> which is responsible for waking up a process and move it to the set of runnable processes. During the trace I am going to print the pid of the calling process and the executable name (the comm field of the task_struct [/include/linux/sched.h]). Here is the command:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo bpftrace -e ‘kfunc:hrtimer_wakeup &#123; printf(“%s:%d\n”,curtask-&gt;comm,curtask-&gt;pid); &#125;’</span><br></pre></td></tr></table></figure><p>From the output we can see we have 3 instances of swapper: swapper/0, swapper/1 and swapper/2 all of them with PID 0. The reason we have three is because my VM has 3 virtual CPUs and there is a swapper process for each one of them — see the output of the command in the image below.</p><p><img src="/images/2022/10/09.jpeg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://stackoverflow.com/questions/464483/why-do-we-need-a-swapper-task-in-linux" target="_blank" rel="noopener">Why do we need a swapper task in linux?</a></li><li><a href="https://programming.vip/docs/deep-understanding-of-swapper-processes-in-perf-reports.html" target="_blank" rel="noopener">Deep understanding of swapper processes in perf reports</a></li><li><a href="https://medium.com/@boutnaru/the-linux-process-journey-pid-0-swapper-7868d1131316" target="_blank" rel="noopener">The Linux Process Journey — PID 0 (swapper)</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about linux swapper task.
-    
-    </summary>
-    
-      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
-    
-    
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
     
   </entry>
   
