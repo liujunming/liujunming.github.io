@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2022-12-18T03:12:28.554Z</updated>
+  <updated>2022-12-18T08:21:07.581Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about signal in Linux</title>
+    <link href="http://liujunming.github.io/2022/12/18/Notes-about-signal-in-Linux/"/>
+    <id>http://liujunming.github.io/2022/12/18/Notes-about-signal-in-Linux/</id>
+    <published>2022-12-18T06:38:23.000Z</published>
+    <updated>2022-12-18T08:21:07.581Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Linux的signal相关notes。<a id="more"></a><br><img src="/images/2022/12/05.jpg" alt></p><h3 id="资料"><a href="#资料" class="headerlink" title="资料"></a>资料</h3><p><a href="https://blog.csdn.net/w903414/article/details/109802539" target="_blank" rel="noopener">一篇文章彻底搞定信号</a></p><h4 id="信号是什么"><a href="#信号是什么" class="headerlink" title="信号是什么"></a>信号是什么</h4><p>例：</p><ol><li>输入命令，在Shell下启动一个前台进程。</li><li>用户按下Ctrl-C，键盘输入产生一个硬件中断。</li><li>如果CPU当前正在执行这个进程的代码，则该进程的用户空间代码暂停执行， CPU从用户态切换到内核态处理硬件中断。</li><li>终端驱动程序将Ctrl-C解释成一个<code>SIGINT</code>信号，记在该进程的PCB中（也可以说发送了一个<code>SIGINT</code>信号给该进程）。</li><li>当某个时刻要从内核返回到该进程的用户空间代码继续执行之前，首先处理PCB中记录的信号，发现有一个<code>SIGINT</code>信号待处理，而这个信号的默认处理动作是终止进程，所以直接终止进程而不再返回它的用户空间代码执行。</li></ol><p>在这个例子中，由Ctrl-C产生的硬件中断就是一个信号。Ctrl+C产生的信号只能发送给前台进程，命令后加&amp;就可放到后台运行。Shell可同时运行一个前台进程和任意多个后台进程，只有前台进程才能接受到像CTRL+C这种控制键产生的信号。</p><h4 id="信号的种类"><a href="#信号的种类" class="headerlink" title="信号的种类"></a>信号的种类</h4><h4 id="信号的产生"><a href="#信号的产生" class="headerlink" title="信号的产生"></a>信号的产生</h4><ul><li>硬件产生</li><li>软件产生</li></ul><h4 id="信号的注册"><a href="#信号的注册" class="headerlink" title="信号的注册"></a>信号的注册</h4><p>信号注册实际上是一个位图和一个sigqueue队列。<br><img src="/images/2022/12/06.png" alt></p><h4 id="信号的注销"><a href="#信号的注销" class="headerlink" title="信号的注销"></a>信号的注销</h4><h4 id="信号阻塞"><a href="#信号阻塞" class="headerlink" title="信号阻塞"></a>信号阻塞</h4><p><img src="/images/2022/12/07.png" alt></p><h4 id="信号未决"><a href="#信号未决" class="headerlink" title="信号未决"></a>信号未决</h4><p>实际执行信号的处理动作称为信号递达（Delivery），信号从产生到递达之间的状态，称为信号未决（Pending）。进程可以选择阻塞（Block）某个信号。被阻塞的信号产生时将保持在未决状态，直到进程解除对此信号的阻塞，才执行递达的动作。注意，阻塞和忽略是不同的，只要信号被阻塞就不会递达，而忽略是在递达之后可选的一种处理动作。</p><h4 id="信号的处理方式"><a href="#信号的处理方式" class="headerlink" title="信号的处理方式"></a>信号的处理方式</h4><p><img src="/images/2022/12/08.png" alt></p><p>每个信号都有两个标志位分别表示阻塞和未决，还有一个函数指针表示处理动作。</p><h4 id="信号的捕捉"><a href="#信号的捕捉" class="headerlink" title="信号的捕捉"></a>信号的捕捉</h4><p>条件: 如果信号的处理动作是用户自定义函数，在信号递达时就调用这个函数，这就称为信号捕捉。</p><p>流程:<br><img src="/images/2022/12/09.png" alt></p><p>内核态返回用户态会调用<code>do_signal</code>函数，两种情况：</p><ol><li>无信号：<code>sys_return</code>函数，返回用户态</li><li>有信号：先处理信号，信号返回，再调用<code>do_signal</code>函数 </li></ol><p>例：</p><ol><li>程序注册了<code>SIGQUIT</code>信号的处理函数sighandler。</li><li>当前正在执行main函数，这时发生中断或异常切换到内核态。</li><li>在中断处理完毕后要返回用户态的main函数之前检查到有信号SIGQUIT递达。</li><li>内核决定返回用户态后不是恢复main函数的上下文继续执行，而是执行sighandler函数， <strong>sighandler和main函数之间不存在调用和被调用的关系，是两个独立的控制流程。</strong></li><li>sighandler函数返回后自动执行特殊的系统调用sig_return再次进入内核态。</li><li>如果没有新的信号要递达，这次再返回用户态就是恢复main函数的上下文继续执行了。</li></ol><h4 id="常用信号集操作函数"><a href="#常用信号集操作函数" class="headerlink" title="常用信号集操作函数"></a>常用信号集操作函数</h4><h4 id="SIGCHLD信号"><a href="#SIGCHLD信号" class="headerlink" title="SIGCHLD信号"></a>SIGCHLD信号</h4><h3 id="SIGKILL-vs-SIGTERM"><a href="#SIGKILL-vs-SIGTERM" class="headerlink" title="SIGKILL vs SIGTERM"></a>SIGKILL vs SIGTERM</h3><p>Though both of these signals are used for killing a process, there are some differences between the two:</p><ul><li><code>SIGTERM</code> gracefully kills the process whereas <code>SIGKILL</code> kills the process immediately.</li><li><code>SIGTERM</code> signal can be handled, ignored, and blocked, but <code>SIGKILL</code> cannot be handled or blocked.</li><li><code>SIGTERM</code> doesn’t kill the child processes. <code>SIGKILL</code> kills the child processes as well.</li></ul><p><img src="https://linuxhandbook.com/content/images/2022/04/sigterm-vs-sigkill-tip.webp" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.man7.org/linux/man-pages/man7/signal.7.html" target="_blank" rel="noopener">man signal</a></li><li><a href="https://www-uxsup.csx.cam.ac.uk/courses/moved.Building/signals.pdf" target="_blank" rel="noopener">A list of signals and what they mean</a></li><li><a href="https://linuxhandbook.com/sigterm-vs-sigkill/#:~:text=Though%20both%20of%20these%20signals%20are%20used%20for,blocked%2C%20but%20SIGKILL%20cannot%20be%20handled%20or%20blocked." target="_blank" rel="noopener">SIGTERM vs SIGKILL: What’s the Difference?</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Linux的signal相关notes。
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>深入解析virtio-blk resize原理</title>
@@ -453,30 +475,6 @@
     
     
       <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>posted interrupt的一些思考</title>
-    <link href="http://liujunming.github.io/2022/10/16/posted-interrupt%E7%9A%84%E4%B8%80%E4%BA%9B%E6%80%9D%E8%80%83/"/>
-    <id>http://liujunming.github.io/2022/10/16/posted-interrupt的一些思考/</id>
-    <published>2022-10-16T10:36:36.000Z</published>
-    <updated>2022-10-22T11:21:47.886Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将记录一些对posted interrupt的思考。<a id="more"></a> </p><p>本文参考的内核版为<a href="https://elixir.bootlin.com/linux/v5.18/source" target="_blank" rel="noopener">v5.18</a></p><h3 id="1-irqfd亦可使用posted-interrupt"><a href="#1-irqfd亦可使用posted-interrupt" class="headerlink" title="1. irqfd亦可使用posted interrupt"></a>1. irqfd亦可使用posted interrupt</h3><p><a href="/2021/10/27/Dive-into-irqfd-KVM-side-mechanism/">irqfd</a>其实也可以使用VT-x posted interrupt来避免interrupt acceptance的一次VM Exit。</p><h4 id="1-1-kvm-arch-set-irq-inatomic"><a href="#1-1-kvm-arch-set-irq-inatomic" class="headerlink" title="1.1 kvm_arch_set_irq_inatomic"></a>1.1 kvm_arch_set_irq_inatomic</h4><blockquote><p>QEMU写了<code>irqfd</code>后，KVM内核模块中的irqfd poll就收到一个<code>POLL_IN</code>事件，然后将MSIx中断自动投递给对应的LAPIC。 大致流程是：<code>POLL_IN</code> -&gt; <code>kvm_arch_set_irq_inatomic</code> -&gt; <code>kvm_set_msi_irq</code>, <code>kvm_irq_delivery_to_apic_fast</code></p></blockquote><p><a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/irq_comm.c#L157" target="_blank" rel="noopener">kvm_arch_set_irq_inatomic</a>最终会调用<a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/lapic.c#L1015" target="_blank" rel="noopener">kvm_irq_delivery_to_apic_fast</a>来给guest注入interrupt。</p><h4 id="1-2-kvm-irq-delivery-to-apic-fast"><a href="#1-2-kvm-irq-delivery-to-apic-fast" class="headerlink" title="1.2 kvm_irq_delivery_to_apic_fast"></a>1.2 kvm_irq_delivery_to_apic_fast</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kvm_irq_delivery_to_apic_fast</span><br><span class="line">└── kvm_apic_set_irq</span><br><span class="line">    └── __apic_accept_irq</span><br><span class="line">        └── vmx_deliver_interrupt</span><br><span class="line">            └── vmx_deliver_posted_interrupt</span><br><span class="line">                └── kvm_vcpu_trigger_posted_interrupt</span><br></pre></td></tr></table></figure><h3 id="2-apic-accept-irq"><a href="#2-apic-accept-irq" class="headerlink" title="2. __apic_accept_irq"></a>2. __apic_accept_irq</h3><p><a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/lapic.c#L1098" target="_blank" rel="noopener">__apic_accept_irq</a>其实就会使用VT-x的posted interrupt完成中断的注入。</p><p><code>KVM_SIGNAL_MSI</code>、<code>KVM_IRQ_LINE</code>等ioctl其实会在KVM中调用<code>__apic_accept_irq</code>函数，因此，最终会使用到posted interrupt来完成虚拟中断的注入。</p><p>根据我的理解(待实验验证)，在VNC中的鼠标键盘操作，其实本质上是给虚拟机注入中断，对于这种中断，也是可以使用posted interrupt的。</p><h3 id="3-在虚拟化下，lapic-timer可以用VT-x-posted-interrupt呢？"><a href="#3-在虚拟化下，lapic-timer可以用VT-x-posted-interrupt呢？" class="headerlink" title="3. 在虚拟化下，lapic timer可以用VT-x posted interrupt呢？"></a>3. 在虚拟化下，lapic timer可以用VT-x posted interrupt呢？</h3><p>在虚拟化场景下，假设vCPU与pCPU一一绑定，那么，lapic timer可以使用VT-x posted interrupt吗？<br>在KVM架构下，答案是否定的，分析如下:<br><img src="/images/2022/10/12.jpg" alt><br>当前是设置了External-interrupt exiting这个位的。当vCPU在non-root mode，此时物理的lapic timer的中断来了，那么就会导致VM Exit，此时使用VT-x posted interrupt已经没有意义了。</p><p><a href="/2022/09/11/LAPIC-Implement-Exitless-Timer/">Injection Exitless LAPIC Timer</a>的Idea是offload lapic timer to housekeeping cpus，然后由housekeeping cpu利用VT-x posted interrupt为vCPU注入中断！</p><p>ps:如果<a href="/2022/10/22/lapic-timer-virtualization/">vCPU的lapic timer</a>由preemption timer进行模拟的话，定时器到期后vCPU会陷出，此时也没有必要用posted interrupt了。</p><h3 id="4-WNV的发送in-VT-d"><a href="#4-WNV的发送in-VT-d" class="headerlink" title="4. WNV的发送in VT-d"></a>4. WNV的发送in VT-d</h3><p><a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/vmx/posted_intr.c#L163" target="_blank" rel="noopener">new.nv = POSTED_INTR_WAKEUP_VECTOR</a></p><p>当vCPU处于ready-to-run或者halted状态时，物理中断来了，此时IOMMU会发送WNV来<a href="https://elixir.bootlin.com/linux/v5.18/source/arch/x86/kvm/vmx/posted_intr.c#L212" target="_blank" rel="noopener">唤醒vCPU</a>。<br>值得注意的是: WNV是IOMMU发送的，而非软件。</p><hr><p>参考资料:</p><ol><li><a href="https://kernelgo.org/virtio-overview.html" target="_blank" rel="noopener">Virtio Spec Overview</a></li><li><a href="https://biscuitos.github.io/blog/Broiler-vInterrupt/" target="_blank" rel="noopener">Broiler Interrupt Virtualization Technology</a></li><li><a href="https://martins3.github.io/qemu/interrupt.html" target="_blank" rel="noopener">QEMU 如何模拟中断</a></li><li><a href="https://www.binss.me/blog/qemu-note-of-interrupt/" target="_blank" rel="noopener">QEMU学习笔记——中断</a></li><li><a href="https://blog.csdn.net/weixin_43780260/article/details/110224589" target="_blank" rel="noopener">QEMU 如何处理PCI设备的中断（二）</a></li><li><a href="https://blog.csdn.net/qihoo_tech/article/details/117137150" target="_blank" rel="noopener">kvm post interrupt</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将记录一些对posted interrupt的思考。
-    
-    </summary>
-    
-      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
     
   </entry>
   
