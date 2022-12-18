@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="深入解析virtio-blk resize原理">
+
+
+
+
+  <meta name="keywords" content="virtio, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2022/12/17/深入解析virtio-blk-resize原理/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 深入解析virtio-blk resize原理 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          深入解析virtio-blk resize原理
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2022-12-17
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/virtio/">virtio</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-overview"><span class="toc-text">1. overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-基础知识"><span class="toc-text">2. 基础知识</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-virtio-blk后端设备resize"><span class="toc-text">3. virtio-blk后端设备resize</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-QEMU发送configuration-vector中断"><span class="toc-text">4. QEMU发送configuration vector中断</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-hmp-block-resize命令"><span class="toc-text">4.1 hmp block_resize命令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-virtio-blk-resize发送configuration-vector中断"><span class="toc-text">4.2 virtio_blk_resize发送configuration vector中断</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-guest处理configuration-vector中断"><span class="toc-text">5. guest处理configuration vector中断</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-guest注册中断"><span class="toc-text">5.1 guest注册中断</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-中断handler处理resize"><span class="toc-text">5.2 中断handler处理resize</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-qemu完成virtio-header中capacity-field的模拟"><span class="toc-text">6. qemu完成virtio header中capacity field的模拟</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将结合virtio spec、qemu与Linux kernel源码深入解析virtio-blk resize的原理。<a id="more"></a> </p>
+<p>本文参考的virtio spec是<a href="https://ozlabs.org/~rusty/virtio-spec/virtio-0.9.5.pdf" target="_blank" rel="noopener">0.9.5</a>，qemu版本为<a href="https://gitlab.com/qemu-project/qemu/-/tree/v2.6.0" target="_blank" rel="noopener">v2.6.0</a>，Linux kernel版本为<a href="https://elixir.bootlin.com/linux/v4.19/source" target="_blank" rel="noopener">v4.19</a>。</p>
+<h2 id="1-overview"><a href="#1-overview" class="headerlink" title="1. overview"></a>1. overview</h2><p>virtio-blk后端设备resize后，通过msi-x的configuration vector给guest发送中断，guest收到中断后，handler会读取virtio header中的capacity field来完成resize操作。</p>
+<h2 id="2-基础知识"><a href="#2-基础知识" class="headerlink" title="2. 基础知识"></a>2. 基础知识</h2><p>virtio header中有configuration vector这个field。guest配置MSI-x table时，会配置好configuration vector。<br><img src="/images/2022/12/03.jpg" alt></p>
+<p>当后端设备配置发生变化时，会触发configuration vector对应的中断。<br><img src="/images/2022/12/04.jpg" alt></p>
+<p>对于virtio-blk设备，virtio header中的capacity存放了size信息。当resize时，capacity会发生变化。<br><img src="/images/2022/12/02.jpg" alt><br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">virtio_blk_config</span> &#123;</span></span><br><span class="line">	<span class="comment">/* The capacity (in 512-byte sectors). */</span></span><br><span class="line">	__u64 capacity;</span><br><span class="line">	<span class="comment">/* The maximum segment size (if VIRTIO_BLK_F_SIZE_MAX) */</span></span><br><span class="line">	__u32 size_max;</span><br><span class="line">	<span class="comment">/* The maximum number of segments (if VIRTIO_BLK_F_SEG_MAX) */</span></span><br><span class="line">	__u32 seg_max;</span><br><span class="line">	<span class="comment">/* geometry of the device (if VIRTIO_BLK_F_GEOMETRY) */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">virtio_blk_geometry</span> &#123;</span></span><br><span class="line">		__u16 cylinders;</span><br><span class="line">		__u8 heads;</span><br><span class="line">		__u8 sectors;</span><br><span class="line">	&#125; geometry;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* block size of device (if VIRTIO_BLK_F_BLK_SIZE) */</span></span><br><span class="line">	__u32 blk_size;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* the next 4 entries are guarded by VIRTIO_BLK_F_TOPOLOGY  */</span></span><br><span class="line">	<span class="comment">/* exponent for physical block per logical block. */</span></span><br><span class="line">	__u8 physical_block_exp;</span><br><span class="line">	<span class="comment">/* alignment offset in logical blocks. */</span></span><br><span class="line">	__u8 alignment_offset;</span><br><span class="line">	<span class="comment">/* minimum I/O size without performance penalty in logical blocks. */</span></span><br><span class="line">	__u16 min_io_size;</span><br><span class="line">	<span class="comment">/* optimal sustained I/O size in logical blocks. */</span></span><br><span class="line">	__u32 opt_io_size;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* writeback mode (if VIRTIO_BLK_F_CONFIG_WCE) */</span></span><br><span class="line">	__u8 wce;</span><br><span class="line">	__u8 unused;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* number of vqs, only available when VIRTIO_BLK_F_MQ is set */</span></span><br><span class="line">	__u16 num_queues;</span><br><span class="line">&#125; __attribute__((packed));</span><br></pre></td></tr></table></figure></p>
+<h2 id="3-virtio-blk后端设备resize"><a href="#3-virtio-blk后端设备resize" class="headerlink" title="3. virtio-blk后端设备resize"></a>3. virtio-blk后端设备resize</h2><p>首先需要完成virtio-blk后端设备的resize，比如virtio-blk后端设备是一个文件，那么需要将这个文件resize！virtio-blk后端设备的形式较多，不在本文描述范围之内。</p>
+<h2 id="4-QEMU发送configuration-vector中断"><a href="#4-QEMU发送configuration-vector中断" class="headerlink" title="4. QEMU发送configuration vector中断"></a>4. QEMU发送configuration vector中断</h2><h3 id="4-1-hmp-block-resize命令"><a href="#4-1-hmp-block-resize命令" class="headerlink" title="4.1 hmp block_resize命令"></a>4.1 hmp block_resize命令</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">hmp_block_resize</span><br><span class="line">└── qmp_block_resize</span><br><span class="line">    └── bdrv_truncate</span><br><span class="line">        └── blk_dev_resize_cb</span><br><span class="line">            └── virtio_blk_resize[resize_cb]</span><br></pre></td></tr></table></figure>
+<p>hmp <code>block_resize</code>命令的函数调用链如上所示，最终会调用到<code>virtio_blk_resize</code>函数。</p>
+<h3 id="4-2-virtio-blk-resize发送configuration-vector中断"><a href="#4-2-virtio-blk-resize发送configuration-vector中断" class="headerlink" title="4.2 virtio_blk_resize发送configuration vector中断"></a>4.2 virtio_blk_resize发送configuration vector中断</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">virtio_blk_resize</span><br><span class="line">└── virtio_notify_config</span><br><span class="line">    └── virtio_notify_vector(vdev, vdev-&gt;config_vector)</span><br><span class="line">        └── virtio_pci_notify</span><br><span class="line">            └── msix_notify</span><br><span class="line">                ├── msix_get_message</span><br><span class="line">                └── msi_send_message</span><br></pre></td></tr></table></figure>
+<p>最终qemu会调用<code>msi_send_message</code>往guest注入configuration vector中断(本质上是模拟memory write TLP)。</p>
+<h2 id="5-guest处理configuration-vector中断"><a href="#5-guest处理configuration-vector中断" class="headerlink" title="5. guest处理configuration vector中断"></a>5. guest处理configuration vector中断</h2><h3 id="5-1-guest注册中断"><a href="#5-1-guest注册中断" class="headerlink" title="5.1 guest注册中断"></a>5.1 guest注册中断</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">vp_request_msix_vectors</span><span class="params">(struct virtio_device *vdev, <span class="keyword">int</span> nvectors,</span></span></span><br><span class="line"><span class="function"><span class="params">				   <span class="keyword">bool</span> per_vq_vectors, struct irq_affinity *desc)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	...</span><br><span class="line">	err = request_irq(pci_irq_vector(vp_dev-&gt;pci_dev, v),</span><br><span class="line">		vp_config_changed, <span class="number">0</span>, vp_dev-&gt;msix_names[v],</span><br><span class="line">		vp_dev);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Handle a configuration change: Tell driver if it wants to know. */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> irqreturn_t <span class="title">vp_config_changed</span><span class="params">(<span class="keyword">int</span> irq, <span class="keyword">void</span> *opaque)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">virtio_pci_device</span> *<span class="title">vp_dev</span> = <span class="title">opaque</span>;</span></span><br><span class="line"></span><br><span class="line">	virtio_config_changed(&amp;vp_dev-&gt;vdev);</span><br><span class="line">	<span class="keyword">return</span> IRQ_HANDLED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">virtio_config_changed</span><span class="params">(struct virtio_device *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> flags;</span><br><span class="line"></span><br><span class="line">	spin_lock_irqsave(&amp;dev-&gt;config_lock, flags);</span><br><span class="line">	__virtio_config_changed(dev);</span><br><span class="line">	spin_unlock_irqrestore(&amp;dev-&gt;config_lock, flags);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(virtio_config_changed);</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __virtio_config_changed(struct virtio_device *dev)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">virtio_driver</span> *<span class="title">drv</span> = <span class="title">drv_to_virtio</span>(<span class="title">dev</span>-&gt;<span class="title">dev</span>.<span class="title">driver</span>);</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!dev-&gt;config_enabled)</span><br><span class="line">		dev-&gt;config_change_pending = <span class="literal">true</span>;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (drv &amp;&amp; drv-&gt;config_changed)</span><br><span class="line">		drv-&gt;config_changed(dev); <span class="comment">//for virtio-blk, it's virtblk_config_changed</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">virtio_driver</span> <span class="title">virtio_blk</span> = &#123;</span></span><br><span class="line">	...</span><br><span class="line">	.config_changed			= virtblk_config_changed,</span><br><span class="line">	...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">virtblk_config_changed</span><span class="params">(struct virtio_device *vdev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">virtio_blk</span> *<span class="title">vblk</span> = <span class="title">vdev</span>-&gt;<span class="title">priv</span>;</span></span><br><span class="line"></span><br><span class="line">	queue_work(virtblk_wq, &amp;vblk-&gt;config_work);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">virtblk_probe</span><span class="params">(struct virtio_device *vdev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	...</span><br><span class="line">	INIT_WORK(&amp;vblk-&gt;config_work, virtblk_config_changed_work);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="5-2-中断handler处理resize"><a href="#5-2-中断handler处理resize" class="headerlink" title="5.2 中断handler处理resize"></a>5.2 中断handler处理resize</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">virtblk_config_changed_work</span><br><span class="line">└── virtblk_update_capacity</span><br><span class="line">    └── virtio_cread</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* The queue's logical block size must be set before calling this */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">virtblk_update_capacity</span><span class="params">(struct virtio_blk *vblk, <span class="keyword">bool</span> resize)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">virtio_device</span> *<span class="title">vdev</span> = <span class="title">vblk</span>-&gt;<span class="title">vdev</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">request_queue</span> *<span class="title">q</span> = <span class="title">vblk</span>-&gt;<span class="title">disk</span>-&gt;<span class="title">queue</span>;</span></span><br><span class="line">	<span class="keyword">char</span> cap_str_2[<span class="number">10</span>], cap_str_10[<span class="number">10</span>];</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span> nblocks;</span><br><span class="line">	u64 capacity;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Host must always specify the capacity. */</span></span><br><span class="line">	virtio_cread(vdev, struct virtio_blk_config, capacity, &amp;capacity);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>virtio_cread(vdev, struct virtio_blk_config, capacity, &amp;capacity)</code>其实就是读virtio header中的capacity field，此时会发送VM Exit trap到qemu中。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Config space accessors. */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> virtio_cread(vdev, structname, member, ptr)			\</span></span><br><span class="line">	<span class="keyword">do</span> &#123;								\</span><br><span class="line">		<span class="comment">/* Must match the member's type, and be integer */</span>	\</span><br><span class="line">		<span class="keyword">if</span> (!typecheck(typeof((((structname*)<span class="number">0</span>)-&gt;member)), *(ptr))) \</span><br><span class="line">			(*ptr) = <span class="number">1</span>;					\</span><br><span class="line">									\</span><br><span class="line">		<span class="keyword">switch</span> (<span class="keyword">sizeof</span>(*ptr)) &#123;					\</span><br><span class="line">		<span class="keyword">case</span> <span class="number">1</span>:							\</span><br><span class="line">			*(ptr) = virtio_cread8(vdev,			\</span><br><span class="line">					       offsetof(structname, member)); \</span><br><span class="line">			<span class="keyword">break</span>;						\</span><br><span class="line">		<span class="keyword">case</span> <span class="number">2</span>:							\</span><br><span class="line">			*(ptr) = virtio_cread16(vdev,			\</span><br><span class="line">						offsetof(structname, member)); \</span><br><span class="line">			<span class="keyword">break</span>;						\</span><br><span class="line">		<span class="keyword">case</span> <span class="number">4</span>:							\</span><br><span class="line">			*(ptr) = virtio_cread32(vdev,			\</span><br><span class="line">						offsetof(structname, member)); \</span><br><span class="line">			<span class="keyword">break</span>;						\</span><br><span class="line">		<span class="keyword">case</span> <span class="number">8</span>:							\</span><br><span class="line">			*(ptr) = virtio_cread64(vdev,			\</span><br><span class="line">						offsetof(structname, member)); \</span><br><span class="line">			<span class="keyword">break</span>;						\</span><br><span class="line">		<span class="keyword">default</span>:						\</span><br><span class="line">			BUG();						\</span><br><span class="line">		&#125;							\</span><br><span class="line">	&#125; <span class="keyword">while</span>(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> u64 <span class="title">virtio_cread64</span><span class="params">(struct virtio_device *vdev,</span></span></span><br><span class="line"><span class="function"><span class="params">				 <span class="keyword">unsigned</span> <span class="keyword">int</span> offset)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	u64 ret;</span><br><span class="line">	__virtio_cread_many(vdev, offset, &amp;ret, <span class="number">1</span>, <span class="keyword">sizeof</span>(ret));</span><br><span class="line">	<span class="keyword">return</span> virtio64_to_cpu(vdev, (__force __virtio64)ret);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Read @count fields, @bytes each. */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> __virtio_cread_many(struct virtio_device *vdev,</span><br><span class="line">				       <span class="keyword">unsigned</span> <span class="keyword">int</span> offset,</span><br><span class="line">				       <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> count, <span class="keyword">size_t</span> bytes)</span><br><span class="line">&#123;</span><br><span class="line">	u32 old, gen = vdev-&gt;config-&gt;generation ?</span><br><span class="line">		vdev-&gt;config-&gt;generation(vdev) : <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">int</span> i;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">		old = gen;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; count; i++)</span><br><span class="line">			vdev-&gt;config-&gt;get(vdev, offset + bytes * i,</span><br><span class="line">					  buf + i * bytes, bytes);</span><br><span class="line"></span><br><span class="line">		gen = vdev-&gt;config-&gt;generation ?</span><br><span class="line">			vdev-&gt;config-&gt;generation(vdev) : <span class="number">0</span>;</span><br><span class="line">	&#125; <span class="keyword">while</span> (gen != old);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="6-qemu完成virtio-header中capacity-field的模拟"><a href="#6-qemu完成virtio-header中capacity-field的模拟" class="headerlink" title="6. qemu完成virtio header中capacity field的模拟"></a>6. qemu完成virtio header中capacity field的模拟</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">uint32_t</span> virtio_config_readb(VirtIODevice *vdev, <span class="keyword">uint32_t</span> addr)</span><br><span class="line">&#123;</span><br><span class="line">    VirtioDeviceClass *k = VIRTIO_DEVICE_GET_CLASS(vdev);</span><br><span class="line">    <span class="keyword">uint8_t</span> val;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (addr + <span class="keyword">sizeof</span>(val) &gt; vdev-&gt;config_len) &#123;</span><br><span class="line">        <span class="keyword">return</span> (<span class="keyword">uint32_t</span>)<span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    k-&gt;get_config(vdev, vdev-&gt;config);<span class="comment">//对应到virtio_blk_update_config</span></span><br><span class="line"></span><br><span class="line">    val = ldub_p(vdev-&gt;config + addr);</span><br><span class="line">    <span class="keyword">return</span> val;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* coalesce internal state, copy to pci i/o region 0</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">virtio_blk_update_config</span><span class="params">(VirtIODevice *vdev, <span class="keyword">uint8_t</span> *config)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    VirtIOBlock *s = VIRTIO_BLK(vdev);</span><br><span class="line">    BlockConf *conf = &amp;s-&gt;conf.conf;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">virtio_blk_config</span> <span class="title">blkcfg</span>;</span></span><br><span class="line">    <span class="keyword">uint64_t</span> capacity;</span><br><span class="line">    <span class="keyword">int</span> blk_size = conf-&gt;logical_block_size;</span><br><span class="line"></span><br><span class="line">    blk_get_geometry(s-&gt;blk, &amp;capacity);</span><br><span class="line">    <span class="built_in">memset</span>(&amp;blkcfg, <span class="number">0</span>, <span class="keyword">sizeof</span>(blkcfg));</span><br><span class="line">    virtio_stq_p(vdev, &amp;blkcfg.capacity, capacity);</span><br><span class="line">    virtio_stl_p(vdev, &amp;blkcfg.seg_max, <span class="number">128</span> - <span class="number">2</span>);</span><br><span class="line">    virtio_stw_p(vdev, &amp;blkcfg.geometry.cylinders, conf-&gt;cyls);</span><br><span class="line">    virtio_stl_p(vdev, &amp;blkcfg.blk_size, blk_size);</span><br><span class="line">    virtio_stw_p(vdev, &amp;blkcfg.min_io_size, conf-&gt;min_io_size / blk_size);</span><br><span class="line">    virtio_stw_p(vdev, &amp;blkcfg.opt_io_size, conf-&gt;opt_io_size / blk_size);</span><br><span class="line">    blkcfg.geometry.heads = conf-&gt;heads;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * We must ensure that the block device capacity is a multiple of</span></span><br><span class="line"><span class="comment">     * the logical block size. If that is not the case, let's use</span></span><br><span class="line"><span class="comment">     * sector_mask to adopt the geometry to have a correct picture.</span></span><br><span class="line"><span class="comment">     * For those devices where the capacity is ok for the given geometry</span></span><br><span class="line"><span class="comment">     * we don't touch the sector value of the geometry, since some devices</span></span><br><span class="line"><span class="comment">     * (like s390 dasd) need a specific value. Here the capacity is already</span></span><br><span class="line"><span class="comment">     * cyls*heads*secs*blk_size and the sector value is not block size</span></span><br><span class="line"><span class="comment">     * divided by 512 - instead it is the amount of blk_size blocks</span></span><br><span class="line"><span class="comment">     * per track (cylinder).</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (blk_getlength(s-&gt;blk) /  conf-&gt;heads / conf-&gt;secs % blk_size) &#123;</span><br><span class="line">        blkcfg.geometry.sectors = conf-&gt;secs &amp; ~s-&gt;sector_mask;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        blkcfg.geometry.sectors = conf-&gt;secs;</span><br><span class="line">    &#125;</span><br><span class="line">    blkcfg.size_max = <span class="number">0</span>;</span><br><span class="line">    blkcfg.physical_block_exp = get_physical_block_exp(conf);</span><br><span class="line">    blkcfg.alignment_offset = <span class="number">0</span>;</span><br><span class="line">    blkcfg.wce = blk_enable_write_cache(s-&gt;blk);</span><br><span class="line">    <span class="built_in">memcpy</span>(config, &amp;blkcfg, <span class="keyword">sizeof</span>(struct virtio_blk_config));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="http://m.blog.chinaunix.net/uid-29718549-id-4390132.html" target="_blank" rel="noopener">qemu block_resize(动态修改磁盘大小)实现简记</a></li>
+<li><a href="https://blog.frehi.be/2022/08/01/online-resizing-block-devices-and-file-systems/" target="_blank" rel="noopener">Online resizing block devices and file systems</a></li>
+<li><a href="https://serverfault.com/a/743106" target="_blank" rel="noopener">Is online disk resize possible with KVM?</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/virtio/">virtio</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2022/12/03/Notes-about-Intel-turbo-boost/">
+        <span class="next-text nav-default">Notes about Intel turbo boost</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2022
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2022/12/17/深入解析virtio-blk-resize原理/';
+        this.page.identifier = '2022/12/17/深入解析virtio-blk-resize原理/';
+        this.page.title = '深入解析virtio-blk resize原理';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
