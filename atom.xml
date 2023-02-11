@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-01-07T06:52:51.063Z</updated>
+  <updated>2023-02-11T06:11:05.414Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about vsock</title>
+    <link href="http://liujunming.github.io/2023/02/11/Notes-about-vsock/"/>
+    <id>http://liujunming.github.io/2023/02/11/Notes-about-vsock/</id>
+    <published>2023-02-11T04:59:37.000Z</published>
+    <updated>2023-02-11T06:11:05.414Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将记录vsock相关Notes。<a id="more"></a></p><h3 id="What"><a href="#What" class="headerlink" title="What"></a>What</h3><p>VM Sockets(vsock) is a fast and efficient communication mechanism between guest virtual machines and their host. 说白了，就是允许guest与host利用socket进行通信(不依赖于虚拟机的网卡)，借助于网卡，guest与host也是可以进行socket通信的，但此时就不是vsock了。使用vsock进行socket编程时，需要使用新的socket address family AF_VSOCK。</p><h3 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h3><p><img src="/images/2023/02/01.jpg" alt><br><img src="/images/2023/02/02.jpg" alt><br><img src="/images/2023/02/03.jpg" alt></p><h3 id="How"><a href="#How" class="headerlink" title="How"></a>How</h3><p><img src="/images/2023/02/04.jpg" alt><br>There are several layers here.</p><ul><li>application, use &lt;cid,port&gt; as a socket address</li><li>socket layer, support for socket API</li><li>AF_VSOCK address family, implement the vsock core</li><li>transport, trasnport the data between guest and host.</li></ul><p>The transport layer is the mostly needed to talk as the other three just need to implement standand interfaces in kernel.</p><p>Transport as its name indicated, is used to transport the data between guest and host just like the networking card transport data between local and remote socket. There are two kinds of transports according to data’s flow direction.</p><ul><li>G2H: guest-&gt;host transport, they run in the guest and the guest vsock networking protocol uses this to communication with the host.</li><li>H2G: host-&gt;guest transport, they run in the host and the host vsock networing protocol uses this to communiction with the guest.</li></ul><p>Usually H2G transport is implemented as a device emulation, and G2H transport is implemented as the emulated device’s driver. For example, in VMware the H2G transport is a emulated vmci PCI device and the G2H is vmci device driver. In qemu the H2G transport is a emulated vhost-vsock device and the G2H transport is the vosck device’s driver.</p><p>Following picture shows the virtio(in guest) and vhost(in host) transport.<br><img src="/images/2023/02/05.jpg" alt></p><h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><p>可以参考 <a href="https://gist.github.com/nrdmn/7971be650919b112343b1cb2757a3fe6" target="_blank" rel="noopener">https://gist.github.com/nrdmn/7971be650919b112343b1cb2757a3fe6</a><br>在qemu-kvm + Linux guest环境中搭建vsock环境。</p><hr><p>参考资料:</p><ol><li><a href="https://vmsplice.net/~stefan/stefanha-kvm-forum-2015.pdf" target="_blank" rel="noopener">virtio-vsock Zero-configuration host/guest communication</a></li><li><a href="https://gist.github.com/nrdmn/7971be650919b112343b1cb2757a3fe6" target="_blank" rel="noopener">https://gist.github.com/nrdmn/7971be650919b112343b1cb2757a3fe6</a></li><li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/04/18/vsock-internals" target="_blank" rel="noopener">Linux vsock internals</a></li><li><a href="https://static.sched.com/hosted_files/devconfcz2020a/b1/DevConf.CZ_2020_vsock_v1.1.pdf" target="_blank" rel="noopener">VSOCK: VM ↔ host socket with minimal configuration</a></li><li><a href="https://www.man7.org/linux/man-pages/man7/vsock.7.html" target="_blank" rel="noopener">man vsock</a></li><li><a href="https://iaguozhi.github.io/blogs/vsock.html" target="_blank" rel="noopener">vsock 介绍与使用</a></li><li><a href="https://lwn.net/Articles/556550/" target="_blank" rel="noopener">Introduce VM Sockets virtio transport</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将记录vsock相关Notes。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Intel Hyper-Threading Technology</title>
@@ -449,32 +473,6 @@
       <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
     
       <category term="虚拟化 " scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>lapic timer virtualization</title>
-    <link href="http://liujunming.github.io/2022/10/22/lapic-timer-virtualization/"/>
-    <id>http://liujunming.github.io/2022/10/22/lapic-timer-virtualization/</id>
-    <published>2022-10-22T08:55:24.000Z</published>
-    <updated>2022-10-22T11:03:18.142Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将介绍kvm中lapic timer的虚拟化。为了方便，只介绍<a href="/2022/09/05/The-relationship-between-LAPIC-timer-and-TSC/">TSC-deadline模式的lapic timer</a>。<a id="more"></a><br>本文参考的内核版本为<a href="https://elixir.bootlin.com/linux/v5.18/source" target="_blank" rel="noopener">v5.18</a>。</p><blockquote><p>host有自己的lapic timer，硬件实现，guest也有自己的lapic timer，kvm模拟。一个pcup上要运行很多个vcpu，每个vcpu都有自己的lapic timer，kvm要模拟很多个lapic timer，kvm用软件定时器hrtimer来模拟lapic timer，guest写tscdeadline msr，kvm把这个tsc值转换成一个软件定时器的值，启动软件定时器，硬件定时器<strong>驱动</strong>软件定时器，软件定时器超时后，假如硬件timer中断正好把vcpu exiting出来，那么设置timer interrupt pending，重新enter时把timer中断注入，如果vcpu运行在其它pcpu上，需要把vcpu kick出来，所以最好保持timer绑定的物理cpu和vcpu所运行的物理cpu始终一致，如果vcpu运行的物理cpu变化了，migrate timer到新的物理cpu，这样中断来了vcpu自动exit，不再需要kick一次。</p></blockquote><p>hrtimer由physical lapic timer来驱动。</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kvm_set_lapic_tscdeadline_msr</span><br><span class="line">└── start_apic_timer</span><br><span class="line">    └── __start_apic_timer</span><br><span class="line">        └── restart_apic_timer</span><br><span class="line">            └── <span class="keyword">if</span> (!start_hv_timer(apic)) start_sw_timer(apic);</span><br></pre></td></tr></table></figure><p>这里的hv_timer就是<a href="/2022/04/01/Introduction-to-VT-x-Preemption-Timer/">preemption timer</a>，sw_timer是软件hrtimer。有preemption timer就用hv_timer，没有就用sw_timer。hv_timer的问题就是可能时间没到，vcpu由于其它原因exit出来，那么就需要kvm_lapic_switch_to_sw_timer，再次enter时kvm_lapic_switch_to_hv_timer。</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">start_hv_timer</span><br><span class="line">├── vmx_set_hv_timer[kvm_x86_set_hv_timer]</span><br><span class="line">├── ktimer-&gt;hv_timer_in_use = <span class="literal">true</span>;</span><br><span class="line">└── hrtimer_cancel(&amp;ktimer-&gt;timer);</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">start_sw_timer</span><br><span class="line">└── start_sw_tscdeadline</span><br><span class="line">    └── hrtimer_start</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/390345238" target="_blank" rel="noopener">kvm timer虚拟化</a></li><li><a href="https://www.codeleading.com/article/91825014645/" target="_blank" rel="noopener">APIC Timer模拟</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将介绍kvm中lapic timer的虚拟化。为了方便，只介绍&lt;a href=&quot;/2022/09/05/The-relationship-between-LAPIC-timer-and-TSC/&quot;&gt;TSC-deadline模式的lapic timer&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="Time" scheme="http://liujunming.github.io/categories/Time/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="Time" scheme="http://liujunming.github.io/tags/Time/"/>
-    
-      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
     
   </entry>
   
