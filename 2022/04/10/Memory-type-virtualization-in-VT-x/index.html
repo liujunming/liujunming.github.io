@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-History"><span class="toc-text">1. History</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-EPT-and-Memory-Typing"><span class="toc-text">2. EPT and Memory Typing</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-History"><span class="toc-text">1. History</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-第一性原理"><span class="toc-text">2. 第一性原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-EPT-and-Memory-Typing"><span class="toc-text">3. EPT and Memory Typing</span></a></li></ol>
     </div>
   </div>
 
@@ -293,9 +293,22 @@
     <div class="post-content">
       
         <p>已经介绍过了native下的<a href="/2022/04/09/Memory-Cache-Control-Memory-Type/">Memory Type</a>，那么，虚拟化下的Memory Type又是何般境地呢？<a id="more"></a></p>
-<h2 id="1-History"><a href="#1-History" class="headerlink" title="1. History"></a>1. History</h2><p>前辈们在影子页表时代探索过Memory Type的虚拟化。可以参考<a href="http://www-archive.xenproject.org/files/xensummitboston08/Cache-Virtualization.pdf" target="_blank" rel="noopener">Maintaining cache coherency</a>和<a href="https://vimeo.com/12847592" target="_blank" rel="noopener">Disheng Su: Cache Attribute Virtualization in Xen</a>。反正我也看不明白细节，但是，需要知道的是：在影子页表时代，Memory Type的虚拟化需要软件做很多事情。当来到EPT页表时代，软件需要做的事情就没有那么多了。</p>
-<p>EPT中的Memory Type在SDM Vol3的28.3.7 EPT and Memory Typing有详细的介绍。</p>
-<h2 id="2-EPT-and-Memory-Typing"><a href="#2-EPT-and-Memory-Typing" class="headerlink" title="2. EPT and Memory Typing"></a>2. EPT and Memory Typing</h2><p>中文翻译转载自<a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch28/" target="_blank" rel="noopener">Intel SDM Chapter 28: VMX Support for Address Translation</a>。</p>
+<h2 id="1-History"><a href="#1-History" class="headerlink" title="1. History"></a>1. History</h2><p>前辈们在影子页表时代探索过Memory Type的虚拟化。可以参考<a href="http://www-archive.xenproject.org/files/xensummitboston08/Cache-Virtualization.pdf" target="_blank" rel="noopener">Maintaining cache coherency</a>和<a href="https://vimeo.com/12847592" target="_blank" rel="noopener">Disheng Su: Cache Attribute Virtualization in Xen</a>。我也看不明白细节，但是，需要知道的是：在影子页表时代，Memory Type的虚拟化需要软件做很多事情。当来到EPT页表时代，软件需要做的事情就没有那么多了。</p>
+<h2 id="2-第一性原理"><a href="#2-第一性原理" class="headerlink" title="2. 第一性原理"></a>2. 第一性原理</h2><p>在native下，EMT(Effective Memory Type)由页表的PAT与MTRR设置的物理地址区间memory type来共同决定。在虚拟化下，EMT又是怎样的呢？</p>
+<ol>
+<li>对于PAT，可以由guest的页表来设置</li>
+<li>MTRR的MSR肯定是不能pass-thru给guest的<ul>
+<li>MTRR的功能是设置物理地址区间的memory type</li>
+<li>native下MTRR MSR设置的是HPA的属性，一般由bios来设置</li>
+<li>在虚拟化场景下，当seabios或者OVMF设置MTRR时，会操作MTRR MSR，此时会发生VM Exit</li>
+<li>所以hypervisor是可以感知guest设置的GPA区间的memory type的</li>
+</ul>
+</li>
+</ol>
+<p>如何模拟guest GPA区间中设置的memory type(guest 在MTRR设置的memory type)呢？EPT页表会将GPA转化为HPA的，将guest MTRR设置的memory type，在EPT memory type设置下即可完成guest GPA区间中设置的memory type的模拟。在Non-root mode下，EMT由guest page table的PAT与EPT的memory type共同决定，此时物理MTRR完全不起作用，这样可以做到guest与host的EMT的隔离性!</p>
+<p>经过上述分析可以知道，在虚拟化的场景下，EPT memory type承接了MTRR的工作。当guest设置MTRR的memory type时，都会发生VM Exit，此时hypervisor将GPA区间的memory type设置在EPT memory type即可！</p>
+<h2 id="3-EPT-and-Memory-Typing"><a href="#3-EPT-and-Memory-Typing" class="headerlink" title="3. EPT and Memory Typing"></a>3. EPT and Memory Typing</h2><p>EPT中的Memory Type在SDM Vol3的28.3.7 EPT and Memory Typing有详细的介绍。</p>
+<p>中文翻译转载自<a href="https://tcbbd.moe/ref-and-spec/intel-sdm/sdm-vmx-ch28/" target="_blank" rel="noopener">Intel SDM Chapter 28: VMX Support for Address Translation</a>。</p>
 <p>涉及EPT的Memory Type有两个，首先是walk EPT时，访问EPT各级页表项所采用的Memory Type：</p>
 <ul>
 <li>若<code>CR0.CD = 0</code>，则采用的Memory Type由EPTP的第0-2位决定，取0表示UC，取6表示WB</li>
@@ -324,7 +337,7 @@
 <li>若<code>CR0.CD = 1</code>，则Memory Type为UC</li>
 </ul>
 <p>IPAT即Ignore PAT(末级页表项的第6位)，如下图标注所示：<br><img src="/images/2022/04/66.PNG" alt></p>
-<p>MTRR Memory Type和PAT Memory Type合并后的结果:<br><img src="/images/2022/04/49.PNG" alt></p>
+<p>EPT Memory Type(MTRR Memory Type)和PAT Memory Type合并后的结果:<br><img src="/images/2022/04/49.PNG" alt></p>
 
       
     </div>
