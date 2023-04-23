@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-04-23T10:26:53.564Z</updated>
+  <updated>2023-04-23T10:35:19.351Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -21,7 +21,7 @@
     <link href="http://liujunming.github.io/2023/04/23/Notes-about-TSO%E3%80%81GSO%E3%80%81LRO%E3%80%81GRO/"/>
     <id>http://liujunming.github.io/2023/04/23/Notes-about-TSO、GSO、LRO、GRO/</id>
     <published>2023-04-23T09:21:32.000Z</published>
-    <updated>2023-04-23T10:26:53.564Z</updated>
+    <updated>2023-04-23T10:35:19.351Z</updated>
     
     <content type="html"><![CDATA[<p>本文转载自<a href="https://mp.weixin.qq.com/s/jtKtdtSS15dRaivtdcAbQQ" target="_blank" rel="noopener">图解网络Offload</a>，将介绍TSO、GSO、LRO、GRO相关笔记。<a id="more"></a></p><p>网络应用程序如果要发送很大的数据包，经过内核协议栈的时，大包会被分片成多个不超过MTU长度的包。这个分片比较费CPU资源。Offload技术可以把这些分片和合并的工作进行优化处理，也可以直接Offload到网卡上。</p><h3 id="MTU"><a href="#MTU" class="headerlink" title="MTU"></a>MTU</h3><p>MTU是一个二层的概念，即最大传输单元（Maximum Transmission Unit，MTU），它不包含二层以太网头尾数据。网卡发送数据包的大小都是限制在MTU内的。<br><img src="/images/2023/04/06.png" alt></p><p>Offload涉及到四个概念：TSO、GSO、LRO、GRO。（当然还有UDP的UFO，以及一些checksum的Offload，在这里不讨论。）</p><h3 id="TSO"><a href="#TSO" class="headerlink" title="TSO"></a>TSO</h3><p>TSO(TCP Segmentation Offload)是一种利用网卡对大数据包进行分片，从而减小CPU负荷的一种技术。其作用通过两个图来对比：</p><p>TSO off和GSO off 状态数据包的发送过程：<br><img src="/images/2023/04/07.png" alt></p><p>TSO on状态数据包的发送过程：<br><img src="/images/2023/04/08.png" alt><br>一个大的网络包直到进入网卡内部后才由网卡进行了分片。</p><h3 id="GSO"><a href="#GSO" class="headerlink" title="GSO"></a>GSO</h3><p>GSO（Generic Segmentation Offload）是延缓分片技术。它比TSO更通用，原因在于它不需要硬件的支持就可以进行分片。</p><p>其过程是：首先查询网卡是否支持TSO功能，如果硬件支持TSO则使用网卡的硬件分片能力执行分片；如果网卡不支持 TSO 功能，则将分片的执行，延缓到了将数据推送到网卡的前一刻执行。</p><p>网卡关闭TSO时，GSO on状态数据包的发送过程：<br><img src="/images/2023/04/09.png" alt></p><p>一个大的网络包直到进入网卡前的最后一步才进行了分片。</p><p>TSO和GSO对应数据发送过程，对应数据接收过程的是LRO和GRO。</p><h3 id="LRO"><a href="#LRO" class="headerlink" title="LRO"></a>LRO</h3><p>LRO（Large Receive Offload）是将网卡接收到的多个数据包合并成一个大的数据包，然后再传递给网络协议栈处理的技术。这样可以提高系统接收数据包的能力，减轻CPU负载。</p><p>LRO off和GRO off 状态数据包的接收过程：<br><img src="/images/2023/04/10.png" alt></p><p>LRO on状态数据包的接收过程：<br><img src="/images/2023/04/11.png" alt><br>数据一进入网卡立刻进行了合并。</p><h3 id="GRO"><a href="#GRO" class="headerlink" title="GRO"></a>GRO</h3><p>GRO（Generic Receive Offload）是LRO 的软件实现，只是GRO 的合并条件更加的严格和灵活。</p><p>GRO on状态数据包的接收过程：<br><img src="/images/2023/04/12.png" alt></p><p>以上的网络offload是网络协议栈配合网卡完成的，在现在的很多智能网卡上可以直接offload整个网络协议栈，即把网络协议的处理放到了智能网卡上。</p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/jtKtdtSS15dRaivtdcAbQQ" target="_blank" rel="noopener">图解网络Offload</a></li></ol>]]></content>
     
@@ -31,10 +31,10 @@
     
     </summary>
     
-      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
     
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
   </entry>
   
