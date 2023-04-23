@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-04-22T09:30:38.240Z</updated>
+  <updated>2023-04-23T06:32:45.106Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about 零拷贝技术splice</title>
+    <link href="http://liujunming.github.io/2023/04/23/Notes-about-%E9%9B%B6%E6%8B%B7%E8%B4%9D%E6%8A%80%E6%9C%AFsplice/"/>
+    <id>http://liujunming.github.io/2023/04/23/Notes-about-零拷贝技术splice/</id>
+    <published>2023-04-23T06:22:39.000Z</published>
+    <updated>2023-04-23T06:32:45.106Z</updated>
+    
+    <content type="html"><![CDATA[<p>转载自:<a href="https://mp.weixin.qq.com/s?__biz=MzA3NzYzODg1OA==&amp;mid=2648466923&amp;idx=1&amp;sn=acf2fb71a960f3831f9b98657b39d4ce&amp;scene=21#wechat_redirect" target="_blank" rel="noopener">一文读懂零拷贝技术｜splice使用</a>。<a id="more"></a><br>服务端要向客户端连接发送一个文件，一般过程如下：</p><ul><li>服务端首先调用 <code>read()</code> 函数读取文件内容。</li><li>服务端通过调用 <code>write()</code>/<code>send()</code> 函数将文件内容发送给客户端连接。</li></ul><p>上面过程如下图所示：</p><p><img src="/images/2023/04/04.jpeg" alt></p><p>从上图可以看出，在发送文件的过程中，首先需要将文件页缓存（Page Cache）从内核态复制到用户态缓存中，然后再从用户态缓存复制到客户端的 Socket 缓冲区中。</p><p>其实在上面的过程中，复制文件数据到用户态缓存这个操作是多余的，我们完全可以直接把文件页缓存的数据复制到 Socket 缓冲区即可，这样就可以减少一次拷贝数据的操作。</p><p>为了实现这样的功能，内核提供了一个名为 <code>splice()</code>的系统调用，使用 <code>splice()</code>系统调用可以避免从内核态拷贝数据到用户态。</p><blockquote><p>不需要将内核态的数据拷贝到用户态缓存的技术被称为：<code>零拷贝技术</code>。</p></blockquote><p><img src="/images/2023/04/05.jpeg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s?__biz=MzA3NzYzODg1OA==&amp;mid=2648466923&amp;idx=1&amp;sn=acf2fb71a960f3831f9b98657b39d4ce&amp;scene=21#wechat_redirect" target="_blank" rel="noopener">一文读懂零拷贝技术｜splice使用</a></li><li><a href="https://mp.weixin.qq.com/s/vN1VIgX73arke4put_cyRg" target="_blank" rel="noopener">一文读懂零拷贝技术｜splice原理与实现</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;转载自:&lt;a href=&quot;https://mp.weixin.qq.com/s?__biz=MzA3NzYzODg1OA==&amp;amp;mid=2648466923&amp;amp;idx=1&amp;amp;sn=acf2fb71a960f3831f9b98657b39d4ce&amp;amp;scene=21#wechat_redirect&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;一文读懂零拷贝技术｜splice使用&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>Linux IOMMU bypass method</title>
@@ -438,30 +460,6 @@
     <summary type="html">
     
       &lt;p&gt;   本文转载自:&lt;a href=&quot;https://www.cnblogs.com/163yun/p/10114699.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;KVM halt-polling机制分析&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="KVM" scheme="http://liujunming.github.io/categories/KVM/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="KVM" scheme="http://liujunming.github.io/tags/KVM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about guest halt polling</title>
-    <link href="http://liujunming.github.io/2022/10/28/Notes-about-Guest-halt-polling/"/>
-    <id>http://liujunming.github.io/2022/10/28/Notes-about-Guest-halt-polling/</id>
-    <published>2022-10-28T13:20:37.000Z</published>
-    <updated>2022-10-29T08:49:07.967Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about guest halt polling feature.<a id="more"></a> </p><p>前提:    需要对intel的<a href="/2020/05/01/Introduction-to-halt-pause-monitor-mwait-instruction/#hlt">hlt</a>指令有一定的了解。 </p><p>The cpuidle_haltpoll driver, with the haltpoll governor, allows the guest vcpus to poll for a specified amount of time before halting.</p><p>This provides the following benefits to host side polling:</p><ol><li>The POLL flag is set while polling is performed, which allows a remote vCPU to avoid sending an IPI (and the associated cost of handling the IPI) when performing a wakeup.</li><li>The VM-exit cost can be avoided.</li></ol><p>The downside of guest side polling is that polling is performed even with other runnable tasks in the host.</p><p>The basic logic as follows: A global value, <code>guest_halt_poll_ns</code>, is configured by the user, indicating the maximum amount of time polling is allowed. This value is fixed.</p><p>Each vcpu has an adjustable <code>guest_halt_poll_ns</code> (“per-cpu <code>guest_halt_poll_ns</code>”), which is adjusted by the algorithm in response to events.</p><p>The module parameters can be set from the debugfs files in:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/sys/module/haltpoll/parameters/</span><br></pre></td></tr></table></figure></p><hr><p>参考资料:</p><ol><li><a href="https://www.kernel.org/doc/html/latest/virt/guest-halt-polling.html" target="_blank" rel="noopener">Guest halt polling</a></li><li><a href="https://lore.kernel.org/kvm/20190613224532.949768676@redhat.com/" target="_blank" rel="noopener">cpuidle haltpoll driver and governor</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about guest halt polling feature.
     
     </summary>
     
