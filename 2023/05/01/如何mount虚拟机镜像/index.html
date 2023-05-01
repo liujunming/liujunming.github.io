@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="如何mount虚拟机镜像">
 
 
 
+
+  <meta name="keywords" content="工具, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/2020/12/">
+<link rel="canonical" href="http://liujunming.github.io/2023/05/01/如何mount虚拟机镜像/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> 如何mount虚拟机镜像 - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,99 +256,132 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          如何mount虚拟机镜像
+        
+      </h1>
 
-  <section id="archive" class="archive">
-    
-      
-        <div class="archive-title">
-          <span class="archive-post-counter">
-            目前共计 516 篇日志
+      <div class="post-meta">
+        <span class="post-time">
+          2023-05-01
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/工具/">工具</a>
+            
           </span>
-        </div>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#losetup"><span class="toc-text">losetup</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#qemu-nbd"><span class="toc-text">qemu-nbd</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍下mount虚拟机镜像的方法。 <a id="more"></a></p>
+<h3 id="losetup"><a href="#losetup" class="headerlink" title="losetup"></a>losetup</h3><p>losetup只能mount raw格式的镜像。</p>
+<p>To check what is the first usable loop device, run<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">losetup -f</span><br></pre></td></tr></table></figure></p>
+<p>After that, use the output of that command to link the disk image to the loop device file (using root privileges):<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">losetup -P /dev/loopX example.img</span><br></pre></td></tr></table></figure></p>
+<p>The -P flag searches through the image for partitions, which you need to mount.</p>
+<p>After that, create the folder named example and run the command:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount /dev/loopXpY example</span><br></pre></td></tr></table></figure></p>
+<p>The disk image should now be mounted in that directory. Depending on the Y variable, the right partition was mounted.</p>
+<h3 id="qemu-nbd"><a href="#qemu-nbd" class="headerlink" title="qemu-nbd"></a>qemu-nbd</h3><p>Export a QEMU disk image using the NBD protocol.</p>
+<p>qemu-nbd可以mount多种格式的虚拟机镜像，因此适用范围比losetup要广！</p>
+<ul>
+<li><p>Enable NBD on the host</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe nbd max_part=8</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Connect the QCOW2 as a network block device</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-nbd -c /dev/nbd0 /var/lib/vz/images/100/vm-100-disk-1.qcow2</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>List partitions inside the QCOW2</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fdisk /dev/nbd0 -l</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Mount the partition from the VM</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount /dev/nbd0p1 /mnt/somepoint/</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>After you’re done, unmount and disconnect</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">umount /mnt/somepoint/</span><br><span class="line">qemu-nbd -d /dev/nbd0</span><br><span class="line">rmmod nbd</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://iaguozhi.github.io/blogs/Change-vm-kernel-by-qemu-nbd.html" target="_blank" rel="noopener">记录一次将虚拟机kernel写坏之后的修复过程</a></li>
+<li><a href="https://www.qemu.org/docs/master/tools/qemu-nbd.html" target="_blank" rel="noopener">QEMU Disk Network Block Device Server</a></li>
+<li><a href="https://eloydegen.com/blog/posts/losetup/" target="_blank" rel="noopener">Mount disk images using losetup</a></li>
+<li><a href="https://www.man7.org/linux/man-pages/man8/losetup.8.html" target="_blank" rel="noopener">man losetup</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
       
     
 
     
-      
+      <footer class="post-footer">
         
-        
-
-        
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2020</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/工具/">工具</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-26
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/12/26/Deep-into-CR0-CR4-in-VMX-operation/" class="archive-post-link">
-            Deep into CR0/CR4 in VMX operation
-          </a>
-        </span>
-      </div>
+        
+        
+  <nav class="post-nav">
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/12/01/VT-x-Relative-Priority-of-Faults-and-VM-Exits/" class="archive-post-link">
-            VT-x:Relative Priority of Faults and VM Exits
-          </a>
-        </span>
-      </div>
     
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            12-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2020/12/01/VT-x-Information-for-VM-Exits-During-Event-Delivery/" class="archive-post-link">
-            VT-x:Information for VM Exits During Event Delivery
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
+      <a class="next" href="/2023/05/01/Notes-about-GPU-Direct-Storage/">
+        <span class="next-text nav-default">Notes about GPU Direct Storage</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -434,6 +465,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/05/01/如何mount虚拟机镜像/';
+        this.page.identifier = '2023/05/01/如何mount虚拟机镜像/';
+        this.page.title = '如何mount虚拟机镜像';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     

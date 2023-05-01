@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-05-01T11:29:26.325Z</updated>
+  <updated>2023-05-01T12:36:17.731Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>如何mount虚拟机镜像</title>
+    <link href="http://liujunming.github.io/2023/05/01/%E5%A6%82%E4%BD%95mount%E8%99%9A%E6%8B%9F%E6%9C%BA%E9%95%9C%E5%83%8F/"/>
+    <id>http://liujunming.github.io/2023/05/01/如何mount虚拟机镜像/</id>
+    <published>2023-05-01T11:49:38.000Z</published>
+    <updated>2023-05-01T12:36:17.731Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将介绍下mount虚拟机镜像的方法。 <a id="more"></a></p><h3 id="losetup"><a href="#losetup" class="headerlink" title="losetup"></a>losetup</h3><p>losetup只能mount raw格式的镜像。</p><p>To check what is the first usable loop device, run<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">losetup -f</span><br></pre></td></tr></table></figure></p><p>After that, use the output of that command to link the disk image to the loop device file (using root privileges):<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">losetup -P /dev/loopX example.img</span><br></pre></td></tr></table></figure></p><p>The -P flag searches through the image for partitions, which you need to mount.</p><p>After that, create the folder named example and run the command:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount /dev/loopXpY example</span><br></pre></td></tr></table></figure></p><p>The disk image should now be mounted in that directory. Depending on the Y variable, the right partition was mounted.</p><h3 id="qemu-nbd"><a href="#qemu-nbd" class="headerlink" title="qemu-nbd"></a>qemu-nbd</h3><p>Export a QEMU disk image using the NBD protocol.</p><p>qemu-nbd可以mount多种格式的虚拟机镜像，因此适用范围比losetup要广！</p><ul><li><p>Enable NBD on the host</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe nbd max_part=8</span><br></pre></td></tr></table></figure></li><li><p>Connect the QCOW2 as a network block device</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-nbd -c /dev/nbd0 /var/lib/vz/images/100/vm-100-disk-1.qcow2</span><br></pre></td></tr></table></figure></li><li><p>List partitions inside the QCOW2</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fdisk /dev/nbd0 -l</span><br></pre></td></tr></table></figure></li><li><p>Mount the partition from the VM</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount /dev/nbd0p1 /mnt/somepoint/</span><br></pre></td></tr></table></figure></li><li><p>After you’re done, unmount and disconnect</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">umount /mnt/somepoint/</span><br><span class="line">qemu-nbd -d /dev/nbd0</span><br><span class="line">rmmod nbd</span><br></pre></td></tr></table></figure></li></ul><hr><p>参考资料:</p><ol><li><a href="https://iaguozhi.github.io/blogs/Change-vm-kernel-by-qemu-nbd.html" target="_blank" rel="noopener">记录一次将虚拟机kernel写坏之后的修复过程</a></li><li><a href="https://www.qemu.org/docs/master/tools/qemu-nbd.html" target="_blank" rel="noopener">QEMU Disk Network Block Device Server</a></li><li><a href="https://eloydegen.com/blog/posts/losetup/" target="_blank" rel="noopener">Mount disk images using losetup</a></li><li><a href="https://www.man7.org/linux/man-pages/man8/losetup.8.html" target="_blank" rel="noopener">man losetup</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将介绍下mount虚拟机镜像的方法。
+    
+    </summary>
+    
+      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
+    
+    
+      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about GPU Direct Storage</title>
@@ -447,28 +469,6 @@
     
     
       <category term="QEMU&amp;&amp;KVM" scheme="http://liujunming.github.io/tags/QEMU-KVM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Comparing VIRTIO, NVMe, and io_uring queue designs</title>
-    <link href="http://liujunming.github.io/2022/11/13/Comparing-VIRTIO-NVMe-and-io-uring-queue-designs/"/>
-    <id>http://liujunming.github.io/2022/11/13/Comparing-VIRTIO-NVMe-and-io-uring-queue-designs/</id>
-    <published>2022-11-13T13:11:13.000Z</published>
-    <updated>2022-11-13T13:19:55.638Z</updated>
-    
-    <content type="html"><![CDATA[<p><a href="http://blog.vmsplice.net/2022/06/comparing-virtio-nvme-and-iouring-queue.html" target="_blank" rel="noopener">http://blog.vmsplice.net/2022/06/comparing-virtio-nvme-and-iouring-queue.html</a><br>深度好文，强烈推荐！<a id="more"></a> </p><h3 id="Ring-buffer-basics"><a href="#Ring-buffer-basics" class="headerlink" title="Ring buffer basics"></a>Ring buffer basics</h3><p>A ring buffer is a circular array where new elements are produced on one side and consumed on the other side. Often terms such as head and tail are used to <strong>describe the array indices at which the next element is accessed</strong>. When the end of the array is reached, one moves back to the start of the array. The empty and full conditions are special states that must be checked to avoid underflow and overflow.</p><p>VIRTIO, NVMe, and io_uring all use single producer, single consumer shared memory ring buffers. This allows a CPU and an I/O device or two CPUs to communicate across a region of memory to which both sides have access.</p><p><a href="https://mp.weixin.qq.com/s/pjuHWagzhONS3eOmF6xkXQ" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/pjuHWagzhONS3eOmF6xkXQ</a></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;a href=&quot;http://blog.vmsplice.net/2022/06/comparing-virtio-nvme-and-iouring-queue.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;http://blog.vmsplice.net/2022/06/comparing-virtio-nvme-and-iouring-queue.html&lt;/a&gt;&lt;br&gt;深度好文，强烈推荐！
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
