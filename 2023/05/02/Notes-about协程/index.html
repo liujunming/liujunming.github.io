@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about协程">
+
+
+
+
+  <meta name="keywords" content="QEMU, 操作系统, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2023/05/02/Notes-about协程/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about协程 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about协程
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2023-05-02
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/操作系统/">操作系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-基本概念"><span class="toc-text">1. 基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Why"><span class="toc-text">1.1 Why?</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-What"><span class="toc-text">1.2 What</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-When"><span class="toc-text">1.3 When</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-QEMU中的协程"><span class="toc-text">2. QEMU中的协程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-为什么qemu要使用协程"><span class="toc-text">2.1 为什么qemu要使用协程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-The-QEMU-coroutine-API"><span class="toc-text">2.2 The QEMU coroutine API</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-1-create-coroutine"><span class="toc-text">2.2.1 create coroutine</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-2-execute-coroutine"><span class="toc-text">2.2.2 execute coroutine</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-3-yield-coroutine"><span class="toc-text">2.2.3 yield coroutine</span></a></li></ol></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下协程(Coroutines)相关notes。<a id="more"></a></p>
+<h2 id="1-基本概念"><a href="#1-基本概念" class="headerlink" title="1. 基本概念"></a>1. 基本概念</h2><h3 id="1-1-Why"><a href="#1-1-Why" class="headerlink" title="1.1 Why?"></a>1.1 Why?</h3><p><a href="/pdf/什么是协程.pdf">什么是协程</a></p>
+<p>vs多线程：<br>操作系统在线程等待IO的时候，会阻塞当前线程，切换到其它线程，这样在当前线程等待IO的过程中，其它线程可以继续执行。当系统线程较少的时候没有什么问题，但是当线程数量非常多的时候，却产生了问题。<strong>一是系统线程会占用非常多的内存空间，二是过多的线程切换会占用大量的系统时间</strong>。</p>
+<p>协程刚好可以解决上述2个问题。协程运行在线程之上，当一个协程执行完成后，可以选择主动让出，让另一个协程运行在当前线程之上。<strong>协程并没有增加线程数量，只是在线程的基础之上通过分时复用的方式运行多个协程</strong>，而且协程的切换在用户态完成，切换的代价比线程从用户态到内核态的代价小很多。</p>
+<h3 id="1-2-What"><a href="#1-2-What" class="headerlink" title="1.2 What"></a>1.2 What</h3><p><img src="/images/2023/05/02.png" alt></p>
+<blockquote>
+<p>协程本质上和单线程+状态机是等价的，只是用协程的话，协程负责来保存状态，开发起来方便些(不用自己写那个状态机)。</p>
+</blockquote>
+<h3 id="1-3-When"><a href="#1-3-When" class="headerlink" title="1.3 When"></a>1.3 When</h3><p>在有大量IO操作业务的情况下，我们采用协程替换线程，可以到达很好的效果，一是降低了系统内存，二是减少了系统切换开销，因此系统的性能也会提升。</p>
+<p>在协程中尽量不要调用阻塞IO的方法，比如打印，读取文件，Socket接口等，除非改为异步调用的方式，并且协程只有在IO密集型的任务中才会发挥作用。</p>
+<p><strong>协程只有和异步IO结合起来才能发挥出最大的威力</strong>。</p>
+<h2 id="2-QEMU中的协程"><a href="#2-QEMU中的协程" class="headerlink" title="2. QEMU中的协程"></a>2. QEMU中的协程</h2><h3 id="2-1-为什么qemu要使用协程"><a href="#2-1-为什么qemu要使用协程" class="headerlink" title="2.1 为什么qemu要使用协程"></a>2.1 为什么qemu要使用协程</h3><p><a href="https://lore.kernel.org/qemu-devel/1311672077-4592-1-git-send-email-stefanha@linux.vnet.ibm.com/" target="_blank" rel="noopener">Coroutines for better asynchronous programming</a></p>
+<p>仔细阅读<a href="http://blog.vmsplice.net/2014/01/coroutines-in-qemu-basics.html" target="_blank" rel="noopener">Coroutines in QEMU: The basics</a> <em>Callback hell in event-driven programs</em>即可。The coroutine version is much easier to understand because the code is sequential. Under the hood the coroutine version returns back to the event loop just like the callback version. Therefore the code still uses the event loop but it can be written like a sequential program.</p>
+<blockquote>
+<p>Coroutines make it possible to write sequential code that is actually executed across multiple iterations of the event loop. This is useful for code that needs to perform blocking I/O and would quickly become messy if split into a chain of callback functions. </p>
+</blockquote>
+<h3 id="2-2-The-QEMU-coroutine-API"><a href="#2-2-The-QEMU-coroutine-API" class="headerlink" title="2.2 The QEMU coroutine API"></a>2.2 The QEMU coroutine API</h3><p>The coroutine API is documented in <a href="https://gitlab.com/qemu-project/qemu/-/blob/stable-6.0/include/qemu/coroutine.h" target="_blank" rel="noopener">include/qemu/coroutine.h</a>. The main functions are:</p>
+<h4 id="2-2-1-create-coroutine"><a href="#2-2-1-create-coroutine" class="headerlink" title="2.2.1 create coroutine"></a>2.2.1 create coroutine</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Coroutine entry point</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * When the coroutine is entered for the first time, opaque is passed in as an</span></span><br><span class="line"><span class="comment"> * argument.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * When this function returns, the coroutine is destroyed automatically and</span></span><br><span class="line"><span class="comment"> * execution continues in the caller who last entered the coroutine.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="keyword">void</span> coroutine_fn <span class="title">CoroutineEntry</span><span class="params">(<span class="keyword">void</span> *opaque)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Create a new coroutine</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Use qemu_coroutine_enter() to actually transfer control to the coroutine.</span></span><br><span class="line"><span class="comment"> * The opaque argument is passed as the argument to the entry point.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function">Coroutine *<span class="title">qemu_coroutine_create</span><span class="params">(CoroutineEntry *entry, <span class="keyword">void</span> *opaque)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>When a new coroutine is started, it will begin executing the entry function. The caller can pass an opaque pointer to data needed by the coroutine.</p>
+<h4 id="2-2-2-execute-coroutine"><a href="#2-2-2-execute-coroutine" class="headerlink" title="2.2.2 execute coroutine"></a>2.2.2 execute coroutine</h4><p>The new coroutine is executed by calling <code>qemu_coroutine_enter</code>:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Transfer control to a coroutine</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">qemu_coroutine_enter</span><span class="params">(Coroutine *coroutine)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-2-3-yield-coroutine"><a href="#2-2-3-yield-coroutine" class="headerlink" title="2.2.3 yield coroutine"></a>2.2.3 yield coroutine</h4><p>If the coroutine needs to wait for an event such as I/O completion or user input, it calls <code>qemu_coroutine_yield</code>:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Transfer control back to a coroutine's caller</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This function does not return until the coroutine is re-entered using</span></span><br><span class="line"><span class="comment"> * qemu_coroutine_enter().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> coroutine_fn <span class="title">qemu_coroutine_yield</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>The yield function transfers control back to the <code>qemu_coroutine_enter</code> caller. The coroutine can be re-entered at a later point in time by calling <code>qemu_coroutine_enter</code>, for example, when an I/O request has completed.</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="http://blog.vmsplice.net/2014/01/coroutines-in-qemu-basics.html" target="_blank" rel="noopener">Coroutines in QEMU: The basics</a></li>
+<li><a href="https://royhunter.github.io/2016/06/24/qemu-coroutine/" target="_blank" rel="noopener">QEMU中的协程—qemu-coroutine</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/172471249" target="_blank" rel="noopener">什么是协程？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/SyWjLg3lYx3pIJQfEtik8Q" target="_blank" rel="noopener">​浅谈协程</a></li>
+<li><a href="https://mp.weixin.qq.com/s/IO4ynnKEfy2Rt-Me7EIeqg" target="_blank" rel="noopener">当谈论协程时，我们在谈论什么</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/操作系统/">操作系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2023/05/01/如何mount虚拟机镜像/">
+        <span class="next-text nav-default">如何mount虚拟机镜像</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2023
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/05/02/Notes-about协程/';
+        this.page.identifier = '2023/05/02/Notes-about协程/';
+        this.page.title = 'Notes about协程';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
