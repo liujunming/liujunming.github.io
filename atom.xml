@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-05-04T05:37:17.282Z</updated>
+  <updated>2023-05-04T11:43:41.306Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Scalable Work Submission in Device Virtualization</title>
+    <link href="http://liujunming.github.io/2023/05/04/Scalable-Work-Submission-in-Device-Virtualization/"/>
+    <id>http://liujunming.github.io/2023/05/04/Scalable-Work-Submission-in-Device-Virtualization/</id>
+    <published>2023-05-04T05:47:12.000Z</published>
+    <updated>2023-05-04T11:43:41.306Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将以<a href="/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/">Intel Data Streaming Accelerator</a>为例，讲解DMWr (Deferrable Memory Write) TLP、ENQCMD/ENQCMDS指令、ENQCMD Virtualization、<a href="/2022/03/30/Introduction-to-Shared-Virtual-Memory/">SVA</a> Work Submission In Guest相关内容。<a id="more"></a></p><h2 id="1-DMWr-TLP"><a href="#1-DMWr-TLP" class="headerlink" title="1. DMWr TLP"></a>1. DMWr TLP</h2><h3 id="1-1-What"><a href="#1-1-What" class="headerlink" title="1.1 What"></a>1.1 What</h3><p>Deferrable Memory Write (DMWr) transactions are a new type of TLP supported by the PCI Specifications. This new feature allows the completer to return an acknowledgement to the requester of the DMWr transaction and provides the completer a mechanism to temporarily refuse the request.</p><p>The Deferrable Memory Write (DMWr) is an Optional Non-Posted Request that enables a scalable high-performance mechanism to implement shared work queues and similar capabilities. With DMWr, devices can have a single shared work queue and accept work items from multiple non-cooperating software agents in a non-blocking way.</p><p>读完上述定义后，或许对DMWr的理解不够深刻，接下来我们将以DSA的SWQ(Shared Work Queue)为例，阐述下为什么要有DMWr。</p><h3 id="1-2-Why"><a href="#1-2-Why" class="headerlink" title="1.2 Why"></a>1.2 Why</h3><p><img src="/images/2023/05/04.png" alt></p><p><img src="/images/2023/05/05.png" alt></p><p><img src="/images/2023/05/07.png" alt></p><p><img src="/images/2023/05/06.png" alt></p><blockquote><p>DMWr is a 64-byte non-posted write that waits for a response from the device before completing. The device returns Success if the descriptor is accepted into the work queue, or Retry if the descriptor is not accepted due to WQ capacity or QoS. </p></blockquote><p>正常写mmio寄存器是posted tlp，也就是说completer不会给requester返回报文。<br>DMWr是non-posted write tlp，这也为retry带来了可能！</p><h2 id="2-ENQCMD-ENQCMDS指令"><a href="#2-ENQCMD-ENQCMDS指令" class="headerlink" title="2. ENQCMD/ENQCMDS指令"></a>2. ENQCMD/ENQCMDS指令</h2><p>On Intel CPUs, DMWr is generated using the <code>ENQCMD</code> or <code>ENQCMDS</code> instructions. The <code>ENQCMD</code> and <code>ENQCMDS</code> instructions return the status of the command submission in <code>EFLAGS.ZF</code> flag; 0 indicates Success, and 1 indicates Retry.</p><p><img src="/images/2023/05/08.jpg" alt><br>SDM vol2中有这两个指令的详细描述。</p><p><img src="/images/2023/05/12.jpg" alt></p><p><img src="/images/2023/05/09.jpg" alt><br>ENQCMD 中destination offset参数的含义： enqueue registers, which are special device registers accessed using memory-mapped I/O (MMIO). 说白了，offset就是MMIO enqueue registers的location！</p><p><img src="/images/2023/05/13.jpg" alt></p><p><img src="/images/2023/05/14.jpg" alt></p><h3 id="2-1-Example-in-DSA"><a href="#2-1-Example-in-DSA" class="headerlink" title="2.1 Example in DSA"></a>2.1 Example in DSA</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">inline</span>  <span class="keyword">unsigned</span> <span class="keyword">int</span></span><br><span class="line">enqcmd(<span class="keyword">void</span> *dst, <span class="keyword">const</span> <span class="keyword">void</span> *src)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">uint8_t</span> retry;</span><br><span class="line">    <span class="function"><span class="keyword">asm</span> <span class="title">volatile</span><span class="params">(<span class="string">".byte 0xf2, 0x0f, 0x38, 0xf8, 0x02\t\n"</span></span></span></span><br><span class="line"><span class="function"><span class="params">                 <span class="string">"setz %0\t\n"</span></span></span></span><br><span class="line">                 : "=r"(retry) : "a" (dst), "d" (src));</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">unsigned</span> <span class="keyword">int</span>)retry;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">while</span> (enqcmd(wq_portal, &amp;desc) &amp;&amp; enq_retry++ &lt; ENQ_RETRY_MAX) ;</span><br><span class="line"><span class="keyword">if</span> (enq_retry == ENQ_RETRY_MAX) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"ENQCMD retry limit exceeded\n"</span>);</span><br><span class="line">    rc = EXIT_FAILURE;</span><br><span class="line">    <span class="keyword">goto</span> done;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br></pre></td></tr></table></figure><p><a href="https://github.com/RaymondHuang210129/Intel-DSA-Experiments/blob/master/intel_dsa_sample.c" target="_blank" rel="noopener">https://github.com/RaymondHuang210129/Intel-DSA-Experiments/blob/master/intel_dsa_sample.c</a></p><h2 id="3-Scalability-In-Device-Virtualization"><a href="#3-Scalability-In-Device-Virtualization" class="headerlink" title="3. Scalability In Device Virtualization"></a>3. Scalability In Device Virtualization</h2><p><img src="/images/2023/05/16.jpg" alt><br><img src="/images/2023/05/17.jpg" alt><br><img src="/images/2023/05/18.jpg" alt><br><img src="/images/2023/05/19.jpg" alt></p><h2 id="4-ENQCMD-Virtualization"><a href="#4-ENQCMD-Virtualization" class="headerlink" title="4. ENQCMD Virtualization"></a>4. ENQCMD Virtualization</h2><p><img src="/images/2023/05/10.png" alt></p><p><img src="/images/2023/05/11.png" alt><br>sdm vol3  搜索ENQCMD即可！</p><p><img src="/images/2023/05/20.jpg" alt><br><img src="/images/2023/05/21.jpg" alt></p><h2 id="5-SVA-Work-Submission-In-Guest"><a href="#5-SVA-Work-Submission-In-Guest" class="headerlink" title="5. SVA Work Submission In Guest"></a>5. SVA Work Submission In Guest</h2><p><img src="/images/2023/05/15.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://static.sched.com/hosted_files/kvmforum2020/22/Scalable_Work_Submission_In_Device_Virtualization.pdf" target="_blank" rel="noopener">Scalable Work Submission in Device Virtualization</a></li><li><a href="https://blog.csdn.net/weixin_40357487/article/details/123339073" target="_blank" rel="noopener">PCIe 6.0 新特性 - DMWr (Deferrable Memory Write) 详解</a></li><li><a href="https://www.intel.com/content/www/us/en/docs/programmable/683501/22-2-6-0-0/deferrable-memory-write-dmwr.html" target="_blank" rel="noopener">Deferrable Memory Write (DMWr)</a></li><li><a href="https://www.freepatentsonline.com/y2020/0004703.html" target="_blank" rel="noopener">NON-POSTED WRITE TRANSACTIONS</a></li><li>Intel SDM</li><li>Intel Data Streaming Accelerator spec</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将以&lt;a href=&quot;/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/&quot;&gt;Intel Data Streaming Accelerator&lt;/a&gt;为例，讲解DMWr (Deferrable Memory Write) TLP、ENQCMD/ENQCMDS指令、ENQCMD Virtualization、&lt;a href=&quot;/2022/03/30/Introduction-to-Shared-Virtual-Memory/&quot;&gt;SVA&lt;/a&gt; Work Submission In Guest相关内容。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="VT-d" scheme="http://liujunming.github.io/tags/VT-d/"/>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NBD（Network Block Device)</title>
@@ -446,30 +472,6 @@
     
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>利用bpftrace打印内核函数调用栈</title>
-    <link href="http://liujunming.github.io/2022/11/20/%E5%88%A9%E7%94%A8bpftrace%E6%89%93%E5%8D%B0%E5%86%85%E6%A0%B8%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8%E6%A0%88/"/>
-    <id>http://liujunming.github.io/2022/11/20/利用bpftrace打印内核函数调用栈/</id>
-    <published>2022-11-20T08:30:23.000Z</published>
-    <updated>2022-11-20T08:39:58.395Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将以<code>vp_notify</code>函数为例，介绍下如何利用bpftrace打印内核函数调用栈。<a id="more"></a> </p><ul><li><p>确定目标内核函数</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ bpftrace -l &apos;kprobe:*&apos; | grep vp_notify</span><br><span class="line">kprobe:vp_notify</span><br></pre></td></tr></table></figure></li><li><p><code>kstack</code>: Stack Traces, Kernel</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ bpftrace -e &apos;kprobe:vp_notify &#123; @[kstack] = count(); &#125;&apos;</span><br><span class="line">Attaching 1 probe...</span><br><span class="line">^C</span><br></pre></td></tr></table></figure></li></ul><p><a href="https://github.com/iovisor/bpftrace/blob/master/docs/reference_guide.md#7-kstack-stack-traces-kernel" target="_blank" rel="noopener">https://github.com/iovisor/bpftrace/blob/master/docs/reference_guide.md#7-kstack-stack-traces-kernel</a></p><p><a href="https://github.com/iovisor/bpftrace/blob/master/docs/reference_guide.md#2-count-count" target="_blank" rel="noopener">count()</a>的含义</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将以&lt;code&gt;vp_notify&lt;/code&gt;函数为例，介绍下如何利用bpftrace打印内核函数调用栈。
-    
-    </summary>
-    
-      <category term="工具" scheme="http://liujunming.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
-    
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
-    
-      <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
     
   </entry>
   
