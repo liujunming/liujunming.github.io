@@ -293,14 +293,14 @@
     <div class="post-content">
       
         <p><a href="/2023/05/04/Scalable-Work-Submission-in-Device-Virtualization/">Scalable Work Submission in Device Virtualization</a>介绍了<a href="/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/">DSA</a> shared work queue的virtualization，本文将介绍DSA dedicated work queue的virtualization。<a id="more"></a></p>
-<p>本文将带着如下两个问题进行讨论：<br>Q1: 虚拟机用dedicated work queue时，要使用pasid吗？<br>Q2: 如果guest使用pasid，那pasid翻译改如何操作?</p>
-<h3 id="Q1"><a href="#Q1" class="headerlink" title="Q1"></a>Q1</h3><p><img src="/images/2023/05/22.png" alt><br>从DSA的spec中可知，使用dedicated work queue时，pasid是一个可选项。因此，当虚拟机使用dedicated work queue时，可以使用pasid，也可以不使用pasid。</p>
+<p>本文将带着如下两个问题进行讨论：<br>Q1: 虚拟机用dedicated work queue时，要使用pasid吗？<br>Q2: 如果guest使用pasid，那pasid翻译该如何操作?</p>
+<h3 id="Q1"><a href="#Q1" class="headerlink" title="Q1"></a>Q1</h3><p><img src="/images/2023/05/22.png" alt><br>从DSA的spec中可知，当使用dedicated work queue时，pasid是一个可选项。因此，当虚拟机使用dedicated work queue时，可以使用pasid，也可以不使用pasid。</p>
 <h3 id="Q2"><a href="#Q2" class="headerlink" title="Q2"></a>Q2</h3><p>To submit work to a Dedicated Work Queue, software uses a 64-byte memory write transaction with write atomicity.</p>
 <p>On Intel CPUs, work submission to a DWQ(Dedicated Work Queue) is performed using the MOVDIR64B instruction, which generates a non-torn 64-byte write. </p>
 <p>If the PASID capability is enabled, the WQ(Work Queue) PASID Enable field of the WQ Configuration register controls whether PASID is used for each DWQ. Since the MOVDIR64B instruction does not fill in the PASID as the ENQCMD or ENQCMDS instructions do, the PASID field in the descriptor is ignored. When PASID is enabled for a DWQ, the device uses the WQ PASID field of the WQ Configuration register to do address translation. The WQ PASID field must be set by the driver before enabling a work queue in dedicated mode.</p>
 <p><img src="/images/2023/05/23.png" alt></p>
-<p><strong>dedicated work queue不会共享，MOVDIR64B就不用写入pasid了</strong>。</p>
-<p>当guest配置WQ Configuration register(MMIO寄存器)的WQ PASID field时需要trap下来，hypervisor分配一个host的PASID，然后将这个host PASID写入物理的WQ Configuration register的WQ PASID field。这样即可完成pasid虚拟化，真正使用的就是host的PASID。</p>
+<p><strong>dedicated work queue不会共享，所以MOVDIR64B就不用写入pasid了</strong>。</p>
+<p>当guest配置WQ Configuration register(MMIO寄存器)的PASID field时需要trap下来，hypervisor分配一个host的PASID，然后将这个host PASID写入物理WQ Configuration register的PASID field。这样即可完成pasid虚拟化。</p>
 
       
     </div>
