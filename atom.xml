@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-05-13T03:45:24.725Z</updated>
+  <updated>2023-05-14T03:55:35.568Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Crystal Beach DMA(CBDMA)</title>
+    <link href="http://liujunming.github.io/2023/05/14/Notes-about-Crystal-Beach-DMA-CBDMA/"/>
+    <id>http://liujunming.github.io/2023/05/14/Notes-about-Crystal-Beach-DMA-CBDMA/</id>
+    <published>2023-05-14T03:23:54.000Z</published>
+    <updated>2023-05-14T03:55:35.568Z</updated>
+    
+    <content type="html"><![CDATA[<p>Crystal Beach DMA(CBDMA)其实就是<a href="/2022/03/29/Introduction-to-Intel-I-OAT/#2-Intel®-QuickData-Technology">Intel® QuickData Technology</a>，说白了就是offload memory copy to DMA engine，<a href="/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/">DSA</a>代替了该技术。<a id="more"></a></p><p><img src="/images/2023/05/37.jpg" alt></p><p><img src="/images/2023/05/38.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/133489817" target="_blank" rel="noopener">NFV加速利器，CPU中的CBDMA引擎</a></li><li><a href="https://www.dpdk.org/wp-content/uploads/sites/35/2018/12/JiayuHu_Accelerating_paravirtio_with_CBDMA.pdf" target="_blank" rel="noopener">Accelerating Para-Virtual I/O with CBDMA</a></li><li><a href="https://static.sched.com/hosted_files/dpdkbordeaux2019/09/Asynchronous%20CBDMA%20Enqueue%20Framework%20for%20vHost-User.pdf" target="_blank" rel="noopener">Asynchronous CBDMA Enqueue Framework for vHost-User</a></li><li><a href="https://insujang.github.io/2021-04-26/using-intel-ioat-dma/" target="_blank" rel="noopener">Using Intel IOAT DMA</a></li><li><a href="https://www.intel.com/content/www/us/en/wireless-network/accel-technology.html" target="_blank" rel="noopener">Intel® I/O Acceleration Technology</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Crystal Beach DMA(CBDMA)其实就是&lt;a href=&quot;/2022/03/29/Introduction-to-Intel-I-OAT/#2-Intel®-QuickData-Technology&quot;&gt;Intel® QuickData Technology&lt;/a&gt;，说白了就是offload memory copy to DMA engine，&lt;a href=&quot;/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/&quot;&gt;DSA&lt;/a&gt;代替了该技术。
+    
+    </summary>
+    
+      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
+    
+    
+      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about VT-d Virtual Command Support</title>
@@ -454,28 +476,6 @@
     
     
       <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>How to use IO poll in Linux NVMe driver</title>
-    <link href="http://liujunming.github.io/2022/11/29/How-to-use-IO-poll-in-Linux-NVMe-driver/"/>
-    <id>http://liujunming.github.io/2022/11/29/How-to-use-IO-poll-in-Linux-NVMe-driver/</id>
-    <published>2022-11-29T15:09:37.000Z</published>
-    <updated>2022-11-29T15:35:56.810Z</updated>
-    
-    <content type="html"><![CDATA[<p>使用NVMe driver的<code>poll_queues</code>参数即可开启IO queue的poll。<a id="more"></a> </p><h3 id="内核源码"><a href="#内核源码" class="headerlink" title="内核源码"></a>内核源码</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//https://elixir.bootlin.com/linux/v6.0/source/drivers/nvme/host/pci.c</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> poll_queues;</span><br><span class="line">module_param_cb(poll_queues, &amp;io_queue_count_ops, &amp;poll_queues, <span class="number">0644</span>);</span><br><span class="line">MODULE_PARM_DESC(poll_queues, <span class="string">"Number of queues to use for polled IO."</span>);</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">nvme_setup_io_queues</span><span class="params">(struct nvme_dev *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">...</span><br><span class="line">dev-&gt;nr_poll_queues = poll_queues;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><p>当只有一个IO queue时，设置<code>poll_queues</code>为1后，发现依然有中断。其实这是符合预取的。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">nvme_setup_irqs</span><span class="params">(struct nvme_dev *dev, <span class="keyword">unsigned</span> <span class="keyword">int</span> nr_io_queues)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pci_dev</span> *<span class="title">pdev</span> = <span class="title">to_pci_dev</span>(<span class="title">dev</span>-&gt;<span class="title">dev</span>);</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">irq_affinity</span> <span class="title">affd</span> = &#123;</span></span><br><span class="line">.pre_vectors= <span class="number">1</span>,</span><br><span class="line">.calc_sets= nvme_calc_irq_sets,</span><br><span class="line">.priv= dev,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">unsigned</span> <span class="keyword">int</span> irq_queues, poll_queues;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Poll queues don't need interrupts, but we need at least one I/O queue</span></span><br><span class="line"><span class="comment"> * left over for non-polled I/O.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">poll_queues = min(dev-&gt;nr_poll_queues, nr_io_queues - <span class="number">1</span>);</span><br><span class="line">dev-&gt;io_queues[HCTX_TYPE_POLL] = poll_queues;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Initialize for the single interrupt case, will be updated in</span></span><br><span class="line"><span class="comment"> * nvme_calc_irq_sets().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">dev-&gt;io_queues[HCTX_TYPE_DEFAULT] = <span class="number">1</span>;</span><br><span class="line">dev-&gt;io_queues[HCTX_TYPE_READ] = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * We need interrupts for the admin queue and each non-polled I/O queue,</span></span><br><span class="line"><span class="comment"> * but some Apple controllers require all queues to use the first</span></span><br><span class="line"><span class="comment"> * vector.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">irq_queues = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">if</span> (!(dev-&gt;ctrl.quirks &amp; NVME_QUIRK_SINGLE_VECTOR))</span><br><span class="line">irq_queues += (nr_io_queues - poll_queues);</span><br><span class="line"><span class="keyword">return</span> pci_alloc_irq_vectors_affinity(pdev, <span class="number">1</span>, irq_queues,</span><br><span class="line">      PCI_IRQ_ALL_TYPES | PCI_IRQ_AFFINITY, &amp;affd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p>由上述代码可知，driver至少留一个IO queue使用interrupt而非poll。</p><p>因此，当只有一个IO queue时，即使driver参数设置了<code>poll_queues</code>为1，其实是不生效的(<code>nvme_setup_irqs</code>中的<code>poll_queues</code>变量为0)，这个唯一的IO queue使用的依然是interrupt而非poll。</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;使用NVMe driver的&lt;code&gt;poll_queues&lt;/code&gt;参数即可开启IO queue的poll。
-    
-    </summary>
-    
-      <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
-    
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
     
   </entry>
   
