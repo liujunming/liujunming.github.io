@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-05-27T10:16:36.435Z</updated>
+  <updated>2023-05-28T04:55:05.588Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Linux NAPI</title>
+    <link href="http://liujunming.github.io/2023/05/28/Notes-about-Linux-NAPI/"/>
+    <id>http://liujunming.github.io/2023/05/28/Notes-about-Linux-NAPI/</id>
+    <published>2023-05-28T03:48:45.000Z</published>
+    <updated>2023-05-28T04:55:05.588Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将学习下Linux网络收包的NAPI机制。<a id="more"></a></p><h3 id="What"><a href="#What" class="headerlink" title="What"></a>What</h3><p>NAPI (“new API,” though it is not so new anymore) is an interrupt mitigation mechanism used with network devices. </p><h3 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h3><blockquote><p>随着网络带宽的发展，网速越来越快，之前的中断收包模式已经无法适应目前千兆，万兆的带宽了。如果每个数据包大小等于MTU大小(1460字节)。当驱动以千兆网速收包时，CPU将每秒被中断91829次。过多的中断会引起一个问题，CPU一直陷入硬中断而没有时间来处理别的事情了。为了解决这个问题，内核引入了NAPI机制。</p></blockquote><blockquote><p>NAPI就是混合中断和轮询的方式来收包，当有中断来了，驱动关闭中断，通知内核收包，内核软中断轮询当前网卡，在规定时间尽可能多的收包。时间用尽或者没有数据可收，内核再次开启中断，准备下一次收包。</p></blockquote><p>When network traffic is heavy, the kernel can safely predict that incoming packets will be available anytime it gets around to looking, so there is no need to have the adapter interrupting it (possibly thousands of times per second) to tell it about those packets. So a NAPI-compliant driver will turn off the packet receive interrupt and provide a <code>poll()</code> method to the kernel. When the kernel is ready to deal with more packets, <code>poll()</code> will be called with a maximum number of packets it is allowed to feed into the kernel; it should process up to that many packets and quit.</p><h3 id="Full-Picture"><a href="#Full-Picture" class="headerlink" title="Full Picture"></a>Full Picture</h3><p><img src="/images/2023/05/51.png" alt></p><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><img src="/images/2023/05/50.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://lwn.net/Articles/214457/" target="_blank" rel="noopener">Reworking NAPI</a></li><li><a href="https://lwn.net/Articles/244640/" target="_blank" rel="noopener">Newer, newer NAPI</a></li><li><a href="https://docs.kernel.org/networking/napi.html" target="_blank" rel="noopener">NAPI</a></li><li><a href="https://blog.csdn.net/Rong_Toa/article/details/109401935" target="_blank" rel="noopener">Linux网络协议栈：NAPI机制与处理流程分析（图解）</a></li><li><a href="https://zhuanlan.zhihu.com/p/610334133" target="_blank" rel="noopener">NAPI 内核机制与驱动实现</a></li><li><a href="https://wenfh2020.com/2021/12/29/kernel-tcp-receive/" target="_blank" rel="noopener">Linux 网络数据接收流程（TCP）- NAPI</a></li><li><a href="https://access.redhat.com/sites/default/files/attachments/20150325_network_performance_tuning.pdf" target="_blank" rel="noopener">Red Hat Enterprise Linux Network Performance Tuning Guide</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将学习下Linux网络收包的NAPI机制。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about SMAP and SMEP</title>
@@ -453,30 +477,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Intel Hyper-Threading Technology</title>
-    <link href="http://liujunming.github.io/2023/01/07/Notes-about-Intel-Hyper-Threading-Technology/"/>
-    <id>http://liujunming.github.io/2023/01/07/Notes-about-Intel-Hyper-Threading-Technology/</id>
-    <published>2023-01-07T05:33:43.000Z</published>
-    <updated>2023-01-07T06:52:51.063Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将记录下作者对intel 超线程(Hyper-Threading)技术的理解。 <a id="more"></a> </p><h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p><img src="/images/2023/01/01.jpg" alt><br><img src="/images/2023/01/02.jpg" alt><br>根据sdm的描述，同一个core上的两个超线程其实是共享execution engine的。</p><p><img src="/images/2023/01/03.jpg" alt><br>每个超线程拥有独立的通用寄存器。每个超线程的具体资源状态需要查询spec，本文不在此赘述。</p><h3 id="Execution-Engine"><a href="#Execution-Engine" class="headerlink" title="Execution Engine"></a>Execution Engine</h3><p><img src="/images/2023/01/04.jpg" alt><br>Execution Engine涉及到具体的微架构。接下来将以Ice Lake Client microarchitecture为例来介绍下Execution Engine。</p><p><img src="/images/2023/01/05.jpg" alt><br><img src="/images/2023/01/06.jpg" alt></p><p>Execution Unit是需要额外关注的。由上图可知，在一个Execution Engine内拥有4个ALU，1个Slow Int。</p><ul><li>同一个core上的两个超线程想同时执行<code>add</code>指令，这理论上是可行的，因为Execution Engine中有四个ALU Execution Unit(ALU可运行<code>add</code>指令)。</li><li>同一个core上的两个超线程想同时执行<code>mul</code>指令，这理论上是不可行的，因为Execution Engine中只有一个Slow Int Execution Unit(Slow Int可运行<code>mul</code>指令)。</li></ul><hr><p>参考资料:</p><ol><li><a href="https://cdrdv2.intel.com/v1/dl/getContent/671488" target="_blank" rel="noopener">Intel® 64 and IA-32 Architectures Optimization Reference Manual</a></li><li><a href="https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-lipp.pdf" target="_blank" rel="noopener">Meltdown: Reading Kernel Memory from User Space</a></li><li>Intel SDM Vol3</li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将记录下作者对intel 超线程(Hyper-Threading)技术的理解。
-    
-    </summary>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
     
   </entry>
   
