@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-05-28T07:33:49.280Z</updated>
+  <updated>2023-05-28T07:47:44.247Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -21,7 +21,7 @@
     <link href="http://liujunming.github.io/2023/05/28/Notes-about-Linux-swiotlb%E6%8A%80%E6%9C%AF/"/>
     <id>http://liujunming.github.io/2023/05/28/Notes-about-Linux-swiotlb技术/</id>
     <published>2023-05-28T06:18:14.000Z</published>
-    <updated>2023-05-28T07:33:49.280Z</updated>
+    <updated>2023-05-28T07:47:44.247Z</updated>
     
     <content type="html"><![CDATA[<p>本文将总结下Linux swiotlb技术。<a id="more"></a></p><h3 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a>1. 概述</h3><p><img src="/images/2023/05/52.jpg" alt></p><h3 id="2-bounce-buffer"><a href="#2-bounce-buffer" class="headerlink" title="2. bounce buffer"></a>2. bounce buffer</h3><p><img src="/images/2023/05/53.jpg" alt><br>If the requested DMA operation is a DMA read (the device reads from memory DMA_TO_DEVICE), the data is copied from the original buffer to the bounce buffer, and the adapter reads it from the bounce buffer’s memory location. If the requested DMA operation is a write, the data is written(the device writes to memory DMA_FROM_DEVICE) by the adapter to the bounce buffer, and then copied to the original buffer.</p><p><img src="/images/2023/05/54.jpg" alt><br><img src="/images/2023/05/55.jpg" alt></p><h3 id="3-总结"><a href="#3-总结" class="headerlink" title="3. 总结"></a>3. 总结</h3><p>理解mmap时、同步时、unmap时的内存copy即可。<br>为了简单起见，只讨论DMA_FROM_DEVICE与DMA_TO_DEVICE这两个case。</p><ol><li>mmap时，建立原始物理地址与swiotlb buffer的映射，对于DMA_TO_DEVICE，需要将数据从原始物理地址处拷贝到swiotlb buffer</li><li>当设备往swiotlb buffer写入后，driver CPU需要读DMA内存时，需要sync下，将数据从swiotlb buffer拷贝到原始物理地址处</li><li>driver CPU更改原始物理地址内存，当需要DMA_TO_DEVICE时，需要sync下，将数据从原始物理地址处拷贝到swiotlb buffer</li><li>unmap时，解除原始物理地址与swiotlb buffer的映射，对于DMA_FROM_DEVICE，需要将数据从swiotlb buffer拷贝到原始物理地址处</li></ol><hr><p>参考资料:</p><ol><li><a href="https://research.ibm.com/haifa/dept/stt/pubs/utilizing-iommus-ols06.pdf" target="_blank" rel="noopener">Utilizing IOMMUs for Virtualization in Linux and Xen</a></li><li><a href="https://blog.csdn.net/liuhangtiant/article/details/87825466" target="_blank" rel="noopener">Linux swiotlb技术解析</a></li><li><a href="https://blog.csdn.net/qq_34719392/article/details/114873284" target="_blank" rel="noopener">Linux x86-64 IOMMU详解（二）——SWIOTLB（软件IOMMU）</a></li></ol>]]></content>
     
@@ -31,6 +31,10 @@
     
     </summary>
     
+      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
   </entry>
   
@@ -334,9 +338,9 @@
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
-      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
-    
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
     
   </entry>
   
