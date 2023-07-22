@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="kprobe/kretprobe使用方法">
+
+
+
+
+  <meta name="keywords" content="Kernel, 工具, debug, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2023/07/22/转-kprobe-kretprobe使用方法/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> kprobe/kretprobe使用方法 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          kprobe/kretprobe使用方法
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2023-07-22
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/debug/">debug</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kprobe"><span class="toc-text">kprobe</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#函数参数获取"><span class="toc-text">函数参数获取</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kretprobe"><span class="toc-text">kretprobe</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>转载自:<a href="https://kernel.love/kprobe.html" target="_blank" rel="noopener">https://kernel.love/kprobe.html</a> <a id="more"></a> </p>
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>有时候想知道下发某个操作后内核在做些什么，这个时候就要对内核进行调试， 然而KGDB这种方法操作起来相对麻烦，这个时候我们就可以使用kprobe来探测内核的行为。</p>
+<p>介绍kprobe和kretprobe的文档为:<a href="https://www.kernel.org/doc/Documentation/kprobes.txt" target="_blank" rel="noopener">https://www.kernel.org/doc/Documentation/kprobes.txt</a></p>
+<p>划重点，这里是文档和很多博客没有解释清楚的地方：</p>
+<ol>
+<li>对于kprobe而言，理论上它可以probe任何一个地方（只需要指定某个代码段地址就行了，例如函数的地址）；</li>
+<li>对于kprobe而言，pre_handler回调函数执行是发生在probe断点执行之前，post_handler回调执行是发生在probe断点<em>单步执行</em>之后，而不是函数返回之前；</li>
+<li>对于kretprobe而言，一般只用来探测函数，entry_handler回调执行是在函数入口的地方（这时候我们可以探测函数的入参），handler回调函数执行是发生在函数准备返回的时候，注意这个时候参数都已经弹栈，我们只能探测函数的返回值。</li>
+</ol>
+<h2 id="kprobe"><a href="#kprobe" class="headerlink" title="kprobe"></a>kprobe</h2><p>下面举一个最简单的例子，介绍如何使用kprobe来查看<code>inet_bind</code>这个函数的调用情况。 <code>inet_bind</code>函数是在发生ipv4 socket bind阶段调用的一个内核函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/sched/clock.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kprobes.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/errno.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/stddef.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/bug.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/ptrace.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kmod.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/sched.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/sockios.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/net.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/inet.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;net/ip.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;net/tcp.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/skbuff.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;net/sock.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;net/inet_common.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/* For each probe you need to allocate a kprobe structure */</span></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">kprobe</span> <span class="title">kp</span> = &#123;</span></span><br><span class="line">    .symbol_name    = <span class="string">"inet_bind"</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* kprobe pre_handler: called just before the probed instruction is executed */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">handler_pre</span><span class="params">(struct kprobe *p, struct pt_regs *regs)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_ARM64</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">socket</span> *<span class="title">sock</span> = <span class="title">regs</span>-&gt;<span class="title">regs</span>[0];</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span> *<span class="title">uaddr</span> = <span class="title">regs</span>-&gt;<span class="title">regs</span>[1];</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_X86</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">socket</span> *<span class="title">sock</span> = <span class="title">regs</span>-&gt;<span class="title">di</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span> *<span class="title">uaddr</span> = <span class="title">regs</span>-&gt;<span class="title">si</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> *<span class="title">addr</span> =  (<span class="title">struct</span> <span class="title">sockaddr_in</span> *)<span class="title">uaddr</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">short</span> snum = ntohs(addr-&gt;sin_port);</span><br><span class="line"></span><br><span class="line">    pr_info(<span class="string">"%s name:%s pid:%d socket bind port=%d\n"</span>,</span><br><span class="line">            p-&gt;symbol_name, current-&gt;comm, task_pid_nr(current), snum);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* kprobe post_handler: called after the probed instruction is executed */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">handler_post</span><span class="params">(struct kprobe *p, struct pt_regs *regs,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">unsigned</span> <span class="keyword">long</span> flags)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    pr_info(<span class="string">"%s called\n"</span>, __func__);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * fault_handler: this is called if an exception is generated for any</span></span><br><span class="line"><span class="comment"> * instruction within the pre- or post-handler, or when Kprobes</span></span><br><span class="line"><span class="comment"> * single-steps the probed instruction.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">handler_fault</span><span class="params">(struct kprobe *p, struct pt_regs *regs, <span class="keyword">int</span> trapnr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    printk(KERN_INFO <span class="string">"fault_handler: p-&gt;addr = 0x%p, trap #%dn"</span>,</span><br><span class="line">            p-&gt;addr, trapnr);</span><br><span class="line">    <span class="comment">/* Return 0 because we don't handle the fault. */</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">kprobe_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ret;</span><br><span class="line">    kp.pre_handler = handler_pre;</span><br><span class="line">    kp.post_handler = handler_post;</span><br><span class="line">    kp.fault_handler = handler_fault;</span><br><span class="line"></span><br><span class="line">    ret = register_kprobe(&amp;kp);</span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        printk(KERN_INFO <span class="string">"register_kprobe failed, returned %d\n"</span>, ret);</span><br><span class="line">        <span class="keyword">return</span> ret;</span><br><span class="line">    &#125;</span><br><span class="line">    printk(KERN_INFO <span class="string">"Planted kprobe at %p\n"</span>, kp.addr);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function"><span class="built_in">exit</span> <span class="title">kprobe_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    unregister_kprobe(&amp;kp);</span><br><span class="line">    printk(KERN_INFO <span class="string">"kprobe at %p unregistered\n"</span>, kp.addr);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(kprobe_init)</span><br><span class="line">module_exit(kprobe_exit)</span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL"</span>);</span><br></pre></td></tr></table></figure>
+<p>使用下面的Makefile文件，对其进行编译。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">obj-m := kprobe_example.o</span><br><span class="line">CROSS_COMPILE=&apos;&apos;</span><br><span class="line">KDIR := /lib/modules/$(shell uname -r)/build</span><br><span class="line">all:  </span><br><span class="line">    make -C $(KDIR) M=$(PWD) modules   </span><br><span class="line">clean:  </span><br><span class="line">    rm -f *.ko *.o *.mod.o *.mod.c .*.cmd *.symvers  modul*</span><br></pre></td></tr></table></figure></p>
+<p>编译完成后会生产一个名为<em>kprobe_example.ko</em>的内核模块文件，执行<code>insmod kprobe_example.ko</code>后内核模块立即生效，通过<code>dmesg</code>命令可以查看到<code>inet_bind</code>这个函数的调用情况。从dmesg日志可以看到：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[46071.632951] inet_bind name:test pid:68248 socdmket bind port=49152</span><br><span class="line">[46071.632984] inet_bind name:test pid:68248 socket bind port=49152</span><br><span class="line">[46071.632995] inet_bind name:test pid:68248 socket bind port=49152</span><br></pre></td></tr></table></figure></p>
+<h3 id="函数参数获取"><a href="#函数参数获取" class="headerlink" title="函数参数获取"></a>函数参数获取</h3><p>值得一提的是，kprobe里面我们在probe某个函数的时候，获取函数参数的时候是和体系结构相关的。</p>
+<p>例如：在x86平台上，根据C ABI <a href="https://elixir.bootlin.com/linux/latest/source/arch/x86/include/asm/ptrace.h" target="_blank" rel="noopener">ptrace</a>接口规范，函数的参数和pt_regs的对应关系是：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pt_regs</span> &#123;</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * C ABI says these regs are callee-preserved. They aren't saved on kernel entry</span></span><br><span class="line"><span class="comment"> * unless syscall needs a complete, fully filled "struct pt_regs".</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> r15;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> r14;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> r13;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> r12;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> bp;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> bx;</span><br><span class="line"><span class="comment">/* These regs are callee-clobbered. Always saved on kernel entry. */</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> r11;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> r10;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> r9;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> r8;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> ax;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> cx;   <span class="comment">// mapped to arg[3]</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> dx;   <span class="comment">// mapped to arg[2]</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> si;   <span class="comment">// mapped to arg[1]</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> di;   <span class="comment">// mapped to arg[0]</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * On syscall entry, this is syscall#. On CPU exception, this is error code.</span></span><br><span class="line"><span class="comment"> * On hw interrupt, it's IRQ number:</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> orig_ax;</span><br><span class="line"><span class="comment">/* Return frame for iretq */</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> ip;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> cs;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> flags;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> sp;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> ss;</span><br><span class="line"><span class="comment">/* top of stack page */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>在ARM64平台上，根据C ABI <a href="https://elixir.bootlin.com/linux/v4.19.69/source/arch/arm64/include/asm/ptrace.h" target="_blank" rel="noopener">ptrace</a>规范， 函数的参数和pt_regs的对应关系是：入参args[0]对应了regs[0]，入参args[1]对应regs[1]依此类推。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * This struct defines the way the registers are stored on the stack during an</span></span><br><span class="line"><span class="comment"> * exception. Note that sizeof(struct pt_regs) has to be a multiple of 16 (for</span></span><br><span class="line"><span class="comment"> * stack alignment). struct user_pt_regs must form a prefix of struct pt_regs.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pt_regs</span> &#123;</span></span><br><span class="line">        <span class="keyword">union</span> &#123;</span><br><span class="line">                <span class="class"><span class="keyword">struct</span> <span class="title">user_pt_regs</span> <span class="title">user_regs</span>;</span></span><br><span class="line">                <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">                        u64 regs[<span class="number">31</span>];</span><br><span class="line">                        u64 sp;</span><br><span class="line">                        u64 pc;</span><br><span class="line">                        u64 pstate;</span><br><span class="line">                &#125;;</span><br><span class="line">        &#125;;</span><br><span class="line">        u64 orig_x0;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> __AARCH64EB__</span></span><br><span class="line">        u32 unused2;</span><br><span class="line">        s32 syscallno;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">        s32 syscallno;</span><br><span class="line">        u32 unused2;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">        u64 orig_addr_limit;</span><br><span class="line">        <span class="comment">/* Only valid when ARM64_HAS_IRQ_PRIO_MASKING is enabled. */</span></span><br><span class="line">        u64 pmr_save;</span><br><span class="line">        u64 stackframe[<span class="number">2</span>];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h2 id="kretprobe"><a href="#kretprobe" class="headerlink" title="kretprobe"></a>kretprobe</h2><p>kretprobe可以用来探测函数的返回值，示例中我们用它来探测<code>inet_release</code>函数的返回值和执行时间：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * kretprobe_example.c</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Here's a sample kernel module showing the use of return probes to</span></span><br><span class="line"><span class="comment"> * report the return value and total time taken for probed function</span></span><br><span class="line"><span class="comment"> * to run.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * usage: insmod kretprobe_example.ko func=&lt;func_name&gt;</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * If no func_name is specified, inet_release is instrumented</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * For more information on theory of operation of kretprobes, see</span></span><br><span class="line"><span class="comment"> * Documentation/kprobes.txt</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Build and insert the kernel module as done in the kprobe example.</span></span><br><span class="line"><span class="comment"> * You will see the trace data in /var/log/messages and on the console</span></span><br><span class="line"><span class="comment"> * whenever the probed function returns. (Some messages may be suppressed</span></span><br><span class="line"><span class="comment"> * if syslogd is configured to eliminate duplicate messages.)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kprobes.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/ktime.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/limits.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/sched.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">char</span> func_name[NAME_MAX] = <span class="string">"inet_release"</span>;</span><br><span class="line">module_param_string(func, func_name, NAME_MAX, S_IRUGO);</span><br><span class="line">MODULE_PARM_DESC(func, <span class="string">"Function to kretprobe; this module will report the"</span></span><br><span class="line">                        <span class="string">" function's execution time"</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* per-instance private data */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">my_data</span> &#123;</span></span><br><span class="line">        <span class="keyword">ktime_t</span> entry_stamp;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Here we use the entry_hanlder to timestamp function entry */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">entry_handler</span><span class="params">(struct kretprobe_instance *ri, struct pt_regs *regs)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">my_data</span> *<span class="title">data</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!current-&gt;mm)</span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span>;       <span class="comment">/* Skip kernel threads */</span></span><br><span class="line"></span><br><span class="line">        data = (struct my_data *)ri-&gt;data;</span><br><span class="line">        data-&gt;entry_stamp = ktime_get();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Return-probe handler: Log the return value and duration. Duration may turn</span></span><br><span class="line"><span class="comment"> * out to be zero consistently, depending upon the granularity of time</span></span><br><span class="line"><span class="comment"> * accounting on the platform.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">ret_handler</span><span class="params">(struct kretprobe_instance *ri, struct pt_regs *regs)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">int</span> retval = regs_return_value(regs);</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">my_data</span> *<span class="title">data</span> = (<span class="title">struct</span> <span class="title">my_data</span> *)<span class="title">ri</span>-&gt;<span class="title">data</span>;</span></span><br><span class="line">        s64 delta;</span><br><span class="line">        <span class="keyword">ktime_t</span> now;</span><br><span class="line"></span><br><span class="line">        now = ktime_get();</span><br><span class="line">        delta = ktime_to_ns(ktime_sub(now, data-&gt;entry_stamp));</span><br><span class="line"></span><br><span class="line">        printk(KERN_INFO <span class="string">"%s returned %d and took %lld ns to execute\n"</span>,</span><br><span class="line">                        func_name, retval, (<span class="keyword">long</span> <span class="keyword">long</span>)delta);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">kretprobe</span> <span class="title">my_kretprobe</span> = &#123;</span></span><br><span class="line">        .handler                = ret_handler,</span><br><span class="line">        .entry_handler          = entry_handler,</span><br><span class="line">        .data_size              = <span class="keyword">sizeof</span>(struct my_data),</span><br><span class="line">        <span class="comment">/* Probe up to 20 instances concurrently. */</span></span><br><span class="line">        .maxactive              = <span class="number">20</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">kretprobe_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">        my_kretprobe.kp.symbol_name = func_name;</span><br><span class="line">        ret = register_kretprobe(&amp;my_kretprobe);</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                printk(KERN_INFO <span class="string">"register_kretprobe failed, returned %d\n"</span>,</span><br><span class="line">                                ret);</span><br><span class="line">                <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        printk(KERN_INFO <span class="string">"Planted return probe at %s: %p\n"</span>,</span><br><span class="line">                        my_kretprobe.kp.symbol_name, my_kretprobe.kp.addr);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function"><span class="built_in">exit</span> <span class="title">kretprobe_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        unregister_kretprobe(&amp;my_kretprobe);</span><br><span class="line">        printk(KERN_INFO <span class="string">"kretprobe at %p unregistered\n"</span>,</span><br><span class="line">                        my_kretprobe.kp.addr);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* nmissed &gt; 0 suggests that maxactive was set too low. */</span></span><br><span class="line">        printk(KERN_INFO <span class="string">"Missed probing %d instances of %s\n"</span>,</span><br><span class="line">                my_kretprobe.nmissed, my_kretprobe.kp.symbol_name);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(kretprobe_init)</span><br><span class="line">module_exit(kretprobe_exit)</span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>探测的结果输出如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[60362.085372] inet_release returned 0 and took 16360 ns to execute</span><br><span class="line">[60362.091124] inet_release returned 0 and took 8880 ns to execute</span><br><span class="line">[60362.091147] inet_release returned 0 and took 7640 ns to execute</span><br><span class="line">[60362.091173] inet_release returned 0 and took 7900 ns to execute</span><br><span class="line">[60362.941665] inet_release returned 0 and took 9100 ns to execute</span><br><span class="line">[60363.099577] inet_release returned 0 and took 9240 ns to execute</span><br><span class="line">[60363.126682] inet_release returned 0 and took 6000 ns to execute</span><br><span class="line">[60363.153610] inet_release returned 0 and took 9060 ns to execute</span><br><span class="line">[60363.153820] inet_release returned 0 and took 3220 ns to execute</span><br><span class="line">[60363.154699] inet_release returned 0 and took 3260 ns to execute</span><br><span class="line">[60363.159178] inet_release returned 0 and took 3200 ns to execute</span><br><span class="line">[60363.180098] inet_release returned 0 and took 3080 ns to execute</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/工具/">工具</a>
+            
+              <a href="/tags/debug/">debug</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2023/06/10/每周分享第34期/">
+        <span class="next-text nav-default">每周分享第34期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2023
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/07/22/转-kprobe-kretprobe使用方法/';
+        this.page.identifier = '2023/07/22/转-kprobe-kretprobe使用方法/';
+        this.page.title = 'kprobe/kretprobe使用方法';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
