@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Linux kernel RCU usage">
+
+
+
+
+  <meta name="keywords" content="Kernel, Concurrency, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2023/07/30/Linux-kernel-RCU-usage/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Linux kernel RCU usage - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Linux kernel RCU usage
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2023-07-30
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#理论基础"><span class="toc-text">理论基础</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#example"><span class="toc-text">example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#struct-rcu-head"><span class="toc-text">struct rcu_head</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#rcu-dereference-protected"><span class="toc-text">rcu_dereference_protected</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将介绍Linux kernel中RCU的使用。<a id="more"></a></p>
+<h3 id="理论基础"><a href="#理论基础" class="headerlink" title="理论基础"></a>理论基础</h3><p>需要仔细阅读<a href="/2018/12/13/深入理解-Linux-的-RCU-机制/">深入理解 Linux 的 RCU 机制</a>。</p>
+<h3 id="相关资料"><a href="#相关资料" class="headerlink" title="相关资料"></a>相关资料</h3><p><a href="https://lwn.net/Articles/609973/" target="_blank" rel="noopener">The RCU API tables</a><br><a href="https://lwn.net/Articles/263130/" target="_blank" rel="noopener">What is RCU? Part 2: Usage</a></p>
+<h3 id="example"><a href="#example" class="headerlink" title="example"></a>example</h3><p><a href="https://github.com/jinb-park/rcu_example/blob/master/list_rcu_example.c" target="_blank" rel="noopener">list_rcu_example</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * list_rcu_example.c - list rcu sample module</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Copyright (C) 2016 Jinbum Park &lt;jinb.park7@gmail.com&gt;</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This program is free software; you can redistribute it and/or</span></span><br><span class="line"><span class="comment"> * modify it under the terms of the GNU General Public License</span></span><br><span class="line"><span class="comment"> * as published by the Free Software Foundation; either version 2</span></span><br><span class="line"><span class="comment"> * of the License, or (at your option) any later version.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This program is distributed in the hope that it will be useful,</span></span><br><span class="line"><span class="comment"> * but WITHOUT ANY WARRANTY; without even the implied warranty of</span></span><br><span class="line"><span class="comment"> * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span></span><br><span class="line"><span class="comment"> * GNU General Public License for more details.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * You should have received a copy of the GNU General Public License</span></span><br><span class="line"><span class="comment"> * along with this program; if not, see &lt;http://www.gnu.org/licenses/&gt;.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/slab.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/list.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/rculist.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/spinlock.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/preempt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * struct book - a book</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @borrow: If it is 0, book is not borrowed. it is 1, book is borrowed.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">book</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> id;</span><br><span class="line">    <span class="keyword">char</span> name[<span class="number">64</span>];</span><br><span class="line">    <span class="keyword">char</span> author[<span class="number">64</span>];</span><br><span class="line">    <span class="keyword">int</span> borrow;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">node</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu</span>;</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">LIST_HEAD</span><span class="params">(books)</span></span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">spinlock_t</span> books_lock;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * callback function for async-reclaim</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * call_rcu()       :  callback function is called when finish to wait every grace periods (async)</span></span><br><span class="line"><span class="comment"> * synchronize_rcu() :  wait to finish every grace periods (sync)</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">book_reclaim_callback</span><span class="params">(struct rcu_head *rcu)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">b</span> = <span class="title">container_of</span>(<span class="title">rcu</span>, <span class="title">struct</span> <span class="title">book</span>, <span class="title">rcu</span>);</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Why print preemt_count??</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * To check whether this callback is atomic context or not.</span></span><br><span class="line"><span class="comment">     * preempt_count here is more than 0. Because it is irq context.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    pr_info(<span class="string">"callback free : %lx, preempt_count : %d\n"</span>, (<span class="keyword">unsigned</span> <span class="keyword">long</span>)b, preempt_count());</span><br><span class="line">    kfree(b);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">add_book</span><span class="params">(<span class="keyword">int</span> id, <span class="keyword">const</span> <span class="keyword">char</span> *name, <span class="keyword">const</span> <span class="keyword">char</span> *author)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">b</span>;</span></span><br><span class="line"></span><br><span class="line">    b = kzalloc(<span class="keyword">sizeof</span>(struct book), GFP_KERNEL);</span><br><span class="line">    <span class="keyword">if</span>(!b)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    b-&gt;id = id;</span><br><span class="line">    <span class="built_in">strncpy</span>(b-&gt;name, name, <span class="keyword">sizeof</span>(b-&gt;name));</span><br><span class="line">    <span class="built_in">strncpy</span>(b-&gt;author, author, <span class="keyword">sizeof</span>(b-&gt;author));</span><br><span class="line">    b-&gt;borrow = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * list_add_rcu</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * add_node(writer - add) use spin_lock()</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    spin_lock(&amp;books_lock);</span><br><span class="line">    list_add_rcu(&amp;b-&gt;node, &amp;books);</span><br><span class="line">    spin_unlock(&amp;books_lock);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">borrow_book</span><span class="params">(<span class="keyword">int</span> id, <span class="keyword">int</span> async)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">b</span> = <span class="title">NULL</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">new_b</span> = <span class="title">NULL</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">old_b</span> = <span class="title">NULL</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * updater</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * (updater) require that alloc new node &amp; copy, update new node &amp; reclaim old node</span></span><br><span class="line"><span class="comment">     * list_replace_rcu() is used to do that.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    rcu_read_lock();</span><br><span class="line"></span><br><span class="line">    list_for_each_entry(b, &amp;books, node) &#123;</span><br><span class="line">        <span class="keyword">if</span>(b-&gt;id == id) &#123;</span><br><span class="line">            <span class="keyword">if</span>(b-&gt;borrow) &#123;</span><br><span class="line">                rcu_read_unlock();</span><br><span class="line">                <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            old_b = b;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(!old_b) &#123;</span><br><span class="line">        rcu_read_unlock();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    new_b = kzalloc(<span class="keyword">sizeof</span>(struct book), GFP_ATOMIC);</span><br><span class="line">    <span class="keyword">if</span>(!new_b) &#123;</span><br><span class="line">        rcu_read_unlock();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memcpy</span>(new_b, old_b, <span class="keyword">sizeof</span>(struct book));</span><br><span class="line">    new_b-&gt;borrow = <span class="number">1</span>;</span><br><span class="line">    </span><br><span class="line">    spin_lock(&amp;books_lock);</span><br><span class="line">    list_replace_rcu(&amp;old_b-&gt;node, &amp;new_b-&gt;node);</span><br><span class="line">    spin_unlock(&amp;books_lock);</span><br><span class="line"></span><br><span class="line">    rcu_read_unlock();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(async) &#123;</span><br><span class="line">        call_rcu(&amp;old_b-&gt;rcu, book_reclaim_callback);</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        synchronize_rcu();</span><br><span class="line">        kfree(old_b);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    pr_info(<span class="string">"borrow success %d, preempt_count : %d\n"</span>, id, preempt_count());</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">is_borrowed_book</span><span class="params">(<span class="keyword">int</span> id)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">b</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * reader</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * iteration(read) require rcu_read_lock(), rcu_read_unlock()</span></span><br><span class="line"><span class="comment">     * and use list_for_each_entry_rcu()</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    rcu_read_lock();</span><br><span class="line">    list_for_each_entry_rcu(b, &amp;books, node) &#123;</span><br><span class="line">        <span class="keyword">if</span>(b-&gt;id == id) &#123;</span><br><span class="line">            rcu_read_unlock();</span><br><span class="line">            <span class="keyword">return</span> b-&gt;borrow;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    rcu_read_unlock();</span><br><span class="line"></span><br><span class="line">    pr_err(<span class="string">"not exist book\n"</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">return_book</span><span class="params">(<span class="keyword">int</span> id, <span class="keyword">int</span> async)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">b</span> = <span class="title">NULL</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">new_b</span> = <span class="title">NULL</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">old_b</span> = <span class="title">NULL</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * updater</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * (updater) require that alloc new node &amp; copy, update new node &amp; reclaim old node</span></span><br><span class="line"><span class="comment">     * list_replace_rcu() is used to do that.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">    rcu_read_lock();</span><br><span class="line"></span><br><span class="line">    list_for_each_entry(b, &amp;books, node) &#123;</span><br><span class="line">        <span class="keyword">if</span>(b-&gt;id == id) &#123;</span><br><span class="line">            <span class="keyword">if</span>(!b-&gt;borrow) &#123;</span><br><span class="line">                rcu_read_unlock();</span><br><span class="line">                <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            old_b = b;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(!old_b) &#123;</span><br><span class="line">        rcu_read_unlock();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    new_b = kzalloc(<span class="keyword">sizeof</span>(struct book), GFP_ATOMIC);</span><br><span class="line">    <span class="keyword">if</span>(!new_b) &#123;</span><br><span class="line">        rcu_read_unlock();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memcpy</span>(new_b, old_b, <span class="keyword">sizeof</span>(struct book));</span><br><span class="line">    new_b-&gt;borrow = <span class="number">0</span>;</span><br><span class="line">    </span><br><span class="line">    spin_lock(&amp;books_lock);</span><br><span class="line">    list_replace_rcu(&amp;old_b-&gt;node, &amp;new_b-&gt;node);</span><br><span class="line">    spin_unlock(&amp;books_lock);</span><br><span class="line"></span><br><span class="line">    rcu_read_unlock();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(async) &#123;</span><br><span class="line">        call_rcu(&amp;old_b-&gt;rcu, book_reclaim_callback);</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        synchronize_rcu();</span><br><span class="line">        kfree(old_b);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    pr_info(<span class="string">"return success %d, preempt_count : %d\n"</span>, id, preempt_count());</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">delete_book</span><span class="params">(<span class="keyword">int</span> id, <span class="keyword">int</span> async)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">b</span>;</span></span><br><span class="line"></span><br><span class="line">    spin_lock(&amp;books_lock);</span><br><span class="line">    list_for_each_entry(b, &amp;books, node) &#123;</span><br><span class="line">        <span class="keyword">if</span>(b-&gt;id == id) &#123;</span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * list_del</span></span><br><span class="line"><span class="comment">             *</span></span><br><span class="line"><span class="comment">             * del_node(writer - delete) require locking mechanism.</span></span><br><span class="line"><span class="comment">             * we can choose 3 ways to lock. Use 'a' here.</span></span><br><span class="line"><span class="comment">             *</span></span><br><span class="line"><span class="comment">             *  a.  locking,</span></span><br><span class="line"><span class="comment">             *  b.  atomic operations, or</span></span><br><span class="line"><span class="comment">             *  c.  restricting updates to a single task.</span></span><br><span class="line"><span class="comment">            */</span></span><br><span class="line">            list_del_rcu(&amp;b-&gt;node);</span><br><span class="line">            spin_unlock(&amp;books_lock);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span>(async) &#123;</span><br><span class="line">                call_rcu(&amp;b-&gt;rcu, book_reclaim_callback);</span><br><span class="line">            &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">                synchronize_rcu();</span><br><span class="line">                kfree(b);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    spin_unlock(&amp;books_lock);</span><br><span class="line"></span><br><span class="line">    pr_err(<span class="string">"not exist book\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">print_book</span><span class="params">(<span class="keyword">int</span> id)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">book</span> *<span class="title">b</span>;</span></span><br><span class="line"></span><br><span class="line">    rcu_read_lock();</span><br><span class="line">    list_for_each_entry_rcu(b, &amp;books, node) &#123;</span><br><span class="line">        <span class="keyword">if</span>(b-&gt;id == id) &#123;</span><br><span class="line">            <span class="comment">/**</span></span><br><span class="line"><span class="comment">             * Why print address of "struct book *b"??</span></span><br><span class="line"><span class="comment">             *</span></span><br><span class="line"><span class="comment">             * If b was updated, address of b must be different.</span></span><br><span class="line"><span class="comment">             * We can know whether b is updated or not by address.</span></span><br><span class="line"><span class="comment">            */</span></span><br><span class="line">            pr_info(<span class="string">"id : %d, name : %s, author : %s, borrow : %d, addr : %lx\n"</span>, \</span><br><span class="line">                        b-&gt;id, b-&gt;name, b-&gt;author, b-&gt;borrow, (<span class="keyword">unsigned</span> <span class="keyword">long</span>)b);</span><br><span class="line">            rcu_read_unlock();</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    rcu_read_unlock();</span><br><span class="line"></span><br><span class="line">    pr_err(<span class="string">"not exist book\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">test_example</span><span class="params">(<span class="keyword">int</span> async)</span> </span>&#123;</span><br><span class="line">    add_book(<span class="number">0</span>, <span class="string">"book1"</span>, <span class="string">"jb"</span>);</span><br><span class="line">    add_book(<span class="number">1</span>, <span class="string">"book2"</span>, <span class="string">"jb"</span>);</span><br><span class="line"></span><br><span class="line">    print_book(<span class="number">0</span>);</span><br><span class="line">    print_book(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    pr_info(<span class="string">"book1 borrow : %d\n"</span>, is_borrowed_book(<span class="number">0</span>));</span><br><span class="line">    pr_info(<span class="string">"book2 borrow : %d\n"</span>, is_borrowed_book(<span class="number">1</span>));</span><br><span class="line"></span><br><span class="line">    borrow_book(<span class="number">0</span>, async);</span><br><span class="line">    borrow_book(<span class="number">1</span>, async);</span><br><span class="line"></span><br><span class="line">    print_book(<span class="number">0</span>);</span><br><span class="line">    print_book(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    return_book(<span class="number">0</span>, async);</span><br><span class="line">    return_book(<span class="number">1</span>, async);</span><br><span class="line"></span><br><span class="line">    print_book(<span class="number">0</span>);</span><br><span class="line">    print_book(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    delete_book(<span class="number">0</span>, async);</span><br><span class="line">    delete_book(<span class="number">1</span>, async);</span><br><span class="line"></span><br><span class="line">    print_book(<span class="number">0</span>);</span><br><span class="line">    print_book(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">list_rcu_example_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    spin_lock_init(&amp;books_lock);</span><br><span class="line"></span><br><span class="line">    test_example(<span class="number">0</span>);</span><br><span class="line">    test_example(<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">list_rcu_example_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(list_rcu_example_init);</span><br><span class="line">module_exit(list_rcu_example_exit);</span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL"</span>);</span><br></pre></td></tr></table></figure>
+<h3 id="struct-rcu-head"><a href="#struct-rcu-head" class="headerlink" title="struct rcu_head"></a>struct rcu_head</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * struct callback_head - callback structure for use with RCU and task_work</span></span><br><span class="line"><span class="comment"> * @next: next update requests in a list</span></span><br><span class="line"><span class="comment"> * @func: actual update function to call after the grace period.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * The struct is aligned to size of pointer. On most architectures it happens</span></span><br><span class="line"><span class="comment"> * naturally due ABI requirements, but some architectures (like CRIS) have</span></span><br><span class="line"><span class="comment"> * weird ABI and we need to ask it explicitly.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * The alignment is required to guarantee that bit 0 of @next will be</span></span><br><span class="line"><span class="comment"> * clear under normal conditions -- as long as we use call_rcu() or</span></span><br><span class="line"><span class="comment"> * call_srcu() to queue the callback.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This guarantee is important for few reasons:</span></span><br><span class="line"><span class="comment"> *  - future call_rcu_lazy() will make use of lower bits in the pointer;</span></span><br><span class="line"><span class="comment"> *  - the structure shares storage space in struct page with @compound_head,</span></span><br><span class="line"><span class="comment"> *    which encode PageTail() in bit 0. The guarantee is needed to avoid</span></span><br><span class="line"><span class="comment"> *    false-positive PageTail().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">callback_head</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">callback_head</span> *<span class="title">next</span>;</span></span><br><span class="line">    <span class="keyword">void</span> (*func)(struct callback_head *head);</span><br><span class="line">&#125; __attribute__((aligned(<span class="keyword">sizeof</span>(<span class="keyword">void</span> *))));</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> rcu_head callback_head</span></span><br></pre></td></tr></table></figure>
+<p>回调的时候使用，可以结合call_rcu(Queue an RCU callback for invocation after a grace period)使用。</p>
+<h3 id="rcu-dereference-protected"><a href="#rcu-dereference-protected" class="headerlink" title="rcu_dereference_protected"></a>rcu_dereference_protected</h3><p><code>rcu_dereference_protected()</code> primitive is used to access RCU-protected pointers from update-side code. Because the update-side code is using some other synchronization mechanism (locks, atomic operations, single updater thread, etc.), it does not need to put RCU read-side protections in place. This primitive also takes a lockdep expression, which can be used to assert that the right locks are held and that any other necessary conditions hold.</p>
+<p><img src="/images/2023/07/001.jpg" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://lwn.net/Articles/777036/" target="_blank" rel="noopener">The RCU API, 2019 edition</a></li>
+<li><a href="https://stackoverflow.com/questions/39251287/rcu-dereference-vs-rcu-dereference-protected" target="_blank" rel="noopener">rcu_dereference() vs rcu_dereference_protected()?</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/Concurrency/">Concurrency</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2023/07/30/Linux-kernel-SRCU-usage/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Linux kernel SRCU usage</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2023/07/22/转-kprobe-kretprobe使用方法/">
+        <span class="next-text nav-default">kprobe/kretprobe使用方法</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2023
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/07/30/Linux-kernel-RCU-usage/';
+        this.page.identifier = '2023/07/30/Linux-kernel-RCU-usage/';
+        this.page.title = 'Linux kernel RCU usage';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
