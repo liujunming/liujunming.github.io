@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#理论基础"><span class="toc-text">理论基础</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#example"><span class="toc-text">example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#struct-rcu-head"><span class="toc-text">struct rcu_head</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#rcu-dereference-protected"><span class="toc-text">rcu_dereference_protected</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#理论基础"><span class="toc-text">理论基础</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#相关资料"><span class="toc-text">相关资料</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#example"><span class="toc-text">example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#struct-rcu-head"><span class="toc-text">struct rcu_head</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#rcu-dereference-protected"><span class="toc-text">rcu_dereference_protected</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#rcu"><span class="toc-text">__rcu</span></a></li></ol>
     </div>
   </div>
 
@@ -301,11 +301,18 @@
 <p>回调的时候使用，可以结合call_rcu(Queue an RCU callback for invocation after a grace period)使用。</p>
 <h3 id="rcu-dereference-protected"><a href="#rcu-dereference-protected" class="headerlink" title="rcu_dereference_protected"></a>rcu_dereference_protected</h3><p><code>rcu_dereference_protected()</code> primitive is used to access RCU-protected pointers from update-side code. Because the update-side code is using some other synchronization mechanism (locks, atomic operations, single updater thread, etc.), it does not need to put RCU read-side protections in place. This primitive also takes a lockdep expression, which can be used to assert that the right locks are held and that any other necessary conditions hold.</p>
 <p><img src="/images/2023/07/001.jpg" alt></p>
+<h3 id="rcu"><a href="#rcu" class="headerlink" title="__rcu"></a>__rcu</h3><p>If the kernel is built with the <code>CONFIG_SPARSE_RCU_POINTER</code> config option, <code>__rcu</code> is defined in <code>include/linux/compiler.h</code> as<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># define __rcu          __attribute__((noderef, address_space(4)))</span><br></pre></td></tr></table></figure></p>
+<p>This is an annotation for a the Sparse code analysis tool that can warn about certain things the programmer may have overlooked. How this is relevant to RCU is explained in <a href="https://www.kernel.org/doc/Documentation/RCU/checklist.txt" target="_blank" rel="noopener">Documentation/RCU/checklist.txt</a>:</p>
+<blockquote>
+<p>__rcu sparse checks: tag the pointer to the RCU-protected data structure with __rcu, and sparse will warn you if you access that pointer without the services of one of the variants of rcu_dereference().</p>
+</blockquote>
+<p><code>rcu_dereference()</code> returns a pointer that can be safely dereferenced by the code and documents the programmer’s intention to protect the pointer with the RCU mechanism, enabling tools like Sparse to check for programming errors and omissions.</p>
 <hr>
 <p>参考资料:</p>
 <ol>
 <li><a href="https://lwn.net/Articles/777036/" target="_blank" rel="noopener">The RCU API, 2019 edition</a></li>
 <li><a href="https://stackoverflow.com/questions/39251287/rcu-dereference-vs-rcu-dereference-protected" target="_blank" rel="noopener">rcu_dereference() vs rcu_dereference_protected()?</a></li>
+<li><a href="https://stackoverflow.com/questions/17128210/what-does-rcu-stands-for-in-linux" target="_blank" rel="noopener">what does __rcu stands for in linux?</a></li>
 </ol>
 
       
@@ -335,6 +342,12 @@
         
         
   <nav class="post-nav">
+    
+      <a class="prev" href="/2023/08/05/转-自动检测-Linux-错误的工具-静态篇/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">(转)自动检测 Linux 错误的工具 - 静态篇</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
     
     
       <a class="next" href="/2023/07/22/转-kprobe-kretprobe使用方法/">

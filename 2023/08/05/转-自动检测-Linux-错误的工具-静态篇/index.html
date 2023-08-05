@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="(转)自动检测 Linux 错误的工具 - 静态篇">
+
+
+
+
+  <meta name="keywords" content="Kernel, 工具, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2023/08/05/转-自动检测-Linux-错误的工具-静态篇/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> (转)自动检测 Linux 错误的工具 - 静态篇 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          (转)自动检测 Linux 错误的工具 - 静态篇
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2023-08-05
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/工具/">工具</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sparse"><span class="toc-text">Sparse</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Smatch"><span class="toc-text">Smatch</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Cppcheck"><span class="toc-text">Cppcheck</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#小结"><span class="toc-text">小结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文转载自: <a href="https://zhuanlan.zhihu.com/p/641596339" target="_blank" rel="noopener">兰新宇:自动检测 Linux 错误的工具 - 静态篇</a><a id="more"></a></p>
+<h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p>怎么检测出代码中存在的 bug？目前主要的手段一是靠测试，研发自测、QA 测试，二是靠 code review。测试如果自动化程度不高，会耗费大量的人力，而 code review 取决于 reviewer 的能力和责任心，也难免存在疏忽。</p>
+<p>当代码量越来越大时，通过肉眼来发现错误也变得愈发的困难，这时就需要借助一些工具，自动地帮我们找到代码中潜在的问题。这样的工具可分为两类：在代码的编译阶段分析缺陷的（静态检测），和在代码的运行阶段识别异常的（动态检测）。</p>
+<p>市面上 static analysis tools 繁多，这里介绍三种免费的、适用于 Linux 内核的，且笔者亲身使用过的。</p>
+<h3 id="Sparse"><a href="#Sparse" class="headerlink" title="Sparse"></a>Sparse</h3><p>这是由 Linus Torvalds 本尊于 2003 年开发的（可能是 semantic parser 的意思），是 Linux 内核原生的、默认的代码静态检查工具。</p>
+<p>之所以说它是默认的，从它的用法上就可以看出端倪。下载<a href="https://git.kernel.org/pub/scm/devel/sparse/sparse.git" target="_blank" rel="noopener">sparse源码</a>后，执行 “make” 命令编译，然后 “make install” 将其安装到系统环境变量可识别的路径（比如 “/usr/bin”），然后在编译内核/驱动时， make 参数加上 “C=2”（或 “C=1”）即可。</p>
+<p>C 表示 Checker，打开 Linux 顶层 Makefile 看下，”CHECK” 变量的初始设定就是 “sparse” 。<br><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make C=1  [targets] Check re-compiled c source with $$CHECK (sparse by default)'</span><br><span class="line">make C=2  [targets] Force check of all c source with $$CHECK'</span><br></pre></td></tr></table></figure></p>
+<p>sparse 侧重于数据类型的检查，其在预编译阶段就埋下了自己的 hook：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> __CHECKER__</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __iomem __attribute__((noderef, address_space(2)))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __iomem</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+<p>像 “__iomem” 代表的<a href="https://zhuanlan.zhihu.com/p/609594794" target="_blank" rel="noopener">I/O memory</a>，映射后是不适合直接用指针（虚拟地址）读写的，而应该使用和<br>CPU arch 相适配的专有 API 来访问（比如 readl 和 writel）。如果你违反了这个规则，sparse 就会给出告警。</p>
+<p>类似地还有表示用户态地址的 “__user” 关键字，是不适合在内核态直接读写的。</p>
+<h3 id="Smatch"><a href="#Smatch" class="headerlink" title="Smatch"></a>Smatch</h3><p>Sparse 可以说是简单高效，但其检测范围有限，一个更强大的工具是 smatch。其使用方法同 sparse 类似，也是<a href="https://repo.or.cz/w/smatch.git" target="_blank" rel="noopener">下载源码</a>后 make，稍有区别的是由于它不是嫡子，需要手动指定下它的安装路径，并且声明 -p（代表 project）为 “kernel”：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make CHECK=&quot;~/&lt;path-to-smatch&gt;/smatch -p=kernel&quot; C=1</span><br></pre></td></tr></table></figure></p>
+<p>smatch 擅长 flow analysis ，下面以伪代码来展示一个案例：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># alloc mememory for A</span><br><span class="line"></span><br><span class="line"># check whethe A is on list, if not, add it to list</span><br><span class="line"></span><br><span class="line"># function return</span><br></pre></td></tr></table></figure></p>
+<p>如果 A 被加入链表，那么 A 的内存会在链表销毁时释放，但是如果没有加入链表，内存就没有释放，smatch 会在函数返回时提示 “possible memory leak of A”。</p>
+<p>当然，这属于程序设计的不妥当，正常应该先确定 A 不在链表，再为 A 分配内存。类似的还有异常返回时 mutex 没有 unlock 等，都算是资源泄露。</p>
+<p>另一个 smatch 的优势是跟踪变量在生命周期内的值，同样通过伪代码的形式来说明：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">int A;</span><br><span class="line"></span><br><span class="line">if (...)</span><br><span class="line">    # add object to link（and assign a non-zero value to A）</span><br><span class="line"></span><br><span class="line">if (A)</span><br><span class="line">    # remove object from link</span><br></pre></td></tr></table></figure></p>
+<p>第二个 if 的意图是判断 A 非 0，说明之前被加入过链表，那么之后需要从链表移除，但其隐含了一个假设，就是变量 A 会被初始化为 0。但 C 语言里 local variable 是否初始化为 0 是编译器的行为，<a href="https://stackoverflow.com/questions/21152138/local-variable-initialized-to-zero-in-c" target="_blank" rel="noopener">是不可靠的</a>，smatch 会提示 “uninitialized symbol A”。</p>
+<p>此外，如果你用的一个内核 API 有了一个更推荐的版本，smatch 也会给你指出来，比如用更简洁的 kvcalloc 替换 kvmalloc_array。</p>
+<p>其中当然不可避免地会有一些 false positive 的 warning/error，但笔者并不愿将其称之为<strong>误报</strong>。虽然仔细分析报告点的代码逻辑后，发现没有问题，但这样的代码多少是有些别扭的，语义上不是很直接，结构上是存在可以优化的空间的。</p>
+<p>文末链接里有 smatch 的开发者 Dan Carpenter 的一个分享，他提到 smatch 还在不断演进，还有不少<a href="https://github.com/illumos/smatch/blob/master/Documentation/TODO.md" target="_blank" rel="noopener">可以加强的地方</a>，比如 scheduling in atomic 的错误：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">spin_lock(A)</span><br><span class="line">mutex_lock(B)</span><br><span class="line"># do something</span><br><span class="line">mutex_unlock(B)</span><br><span class="line">spin_unlock(A)</span><br></pre></td></tr></table></figure></p>
+<p>要说它的缺点么，大概就是文档比较匮乏吧。这是作者自己说的，笔者在使用过程中也有同感，里面好多 scripts 不会用，白瞎了。</p>
+<h3 id="Cppcheck"><a href="#Cppcheck" class="headerlink" title="Cppcheck"></a>Cppcheck</h3><p>以上介绍的两种工具都主要面向 Linux 内核，而更为广泛使用的一个工具是 cppcheck，从名字上也可看出来，只要是 C/C++ 程序，它都可以。</p>
+<p>不需要手动去找源码来下载，直接 “yum/apt install cppcheck” 就可以安装（从安装方式的差异也能看出，它确实被用的更普遍，进了默认的软件镜像源）。</p>
+<p>用法也很简单，直接 <code>cppcheck &lt;file-name&gt;/&lt;folder-name&gt;</code>即可检测单个文件，或目录中所有文件。 默认仅检测 error 级别的，可加上 “–enable=warning” 来使能 warning 级别的（甚至可以是 style 级别）。</p>
+<p>cppchek 算是对 compiler 的一种补充吧， 来看几个例子：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">pdev = get_dev_by_id(...);</span><br><span class="line"><span class="keyword">if</span> (!pdev)</span><br><span class="line">    dev_err(pdev-&gt;dev, ...);</span><br></pre></td></tr></table></figure></p>
+<p>指针判空之后，为了打印信息的需要（表示哪个 dev 出了问题），无意中造成了 null pointer deference。这种异常分支的错误靠测试很难发现（corner case），因为平时走不进去，但一旦进去了，就是系统 crash 的大雷啊。</p>
+<p>再比如下面这个，如果 “pdev-&gt;dev” 为空，那么 if 条件判断还会继续，那 “pdev-&gt;dev-&gt;type” 不又是妥妥的「空指针引用」嘛。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">if (!pdev-&gt;dev &amp;&amp; !pdev-&gt;dev-&gt;type)</span><br></pre></td></tr></table></figure>
+<p>其他像内存泄露的一些问题，也能被 cppcheck 检查出来。</p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>静态检查工具可以在编译阶段就发现很多潜在的隐患，是保障代码质量的一种<strong>低成本</strong>方案。比如 memory leak 吧，目前 Linux 内核也就能用 kmemleak 来检查，但往往需要重新编译内核不说，没执行到的异常分支造成的泄露还检测不出来。所以，目前有些公司要求代码提交必须通过 cppcheck 检测，不失为一种值得效仿的业界最佳实践（ best practice）。</p>
+<p>这三种静态工具在检测范围上有一些重叠的地方，但也各有各的特色。如果条件允许的话，建议都用上，反正使用成本都比较低，如果非只能选一种的话，那笔者会选择效果最为拔群的 smatch。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://lwn.net/Articles/689907/" target="_blank" rel="noopener">Sparse: a look under the hood</a></li>
+<li><a href="https://lwn.net/Articles/87538/" target="_blank" rel="noopener">Finding kernel problems automatically</a></li>
+<li><a href="https://man7.org/linux/man-pages/man1/sparse.1.html" target="_blank" rel="noopener">sparse(1) - Linux manual page</a></li>
+<li><a href="https://events.linuxfoundation.org/wp-content/uploads/2022/10/Dan-Carpenter-Smatch-Mentorship-Series-Presentation-Template.pdf" target="_blank" rel="noopener">Smatch: New ideas for Static Analysis</a></li>
+<li><a href="https://lwn.net/Articles/691882/" target="_blank" rel="noopener">Smatch: pluggable static analysis for C</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/工具/">工具</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2023/07/30/Linux-kernel-RCU-usage/">
+        <span class="next-text nav-default">Linux kernel RCU usage</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2023
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/08/05/转-自动检测-Linux-错误的工具-静态篇/';
+        this.page.identifier = '2023/08/05/转-自动检测-Linux-错误的工具-静态篇/';
+        this.page.title = '(转)自动检测 Linux 错误的工具 - 静态篇';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
