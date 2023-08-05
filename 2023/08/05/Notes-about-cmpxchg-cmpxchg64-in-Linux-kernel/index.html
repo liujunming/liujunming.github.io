@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about cmpxchg/cmpxchg64 in Linux kernel">
+
+
+
+
+  <meta name="keywords" content="Kernel, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2023/08/05/Notes-about-cmpxchg-cmpxchg64-in-Linux-kernel/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about cmpxchg/cmpxchg64 in Linux kernel - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about cmpxchg/cmpxchg64 in Linux kernel
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2023-08-05
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#基本原理"><span class="toc-text">基本原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Example"><span class="toc-text">Example</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下Linux kernel中cmpxchg/cmpxchg64的相关笔记。<a id="more"></a>对于底层实现的硬件原理，待有空了再分析。</p>
+<p>本文参考的内核版本为<a href="https://elixir.bootlin.com/linux/v5.0/source" target="_blank" rel="noopener">v5.0</a>。</p>
+<h3 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h3><p>cmpxchg(void* ptr, int old, int new) 将old和ptr指向的内容比较</p>
+<ul>
+<li>如果相等，则将new写入到ptr中，返回old</li>
+<li>如果不相等，则返回ptr指向的内容</li>
+</ul>
+<p>整个过程中操作是原子的。</p>
+<p>From the point of view of a Linux kernel programmer, compare-and-swap has the following prototype:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">T cmpxchg(T *ptr, T old, T new);</span><br></pre></td></tr></table></figure></p>
+<p>where <code>T</code> can be either an integer type that is at most as wide as a pointer, or a pointer type. In order to support such polymorphism, <code>cmpxchg()</code> is defined as a macro rather than a function, but the macro is written carefully to avoid evaluating its arguments multiple times. Linux also has a <code>cmpxchg64()</code> macro that takes 64-bit integers as the arguments, but it may not be available on all 32-bit platforms.</p>
+<h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Posted-Interrupt Descriptor */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pi_desc</span> &#123;</span></span><br><span class="line">    u32 pir[<span class="number">8</span>];     <span class="comment">/* Posted interrupt requested */</span></span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">                <span class="comment">/* bit 256 - Outstanding Notification */</span></span><br><span class="line">            u16 on  : <span class="number">1</span>,</span><br><span class="line">                <span class="comment">/* bit 257 - Suppress Notification */</span></span><br><span class="line">                sn  : <span class="number">1</span>,</span><br><span class="line">                <span class="comment">/* bit 271:258 - Reserved */</span></span><br><span class="line">                rsvd_1  : <span class="number">14</span>;</span><br><span class="line">                <span class="comment">/* bit 279:272 - Notification Vector */</span></span><br><span class="line">            u8  nv;</span><br><span class="line">                <span class="comment">/* bit 287:280 - Reserved */</span></span><br><span class="line">            u8  rsvd_2;</span><br><span class="line">                <span class="comment">/* bit 319:288 - Notification Destination */</span></span><br><span class="line">            u32 ndst;</span><br><span class="line">        &#125;;</span><br><span class="line">        u64 control;</span><br><span class="line">    &#125;;</span><br><span class="line">    u32 rsvd[<span class="number">6</span>];</span><br><span class="line">&#125; __aligned(<span class="number">64</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __pi_post_block(struct kvm_vcpu *vcpu)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pi_desc</span> *<span class="title">pi_desc</span> = <span class="title">vcpu_to_pi_desc</span>(<span class="title">vcpu</span>);</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pi_desc</span> <span class="title">old</span>, <span class="title">new</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> dest;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        old.control = <span class="keyword">new</span>.control = pi_desc-&gt;control;</span><br><span class="line">        WARN(old.nv != POSTED_INTR_WAKEUP_VECTOR,</span><br><span class="line">             <span class="string">"Wakeup handler not enabled while the VCPU is blocked\n"</span>);</span><br><span class="line"></span><br><span class="line">        dest = cpu_physical_id(vcpu-&gt;cpu);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (x2apic_enabled())</span><br><span class="line">            <span class="keyword">new</span>.ndst = dest;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            <span class="keyword">new</span>.ndst = (dest &lt;&lt; <span class="number">8</span>) &amp; <span class="number">0xFF00</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* set 'NV' to 'notification vector' */</span></span><br><span class="line">        <span class="keyword">new</span>.nv = POSTED_INTR_VECTOR;</span><br><span class="line">    &#125; <span class="keyword">while</span> (cmpxchg64(&amp;pi_desc-&gt;control, old.control,</span><br><span class="line">               <span class="keyword">new</span>.control) != old.control);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>值得注意的是:<code>ndst</code>和<code>nv</code>field均属于pi_desc的<code>control</code>。</p>
+<p>在上述代码片段中，old.control的类型是u64，在第31行到43行执行过程中，IOMMU硬件是有可能更改 <code>on</code> （Outstanding Notification）bit的，也就是说pi_desc-&gt;control的内容可能会发生变化。<br>因此会在第44行到45行检测pi_desc-&gt;control与old.control是否相等:</p>
+<ul>
+<li>如果相等(说明过程中IOMMU硬件没有更改<code>on</code>)，就将new.control写入到&amp;pi_desc-&gt;control中，并返回old.control，则会跳出do while循环</li>
+<li>如果不相等(说明过程中IOMMU硬件更改了<code>on</code>)，就会返回pi_desc-&gt;control，则继续进入do while循环</li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://blog.csdn.net/zdy0_2004/article/details/48013829" target="_blank" rel="noopener">Linux内核中的cmpxchg函数</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1021133" target="_blank" rel="noopener">Linux Kernel CMPXCHG函数分析</a></li>
+<li><a href="https://lostjeffle.bitcron.com/post/blog/mweb/docs/15936033639789" target="_blank" rel="noopener">Atomic - Reference Count</a></li>
+<li><a href="https://blog.csdn.net/Linux_Everything/article/details/115315107" target="_blank" rel="noopener">LWN: Lockless编程模式 - 介绍compare-and-swap！</a></li>
+<li><a href="https://lwn.net/Articles/847973/" target="_blank" rel="noopener">Lockless patterns: an introduction to compare-and-swap</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2023/08/05/转-自动检测-Linux-错误的工具-静态篇/">
+        <span class="next-text nav-default">(转)自动检测 Linux 错误的工具 - 静态篇</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2023
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/08/05/Notes-about-cmpxchg-cmpxchg64-in-Linux-kernel/';
+        this.page.identifier = '2023/08/05/Notes-about-cmpxchg-cmpxchg64-in-Linux-kernel/';
+        this.page.title = 'Notes about cmpxchg/cmpxchg64 in Linux kernel';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

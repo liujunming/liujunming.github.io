@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-08-05T02:37:19.233Z</updated>
+  <updated>2023-08-05T08:01:32.939Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about cmpxchg/cmpxchg64 in Linux kernel</title>
+    <link href="http://liujunming.github.io/2023/08/05/Notes-about-cmpxchg-cmpxchg64-in-Linux-kernel/"/>
+    <id>http://liujunming.github.io/2023/08/05/Notes-about-cmpxchg-cmpxchg64-in-Linux-kernel/</id>
+    <published>2023-08-05T05:28:09.000Z</published>
+    <updated>2023-08-05T08:01:32.939Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Linux kernel中cmpxchg/cmpxchg64的相关笔记。<a id="more"></a>对于底层实现的硬件原理，待有空了再分析。</p><p>本文参考的内核版本为<a href="https://elixir.bootlin.com/linux/v5.0/source" target="_blank" rel="noopener">v5.0</a>。</p><h3 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h3><p>cmpxchg(void* ptr, int old, int new) 将old和ptr指向的内容比较</p><ul><li>如果相等，则将new写入到ptr中，返回old</li><li>如果不相等，则返回ptr指向的内容</li></ul><p>整个过程中操作是原子的。</p><p>From the point of view of a Linux kernel programmer, compare-and-swap has the following prototype:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">T cmpxchg(T *ptr, T old, T new);</span><br></pre></td></tr></table></figure></p><p>where <code>T</code> can be either an integer type that is at most as wide as a pointer, or a pointer type. In order to support such polymorphism, <code>cmpxchg()</code> is defined as a macro rather than a function, but the macro is written carefully to avoid evaluating its arguments multiple times. Linux also has a <code>cmpxchg64()</code> macro that takes 64-bit integers as the arguments, but it may not be available on all 32-bit platforms.</p><h3 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Posted-Interrupt Descriptor */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pi_desc</span> &#123;</span></span><br><span class="line">    u32 pir[<span class="number">8</span>];     <span class="comment">/* Posted interrupt requested */</span></span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">                <span class="comment">/* bit 256 - Outstanding Notification */</span></span><br><span class="line">            u16 on  : <span class="number">1</span>,</span><br><span class="line">                <span class="comment">/* bit 257 - Suppress Notification */</span></span><br><span class="line">                sn  : <span class="number">1</span>,</span><br><span class="line">                <span class="comment">/* bit 271:258 - Reserved */</span></span><br><span class="line">                rsvd_1  : <span class="number">14</span>;</span><br><span class="line">                <span class="comment">/* bit 279:272 - Notification Vector */</span></span><br><span class="line">            u8  nv;</span><br><span class="line">                <span class="comment">/* bit 287:280 - Reserved */</span></span><br><span class="line">            u8  rsvd_2;</span><br><span class="line">                <span class="comment">/* bit 319:288 - Notification Destination */</span></span><br><span class="line">            u32 ndst;</span><br><span class="line">        &#125;;</span><br><span class="line">        u64 control;</span><br><span class="line">    &#125;;</span><br><span class="line">    u32 rsvd[<span class="number">6</span>];</span><br><span class="line">&#125; __aligned(<span class="number">64</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __pi_post_block(struct kvm_vcpu *vcpu)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pi_desc</span> *<span class="title">pi_desc</span> = <span class="title">vcpu_to_pi_desc</span>(<span class="title">vcpu</span>);</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pi_desc</span> <span class="title">old</span>, <span class="title">new</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> dest;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        old.control = <span class="keyword">new</span>.control = pi_desc-&gt;control;</span><br><span class="line">        WARN(old.nv != POSTED_INTR_WAKEUP_VECTOR,</span><br><span class="line">             <span class="string">"Wakeup handler not enabled while the VCPU is blocked\n"</span>);</span><br><span class="line"></span><br><span class="line">        dest = cpu_physical_id(vcpu-&gt;cpu);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (x2apic_enabled())</span><br><span class="line">            <span class="keyword">new</span>.ndst = dest;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            <span class="keyword">new</span>.ndst = (dest &lt;&lt; <span class="number">8</span>) &amp; <span class="number">0xFF00</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* set 'NV' to 'notification vector' */</span></span><br><span class="line">        <span class="keyword">new</span>.nv = POSTED_INTR_VECTOR;</span><br><span class="line">    &#125; <span class="keyword">while</span> (cmpxchg64(&amp;pi_desc-&gt;control, old.control,</span><br><span class="line">               <span class="keyword">new</span>.control) != old.control);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>值得注意的是:<code>ndst</code>和<code>nv</code>field均属于pi_desc的<code>control</code>。</p><p>在上述代码片段中，old.control的类型是u64，在第31行到43行执行过程中，IOMMU硬件是有可能更改 <code>on</code> （Outstanding Notification）bit的，也就是说pi_desc-&gt;control的内容可能会发生变化。<br>因此会在第44行到45行检测pi_desc-&gt;control与old.control是否相等:</p><ul><li>如果相等(说明过程中IOMMU硬件没有更改<code>on</code>)，就将new.control写入到&amp;pi_desc-&gt;control中，并返回old.control，则会跳出do while循环</li><li>如果不相等(说明过程中IOMMU硬件更改了<code>on</code>)，就会返回pi_desc-&gt;control，则继续进入do while循环</li></ul><hr><p>参考资料:</p><ol><li><a href="https://blog.csdn.net/zdy0_2004/article/details/48013829" target="_blank" rel="noopener">Linux内核中的cmpxchg函数</a></li><li><a href="https://cloud.tencent.com/developer/article/1021133" target="_blank" rel="noopener">Linux Kernel CMPXCHG函数分析</a></li><li><a href="https://lostjeffle.bitcron.com/post/blog/mweb/docs/15936033639789" target="_blank" rel="noopener">Atomic - Reference Count</a></li><li><a href="https://blog.csdn.net/Linux_Everything/article/details/115315107" target="_blank" rel="noopener">LWN: Lockless编程模式 - 介绍compare-and-swap！</a></li><li><a href="https://lwn.net/Articles/847973/" target="_blank" rel="noopener">Lockless patterns: an introduction to compare-and-swap</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Linux kernel中cmpxchg/cmpxchg64的相关笔记。
+    
+    </summary>
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+  </entry>
   
   <entry>
     <title>(转)自动检测 Linux 错误的工具 - 静态篇</title>
@@ -460,28 +482,6 @@
       <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
     
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about hyper_dmabuf</title>
-    <link href="http://liujunming.github.io/2023/04/30/Notes-about-hyper-dmabuf/"/>
-    <id>http://liujunming.github.io/2023/04/30/Notes-about-hyper-dmabuf/</id>
-    <published>2023-04-30T12:26:38.000Z</published>
-    <updated>2023-04-30T13:22:49.838Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下hyper_dmabuf相关notes。<a id="more"></a><br><img src="/images/2023/04/20.png" alt></p><p>Hyper_DMABUF driver is a Linux device driver running on multiple Virtual achines (VMs), which expands DMA-BUF sharing capability to the VM environment where multiple different OS instances need to share same physical data without data-copy across VMs.</p><p>To share a DMA_BUF across VMs, an instance of the Hyper_DMABUF drv on the exporting VM (so called, “exporter”) imports a local DMA_BUF from the original producer of the buffer, then re-exports it with an unique ID, hyper_dmabuf_id for the buffer to the importing VM (so called, “importer”).</p><p>Another instance of the Hyper_DMABUF driver on importer registers a hyper_dmabuf_id together with reference information for the shared physical pages associated with the DMA_BUF to its database when the export happens.</p><p>The actual mapping of the DMA_BUF on the importer’s side is done by the Hyper_DMABUF driver when user space issues the IOCTL command to access the shared DMA_BUF. The Hyper_DMABUF driver works as both an importing and exporting driver as is, that is, no special configuration is required. Consequently, only a single module per VM is needed to enable cross-VM DMA_BUF exchange.</p><hr><p>参考资料:</p><ol><li><a href="https://projectacrn.github.io/1.6.1/developer-guides/hld/hld-APL_GVT-g.html#hyper-dma-buffer-sharing" target="_blank" rel="noopener">Hyper DMA Buffer Sharing</a></li><li><a href="https://github.com/downor/linux_hyper_dmabuf/blob/hyper_dmabuf_integration_v4/Documentation/hyper-dmabuf-sharing.txt" target="_blank" rel="noopener">Linux Hyper DMABUF Driver</a></li><li><a href="https://lists.freedesktop.org/archives/dri-devel/2017-December/160709.html" target="_blank" rel="noopener">hyper_dmabuf: initial working version of hyper_dmabuf drv</a></li><li><a href="https://www.phoronix.com/news/Intel-Hyper-DMA-BUF" target="_blank" rel="noopener">Intel Introduces “Hyper DMA-BUF” To Exchange Buffers Between VMs</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下hyper_dmabuf相关notes。
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
