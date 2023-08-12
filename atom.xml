@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-08-12T01:51:53.163Z</updated>
+  <updated>2023-08-12T04:12:46.496Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Interrupt Request Lines (IRQs)</title>
+    <link href="http://liujunming.github.io/2023/08/12/Notes-about-Interrupt-Request-Lines-IRQs/"/>
+    <id>http://liujunming.github.io/2023/08/12/Notes-about-Interrupt-Request-Lines-IRQs/</id>
+    <published>2023-08-12T04:02:00.000Z</published>
+    <updated>2023-08-12T04:12:46.496Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下IRQs相关notes。<a id="more"></a></p><p>An interrupt request (IRQ) is a hardware signal sent to the processor instructing it to suspend its current activity and handle some external event, such as a keyboard input or a mouse movement. In x86 based computer systems, IRQs are numbered from 0 to 15. Newer computers, including x86-64 systems, provide more than these 16 interrupts (usually 24). Some interrupts are reserved for specific purposes, such as the keyboard and the real-time clock; others have common uses but may be reassigned; and some are left available for extra devices that may be added to the system.</p><p>Here is a list of the IRQs and their common purposes in the x86 system:<br><img src="/images/2023/07/003.jpeg" alt></p><p>In Linux, IRQ mappings are stored in the /proc/interrupts file:<br><img src="/images/2023/07/004.jpeg" alt><br>In the picture above, you can see the names of the drivers that are using each IRQ. For example, the keyborad is using IRQ 1, the mouse is using IRQ 12.</p><p>File ‘/proc/interrupts’ is the procfs Linux interface to the interrupt subsystem, and it presents a table about the number of interrupts on every CPU core in the system in the following form:</p><ul><li>First column: interrupt number</li><li>CPUx columns: interrupt counters for every CPU core in the system</li><li>Next column: interrupt type:<ul><li>IO-APIC-edge — edge-triggered interrupt for the I/O APIC controller</li><li>IO-APIC-fasteoi — level-triggered interrupt for the I/O APIC controller</li><li>PCI-MSI-edge — MSI interrupt</li><li>XT-PIC-XT-PIC — interrupt for the PIC controller</li></ul></li><li>Last column: device (driver) associated with this interrupt</li></ul><hr><p>参考资料:</p><ol><li><a href="https://geek-university.com/irq-interrupt-request/" target="_blank" rel="noopener">IRQ (Interrupt Request)</a></li><li><a href="http://bucarotechelp.com/computers/architecture/90032101.asp" target="_blank" rel="noopener">Interrupt Request Lines (IRQs) by Stephen Bucaro</a></li><li><a href="https://habr.com/en/articles/501660/" target="_blank" rel="noopener">External Interrupts in the x86 system. Part 2. Linux kernel boot options</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下IRQs相关notes。
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+  </entry>
   
   <entry>
     <title>每周分享第35期</title>
@@ -456,30 +478,6 @@
     
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about协程</title>
-    <link href="http://liujunming.github.io/2023/05/02/Notes-about%E5%8D%8F%E7%A8%8B/"/>
-    <id>http://liujunming.github.io/2023/05/02/Notes-about协程/</id>
-    <published>2023-05-02T06:23:49.000Z</published>
-    <updated>2023-05-02T12:22:15.347Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下协程(Coroutines)相关notes。<a id="more"></a></p><h2 id="1-基本概念"><a href="#1-基本概念" class="headerlink" title="1. 基本概念"></a>1. 基本概念</h2><h3 id="1-1-Why"><a href="#1-1-Why" class="headerlink" title="1.1 Why?"></a>1.1 Why?</h3><p><a href="/pdf/什么是协程.pdf">什么是协程</a></p><p>vs多线程：<br>操作系统在线程等待IO的时候，会阻塞当前线程，切换到其它线程，这样在当前线程等待IO的过程中，其它线程可以继续执行。当系统线程较少的时候没有什么问题，但是当线程数量非常多的时候，却产生了问题。<strong>一是系统线程会占用非常多的内存空间，二是过多的线程切换会占用大量的系统时间</strong>。</p><p>协程刚好可以解决上述2个问题。协程运行在线程之上，当一个协程执行完成后，可以选择主动让出，让另一个协程运行在当前线程之上。<strong>协程并没有增加线程数量，只是在线程的基础之上通过分时复用的方式运行多个协程</strong>，而且协程的切换在用户态完成，切换的代价比线程从用户态到内核态的代价小很多。</p><h3 id="1-2-What"><a href="#1-2-What" class="headerlink" title="1.2 What"></a>1.2 What</h3><p><img src="/images/2023/05/02.png" alt></p><blockquote><p>协程本质上和单线程+状态机是等价的，只是用协程的话，协程负责来保存状态，开发起来方便些(不用自己写那个状态机)。</p></blockquote><h3 id="1-3-When"><a href="#1-3-When" class="headerlink" title="1.3 When"></a>1.3 When</h3><p>在有大量IO操作业务的情况下，我们采用协程替换线程，可以到达很好的效果，一是降低了系统内存，二是减少了系统切换开销，因此系统的性能也会提升。</p><p>在协程中尽量不要调用阻塞IO的方法，比如打印，读取文件，Socket接口等，除非改为异步调用的方式，并且协程只有在IO密集型的任务中才会发挥作用。</p><p><strong>协程只有和异步IO结合起来才能发挥出最大的威力</strong>。</p><h2 id="2-QEMU中的协程"><a href="#2-QEMU中的协程" class="headerlink" title="2. QEMU中的协程"></a>2. QEMU中的协程</h2><h3 id="2-1-为什么qemu要使用协程"><a href="#2-1-为什么qemu要使用协程" class="headerlink" title="2.1 为什么qemu要使用协程"></a>2.1 为什么qemu要使用协程</h3><p><a href="https://lore.kernel.org/qemu-devel/1311672077-4592-1-git-send-email-stefanha@linux.vnet.ibm.com/" target="_blank" rel="noopener">Coroutines for better asynchronous programming</a></p><p>仔细阅读<a href="http://blog.vmsplice.net/2014/01/coroutines-in-qemu-basics.html" target="_blank" rel="noopener">Coroutines in QEMU: The basics</a> <em>Callback hell in event-driven programs</em>即可。The coroutine version is much easier to understand because the code is sequential. Under the hood the coroutine version returns back to the event loop just like the callback version. Therefore the code still uses the event loop but it can be written like a sequential program.</p><blockquote><p>Coroutines make it possible to write sequential code that is actually executed across multiple iterations of the event loop. This is useful for code that needs to perform blocking I/O and would quickly become messy if split into a chain of callback functions. </p></blockquote><h3 id="2-2-The-QEMU-coroutine-API"><a href="#2-2-The-QEMU-coroutine-API" class="headerlink" title="2.2 The QEMU coroutine API"></a>2.2 The QEMU coroutine API</h3><p>The coroutine API is documented in <a href="https://gitlab.com/qemu-project/qemu/-/blob/stable-6.0/include/qemu/coroutine.h" target="_blank" rel="noopener">include/qemu/coroutine.h</a>. The main functions are:</p><h4 id="2-2-1-create-coroutine"><a href="#2-2-1-create-coroutine" class="headerlink" title="2.2.1 create coroutine"></a>2.2.1 create coroutine</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Coroutine entry point</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * When the coroutine is entered for the first time, opaque is passed in as an</span></span><br><span class="line"><span class="comment"> * argument.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * When this function returns, the coroutine is destroyed automatically and</span></span><br><span class="line"><span class="comment"> * execution continues in the caller who last entered the coroutine.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="keyword">void</span> coroutine_fn <span class="title">CoroutineEntry</span><span class="params">(<span class="keyword">void</span> *opaque)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Create a new coroutine</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Use qemu_coroutine_enter() to actually transfer control to the coroutine.</span></span><br><span class="line"><span class="comment"> * The opaque argument is passed as the argument to the entry point.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function">Coroutine *<span class="title">qemu_coroutine_create</span><span class="params">(CoroutineEntry *entry, <span class="keyword">void</span> *opaque)</span></span>;</span><br></pre></td></tr></table></figure><p>When a new coroutine is started, it will begin executing the entry function. The caller can pass an opaque pointer to data needed by the coroutine.</p><h4 id="2-2-2-execute-coroutine"><a href="#2-2-2-execute-coroutine" class="headerlink" title="2.2.2 execute coroutine"></a>2.2.2 execute coroutine</h4><p>The new coroutine is executed by calling <code>qemu_coroutine_enter</code>:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Transfer control to a coroutine</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">qemu_coroutine_enter</span><span class="params">(Coroutine *coroutine)</span></span>;</span><br></pre></td></tr></table></figure></p><h4 id="2-2-3-yield-coroutine"><a href="#2-2-3-yield-coroutine" class="headerlink" title="2.2.3 yield coroutine"></a>2.2.3 yield coroutine</h4><p>If the coroutine needs to wait for an event such as I/O completion or user input, it calls <code>qemu_coroutine_yield</code>:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Transfer control back to a coroutine's caller</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This function does not return until the coroutine is re-entered using</span></span><br><span class="line"><span class="comment"> * qemu_coroutine_enter().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> coroutine_fn <span class="title">qemu_coroutine_yield</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br></pre></td></tr></table></figure></p><p>The yield function transfers control back to the <code>qemu_coroutine_enter</code> caller. The coroutine can be re-entered at a later point in time by calling <code>qemu_coroutine_enter</code>, for example, when an I/O request has completed.</p><hr><p>参考资料:</p><ol><li><a href="http://blog.vmsplice.net/2014/01/coroutines-in-qemu-basics.html" target="_blank" rel="noopener">Coroutines in QEMU: The basics</a></li><li><a href="https://royhunter.github.io/2016/06/24/qemu-coroutine/" target="_blank" rel="noopener">QEMU中的协程—qemu-coroutine</a></li><li><a href="https://zhuanlan.zhihu.com/p/172471249" target="_blank" rel="noopener">什么是协程？</a></li><li><a href="https://mp.weixin.qq.com/s/SyWjLg3lYx3pIJQfEtik8Q" target="_blank" rel="noopener">​浅谈协程</a></li><li><a href="https://mp.weixin.qq.com/s/IO4ynnKEfy2Rt-Me7EIeqg" target="_blank" rel="noopener">当谈论协程时，我们在谈论什么</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下协程(Coroutines)相关notes。
-    
-    </summary>
-    
-      <category term="操作系统" scheme="http://liujunming.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-      <category term="QEMU" scheme="http://liujunming.github.io/tags/QEMU/"/>
-    
-      <category term="操作系统" scheme="http://liujunming.github.io/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
