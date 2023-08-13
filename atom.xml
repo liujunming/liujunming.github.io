@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-08-13T03:17:30.112Z</updated>
+  <updated>2023-08-13T12:44:44.733Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about pvpanic</title>
+    <link href="http://liujunming.github.io/2023/08/13/Notes-about-pvpanic/"/>
+    <id>http://liujunming.github.io/2023/08/13/Notes-about-pvpanic/</id>
+    <published>2023-08-13T12:36:43.000Z</published>
+    <updated>2023-08-13T12:44:44.733Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下pvpanic相关notes。<a id="more"></a></p><h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p>pvpanic, which is a paravirtualized device emulated by QEMU and used by the guest OS to report to the VMM when it experiences a panic/crash. This mechanism allows a guest OS kernel to signal the hypervisor when it panics, before any crash dump is collected.</p><h3 id="pvpanic-device"><a href="#pvpanic-device" class="headerlink" title="pvpanic device"></a>pvpanic device</h3><p>pvpanic device is a simulated device, through which a guest panic event is sent to qemu, and a QMP event is generated. This allows management apps (e.g. libvirt) to be notified and respond to the event.</p><p>The management app has the option of waiting for GUEST_PANICKED events, and/or polling for guest-panicked RunState, to learn when the pvpanic device has fired a panic event.</p><p>The pvpanic device can be implemented as an ISA device (using IOPORT) or as a PCI device.</p><h3 id="crash-kexec-post-notifiers"><a href="#crash-kexec-post-notifiers" class="headerlink" title="crash_kexec_post_notifiers"></a>crash_kexec_post_notifiers</h3><p>During initialization, the pvpanic module registers a callback with the <code>panic_notifier_list</code> notifier chain. When the kernel panics, the value of <code>crash_kexec_post_notifiers</code> determines whether or not the callbacks registered in the panic_notifier_list are invoked before kexec’ing into the capture kernel which will collect the crash dump. The <code>panic()</code> code in <code>kernel/panic.c</code> is extensively commented and worth a look if you are interested in the details.</p><hr><p>参考资料:</p><ol><li><a href="https://github.com/qemu/qemu/blob/master/docs/specs/pvpanic.txt" target="_blank" rel="noopener">docs/specs/pvpanic.txt</a></li><li><a href="https://blogs.oracle.com/linux/post/an-introduction-to-pvpanic" target="_blank" rel="noopener">An introduction to pvpanic</a></li><li><a href="https://cloud.tencent.com/developer/news/345830" target="_blank" rel="noopener">PVPanic的实现原理以及应用</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下pvpanic相关notes。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
   
   <entry>
     <title>盘点内存虚拟化探索之路</title>
@@ -34,9 +56,9 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
       <category term="内存管理" scheme="http://liujunming.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -453,32 +475,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="VT-d" scheme="http://liujunming.github.io/tags/VT-d/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Scalable Work Submission in Device Virtualization</title>
-    <link href="http://liujunming.github.io/2023/05/04/Scalable-Work-Submission-in-Device-Virtualization/"/>
-    <id>http://liujunming.github.io/2023/05/04/Scalable-Work-Submission-in-Device-Virtualization/</id>
-    <published>2023-05-04T05:47:12.000Z</published>
-    <updated>2023-05-04T11:43:41.306Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将以<a href="/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/">Intel Data Streaming Accelerator</a>为例，讲解DMWr (Deferrable Memory Write) TLP、ENQCMD/ENQCMDS指令、ENQCMD Virtualization、<a href="/2022/03/30/Introduction-to-Shared-Virtual-Memory/">SVA</a> Work Submission In Guest相关内容。<a id="more"></a></p><h2 id="1-DMWr-TLP"><a href="#1-DMWr-TLP" class="headerlink" title="1. DMWr TLP"></a>1. DMWr TLP</h2><h3 id="1-1-What"><a href="#1-1-What" class="headerlink" title="1.1 What"></a>1.1 What</h3><p>Deferrable Memory Write (DMWr) transactions are a new type of TLP supported by the PCI Specifications. This new feature allows the completer to return an acknowledgement to the requester of the DMWr transaction and provides the completer a mechanism to temporarily refuse the request.</p><p>The Deferrable Memory Write (DMWr) is an Optional Non-Posted Request that enables a scalable high-performance mechanism to implement shared work queues and similar capabilities. With DMWr, devices can have a single shared work queue and accept work items from multiple non-cooperating software agents in a non-blocking way.</p><p>读完上述定义后，或许对DMWr的理解不够深刻，接下来我们将以DSA的SWQ(Shared Work Queue)为例，阐述下为什么要有DMWr。</p><h3 id="1-2-Why"><a href="#1-2-Why" class="headerlink" title="1.2 Why"></a>1.2 Why</h3><p><img src="/images/2023/05/04.png" alt></p><p><img src="/images/2023/05/05.png" alt></p><p><img src="/images/2023/05/07.png" alt></p><p><img src="/images/2023/05/06.png" alt></p><blockquote><p>DMWr is a 64-byte non-posted write that waits for a response from the device before completing. The device returns Success if the descriptor is accepted into the work queue, or Retry if the descriptor is not accepted due to WQ capacity or QoS. </p></blockquote><p>正常写mmio寄存器是posted tlp，也就是说completer不会给requester返回报文。<br>DMWr是non-posted write tlp，这也为retry带来了可能！</p><h2 id="2-ENQCMD-ENQCMDS指令"><a href="#2-ENQCMD-ENQCMDS指令" class="headerlink" title="2. ENQCMD/ENQCMDS指令"></a>2. ENQCMD/ENQCMDS指令</h2><p>On Intel CPUs, DMWr is generated using the <code>ENQCMD</code> or <code>ENQCMDS</code> instructions. The <code>ENQCMD</code> and <code>ENQCMDS</code> instructions return the status of the command submission in <code>EFLAGS.ZF</code> flag; 0 indicates Success, and 1 indicates Retry.</p><p><img src="/images/2023/05/08.jpg" alt><br>SDM vol2中有这两个指令的详细描述。</p><p><img src="/images/2023/05/12.jpg" alt></p><p><img src="/images/2023/05/09.jpg" alt><br>ENQCMD 中destination offset参数的含义： enqueue registers, which are special device registers accessed using memory-mapped I/O (MMIO). 说白了，offset就是MMIO enqueue registers的location！</p><p><img src="/images/2023/05/13.jpg" alt></p><p><img src="/images/2023/05/14.jpg" alt></p><h3 id="2-1-Example-in-DSA"><a href="#2-1-Example-in-DSA" class="headerlink" title="2.1 Example in DSA"></a>2.1 Example in DSA</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">inline</span>  <span class="keyword">unsigned</span> <span class="keyword">int</span></span><br><span class="line">enqcmd(<span class="keyword">void</span> *dst, <span class="keyword">const</span> <span class="keyword">void</span> *src)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">uint8_t</span> retry;</span><br><span class="line">    <span class="function"><span class="keyword">asm</span> <span class="title">volatile</span><span class="params">(<span class="string">".byte 0xf2, 0x0f, 0x38, 0xf8, 0x02\t\n"</span></span></span></span><br><span class="line"><span class="function"><span class="params">                 <span class="string">"setz %0\t\n"</span></span></span></span><br><span class="line">                 : "=r"(retry) : "a" (dst), "d" (src));</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">unsigned</span> <span class="keyword">int</span>)retry;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">while</span> (enqcmd(wq_portal, &amp;desc) &amp;&amp; enq_retry++ &lt; ENQ_RETRY_MAX) ;</span><br><span class="line"><span class="keyword">if</span> (enq_retry == ENQ_RETRY_MAX) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"ENQCMD retry limit exceeded\n"</span>);</span><br><span class="line">    rc = EXIT_FAILURE;</span><br><span class="line">    <span class="keyword">goto</span> done;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br></pre></td></tr></table></figure><p><a href="https://github.com/RaymondHuang210129/Intel-DSA-Experiments/blob/master/intel_dsa_sample.c" target="_blank" rel="noopener">https://github.com/RaymondHuang210129/Intel-DSA-Experiments/blob/master/intel_dsa_sample.c</a></p><h2 id="3-Scalability-In-Device-Virtualization"><a href="#3-Scalability-In-Device-Virtualization" class="headerlink" title="3. Scalability In Device Virtualization"></a>3. Scalability In Device Virtualization</h2><p><img src="/images/2023/05/16.jpg" alt><br><img src="/images/2023/05/17.jpg" alt><br><img src="/images/2023/05/18.jpg" alt><br><img src="/images/2023/05/19.jpg" alt></p><h2 id="4-ENQCMD-Virtualization"><a href="#4-ENQCMD-Virtualization" class="headerlink" title="4. ENQCMD Virtualization"></a>4. ENQCMD Virtualization</h2><p><img src="/images/2023/05/10.png" alt></p><p><img src="/images/2023/05/11.png" alt><br>sdm vol3  搜索ENQCMD即可！</p><p><img src="/images/2023/05/20.jpg" alt><br><img src="/images/2023/05/21.jpg" alt></p><h2 id="5-SVA-Work-Submission-In-Guest"><a href="#5-SVA-Work-Submission-In-Guest" class="headerlink" title="5. SVA Work Submission In Guest"></a>5. SVA Work Submission In Guest</h2><p><img src="/images/2023/05/15.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://static.sched.com/hosted_files/kvmforum2020/22/Scalable_Work_Submission_In_Device_Virtualization.pdf" target="_blank" rel="noopener">Scalable Work Submission in Device Virtualization</a></li><li><a href="https://blog.csdn.net/weixin_40357487/article/details/123339073" target="_blank" rel="noopener">PCIe 6.0 新特性 - DMWr (Deferrable Memory Write) 详解</a></li><li><a href="https://www.intel.com/content/www/us/en/docs/programmable/683501/22-2-6-0-0/deferrable-memory-write-dmwr.html" target="_blank" rel="noopener">Deferrable Memory Write (DMWr)</a></li><li><a href="https://www.freepatentsonline.com/y2020/0004703.html" target="_blank" rel="noopener">NON-POSTED WRITE TRANSACTIONS</a></li><li>Intel SDM</li><li>Intel Data Streaming Accelerator spec</li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将以&lt;a href=&quot;/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/&quot;&gt;Intel Data Streaming Accelerator&lt;/a&gt;为例，讲解DMWr (Deferrable Memory Write) TLP、ENQCMD/ENQCMDS指令、ENQCMD Virtualization、&lt;a href=&quot;/2022/03/30/Introduction-to-Shared-Virtual-Memory/&quot;&gt;SVA&lt;/a&gt; Work Submission In Guest相关内容。
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="VT-d" scheme="http://liujunming.github.io/tags/VT-d/"/>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
