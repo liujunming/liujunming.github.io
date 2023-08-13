@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="盘点内存虚拟化探索之路">
+
+
+
+
+  <meta name="keywords" content="虚拟化, 内存管理, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2023/08/13/盘点内存虚拟化探索之路/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 盘点内存虚拟化探索之路 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          盘点内存虚拟化探索之路
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2023-08-13
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#云与虚拟化"><span class="toc-text">云与虚拟化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#内存虚拟化"><span class="toc-text">内存虚拟化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#虚拟内存"><span class="toc-text">虚拟内存</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#内存虚拟化-1"><span class="toc-text">内存虚拟化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#经典方案"><span class="toc-text">经典方案</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#SPT"><span class="toc-text">SPT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#EPT"><span class="toc-text">EPT</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#其他探索"><span class="toc-text">其他探索</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Direct-Paging"><span class="toc-text">Direct Paging</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Direct-Segment"><span class="toc-text">Direct Segment</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Flat-EPT"><span class="toc-text">Flat EPT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Mix-SPT-and-EPT"><span class="toc-text">Mix SPT and EPT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TPT"><span class="toc-text">TPT</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文内容转载自:<a href="https://mp.weixin.qq.com/s/f_bgSfz4nzG50izBYYzdLA" target="_blank" rel="noopener">致敬 hacker ｜盘点内存虚拟化探索之路</a>。<a id="more"></a></p>
+<h2 id="云与虚拟化"><a href="#云与虚拟化" class="headerlink" title="云与虚拟化"></a>云与虚拟化</h2><p>云计算是通过 Internet 服务的方式提供动态可伸缩资源的计算模式，经过多年的发展已成为企业 IT 技术的重要支撑。虚拟化是云计算的核心技术之一，将一台计算机抽象为多台逻辑计算机，即虚拟机，每个虚拟机是一个单独安全的环境，可运行不同的操作系统且互不影响。</p>
+<p>虚拟化技术给资源使用和调度带来了极大便利，云计算系统可以根据负载情况及时进行资源调度，在提升资源利用率的同时保证应用和服务不会因资源不足而影响服务质量。然而虚拟化也是有代价的，对资源的抽象带来了性能损失，这也是虚拟化一直致力解决的问题。</p>
+<p>虚拟化的资源抽象可以简单划分为三部分：CPU 虚拟化、内存虚拟化和设备虚拟化。其中设备虚拟化已经可以实现网络、存储等设备直通虚拟机，没有性能损失；CPU 虚拟化在硬件特性的支持下，执行普通指令性能与裸机相同；而内存虚拟化相比裸机，仍然存在较大差异，是当下值得关注的问题。</p>
+<h2 id="内存虚拟化"><a href="#内存虚拟化" class="headerlink" title="内存虚拟化"></a>内存虚拟化</h2><h3 id="虚拟内存"><a href="#虚拟内存" class="headerlink" title="虚拟内存"></a>虚拟内存</h3><p>说到内存虚拟化，就不得不提虚拟内存的概念。早期的操作系统只有物理地址且空间有限，进程使用内存时必须小心翼翼以避免覆盖其他进程的内存。为避免此问题，虚拟内存的概念被抽象出来，保证每个进程都有一块连续的、独立的虚拟内存空间。进程直接通过 VA（Virtual Address）使用内存，CPU 访存时发出的 VA 由硬件 MMU（Memory Management Unit）拦截并转换为 PA（Physical Address），VA 到 PA 的映射使用页表进行管理，MMU 在转换时会自动查询页表。</p>
+<p><img src="/images/2023/08/001.png" alt></p>
+<h3 id="内存虚拟化-1"><a href="#内存虚拟化-1" class="headerlink" title="内存虚拟化"></a>内存虚拟化</h3><p>与虚拟内存的概念类似，一台主机上的每个虚拟机认为自己独占整个物理地址空间，因而需要对内存再做一次抽象，即内存虚拟化，保证每个虚拟机都有独立的地址空间。这样一来，在虚拟机和物理机中均有 VA 和 PA 的概念，即 GVA（Guest  Virtual Address）和 GPA（Guest Physical Address），以及 HVA（Host Virtual Address）和 HPA（Host Physical Address）。虚拟机内的程序使用的是GVA，最终需要转换成 HPA。两个 VA 到 PA（ GVA 到 GPA 以及 HVA 到 HPA）的映射同样使用页表管理，GPA 到 HVA 一般是几段连续的线性映射，由虚拟机的管理程序 VMM（Virtual Machine Monitor）进行管理。</p>
+<p><img src="/images/2023/08/002.png" alt></p>
+<p>进程访存需要从 VA 转换成 PA，在引入内存虚拟化后，转换路径发生了很大的变化。原本只需要将 VA 转换为 PA，虚拟化后转换过程变成 GVA -&gt; GPA -&gt; HVA -&gt; HPA 。路径变得更长更复杂之后，对于访存的安全和性能都带来了挑战，这两点也是内存虚拟化需要达到的目标：1）安全 ，即地址转换的合法性，虚拟机不能访问不属于自己的内存；2）性能，即地址转换的高效性，包括转换关系建立的开销低，以及转换过程本身的开销低。</p>
+<h2 id="经典方案"><a href="#经典方案" class="headerlink" title="经典方案"></a>经典方案</h2><p>为达成内存虚拟化的目标，已经有很多虚拟化方案被提出，SPT（Shadow Page Table）和 EPT（Extended Page Table）是两种典型的方案，也是大家最熟悉的方案。我们先以此为切入点，看看他们是如何工作的，然后再讨论其他的虚拟化方案。</p>
+<h3 id="SPT"><a href="#SPT" class="headerlink" title="SPT"></a>SPT</h3><p>由于最初的硬件只支持一层页表转换，直接用来转换虚拟机或物理机上的 VA 到 PA 都无法完成 GVA 到 HPA 的转换。因此 SPT 建立了一条捷径，即影子页表，直接管理 GVA 到 HPA 的映射，如下图所示。每一个影子页表实例对应虚拟机内一个进程，影子页表的建立需要 VMM 查询虚拟机内进程的页表。</p>
+<p><img src="/images/2023/08/003.png" alt></p>
+<p>由于影子页表管理的是 GVA 到 HPA 的直接映射，SPT 地址转换路径与物理机路径相当，直接查询一层页表就可以完成地址转换。在使用 4 级页表时，转换过程如下图所示。</p>
+<p><img src="/images/2023/08/004.png" alt></p>
+<p><strong>优势</strong>：SPT 地址转换过程的开销低，与物理机相当。</p>
+<p><strong>劣势</strong>：</p>
+<ol>
+<li>地址转换关系的建立开销很大，为保证地址转换的合法性，所有的转换关系建立，即虚拟机进程的页表修改，都会被拦截之后陷出到特权的 VMM 中代为执行；</li>
+<li>影子页表本身需要占用内存，且一个影子页表只对应虚拟机内一个进程，整体会占用较多内存资源。</li>
+</ol>
+<h3 id="EPT"><a href="#EPT" class="headerlink" title="EPT"></a>EPT</h3><p>后来的硬件针对虚拟化增加了嵌套页表的支持，使得硬件可以自动完成两层页表转换。EPT 即是基于硬件支持的方案，在管理 GVA 到 GPA 的虚拟机页表基础上，新增扩展页表管理 GPA 到 HPA 的映射，如下图所示。这两层页表相互独立，两层映射关系转换都由硬件自动完成。</p>
+<p><img src="/images/2023/08/005.png" alt></p>
+<p>由于虚拟机内各级页表（gL4, gL3, gL2, gL1）内容只是 GPA，查询下一级时必须先经扩展页表（nL4, nL3, nL2, nL1）转换为 HPA，使得整个转换路径很长。在两层页表均为 4 级时，转换过程如下图所示。</p>
+<p><img src="/images/2023/08/006.png" alt></p>
+<p><strong>优势</strong>：地址转换关系的建立开销低，独立的 EPT 页表的存在保证了地址转换的合法性，因此虚拟机的页表可以自行修改而无需 VMM 的干预。</p>
+<p><strong>劣势</strong>：转换过程的开销很大，最坏情况下需要 24（4 + 4 + 4 * 4）次硬件查表转换。</p>
+<p>两种经典的方案在安全上都有坚实的保证，但在性能上各有缺陷。SPT 为保证地址转换的合法性在建立转换关系时付出了很大代价，而 EPT 虽然消除了建立转换关系的开销，转换路径却更长了。</p>
+<h2 id="其他探索"><a href="#其他探索" class="headerlink" title="其他探索"></a>其他探索</h2><p>业界和学术界关于内存虚拟化还有很多的探索，基本思想与 SPT 或 EPT 类似，可以据此分为三类来看：1）一层页表方案。与 SPT 类似，使用一层页表直接管理 GVA 到 HPA 的映射；2）两层页表方案。与 EPT 类似，使用两层独立页表分别管理 GVA 到 GPA 以及 GPA 到 HPA 的映射；3）混合方案。结合前两类方案，进行动态的选择。</p>
+<h3 id="Direct-Paging"><a href="#Direct-Paging" class="headerlink" title="Direct Paging"></a>Direct Paging</h3><p>一层页表方案，这是 Xen 在早期硬件仅支持一层页表时的半虚拟化方案。相比于 SPT 最大的区别是，没有单独维护 GVA 到 GPA 的虚拟机页表，虚拟机知道自己处于虚拟化环境，即知道自己的页表内容是 HPA。虚拟机修改页表也需要陷出，但是采用主动陷出的方式，可以 batch 化，而 SPT 则是被动拦截陷出；读取页表时只能拿到 HPA，需要查一张 M2P（Machine to Physical）表才能得到 GPA。</p>
+<p><img src="/images/2023/08/007.png" alt></p>
+<p>Direct Paging 同样使用一层页表管理 GVA 到 HPA 映射，地址转换的路径与 SPT 是相同的。在使用 4 级页表时，最坏只需 4 次查表。</p>
+<p><strong>优势</strong>：地址转换过程的开销低，与物理机相当。</p>
+<p><strong>劣势</strong>：</p>
+<ol>
+<li>地址转换关系的建立开销很大，所有页表修改都需要主动陷出；</li>
+<li>需要虚拟机做半虚拟化的适配，虚拟机需要感知自己的页表管理的是 GVA 到 HPA 的映射。</li>
+</ol>
+<h3 id="Direct-Segment"><a href="#Direct-Segment" class="headerlink" title="Direct Segment"></a>Direct Segment</h3><p>两层页表方案，这是学术界基于新硬件的方案。GVA 到 GPA 的映射管理与 EPT 相同，同样采用多级页表。但 GPA 到 HPA 的映射采用分段机制， GPA 转换为 HPA 时只需要通过硬件加上一个偏移即可。</p>
+<p><img src="/images/2023/08/008.png" alt></p>
+<p>GPA 虽然不等于 HPA，但二者的映射关系十分简单，只需要 Direct Segment 硬件添加一个偏移，整个转换路径与物理机的路径相比差别很小，仅多了几次硬件偏移。虚拟机使用 4 级页表时，转换路径如下图所示，其中 DS 表示 GPA 到 HPA 转换的硬件支持。</p>
+<p><img src="/images/2023/08/009.png" alt></p>
+<p><strong>优势</strong>：地址转换关系的建立开销低，同时转换过程的开销也很低。</p>
+<p><strong>劣势</strong>：</p>
+<ol>
+<li>需要硬件支持 GPA 到 HPA 分段映射，现有的硬件不具备这样的功能；</li>
+<li>需要分配大段连续的内存，即主机不能有太多内存碎片。</li>
+</ol>
+<h3 id="Flat-EPT"><a href="#Flat-EPT" class="headerlink" title="Flat EPT"></a>Flat EPT</h3><p>两层页表方案，这也是学术界提出的基于新硬件的方案。整体与 EPT 非常相似，唯一的区别在于 EPT 管理 GPA 到 HPA 的使用多级页表，一般是 4 级，每级 512 项；而 Flat EPT 使用仅有一级的扁平页表，表项远不止 512。</p>
+<p><img src="/images/2023/08/010.png" alt></p>
+<p>与 EPT 相同，虚拟机内各级页表的内容也是 GPA，查询下一级时需要先经过扁平扩展页表（nL4）转换为 HPA。由于扁平扩展页表只有一级，转换路径相比 EPT 缩短了非常多。在虚拟机内使用4级页表时，转换路径如下图所示，最坏只需 9（4 + 1 + 4 * 1）次查表。</p>
+<p><img src="/images/2023/08/011.png" alt></p>
+<p><strong>优势</strong>：地址转换关系的建立开销低，同时转换过程的开销也较低。相比于 Direct Segment 对内存分配要求很低，只需要少量连续内存用作扁平扩展页表即可（8G规格虚拟机只需要 16M）。</p>
+<p><strong>劣势</strong>：需要硬件支持扁平扩展页表，当前的硬件只支持表项为 512 的多级扩展页表。</p>
+<h3 id="Mix-SPT-and-EPT"><a href="#Mix-SPT-and-EPT" class="headerlink" title="Mix SPT and EPT"></a>Mix SPT and EPT</h3><p>混合方案，这是学术界较早提出的方案，简单而言就是动态的分时切换 SPT 与 EPT。在虚拟机运行时监控和采集 TLB miss 与 Page Fault 的数据，在二者达到设定的阈值时进行 SPT 与 EPT 之间的切换，如下图所示：</p>
+<ul>
+<li>TLB miss 率高于阈值 T1，Page Fault 频率低于阈值 T2 时，从 EPT 切换到 SPT</li>
+<li>TLB miss 率低于阈值 T1，Page Fault 频率高于阈值 T2 时，从 SPT 切换到 EPT</li>
+</ul>
+<p><img src="/images/2023/08/012.png" alt></p>
+<p><strong>优势</strong>：有机会充分利用SPT与EPT的优势，达到更好的性能。</p>
+<p><strong>劣势</strong>：</p>
+<ol>
+<li>页表切换阈值的设定很困难，硬件配置都可能影响阈值；</li>
+<li>SPT与EPT的切换也是有代价的，主要是SPT的销毁与重建。</li>
+</ol>
+<h3 id="TPT"><a href="#TPT" class="headerlink" title="TPT"></a>TPT</h3><p>值得一提的，ATC’23的paper<a href="https://www.usenix.org/system/files/atc23-bergman.pdf" target="_blank" rel="noopener">Translation Pass-Through for Near-Native Paging Performance in VMs</a>也是本topic的工作，可以仔细阅读论文中的Related Work一节，了解更多相关工作。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>一层页表显著的优势是地址转换过程开销低，与物理机相同，需要解决的问题是减少地址转换建立的开销。一个可能的方向是放弃一些安全性，让页表的修改更轻量；另一个更实际的方向是在合适的场景使用，即针对页表修改不频繁的负载使用。</p>
+<p>两层页表的优势是地址转换建立的开销小，虚拟机可以独立修改页表，需要考虑的问题是缩短转换路径。这个方向其实可行性很高，但是依赖新硬件的支持，短期不太可能出现符合要求的新硬件。</p>
+<p>混合页表的设计初衷是希望充分利用两类页表的优势，但是做好动态的模式切换是非常困难的，负载的差异甚至硬件的差异都可能影响切换的效果。或许针对已知负载做定向的调优是一个可行的方向。</p>
+<p>长远来看，如果有新硬件的加持，两层页表（尤其是Flat EPT）是比较完善的方案，地址转换可以很高效，也不需要在安全和通用性上做一些牺牲。但是短期来看，新硬件为时尚早，在一层页表方案上做进一步的探索和优化，是更加实际的。</p>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/内存管理/">内存管理</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2023/08/12/Notes-about-Interrupt-Request-Lines-IRQs/">
+        <span class="next-text nav-default">Notes about Interrupt Request Lines (IRQs)</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2023
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/08/13/盘点内存虚拟化探索之路/';
+        this.page.identifier = '2023/08/13/盘点内存虚拟化探索之路/';
+        this.page.title = '盘点内存虚拟化探索之路';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
