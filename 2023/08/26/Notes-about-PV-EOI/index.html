@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about PV EOI">
+
+
+
+
+  <meta name="keywords" content="虚拟化, KVM, 中断, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2023/08/26/Notes-about-PV-EOI/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about PV EOI - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about PV EOI
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2023-08-26
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/中断/">中断</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#初始化"><span class="toc-text">初始化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#interrupt-injection-before-vmentry"><span class="toc-text">interrupt injection before vmentry</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#apic-sync-pv-eoi-from-guest-after-vmexit"><span class="toc-text">apic_sync_pv_eoi_from_guest after vmexit</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文参考内核版本为v5.0。主要内容转载自:<a href="http://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/09/10/kvm-performance-1" target="_blank" rel="noopener">kvm performance optimization technologies, part one</a></p>
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>PV EOI is an old pv optimization. The idea behind pv eoi is to avoid the EOI write in APIC. This exit is expensive. PV EOI uses a shared memory. The VMM set a flag in this shared memory before injecting the interrupt, when the guest process the interrupt and write an EOI, if it finds this flag it will clear it and just return.<a id="more"></a></p>
+<p><img src="/images/2023/08/013.jpeg" alt></p>
+<h2 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h2><p><img src="/images/2023/08/pv-eoi-init.svg" alt></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> KVM_PV_EOI_BIT 0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> KVM_PV_EOI_MASK (0x1 &lt;&lt; KVM_PV_EOI_BIT)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> KVM_PV_EOI_ENABLED KVM_PV_EOI_MASK</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> KVM_PV_EOI_DISABLED 0x0</span></span><br></pre></td></tr></table></figure>
+<p>Linux guest:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">DEFINE_PER_CPU_DECRYPTED</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span>, kvm_apic_eoi)</span> </span>= KVM_PV_EOI_DISABLED;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">kvm_guest_cpu_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (kvm_para_has_feature(KVM_FEATURE_PV_EOI)) &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> pa;</span><br><span class="line">        __this_cpu_write(kvm_apic_eoi, <span class="number">0</span>);</span><br><span class="line">        pa = slow_virt_to_phys(this_cpu_ptr(&amp;kvm_apic_eoi))</span><br><span class="line">            | KVM_MSR_ENABLED;</span><br><span class="line">        wrmsrl(MSR_KVM_PV_EOI_EN, pa);</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>kvm:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kvm_lapic_enable_pv_eoi</span><span class="params">(struct kvm_vcpu *vcpu, u64 data, <span class="keyword">unsigned</span> <span class="keyword">long</span> len)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    u64 addr = data &amp; ~KVM_MSR_ENABLED;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">gfn_to_hva_cache</span> *<span class="title">ghc</span> = &amp;<span class="title">vcpu</span>-&gt;<span class="title">arch</span>.<span class="title">pv_eoi</span>.<span class="title">data</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> new_len;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!IS_ALIGNED(addr, <span class="number">4</span>))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    vcpu-&gt;arch.pv_eoi.msr_val = data;</span><br><span class="line">    <span class="keyword">if</span> (!pv_eoi_enabled(vcpu))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (addr == ghc-&gt;gpa &amp;&amp; len &lt;= ghc-&gt;len)</span><br><span class="line">        new_len = ghc-&gt;len;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        new_len = len;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> kvm_gfn_to_hva_cache_init(vcpu-&gt;kvm, ghc, addr, new_len);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Linux guest:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function">init <span class="title">kvm_guest_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (kvm_para_has_feature(KVM_FEATURE_PV_EOI))</span><br><span class="line">        apic_set_eoi_write(kvm_guest_apic_eoi_write);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> notrace <span class="keyword">void</span> <span class="title">kvm_guest_apic_eoi_write</span><span class="params">(u32 reg, u32 val)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * This relies on __test_and_clear_bit to modify the memory</span></span><br><span class="line"><span class="comment">     * in a way that is atomic with respect to the local CPU.</span></span><br><span class="line"><span class="comment">     * The hypervisor only accesses this memory from the local CPU so</span></span><br><span class="line"><span class="comment">     * there's no need for lock or memory barriers.</span></span><br><span class="line"><span class="comment">     * An optimization barrier is implied in apic write.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (__test_and_clear_bit(KVM_PV_EOI_BIT, this_cpu_ptr(&amp;kvm_apic_eoi)))</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    apic-&gt;native_eoi_write(APIC_EOI, APIC_EOI_ACK);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="interrupt-injection-before-vmentry"><a href="#interrupt-injection-before-vmentry" class="headerlink" title="interrupt injection before vmentry"></a>interrupt injection before vmentry</h2><p>The <code>apic_sync_pv_eoi_to_guest</code> will be called when vmentry.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * apic_sync_pv_eoi_to_guest - called before vmentry</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Detect whether it's safe to enable PV EOI and</span></span><br><span class="line"><span class="comment"> * if yes do so.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">apic_sync_pv_eoi_to_guest</span><span class="params">(struct kvm_vcpu *vcpu,</span></span></span><br><span class="line"><span class="function"><span class="params">                    struct kvm_lapic *apic)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!pv_eoi_enabled(vcpu) ||</span><br><span class="line">        <span class="comment">/* IRR set or many bits in ISR: could be nested. */</span></span><br><span class="line">        apic-&gt;irr_pending ||</span><br><span class="line">        <span class="comment">/* Cache not set: could be safe but we don't bother. */</span></span><br><span class="line">        apic-&gt;highest_isr_cache == <span class="number">-1</span> ||</span><br><span class="line">        <span class="comment">/* Need EOI to update ioapic. */</span></span><br><span class="line">        kvm_ioapic_handles_vector(apic, apic-&gt;highest_isr_cache)) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * PV EOI was disabled by apic_sync_pv_eoi_from_guest</span></span><br><span class="line"><span class="comment">         * so we need not do anything here.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    pv_eoi_set_pending(apic-&gt;vcpu);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>pv_eoi_set_pending</code> will set the <code>KVM_PV_EOI_ENABLED</code> flag in shared memory.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">pv_eoi_set_pending</span><span class="params">(struct kvm_vcpu *vcpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (pv_eoi_put_user(vcpu, KVM_PV_EOI_ENABLED) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        apic_debug(<span class="string">"Can't set EOI MSR value: 0x%llx\n"</span>,</span><br><span class="line">               (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)vcpu-&gt;arch.pv_eoi.msr_val);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    __set_bit(KVM_APIC_PV_EOI_PENDING, &amp;vcpu-&gt;arch.apic_attention);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">pv_eoi_put_user</span><span class="params">(struct kvm_vcpu *vcpu, u8 val)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> kvm_write_guest_cached(vcpu-&gt;kvm, &amp;vcpu-&gt;arch.pv_eoi.data, &amp;val,</span><br><span class="line">                      <span class="keyword">sizeof</span>(val));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="apic-sync-pv-eoi-from-guest-after-vmexit"><a href="#apic-sync-pv-eoi-from-guest-after-vmexit" class="headerlink" title="apic_sync_pv_eoi_from_guest after vmexit"></a>apic_sync_pv_eoi_from_guest after vmexit</h2><p>The <code>apic_sync_pv_eoi_from_guest</code> will be called when vmexit or cancel interrupt.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * apic_sync_pv_eoi_from_guest - called on vmexit or cancel interrupt</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Detect whether guest triggered PV EOI since the</span></span><br><span class="line"><span class="comment"> * last entry. If yes, set EOI on guests's behalf.</span></span><br><span class="line"><span class="comment"> * Clear PV EOI in guest memory in any case.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">apic_sync_pv_eoi_from_guest</span><span class="params">(struct kvm_vcpu *vcpu,</span></span></span><br><span class="line"><span class="function"><span class="params">                    struct kvm_lapic *apic)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">bool</span> pending;</span><br><span class="line">    <span class="keyword">int</span> <span class="built_in">vector</span>;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * PV EOI state is derived from KVM_APIC_PV_EOI_PENDING in host</span></span><br><span class="line"><span class="comment">     * and KVM_PV_EOI_ENABLED in guest memory as follows:</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * KVM_APIC_PV_EOI_PENDING is unset:</span></span><br><span class="line"><span class="comment">     *  -&gt; host disabled PV EOI.</span></span><br><span class="line"><span class="comment">     * KVM_APIC_PV_EOI_PENDING is set, KVM_PV_EOI_ENABLED is set:</span></span><br><span class="line"><span class="comment">     *  -&gt; host enabled PV EOI, guest did not execute EOI yet.</span></span><br><span class="line"><span class="comment">     * KVM_APIC_PV_EOI_PENDING is set, KVM_PV_EOI_ENABLED is unset:</span></span><br><span class="line"><span class="comment">     *  -&gt; host enabled PV EOI, guest executed EOI.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    BUG_ON(!pv_eoi_enabled(vcpu));</span><br><span class="line">    pending = pv_eoi_get_pending(vcpu);</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Clear pending bit in any case: it will be set again on vmentry.</span></span><br><span class="line"><span class="comment">     * While this might not be ideal from performance point of view,</span></span><br><span class="line"><span class="comment">     * this makes sure pv eoi is only enabled when we know it's safe.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    pv_eoi_clr_pending(vcpu);</span><br><span class="line">    <span class="keyword">if</span> (pending)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    <span class="built_in">vector</span> = apic_set_eoi(apic);</span><br><span class="line">    trace_kvm_pv_eoi(apic, <span class="built_in">vector</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>pv_eoi_get_pending</code> will get the status of the shared flag. If it is still pending, it means the no guest trigger the EOI write, nothing to do. If the guest trigger the EOI here will call <code>apic_set_eoi</code> set the EOI of APIC on guests’s behalf.</p>
+<p>Note the <code>apic-&gt;irr_pending</code> will always be true with virtual interrupt delivery enabled. So pv eoi today I think is little used as the APICv is very common.</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><img src="/images/2023/08/pv-eoi-full-pic.drawio.svg" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="http://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/09/10/kvm-performance-1" target="_blank" rel="noopener">http://terenceli.github.io/%E6%8A%80%E6%9C%AF/2020/09/10/kvm-performance-1</a></li>
+<li><a href="https://lwn.net/Articles/502176/" target="_blank" rel="noopener">https://lwn.net/Articles/502176/</a></li>
+<li><a href="https://lore.kernel.org/kvm/cover.1337695416.git.mst@redhat.com/" target="_blank" rel="noopener">https://lore.kernel.org/kvm/cover.1337695416.git.mst@redhat.com/</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/virtual/kvm/msr.txt" target="_blank" rel="noopener">https://www.kernel.org/doc/Documentation/virtual/kvm/msr.txt</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/KVM/">KVM</a>
+            
+              <a href="/tags/中断/">中断</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2023/08/13/Notes-about-pvpanic/">
+        <span class="next-text nav-default">Notes about pvpanic</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2023
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/08/26/Notes-about-PV-EOI/';
+        this.page.identifier = '2023/08/26/Notes-about-PV-EOI/';
+        this.page.title = 'Notes about PV EOI';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
