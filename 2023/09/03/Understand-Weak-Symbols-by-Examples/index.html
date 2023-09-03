@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Understand Weak Symbols by Examples">
+
+
+
+
+  <meta name="keywords" content="C语言, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2023/09/03/Understand-Weak-Symbols-by-Examples/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Understand Weak Symbols by Examples - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Understand Weak Symbols by Examples
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2023-09-03
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/C语言/">C语言</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+
+
+    <div class="post-content">
+      
+        <p>本文转载自<a href="http://winfred-lu.blogspot.com/2009/11/understand-weak-symbols-by-examples.html" target="_blank" rel="noopener">Understand Weak Symbols by Examples</a>。</p>
+<p>Wikipedia defines the weak symbols: </p>
+<blockquote>
+<p>In computing, a weak symbol is a symbol definition in an object file or dynamic library that may be overridden by other symbol definitions, its value will be zero if no definition found by loader.</p>
+</blockquote>
+<p>In other words, we can define a symbol that doesn’t need to be resolved at link time. It is a very well-known feature and used a lot in Linux Kernel, Glibc, and so on.</p>
+<a id="more"></a>
+<p>Take a look at the example, we are not able to compile it due to the ‘undefined reference’ error.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ cat err.c</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        f();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">$ gcc err.c</span><br><span class="line">/tmp/ccYx7WNg.o: In function `main':</span><br><span class="line">err.c:(.text+<span class="number">0x12</span>): undefined reference to `f'</span><br><span class="line">collect2: ld returned <span class="number">1</span> <span class="built_in">exit</span> status</span><br></pre></td></tr></table></figure></p>
+<p>Try to declare ‘f’ as an weak symbol, and we can compile it without error.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ cat weak.c</span><br><span class="line"><span class="keyword">void</span> __attribute__((weak)) f();</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (f)</span><br><span class="line">            f();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">$ gcc weak.c</span><br></pre></td></tr></table></figure></p>
+<p>Note that the function ‘f’ is called inside an if statement. If not calling ‘f’ this way, we will get a ‘Segmentation fault’ error. In the weak.c example, ‘f’ is actually not invoked. It is because ‘f’ is an un-defined weak symbol and therefore will be zero when the loader cannot find it.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ ./a.out</span><br><span class="line">$ nm a.out</span><br><span class="line">...</span><br><span class="line">w f</span><br><span class="line"><span class="number">08048324</span> T main</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>Let’s define the function ‘f’ in another file, and link the objects together. This time, ‘f’ will be correctly called. (Note that puts is the optimization of printf by gcc)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ cat f.c</span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"hello from f\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">$ gcc -c weak.c f.c</span><br><span class="line">$ gcc -o weak weak.o f.o</span><br><span class="line">$ ./weak</span><br><span class="line">hello from f</span><br><span class="line"></span><br><span class="line">$ nm weak.o</span><br><span class="line">w f</span><br><span class="line"><span class="number">00000000</span> T main</span><br><span class="line">$ nm f.o</span><br><span class="line"><span class="number">00000000</span> T f</span><br><span class="line">U <span class="built_in">puts</span></span><br><span class="line">$ nm weak</span><br><span class="line">...</span><br><span class="line"><span class="number">08048384</span> T f</span><br><span class="line"><span class="number">08048354</span> T main</span><br><span class="line">U <span class="built_in">puts</span>@@GLIBC_2<span class="number">.0</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>We may even override the original weak symbol (type ‘W’) with a strong symbol (type ‘T’).<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">$ cat orig.c</span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="keyword">void</span> __attribute__((weak)) f()</span><br><span class="line">&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"original f..\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        f();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">$ gcc orig.c</span><br><span class="line">$ ./a.out</span><br><span class="line">original f..</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">$ cat ovrd.c</span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"overridden f!\n"</span>);</span><br><span class="line">&#125;</span><br><span class="line">$ gcc -c orig.c ovrd.c</span><br><span class="line">$ gcc -o ovrd orig.o ovrd.o</span><br><span class="line">$ ./ovrd</span><br><span class="line">overridden f!</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">$ nm orig.o</span><br><span class="line"><span class="number">00000000</span> W f</span><br><span class="line"><span class="number">00000014</span> T main</span><br><span class="line">U <span class="built_in">puts</span></span><br><span class="line">$ nm ovrd.o</span><br><span class="line"><span class="number">00000000</span> T f</span><br><span class="line">U <span class="built_in">puts</span></span><br><span class="line">$ nm ovrd</span><br><span class="line">...</span><br><span class="line"><span class="number">0804838</span>c T f</span><br><span class="line"><span class="number">08048368</span> T main</span><br><span class="line">U <span class="built_in">puts</span>@@GLIBC_2<span class="number">.0</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>And of course, we can also override a weak object (type ‘V’) with a strong object (type ‘D’).<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">$ cat orig-obj.c</span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="keyword">int</span> __attribute__((weak)) x = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">int</span> __attribute__((weak)) y = <span class="number">1</span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"x = %d, y = %d\n"</span>, x, y);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">$ gcc orig-obj.c</span><br><span class="line">$ ./a.out</span><br><span class="line">x = <span class="number">1</span>, y = <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">$ cat ovrd-obj.c</span><br><span class="line"><span class="keyword">int</span> x = <span class="number">2</span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">&#125;</span><br><span class="line">$ gcc -c orig-obj.c ovrd-obj.c</span><br><span class="line">$ gcc -o ovrd-obj orig-obj.o ovrd-obj.o</span><br><span class="line">$ ./ovrd-obj</span><br><span class="line">x = <span class="number">2</span>, y = <span class="number">1</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">$ nm orig-obj.o</span><br><span class="line"><span class="number">00000000</span> T main</span><br><span class="line">U <span class="built_in">printf</span></span><br><span class="line"><span class="number">00000000</span> V x</span><br><span class="line"><span class="number">00000004</span> V y</span><br><span class="line">$ nm ovrd-obj.o</span><br><span class="line"><span class="number">00000000</span> T f</span><br><span class="line"><span class="number">00000000</span> D x</span><br><span class="line">$ nm ovrd-obj</span><br><span class="line">...</span><br><span class="line"><span class="number">08048394</span> T f</span><br><span class="line"><span class="number">08048354</span> T main</span><br><span class="line">U <span class="built_in">printf</span>@@GLIBC_2<span class="number">.0</span></span><br><span class="line"><span class="number">080495</span>c8 D x</span><br><span class="line"><span class="number">080495</span>c4 V y</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>What if there are multiple symbols? Linker’s symbol rules tell us that:</p>
+<ol>
+<li>Multiple strong symbols are not allowed</li>
+<li>Given a strong symbol and multiple weak symbols –&gt; choose the strong symbol</li>
+<li>Given multiple weak symbols –&gt; choose any of those weak symbols</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">$ cat mul.c</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        f();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">$ cat s1.c</span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"1st strong f from %s\n"</span>, __FILE__);</span><br><span class="line">&#125;</span><br><span class="line">$ cat s2.c</span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"2nd strong f from %s\n"</span>, __FILE__);</span><br><span class="line">&#125;</span><br><span class="line">$ cat w1.c</span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="keyword">void</span> __attribute__((weak)) f(<span class="keyword">void</span>)</span><br><span class="line">&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"1st weak f from %s\n"</span>, __FILE__);</span><br><span class="line">&#125;</span><br><span class="line">$ cat w2.c</span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="keyword">void</span> __attribute__((weak)) f(<span class="keyword">void</span>)</span><br><span class="line">&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"2nd weak f from %s\n"</span>, __FILE__);</span><br><span class="line">&#125;</span><br><span class="line">$ gcc -c mul.c s1.c s2.c w1.c w2.c</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">$ gcc -o test1 mul.o s1.o s2.o</span><br><span class="line">s2.o: In function `f':</span><br><span class="line">s2.c:(.text+<span class="number">0x0</span>): multiple definition of `f'</span><br><span class="line">s1.o:s1.c:(.text+<span class="number">0x0</span>): first defined here</span><br><span class="line">collect2: ld returned <span class="number">1</span> <span class="built_in">exit</span> status</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">$ gcc -o test2 mul.o s1.o w1.o w2.o</span><br><span class="line">$ ./test2</span><br><span class="line"><span class="number">1</span>st strong f from s1.c</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">$ gcc -o test3<span class="number">-1</span> mul.o w1.o w2.o</span><br><span class="line">$ ./test3<span class="number">-1</span></span><br><span class="line"><span class="number">1</span>st weak f from w1.c</span><br><span class="line">$ gcc -o test3<span class="number">-2</span> mul.o w2.o w1.o</span><br><span class="line">$ ./test3<span class="number">-2</span></span><br><span class="line"><span class="number">2</span>nd weak f from w2.c</span><br></pre></td></tr></table></figure>
+<p>Hope these examples help!</p>
+<p>References:</p>
+<ol>
+<li><a href="http://en.wikipedia.org/wiki/Weak_symbol" target="_blank" rel="noopener">Wikipedia, “Weak Symbol”</a></li>
+<li><a href="http://gcc.gnu.org/onlinedocs/gcc-3.2/gcc/Function-Attributes.html" target="_blank" rel="noopener">gcc manual, “Declaring Attributes of Functions”</a></li>
+<li><a href="http://sourceware.org/binutils/docs/binutils/nm.html" target="_blank" rel="noopener">binutil Document, “nm”</a></li>
+<li><a href="http://www.slideshare.net/satpalparmar/linkers-and-loaders-presentation" target="_blank" rel="noopener">Sandeep Grover, “Linkers &amp; Loaders - A Programmers Perspective”</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/C语言/">C语言</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2023/09/03/每周分享第36期/">
+        <span class="next-text nav-default">每周分享第36期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2023
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2023/09/03/Understand-Weak-Symbols-by-Examples/';
+        this.page.identifier = '2023/09/03/Understand-Weak-Symbols-by-Examples/';
+        this.page.title = 'Understand Weak Symbols by Examples';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
