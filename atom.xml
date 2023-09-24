@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-09-10T09:13:22.119Z</updated>
+  <updated>2023-09-24T06:48:01.927Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>AMD虚拟化支持TLBi</title>
+    <link href="http://liujunming.github.io/2023/09/24/AMD%E8%99%9A%E6%8B%9F%E5%8C%96%E6%94%AF%E6%8C%81TLBi/"/>
+    <id>http://liujunming.github.io/2023/09/24/AMD虚拟化支持TLBi/</id>
+    <published>2023-09-24T05:40:24.000Z</published>
+    <updated>2023-09-24T06:48:01.927Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文转自<a href="https://github.com/ChinaLinuxKernel/CLK/blob/master/CLK2021/3-1%20AMD%E6%9E%B6%E6%9E%84%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5.pdf" target="_blank" rel="noopener">CLK2021 AMD架构虚拟机性能探索与实践</a>。<a id="more"></a></p><p><img src="/images/2023/09/001.jpg" alt></p><p><img src="/images/2023/09/002.jpg" alt></p><p><img src="/images/2023/09/003.jpg" alt></p><p><img src="/images/2023/09/004.jpg" alt></p><p><img src="/images/2023/09/005.jpg" alt></p><p><img src="/images/2023/09/006.jpg" alt></p><p><img src="/images/2023/09/007.jpg" alt></p><p><img src="/images/2023/09/008.jpg" alt></p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文转自&lt;a href=&quot;https://github.com/ChinaLinuxKernel/CLK/blob/master/CLK2021/3-1%20AMD%E6%9E%B6%E6%9E%84%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E6%8E%A2%E7%B4%A2%E4%B8%8E%E5%AE%9E%E8%B7%B5.pdf&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;CLK2021 AMD架构虚拟机性能探索与实践&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="AMD" scheme="http://liujunming.github.io/tags/AMD/"/>
+    
+  </entry>
   
   <entry>
     <title>Intel FRED feature</title>
@@ -464,28 +488,6 @@
       <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
     
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about SMAP and SMEP</title>
-    <link href="http://liujunming.github.io/2023/05/27/Notes-about-SMAP-and-SMEP/"/>
-    <id>http://liujunming.github.io/2023/05/27/Notes-about-SMAP-and-SMEP/</id>
-    <published>2023-05-27T07:54:33.000Z</published>
-    <updated>2023-05-27T10:16:36.435Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下SMAP(Supervisor Memory Access Protection) and SMEP(Supervisor Memory Execute Protection)相关notes，参考kernel版本为<a href="https://elixir.bootlin.com/linux/v6.3/source" target="_blank" rel="noopener">v6.3</a>。<a id="more"></a></p><h3 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h3><p>SMEP prevents the kernel running in ring 0 from executing code which is user accessible. SMAP prevents the kernel from accessing userspace memory while the AC flag in the RFLAGS register is clear. These features can help harden the kernel against exploitation and prevent certain kinds of memory corruption.</p><h3 id="Description-from-SDM"><a href="#Description-from-SDM" class="headerlink" title="Description from SDM"></a>Description from SDM</h3><p><img src="/images/2023/05/45.jpg" alt><br><img src="/images/2023/05/46.jpg" alt><br><img src="/images/2023/05/47.jpg" alt></p><p><img src="/images/2023/05/48.jpg" alt><br><img src="/images/2023/05/49.jpg" alt></p><h3 id="copy-to-user"><a href="#copy-to-user" class="headerlink" title="copy_to_user"></a>copy_to_user</h3><p>由于内核空间与用户空间的内存不能直接互访，因此需要借助内核函数<code>copy_to_user</code>完成内核空间到用户空间的复制。</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * igb_ptp_get_ts_config - get hardware time stamping config</span></span><br><span class="line"><span class="comment"> * @netdev: netdev struct</span></span><br><span class="line"><span class="comment"> * @ifr: interface struct</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Get the hwtstamp_config settings to return to the user. Rather than attempt</span></span><br><span class="line"><span class="comment"> * to deconstruct the settings from the registers, just return a shadow copy</span></span><br><span class="line"><span class="comment"> * of the last known settings.</span></span><br><span class="line"><span class="comment"> **/</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">igb_ptp_get_ts_config</span><span class="params">(struct net_device *netdev, struct ifreq *ifr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">igb_adapter</span> *<span class="title">adapter</span> = <span class="title">netdev_priv</span>(<span class="title">netdev</span>);</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">hwtstamp_config</span> *<span class="title">config</span> = &amp;<span class="title">adapter</span>-&gt;<span class="title">tstamp_config</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> copy_to_user(ifr-&gt;ifr_data, config, <span class="keyword">sizeof</span>(*config)) ?</span><br><span class="line">        -EFAULT : <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">copy_to_user</span><br><span class="line">└── _copy_to_user</span><br><span class="line">    └── raw_copy_to_user</span><br><span class="line">        └── copy_user_generic</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> __always_inline __must_check <span class="keyword">unsigned</span> <span class="keyword">long</span></span><br><span class="line">copy_user_generic(<span class="keyword">void</span> *to, <span class="keyword">const</span> <span class="keyword">void</span> *from, <span class="keyword">unsigned</span> len)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> ret;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * If CPU has ERMS feature, use copy_user_enhanced_fast_string.</span></span><br><span class="line"><span class="comment">     * Otherwise, if CPU has rep_good feature, use copy_user_generic_string.</span></span><br><span class="line"><span class="comment">     * Otherwise, use copy_user_generic_unrolled.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    alternative_call_2(copy_user_generic_unrolled,</span><br><span class="line">             copy_user_generic_string,</span><br><span class="line">             X86_FEATURE_REP_GOOD,</span><br><span class="line">             copy_user_enhanced_fast_string,</span><br><span class="line">             X86_FEATURE_ERMS,</span><br><span class="line">             ASM_OUTPUT2(<span class="string">"=a"</span> (ret), <span class="string">"=D"</span> (to), <span class="string">"=S"</span> (from),</span><br><span class="line">                     <span class="string">"=d"</span> (len)),</span><br><span class="line">             <span class="string">"1"</span> (to), <span class="string">"2"</span> (from), <span class="string">"3"</span> (len)</span><br><span class="line">             : <span class="string">"memory"</span>, <span class="string">"rcx"</span>, <span class="string">"r8"</span>, <span class="string">"r9"</span>, <span class="string">"r10"</span>, <span class="string">"r11"</span>);</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">SYM_FUNC_START(copy_user_generic_string)</span><br><span class="line">    ASM_STAC</span><br><span class="line">    cmpl $<span class="number">8</span>,%edx</span><br><span class="line">    jb <span class="number">2f</span>       <span class="comment">/* less than 8 bytes, go to byte copy loop */</span></span><br><span class="line">    ALIGN_DESTINATION</span><br><span class="line">    movl %edx,%ecx</span><br><span class="line">    shrl $<span class="number">3</span>,%ecx</span><br><span class="line">    andl $<span class="number">7</span>,%edx</span><br><span class="line"><span class="number">1</span>:  rep movsq</span><br><span class="line"><span class="number">2</span>:  movl %edx,%ecx</span><br><span class="line"><span class="number">3</span>:  rep movsb</span><br><span class="line">    xorl %eax,%eax</span><br><span class="line">    ASM_CLAC</span><br><span class="line">    RET</span><br><span class="line"></span><br><span class="line"><span class="number">11</span>: leal (%rdx,%rcx,<span class="number">8</span>),%ecx</span><br><span class="line"><span class="number">12</span>: movl %ecx,%edx      <span class="comment">/* ecx is zerorest also */</span></span><br><span class="line">    jmp .Lcopy_user_handle_tail</span><br><span class="line"></span><br><span class="line">    _ASM_EXTABLE_CPY(<span class="number">1b</span>, <span class="number">11b</span>)</span><br><span class="line">    _ASM_EXTABLE_CPY(<span class="number">3b</span>, <span class="number">12b</span>)</span><br><span class="line">SYM_FUNC_END(copy_user_generic_string)</span><br><span class="line">EXPORT_SYMBOL(copy_user_generic_string)</span><br></pre></td></tr></table></figure><p>从copy_user_generic_string的第2行可知，在内核态往用户态复制内存前，需要运行<code>STAC</code>指令；从第13行可知，在内核态往用户态复制内存后，需要运行<code>CLAC</code>指令。</p><hr><p>参考资料:</p><ol><li><a href="https://wiki.osdev.org/Supervisor_Memory_Protection" target="_blank" rel="noopener">Supervisor Memory Protection</a></li><li><a href="https://lore.kernel.org/all/1348256595-29119-9-git-send-email-hpa@linux.intel.com/" target="_blank" rel="noopener">x86, smap: Add STAC and CLAC instructions to control user space access</a></li><li><a href="https://blog.csdn.net/Haomione/article/details/122217131" target="_blank" rel="noopener">copy_to_user/copy_from_user参数解析</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下SMAP(Supervisor Memory Access Protection) and SMEP(Supervisor Memory Execute Protection)相关notes，参考kernel版本为&lt;a href=&quot;https://elixir.bootlin.com/linux/v6.3/source&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;v6.3&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
-    
-    
-      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
     
   </entry>
   
