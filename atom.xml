@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2023-09-24T06:48:01.927Z</updated>
+  <updated>2023-10-05T06:51:02.097Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>基于E810网卡的VF热迁移</title>
+    <link href="http://liujunming.github.io/2023/10/05/%E5%9F%BA%E4%BA%8EE810%E7%BD%91%E5%8D%A1%E7%9A%84VF%E7%83%AD%E8%BF%81%E7%A7%BB/"/>
+    <id>http://liujunming.github.io/2023/10/05/基于E810网卡的VF热迁移/</id>
+    <published>2023-10-05T06:34:15.000Z</published>
+    <updated>2023-10-05T06:51:02.097Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文转载自: <a href="https://mp.weixin.qq.com/s/GRxfeN7Vlr_NM2_kRw_5uQ" target="_blank" rel="noopener">基于E810网卡的VF热迁移–依托第四代Xeon可扩展处理器的加速案例</a><a id="more"></a></p><p>Intel E810网卡对VF透传设备的热迁移支持，使高性能数据面和灵活的运维得以兼顾，并且热迁移依托第四代志强可扩展处理器可以得到显著加速。</p><p><img src="/images/2023/10/001.png" alt></p><p><img src="/images/2023/10/002.png" alt></p><p><img src="/images/2023/10/003.png" alt></p><p><img src="/images/2023/10/004.png" alt></p><p><img src="/images/2023/10/005.png" alt></p><p><img src="/images/2023/10/006.png" alt></p><p><img src="/images/2023/10/007.png" alt></p><p><img src="/images/2023/10/008.png" alt></p><p>从slides里可以看出，对于Device State，改动的是e810 driver中增加的live migration支持(e810网卡协议本身支持live migration)，然后VFIO framework去调用e810 driver提供的接口，即可获取到Device State。</p><p><img src="/images/2023/10/009.png" alt></p><p><img src="/images/2023/10/010.png" alt></p><p><img src="/images/2023/10/011.png" alt></p><p><img src="/images/2023/10/012.png" alt></p><p><img src="/images/2023/10/013.png" alt></p><p><img src="/images/2023/10/014.png" alt></p><p><img src="/images/2023/10/015.png" alt></p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文转载自: &lt;a href=&quot;https://mp.weixin.qq.com/s/GRxfeN7Vlr_NM2_kRw_5uQ&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;基于E810网卡的VF热迁移–依托第四代Xeon可扩展处理器的加速案例&lt;/a&gt;
+    
+    </summary>
+    
+      <category term="live migration" scheme="http://liujunming.github.io/categories/live-migration/"/>
+    
+    
+      <category term="live migration" scheme="http://liujunming.github.io/tags/live-migration/"/>
+    
+      <category term="VFIO" scheme="http://liujunming.github.io/tags/VFIO/"/>
+    
+  </entry>
   
   <entry>
     <title>AMD虚拟化支持TLBi</title>
@@ -464,30 +488,6 @@
     
     
       <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Linux NAPI</title>
-    <link href="http://liujunming.github.io/2023/05/28/Notes-about-Linux-NAPI/"/>
-    <id>http://liujunming.github.io/2023/05/28/Notes-about-Linux-NAPI/</id>
-    <published>2023-05-28T03:48:45.000Z</published>
-    <updated>2023-05-28T04:55:05.588Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将学习下Linux网络收包的NAPI机制。<a id="more"></a></p><h3 id="What"><a href="#What" class="headerlink" title="What"></a>What</h3><p>NAPI (“new API,” though it is not so new anymore) is an interrupt mitigation mechanism used with network devices. </p><h3 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h3><blockquote><p>随着网络带宽的发展，网速越来越快，之前的中断收包模式已经无法适应目前千兆，万兆的带宽了。如果每个数据包大小等于MTU大小(1460字节)。当驱动以千兆网速收包时，CPU将每秒被中断91829次。过多的中断会引起一个问题，CPU一直陷入硬中断而没有时间来处理别的事情了。为了解决这个问题，内核引入了NAPI机制。</p></blockquote><blockquote><p>NAPI就是混合中断和轮询的方式来收包，当有中断来了，驱动关闭中断，通知内核收包，内核软中断轮询当前网卡，在规定时间尽可能多的收包。时间用尽或者没有数据可收，内核再次开启中断，准备下一次收包。</p></blockquote><p>When network traffic is heavy, the kernel can safely predict that incoming packets will be available anytime it gets around to looking, so there is no need to have the adapter interrupting it (possibly thousands of times per second) to tell it about those packets. So a NAPI-compliant driver will turn off the packet receive interrupt and provide a <code>poll()</code> method to the kernel. When the kernel is ready to deal with more packets, <code>poll()</code> will be called with a maximum number of packets it is allowed to feed into the kernel; it should process up to that many packets and quit.</p><h3 id="Full-Picture"><a href="#Full-Picture" class="headerlink" title="Full Picture"></a>Full Picture</h3><p><img src="/images/2023/05/51.png" alt></p><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><img src="/images/2023/05/50.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://lwn.net/Articles/214457/" target="_blank" rel="noopener">Reworking NAPI</a></li><li><a href="https://lwn.net/Articles/244640/" target="_blank" rel="noopener">Newer, newer NAPI</a></li><li><a href="https://docs.kernel.org/networking/napi.html" target="_blank" rel="noopener">NAPI</a></li><li><a href="https://blog.csdn.net/Rong_Toa/article/details/109401935" target="_blank" rel="noopener">Linux网络协议栈：NAPI机制与处理流程分析（图解）</a></li><li><a href="https://zhuanlan.zhihu.com/p/610334133" target="_blank" rel="noopener">NAPI 内核机制与驱动实现</a></li><li><a href="https://wenfh2020.com/2021/12/29/kernel-tcp-receive/" target="_blank" rel="noopener">Linux 网络数据接收流程（TCP）- NAPI</a></li><li><a href="https://access.redhat.com/sites/default/files/attachments/20150325_network_performance_tuning.pdf" target="_blank" rel="noopener">Red Hat Enterprise Linux Network Performance Tuning Guide</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将学习下Linux网络收包的NAPI机制。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
   </entry>
   
