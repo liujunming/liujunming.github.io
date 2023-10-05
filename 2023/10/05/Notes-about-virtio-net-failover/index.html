@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="基于E810网卡的VF热迁移">
+  <meta name="description" content="Notes about virtio-net failover">
 
 
 
 
-  <meta name="keywords" content="live migration, VFIO, L">
+  <meta name="keywords" content="live migration, virtio, VFIO, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2023/10/05/基于E810网卡的VF热迁移/">
+<link rel="canonical" href="http://liujunming.github.io/2023/10/05/Notes-about-virtio-net-failover/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> 基于E810网卡的VF热迁移 - L </title>
+    <title> Notes about virtio-net failover - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,7 +260,7 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          基于E810网卡的VF热迁移
+          Notes about virtio-net failover
         
       </h1>
 
@@ -281,28 +281,45 @@
 
     
     
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Principles"><span class="toc-text">Principles</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Failover"><span class="toc-text">Failover</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Virtio-net-failover-operation"><span class="toc-text">Virtio-net failover operation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Summary"><span class="toc-text">Summary</span></a></li></ol>
+    </div>
+  </div>
+
 
 
     <div class="post-content">
       
-        <p>本文转载自: <a href="https://mp.weixin.qq.com/s/GRxfeN7Vlr_NM2_kRw_5uQ" target="_blank" rel="noopener">基于E810网卡的VF热迁移–依托第四代Xeon可扩展处理器的加速案例</a><a id="more"></a></p>
-<p>Intel E810网卡对VF透传设备的热迁移支持，使高性能数据面和灵活的运维得以兼顾，并且热迁移依托第四代志强可扩展处理器可以得到显著加速。</p>
-<p><img src="/images/2023/10/001.png" alt></p>
-<p><img src="/images/2023/10/002.png" alt></p>
-<p><img src="/images/2023/10/003.png" alt></p>
-<p><img src="/images/2023/10/004.png" alt></p>
-<p><img src="/images/2023/10/005.png" alt></p>
-<p><img src="/images/2023/10/006.png" alt></p>
-<p><img src="/images/2023/10/007.png" alt></p>
-<p><img src="/images/2023/10/008.png" alt></p>
-<p>从slides里可以看出，对于Device State，改动的是e810 driver中增加的live migration支持(e810网卡协议本身支持live migration)，然后VFIO framework去调用e810 driver提供的接口，即可获取到Device State。</p>
-<p><img src="/images/2023/10/009.png" alt></p>
-<p><img src="/images/2023/10/010.png" alt></p>
-<p><img src="/images/2023/10/011.png" alt></p>
-<p><img src="/images/2023/10/012.png" alt></p>
-<p><img src="/images/2023/10/013.png" alt></p>
-<p><img src="/images/2023/10/014.png" alt></p>
-<p><img src="/images/2023/10/015.png" alt></p>
+        <p>本文主要是mark下<a href="https://www.redhat.com/en/blog/virtio-net-failover-introduction" target="_blank" rel="noopener">Virtio-net failover: An introduction</a>相关notes。<a id="more"></a></p>
+<p>Virtio-net failover is a virtualization technology that allows a virtual machine (VM) to switch from a Virtual Function I/O (VFIO) device to a virtio-net device when the VM needs to be migrated from a host to another.</p>
+<p>On one hand, the Single Root I/O Virtualization (SR-IOV) technology allows a device like a networking card to be split into several devices (the Virtual Functions) and with the help of the VFIO technology, the kernel of the VM can directly drive these devices. This is interesting in terms of performance, because it can reach the same level as a bare metal system. In this case, the cost of the performance is that a VFIO device cannot be migrated.</p>
+<p>On the other hand, virtio-net is a paravirtualized networking device that has good performance and can be migrated. The trade off is that performance is not as good as with VFIO devices.</p>
+<p>Virtio-net failover tries to bring the best of both worlds: performance of a VFIO device with the migration capability of a virtio-net device.</p>
+<h3 id="Principles"><a href="#Principles" class="headerlink" title="Principles"></a>Principles</h3><p>Virtio-net failover relies on a several blocks of technology to migrate a VM using a VFIO device:</p>
+<ul>
+<li>Live migration, to move the VM from one host to another</li>
+<li>Virtio-net, to keep network connection while the migration is in progress</li>
+<li>VFIO, to use a host hardware device</li>
+<li>Failover, to switch from a networking device to another in a transparent way</li>
+</ul>
+<h3 id="Failover"><a href="#Failover" class="headerlink" title="Failover"></a>Failover</h3><p>Failover is a term that comes from the high availability (HA) domain in an attempt to provide reliability, availability and serviceability (RAS) to a system.</p>
+<p>The principle of failover is to bind two devices together, so called the primary and the standby, in a redundant way. The system only uses the primary device, but if the primary device becomes unavailable, unusable or disconnected, the failover manager can detect the problem and disable the primary device to switch to the standby device. </p>
+<p>The standby is used to maintain service availability. While the standby is in use, an operator can remove the dysfunctional device and replace it with a healthy one. Once the problem is corrected, the new device can be used as the new standby device while the old standby device becomes the new primary device. Alternately, the newly replaced device could be restored as the primary device and the other switched back to standby.</p>
+<h3 id="Virtio-net-failover-operation"><a href="#Virtio-net-failover-operation" class="headerlink" title="Virtio-net failover operation"></a>Virtio-net failover operation</h3><p>Virtio-net failover plays with the failover principle to bind two devices together, but in this case, the VFIO device is chosen with caution to be the primary device and used during the regular state of operation of the system. When a migration occurs, the hypervisor triggers a primary device fault (by unplugging it), that will force the failover manager (in our case the guest kernel failover_net driver) to disable the primary device and use the standby device, the virtio-net device, that is able to survive to a VM live migration. </p>
+<p>The hypervisor also takes the role of the operator by restoring the disabled device on the migration destination side by hotplugging a new VFIO device. In this case, failover_net driver is configured to restore the VFIO device as the primary and to keep the virtio-net as the standby as the devices are not identical.</p>
+<p><img src="/images/2023/10/016.png" alt></p>
+<p>To implement virtio-net failover, we need support at guest kernel level and at hypervisor level:</p>
+<ul>
+<li>The hypervisor detects when a migration is started and unplugs the VFIO device as it cannot be migrated, at the same time it will block the migration while the VFIO card is being unplugged.</li>
+<li>Guest kernel needs the ability to switch transparently between  the VFIO device and the vfio-net device.</li>
+<li>On normal operation, VFIO is used for its performance, but when the hypervisor asks to unplug the card, the kernel unplugs it and switches the networking traffic from the VFIO device to the virtio-net device.</li>
+<li>While the migration is processed, the VM is not stopped and all the networking traffic that usually crosses the VFIO device is redirected to the virtio-net device. There is no service interruption,</li>
+<li>At the end of the migration, on the destination side, the hypervisor plugs in a VFIO device, and the traffic switches back from the virtio-net device to the VFIO device.</li>
+</ul>
+<p><img src="/images/2023/10/017.png" alt></p>
+<h3 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h3><p>Virtio-net failover allows a VM hypervisor to migrate a VM with a VFIO device without interrupting the network connection. To reach this goal we need collaboration between the hypervisor and the guest kernel — the hypervisor unplugs the card and the guest kernel switches the network connection to the virtio-net device, and then they restore the original state on the destination host.</p>
 
       
     </div>
@@ -324,6 +341,8 @@
             
               <a href="/tags/live-migration/">live migration</a>
             
+              <a href="/tags/virtio/">virtio</a>
+            
               <a href="/tags/VFIO/">VFIO</a>
             
           </div>
@@ -332,15 +351,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2023/10/05/Notes-about-virtio-net-failover/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Notes about virtio-net failover</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2023/09/24/AMD虚拟化支持TLBi/">
-        <span class="next-text nav-default">AMD虚拟化支持TLBi</span>
+      <a class="next" href="/2023/10/05/基于E810网卡的VF热迁移/">
+        <span class="next-text nav-default">基于E810网卡的VF热迁移</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -453,9 +466,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2023/10/05/基于E810网卡的VF热迁移/';
-        this.page.identifier = '2023/10/05/基于E810网卡的VF热迁移/';
-        this.page.title = '基于E810网卡的VF热迁移';
+        this.page.url = 'http://liujunming.github.io/2023/10/05/Notes-about-virtio-net-failover/';
+        this.page.identifier = '2023/10/05/Notes-about-virtio-net-failover/';
+        this.page.title = 'Notes about virtio-net failover';
     };
     (function() {
     var d = document, s = d.createElement('script');
