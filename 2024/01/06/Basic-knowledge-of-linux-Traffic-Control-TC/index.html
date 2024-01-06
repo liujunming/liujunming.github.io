@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Basic knowledge of linux Traffic Control(TC)">
+
+
+
+
+  <meta name="keywords" content="计算机网络, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/01/06/Basic-knowledge-of-linux-Traffic-Control-TC/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Basic knowledge of linux Traffic Control(TC) - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Basic knowledge of linux Traffic Control(TC)
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-01-06
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机网络/">计算机网络</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#What"><span class="toc-text">What</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Components"><span class="toc-text">Components</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#qdisc"><span class="toc-text">qdisc</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#class"><span class="toc-text">class</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#filter"><span class="toc-text">filter</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Full-picture"><span class="toc-text">Full picture</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Usage"><span class="toc-text">Usage</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#handle"><span class="toc-text">handle</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#man"><span class="toc-text">man</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Example"><span class="toc-text">Example</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下Linux Traffic Control(TC)机制的相关notes。<a id="more"></a></p>
+<h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>流量控制Traffic Control简称TC，表示网络设备接收和发送数据包的排队机制。比如，数据包的接收速率、发送速率、多个数据包的发送顺序等。</p>
+<p>Linux实现了流量控制子系统，它包括两部分：</p>
+<ul>
+<li>内核部分的traffic control框架</li>
+<li>用户态的规则配置工具：iproute2软件包中的tc程序</li>
+</ul>
+<p>它们有些类似于内核态的netfilter框架和用户态的iptables程序。</p>
+<p>Traffic Control的作用包括以下几种:</p>
+<ul>
+<li>调整(Shaping): 通过推迟数据包发送来控制发送速率，只用于网络出方向(egress)</li>
+<li>时序(Scheduling)：调度不同类型数据包发送顺序，比如在交互流量和批量下载类型数据包之间进行发送顺序的调整。只用于网络出方向(egress)</li>
+<li>监督(Policing): 根据到达速率决策接收还是丢弃数据包，用于网络入方向(ingress)</li>
+<li>丢弃(Dropping): 根据带宽丢弃数据包，可以用于出入两个方向</li>
+</ul>
+<h2 id="Components"><a href="#Components" class="headerlink" title="Components"></a>Components</h2><h3 id="qdisc"><a href="#qdisc" class="headerlink" title="qdisc"></a>qdisc</h3><p>Simply put, a qdisc is a scheduler. Every output interface needs a scheduler of some kind, and the default scheduler is a FIFO. Other qdiscs available under Linux will rearrange the packets entering the scheduler’s queue in accordance with that scheduler’s rules.</p>
+<p>The qdisc is the major building block on which all of Linux traffic control is built, and is also called a <strong>queuing discipline</strong>.</p>
+<p>The classful qdiscs can contain classes, and provide a handle to which to attach filters.</p>
+<p>The classless qdiscs can contain no classes, nor is it possible to attach filter to a classless qdisc.</p>
+<p>要实现对数据包接收和发送的这些控制行为，需要使用队列结构来临时保存数据包。在Linux实现中，把这种包括数据结构和算法实现的控制机制抽象为结构队列规程:Queuing discipline，简称为qdisc。qdisc对外暴露两个回调接口enqueue和dequeue分别用于数据包入队和数据包出队，而具体的排队算法实现则在qdisc内部隐藏。</p>
+<p>A qdisc has two operations:</p>
+<ul>
+<li>enqueue requests so that a packet can be queued up for later transmission</li>
+<li>dequeue requests so that one of the queued-up packets can be chosen for immediate transmission</li>
+</ul>
+<h3 id="class"><a href="#class" class="headerlink" title="class"></a>class</h3><p>Classes only exist inside a classful qdisc (e.g., HTB and CBQ). Classes are immensely flexible and can always contain either multiple children classes or a single child qdisc. </p>
+<p>Any class can also have an arbitrary number of filters attached to it, which allows the selection of a child class or the use of a filter to reclassify or drop traffic entering a particular class.</p>
+<p>A leaf class is a terminal class in a qdisc. It contains a qdisc (default FIFO) and will never contain a child class. Any class which contains a child class is an inner class (or root class) and not a leaf class.</p>
+<h3 id="filter"><a href="#filter" class="headerlink" title="filter"></a>filter</h3><p>A filter is used by a classful qdisc to determine in which class a packet will be enqueued.</p>
+<h2 id="Full-picture"><a href="#Full-picture" class="headerlink" title="Full picture"></a>Full picture</h2><p>基于qdisc, class和filter三种元素可以构建出非常复杂的树形qdisc结构，极大扩展流量控制的能力。</p>
+<p>对于树形结构的qdisc, 当数据包流至最顶层qdisc时，会层层向下递归进行调用。如，父对象(qdisc/class)的enqueue回调接口被调用时，其上所挂载的所有filter依次被调用，直到一个filter匹配成功。然后将数据包入队到filter所指向的class，具体实现则是调用class所配置的Qdisc的enqueue函数。没有成功匹配filter的数据包分类到默认的class中。</p>
+<p>如图:<br><img src="/images/2024/01/001.png" alt></p>
+<h2 id="Usage"><a href="#Usage" class="headerlink" title="Usage"></a>Usage</h2><h3 id="handle"><a href="#handle" class="headerlink" title="handle"></a>handle</h3><p>Every class and classful qdisc requires a unique identifier within the traffic control structure. This unique identifier is known as a handle and has two constituent members, a major number and a minor number. These numbers can be assigned arbitrarily by the user in accordance with the following rules.</p>
+<p><strong>The numbering of handles for classes and qdiscs</strong></p>
+<ul>
+<li><p>major<br>This parameter is completely free of meaning to the kernel. The user may use an arbitrary numbering scheme, however all objects in the traffic control structure with the same parent must share a major handle number. Conventional numbering schemes start at 1 for objects attached directly to the root qdisc.</p>
+</li>
+<li><p>minor<br>This parameter unambiguously identifies the object as a qdisc if minor is 0. Any other value identifies the object as a class. All classes sharing a parent must have unique minor numbers.</p>
+</li>
+</ul>
+<p>The special handle ffff:0 is reserved for the ingress qdisc.</p>
+<p>The handle is used as the target in <strong>classid</strong> and <strong>flowid</strong> phrases of tc filter statements. These handles are external identifiers for the objects, usable by userland applications. The kernel maintains internal identifiers for each object.</p>
+<h3 id="man"><a href="#man" class="headerlink" title="man"></a>man</h3><p>可以查询<a href="https://man7.org/linux/man-pages/man8/tc.8.html" target="_blank" rel="noopener">man tc</a>、<a href="https://man7.org/linux/man-pages/man8/tc-u32.8.html" target="_blank" rel="noopener">man tc-u32</a>、<a href="https://man7.org/linux/man-pages/man8/tc-htb.8.html" target="_blank" rel="noopener">man tc-htb</a>等man手册。</p>
+<h2 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h2><p>As a simple example, in order to limit bandwidth of individual IP addresses stored in <code>CLIENT_IP</code> shell variable, with limitations like the following:</p>
+<ul>
+<li>device name = eth0</li>
+<li>total bandwidth available/allowed for the device = 1000kbps up to 1500kbps</li>
+<li>default bandwidth (for clients that do not fall into our filters) = 1kbps up to 2kbps</li>
+<li>bandwidth of <code>CLIENT_IP</code> = 100kbps</li>
+<li>Maximum bandwidth of <code>CLIENT_IP</code> (if there is more bandwidth available) = 200kbps</li>
+</ul>
+<p>Commands below would suffice:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">tc qdisc add dev eth0 root handle 1: htb default 10</span><br><span class="line">tc class add dev eth0 parent 1: classid 1:1 htb rate 1000kbps ceil 1500kbps </span><br><span class="line">tc class add dev eth0 parent 1:1 classid 1:10 htb rate 1kbps ceil 2kbps</span><br><span class="line">tc class add dev eth0 parent 1:1 classid 1:11 htb rate 100kbps ceil 200kbps</span><br><span class="line">tc filter add dev eth0 protocol ip parent 1:0 prio 1 u32 match ip src $&#123;CLIENT_IP&#125; flowid 1:11</span><br></pre></td></tr></table></figure></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://man7.org/linux/man-pages/man8/tc.8.html" target="_blank" rel="noopener">man tc</a></li>
+<li><a href="https://serverfault.com/questions/174010/limit-network-bandwith-for-an-ip" target="_blank" rel="noopener">limit network bandwith for an ip</a></li>
+<li><a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/linux-traffic-control_configuring-and-managing-networking" target="_blank" rel="noopener">Linux traffic control</a></li>
+<li><a href="https://just4coding.com/2022/08/05/tc/" target="_blank" rel="noopener">Linux流量控制(Traffic Control)介绍</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/627042688" target="_blank" rel="noopener">利用 Linux tc (traffic control) 进行egress, ingress的网络流量管控</a></li>
+<li><a href="https://tldp.org/HOWTO/Traffic-Control-HOWTO/" target="_blank" rel="noopener">Traffic Control HOWTO</a></li>
+<li><a href="https://github.com/tonydeng/sdn-handbook/blob/master/linux/tc.md" target="_blank" rel="noopener">Linux的流量控制文档</a></li>
+<li><a href="http://linux-ip.net/gl/tc-filters/tc-filters.html" target="_blank" rel="noopener">QoS in Linux with TC and Filters</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/计算机网络/">计算机网络</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2023/12/30/Notes-about-ingress-and-egress-in-network/">
+        <span class="next-text nav-default">Notes about ingress and egress  in network</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/01/06/Basic-knowledge-of-linux-Traffic-Control-TC/';
+        this.page.identifier = '2024/01/06/Basic-knowledge-of-linux-Traffic-Control-TC/';
+        this.page.title = 'Basic knowledge of linux Traffic Control(TC)';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
