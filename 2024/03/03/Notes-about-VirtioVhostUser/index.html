@@ -281,11 +281,58 @@
 
     
     
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-What"><span class="toc-text">1. What</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Use-cases"><span class="toc-text">2. Use cases</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-Appliances-for-cloud-environments"><span class="toc-text">2.1 Appliances for cloud environments</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-Exitless-VM-to-VM-communication"><span class="toc-text">2.2 Exitless VM-to-VM communication</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-How-it-works"><span class="toc-text">3. How it works</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-DPDK使用案例"><span class="toc-text">4. DPDK使用案例</span></a></li></ol>
+    </div>
+  </div>
+
 
 
     <div class="post-content">
       
-        <p><a href="https://mp.weixin.qq.com/s/hm5FVrcEsp19hlQny6euSA" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/hm5FVrcEsp19hlQny6euSA</a></p>
+        <p><a href="https://mp.weixin.qq.com/s/hm5FVrcEsp19hlQny6euSA" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/hm5FVrcEsp19hlQny6euSA</a><a id="more"></a></p>
+<h2 id="1-What"><a href="#1-What" class="headerlink" title="1. What"></a>1. What</h2><p>The virtio-vhost-user device lets guests act as vhost device backends so that virtual network switches and storage appliance VMs can provide virtio devices to other guests.</p>
+<p>virtio-vhost-user 设备可让客户机充当 vhost 设备后端，这样虚拟网络交换机和存储设备虚拟机就能为其他客户机提供 virtio 设备。</p>
+<p>virtio-vhost-user was inspired by vhost-pci by Wei Wang and Zhiyong Yang.</p>
+<p>virtio-vhost-user 的灵感来源于Wei Wang和Zhiyong Yang的 vhost-pci。</p>
+<h2 id="2-Use-cases"><a href="#2-Use-cases" class="headerlink" title="2. Use cases"></a>2. Use cases</h2><h3 id="2-1-Appliances-for-cloud-environments"><a href="#2-1-Appliances-for-cloud-environments" class="headerlink" title="2.1 Appliances for cloud environments"></a>2.1 Appliances for cloud environments</h3><p><strong>2.1 用于云环境的设备</strong></p>
+<p>In cloud environments everything is a guest. It is not possible for users to run vhost-user processes on the host. This precludes high-performance vhost-user appliances from running in cloud environments.</p>
+<p>在云环境中，一切都是客户机。用户不可能在主机上运行 vhost-user进程。这使得高性能 vhost-user 设备无法在云环境中运行。</p>
+<p>virtio-vhost-user allows vhost-user appliances to be shipped as virtual machine images. They can provide I/O services directly to other guests instead of going through an extra layer of device emulation like a host network switch:</p>
+<p>virtio-vhost-user 允许 vhost-user 设备作为虚拟机镜像发布。它们可以直接向其他客户机提供 I/O 服务，而无需通过额外的设备仿真层（如主机网络交换机）：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">    Traditional Appliance VMs       virtio-vhost-user Appliance VMs</span><br><span class="line">+-------------+   +-------------+  +-------------+   +-------------+</span><br><span class="line">|     VM1     |   |     VM2     |  |     VM1     |   |     VM2     |</span><br><span class="line">|  Appliance  |   |   Consumer  |  |  Appliance  |   |   Consumer  |</span><br><span class="line">|      ^      |   |      ^      |  |      &lt;------+---+------&gt;      |</span><br><span class="line">+------|------+---+------|------+  +-------------+---+-------------+</span><br><span class="line">|      +-----------------+      |  |                               |</span><br><span class="line">|             Host              |  |             Host              |</span><br><span class="line">+-------------------------------+  +-------------------------------+</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-2-Exitless-VM-to-VM-communication"><a href="#2-2-Exitless-VM-to-VM-communication" class="headerlink" title="2.2 Exitless VM-to-VM communication"></a>2.2 Exitless VM-to-VM communication</h3><p>Once the vhost-user session has been established all vring activity can be performed by poll mode drivers in shared memory. This eliminates vmexits in the data path so that the highest possible VM-to-VM communication performance can be achieved.</p>
+<p>一旦 vhost-user 会话建立，所有 vring 活动都可由共享内存中的轮询模式驱动程序执行。这样就消除了数据路径中的 vmexits，从而实现尽可能高的VM-to-VM 通信性能。</p>
+<p>Even when interrupts are necessary, virtio-vhost-user can use lightweight vmexits thanks to ioeventfd instead of exiting to host userspace. This ensures that VM-to-VM communication bypasses device emulation in QEMU.</p>
+<p>即使需要中断(笔者注: virtio前端驱动kick需要发生VM Exit)，virtio-vhost-user 也可以通过 ioeventfd 使用轻量级 vmexits，而不是退出到主机用户空间。这可确保VM-to-VM 通信绕过 QEMU 中的设备仿真。</p>
+<h2 id="3-How-it-works"><a href="#3-How-it-works" class="headerlink" title="3. How it works"></a>3. How it works</h2><p>Virtio devices were originally emulated inside the QEMU host userspace process. Later on, vhost allowed a subset of a virtio device, called the vhost device backend, to be implement inside the host kernel. vhost-user then allowed vhost device backends to reside in host userspace processes instead.</p>
+<p>Virtio 设备最初是在 QEMU 主机用户空间进程内仿真的。后来，vhost 允许一部分virtio 设备（称为 vhost 设备后端）在主机内核中实现。vhost-user 允许 vhost 设备后端驻留在主机用户空间进程中。</p>
+<p>virtio-vhost-user takes this one step further by moving the vhost device backend into a guest. It works by tunneling the vhost-user protocol over a new virtio device type called virtio-vhost-user.</p>
+<p>virtio-vhost-user 在此基础上更进一步，将 vhost 设备后端移至客户机中。它的工作原理是在名为 virtio-vhost-user 的新 virtio 设备类型上传输 vhost-user 协议。</p>
+<p>The following diagram shows how two guests communicate:</p>
+<p>下图显示了两个客户机的通信方式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">+-------------+                     +-------------+</span><br><span class="line">|     VM1     |                     |     VM2     |</span><br><span class="line">|             |                     |             |</span><br><span class="line">|    vhost    |    shared memory    |             |</span><br><span class="line">|   device    | +-----------------&gt; |             |</span><br><span class="line">|   backend   |                     |             |</span><br><span class="line">|             |                     | virtio-net  |</span><br><span class="line">+-------------+                     +-------------+</span><br><span class="line">|             |                     |             |</span><br><span class="line">|  virtio-    |  vhost-user socket  |             |</span><br><span class="line">| vhost-user  | &lt;-----------------&gt; | vhost-user  |</span><br><span class="line">|    QEMU     |                     |    QEMU     |</span><br><span class="line">+-------------+                     +-------------+</span><br></pre></td></tr></table></figure></p>
+<p>VM2 sees a regular virtio-net device. VM2’s QEMU uses the existing vhost-user feature as if it were talking to a host userspace vhost-user backend.</p>
+<p>VM2 看到的是普通的 virtio-net 设备。VM2 的 QEMU 使用现有的 vhost-user 功能，就像与主机用户空间 vhost-user 后端对话一样。</p>
+<p>VM1’s QEMU tunnels the vhost-user protocol messages from VM1’s QEMU to the new virtio-vhost-user device so that guest software in VM1 can act as the vhost-user backend.</p>
+<p>VM1 的 QEMU 将 vhost-user 协议信息从 VM1 的 QEMU 隧道(笔者注:可以类比于网络中的隧道技术，a method for transporting data across a network using protocols that are not supported by that network)传输到新的 virtio-vhost-user 设备，这样 VM1 中的客户机软件就可以充当 vhost-user 后端。</p>
+<p>It is possible to reuse existing vhost-user backend software with virtio-vhost-user since they use the same vhost-user protocol messages. A driver is required for the virtio-vhost-user PCI device that carries the message instead of the usual vhost-user UNIX domain socket. The driver can be implemented in a guest userspace process using Linux vfio-pci but guest kernel driver implementation would also be also possible.</p>
+<p>由于 virtio-vhost-user 使用相同的 vhost-user 协议信息，因此可以重新使用现有的 vhost-user 后端软件。virtio-vhost-user PCI 设备需要一个驱动程序来传输信息，而不是通常的 vhost-user UNIX 域套接字。该驱动程序可在客户机用户空间进程中使用 Linux vfio-pci 实现，也可在客户机内核驱动程序中实现。</p>
+<p>The vhost device backend vrings are accessed through shared memory and do not require vhost-user message exchanges in the data path. No vmexits are taken when poll mode drivers are used. Even when interrupts are used, QEMU is not involved in the data path because ioeventfd lightweight vmexits are taken.</p>
+<p>vhost 设备后端 vrings 通过共享内存访问，不需要在数据路径中进行 vhost 用户信息交换。使用轮询模式驱动程序时，不会出现 vmexits。即使使用中断(笔者注: virtio前端驱动kick需要发生VM Exit)，QEMU 也不会参与数据路径，因为会使用 ioeventfd 轻量级 vmexits。</p>
+<p>All vhost device types work with virtio-vhost-user, including net, scsi, and blk.</p>
+<p>所有 vhost 设备类型都能与 virtio-vhost-user 一起使用，包括 net、scsi 和 blk。</p>
+<h2 id="4-DPDK使用案例"><a href="#4-DPDK使用案例" class="headerlink" title="4. DPDK使用案例"></a>4. DPDK使用案例</h2><p>下面截取了DPDK中VirtioVhostUser的使用案例:</p>
+<p><img src="/images/2024/03/003.png" alt></p>
+<p><img src="/images/2024/03/004.png" alt></p>
+<p>slides中的Memory region I/O in device，笔者的理解就是VVU(VirtioVhostUser) device的MMIO寄存器。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://wiki.qemu.org/Features/VirtioVhostUser" target="_blank" rel="noopener">https://wiki.qemu.org/Features/VirtioVhostUser</a></li>
+<li><a href="https://archive.fosdem.org/2018/schedule/event/virtio/attachments/slides/2167/export/events/attachments/virtio/slides/2167/fosdem_virtio1_1.pdf" target="_blank" rel="noopener">https://archive.fosdem.org/2018/schedule/event/virtio/attachments/slides/2167/export/events/attachments/virtio/slides/2167/fosdem_virtio1_1.pdf</a></li>
+<li><a href="https://static.sched.com/hosted_files/dpdkuserspace22/93/DPDK22_virtualization_of_DPDK_applications_using_virtio_vhost_user.pdf" target="_blank" rel="noopener">https://static.sched.com/hosted_files/dpdkuserspace22/93/DPDK22_virtualization_of_DPDK_applications_using_virtio_vhost_user.pdf</a></li>
+</ol>
 
       
     </div>
@@ -312,6 +359,12 @@
         
         
   <nav class="post-nav">
+    
+      <a class="prev" href="/2024/03/09/Notes-about-vhost-pci/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Notes about vhost-pci</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
     
     
       <a class="next" href="/2024/02/25/Notes-about-Share-Virtual-Address/">
