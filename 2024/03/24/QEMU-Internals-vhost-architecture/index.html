@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="(译)QEMU Internals: vhost architecture">
+
+
+
+
+  <meta name="keywords" content="virtio, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/03/24/QEMU-Internals-vhost-architecture/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> (译)QEMU Internals: vhost architecture - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          (译)QEMU Internals: vhost architecture
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-03-24
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/virtio/">virtio</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Vhost-overview"><span class="toc-text">Vhost overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#The-vhost-driver-model"><span class="toc-text">The vhost driver model</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#In-kernel-virtio-emulation"><span class="toc-text">In-kernel virtio emulation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Vhost-as-a-userspace-interface"><span class="toc-text">Vhost as a userspace interface</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Where-to-find-out-more"><span class="toc-text">Where to find out more</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>原文链接: <a href="https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html" target="_blank" rel="noopener">https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html</a></p>
+<p>This post explains how vhost provides in-kernel virtio devices for KVM. I have been hacking on vhost-scsi and have answered questions about ioeventfd, irqfd, and vhost recently, so I thought this would be a useful QEMU Internals post.<br>这篇文章介绍了 vhost 如何为 KVM 提供内核 virtio 设备。我最近一直在研究 vhost-scsi，并回答了有关 ioeventfd、irqfd 和 vhost 的问题，因此我认为这将是一篇有用的 QEMU Internals 帖子。<a id="more"></a></p>
+<h2 id="Vhost-overview"><a href="#Vhost-overview" class="headerlink" title="Vhost overview"></a>Vhost overview</h2><p>The vhost drivers in Linux provide in-kernel virtio device emulation. Normally the QEMU userspace process emulates I/O accesses from the guest. Vhost puts virtio emulation code into the kernel, taking QEMU userspace out of the picture. This allows device emulation code to directly call into kernel subsystems instead of performing system calls from userspace.<br>Linux 中的 vhost 驱动程序提供内核 virtio 设备模拟。通常，QEMU 用户空间进程会模拟guest的 I/O 访问。Vhost 将 virtio 仿真代码放入内核，将 QEMU 用户空间排除在外。这允许设备仿真代码直接调用内核子系统，而不是从用户空间执行系统调用。</p>
+<p>The vhost-net driver emulates the virtio-net network card in the host kernel. Vhost-net is the oldest vhost device and the only one which is available in mainline Linux. Experimental vhost-blk and vhost-scsi devices have also been developed.<br>vhost-net 驱动程序在主机内核中模拟 virtio-net 网卡。vhost-net 是最古老的 vhost 设备，也是主线 Linux 中唯一可用的设备。此外，还开发了试验性的 vhost-blk 和 vhost-scsi 设备。</p>
+<p>In Linux 3.0 the vhost code lives in drivers/vhost/. Common code that is used by all devices is in drivers/vhost/vhost.c. This includes the virtio vring access functions which all virtio devices need in order to communicate with the guest. The vhost-net code lives in drivers/vhost/net.c.<br>在 Linux 3.0 中，vhost 代码位于 drivers/vhost/。所有设备都要使用的通用代码位于 drivers/vhost/vhost.c 中。其中包括 virtio vring 访问函数，所有 virtio 设备都需要这些函数才能与guest通信。vhost-net 代码位于 drivers/vhost/net.c 中。</p>
+<h2 id="The-vhost-driver-model"><a href="#The-vhost-driver-model" class="headerlink" title="The vhost driver model"></a>The vhost driver model</h2><p>The vhost-net driver creates a /dev/vhost-net character device on the host. This character device serves as the interface for configuring the vhost-net instance.<br>vhost-net 驱动程序会在主机上创建一个 /dev/vhost-net 字符设备。该字符设备是配置 vhost-net 实例的接口。</p>
+<p>When QEMU is launched with -netdev tap,vhost=on it opens /dev/vhost-net and initializes the vhost-net instance with several ioctl(2) calls. These are necessary to associate the QEMU process with the vhost-net instance, prepare for virtio feature negotiation, and pass the guest physical memory mapping to the vhost-net driver.<br>当使用 -netdev tap,vhost=on 启动 QEMU 时，它会打开 /dev/vhost-net 并通过几个 ioctl(2) 调用初始化 vhost-net 实例。这些调用对于将 QEMU 进程与 vhost-net 实例关联、准备 virtio 功能协商以及将guest物理内存映射传递给 vhost-net 驱动程序都是必要的。</p>
+<p>During initialization the vhost driver creates a kernel thread called vhost-$pid, where $pid is the QEMU process pid. This thread is called the “vhost worker thread”. The job of the worker thread is to handle I/O events and perform the device emulation.<br>在初始化过程中，vhost 驱动程序会创建一个名为 vhost-$pid 的内核线程，其中 $pid 是 QEMU 进程的 pid。该线程被称为 “vhost 工作线程”。工作线程的任务是处理 I/O 事件和执行设备仿真。</p>
+<p><img src="/images/2024/03/010.png" alt></p>
+<h2 id="In-kernel-virtio-emulation"><a href="#In-kernel-virtio-emulation" class="headerlink" title="In-kernel virtio emulation"></a>In-kernel virtio emulation</h2><p>Vhost does not emulate a complete virtio PCI adapter. Instead it restricts itself to virtqueue operations only. QEMU is still used to perform virtio feature negotiation and live migration, for example. This means a vhost driver is not a self-contained virtio device implementation, it depends on userspace to handle the control plane while the data plane is done in-kernel.<br>Vhost 不会模拟完整的 virtio PCI 适配器。相反，它仅限于进行 virtqueue 操作。例如，QEMU 仍用于执行 virtio 功能协商和热迁移。这意味着 vhost 驱动程序不是独立的 virtio 设备实现，它依赖用户空间来处理控制面，而数据面则在内核中完成。</p>
+<p>The vhost worker thread waits for virtqueue kicks and then handles buffers that have been placed on the virtqueue. In vhost-net this means taking packets from the tx virtqueue and transmitting them over the tap file descriptor.<br>vhost 工作线程会等待 virtqueue kicks，然后处理放在 virtqueue 上的缓冲区。在 vhost-net 中，这意味着从 tx virtqueue 获取数据包并通过 tap 文件描述符传输。</p>
+<p>File descriptor polling is also done by the vhost worker thread. In vhost-net the worker thread wakes up when packets come in over the tap file descriptor and it places them into the rx virtqueue so the guest can receive them.<br>文件描述符轮询也由 vhost 工作线程完成。在 vhost-net 中，当数据包通过 tap 文件描述符进入时，工作线程就会被唤醒，并将数据包放入 rx virtqueue，这样guest就能接收到这些数据包。</p>
+<h2 id="Vhost-as-a-userspace-interface"><a href="#Vhost-as-a-userspace-interface" class="headerlink" title="Vhost as a userspace interface"></a>Vhost as a userspace interface</h2><p>One surprising aspect of the vhost architecture is that it is not tied to KVM in any way. Vhost is a userspace interface and has no dependency on the KVM kernel module. This means other userspace code, like libpcap, could in theory use vhost devices if they find them convenient high-performance I/O interfaces.<br>vhost 架构令人惊讶的一点是，它与 KVM 没有任何关联。Vhost 是一个用户空间接口，不依赖于 KVM 内核模块。这意味着其他用户空间代码（如 libpcap）如果发现 vhost 设备是方便的高性能 I/O 接口，理论上也可以使用 vhost 设备。</p>
+<p>When a guest kicks the host because it has placed buffers onto a virtqueue, there needs to be a way to signal the vhost worker thread that there is work to do. Since vhost does not depend on the KVM kernel module they cannot communicate directly. Instead vhost instances are set up with an eventfd file descriptor which the vhost worker thread watches for activity. The KVM kernel module has a feature known as ioeventfd for taking an eventfd and hooking it up to a particular guest I/O exit. QEMU userspace registers an ioeventfd for the VIRTIO_PCI_QUEUE_NOTIFY hardware register access which kicks the virtqueue. This is how the vhost worker thread gets notified by the KVM kernel module when the guest kicks the virtqueue.<br>当guest因为在 virtqueue 上放置了buffers而kick主机时，需要有一种方法来向 vhost 工作线程发出有工作要做的信号。由于 vhost 并不依赖于 KVM 内核模块，因此它们无法直接通信。相反，vhost 实例会设置一个 eventfd 文件描述符，由 vhost 工作线程监视其活动。KVM 内核模块有一个名为 ioeventfd 的功能，用于获取 eventfd 并将其连接到特定的guest I/O VM exit。QEMU 用户空间会为 VIRTIO_PCI_QUEUE_NOTIFY 硬件寄存器访问注册一个 ioeventfd，从而kick virtqueue。这样，当 guest kick virtqueue 时，vhost 工作线程就会收到 KVM 内核模块的通知。</p>
+<p>On the return trip from the vhost worker thread to interrupting the guest a similar approach is used. Vhost takes a “call” file descriptor which it will write to in order to kick the guest. The KVM kernel module has a feature called irqfd which allows an eventfd to trigger guest interrupts. QEMU userspace registers an irqfd for the virtio PCI device interrupt and hands it to the vhost instance. This is how the vhost worker thread can interrupt the guest.<br>在从 vhost 工作线程返回到中断guest的过程中，也使用了类似的方法。Vhost 会获取一个 “call “文件描述符，并写入该文件描述符以通知guest。KVM 内核模块有一个名为 irqfd 的功能，允许 eventfd 触发guest中断。QEMU 用户空间为 virtio PCI 设备中断注册了一个 irqfd，并将其交给 vhost 实例。这就是 vhost 工作线程中断guest的方式。</p>
+<p>In the end the vhost instance only knows about the guest memory mapping, a kick eventfd, and a call eventfd.<br>最终，vhost 实例只知道 guest 内存映射、ioeventfd 和 irqfd。</p>
+<h2 id="Where-to-find-out-more"><a href="#Where-to-find-out-more" class="headerlink" title="Where to find out more"></a>Where to find out more</h2><p>Here are the main points to begin exploring the code:<br>以下是开始探索代码的要点：</p>
+<ul>
+<li>drivers/vhost/vhost.c - common vhost driver code</li>
+<li>drivers/vhost/net.c - vhost-net driver</li>
+<li>virt/kvm/eventfd.c - ioeventfd and irqfd</li>
+</ul>
+<p>The QEMU userspace code shows how to initialize the vhost instance:<br>QEMU 用户空间代码显示了如何初始化 vhost 实例:</p>
+<ul>
+<li>hw/vhost.c - common vhost initialization code</li>
+<li>hw/vhost_net.c - vhost-net initialization</li>
+</ul>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/virtio/">virtio</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/03/09/Notes-about-vhost-pci/">
+        <span class="next-text nav-default">Notes about vhost-pci</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/03/24/QEMU-Internals-vhost-architecture/';
+        this.page.identifier = '2024/03/24/QEMU-Internals-vhost-architecture/';
+        this.page.title = '(译)QEMU Internals: vhost architecture';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
