@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-DMA-Page-Fault-Support"><span class="toc-text">1. DMA Page Fault Support</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Page-Request-Services"><span class="toc-text">2. Page Request Services</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Implementation"><span class="toc-text">3. Implementation</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-DMA-Page-Fault-Support"><span class="toc-text">1. DMA Page Fault Support</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Page-Request-Services"><span class="toc-text">2. Page Request Services</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Implementation"><span class="toc-text">3. Implementation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Q-amp-A"><span class="toc-text">4. Q &amp; A</span></a></li></ol>
     </div>
   </div>
 
@@ -305,6 +305,11 @@
 <li>The Function can then employ ATS to request a translation for the requested page(s). </li>
 </ol>
 <h3 id="3-Implementation"><a href="#3-Implementation" class="headerlink" title="3. Implementation"></a>3. Implementation</h3><p><img src="/images/2022/03/22.PNG" alt></p>
+<h3 id="4-Q-amp-A"><a href="#4-Q-amp-A" class="headerlink" title="4. Q &amp; A"></a>4. Q &amp; A</h3><p>Q: 如果IOMMU支持pri的话，设备也需要去适配pri才能work吗？<br>A: 是的，设备要支持ats和pri，并且提供device tlb</p>
+<p><img src="/images/2024/03/011.jpg" alt><br>Q: 请问是设备往PRQ中填写的io page fault的entry吗？<br>A: 是的，PRQ就是一个共享内存</p>
+<p>Q: 每个设备一个PRQ吗？<br>A: 不是，一个iommu只有一个PRQ，不同设备都往里面放</p>
+<p>Q: 那如果两个设备同时往PRQ中放的话，会存在竞态吗？<br>A: 不会，iommu硬件分发的，保序的<br>Q: 就是如果两个设备同时往PRQ写入entry的话，iommu也做仲裁，所以可以解决竞态的问题？<br>A: 是的，不过设备无法写PRQ entry，只有iommu可以写，设备发page request pci message</p>
+<p>Q: 最后是iommu发中断通知os来处理这些io page fault吧？<br>A: 是的</p>
 <hr>
 <p>参考资料：</p>
 <ol>
