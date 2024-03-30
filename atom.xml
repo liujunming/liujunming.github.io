@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-03-24T10:34:07.875Z</updated>
+  <updated>2024-03-30T10:56:43.201Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about NVMe Shadow doorbell buffer</title>
+    <link href="http://liujunming.github.io/2024/03/30/Notes-about-NVMe-Shadow-doorbell-buffer/"/>
+    <id>http://liujunming.github.io/2024/03/30/Notes-about-NVMe-Shadow-doorbell-buffer/</id>
+    <published>2024-03-30T08:20:37.000Z</published>
+    <updated>2024-03-30T10:56:43.201Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将介绍下NVMe中的Shadow doorbell buffer机制。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2024/03/014.jpg" alt><br>The guest driver only writes to the MMIO register when EventIdx has been reached.  This eliminates some MMIO writes.</p><h2 id="Identify"><a href="#Identify" class="headerlink" title="Identify"></a>Identify</h2><p><img src="/images/2024/03/015.jpg" alt></p><p>可以参考<a href="https://github.com/qemu/qemu/commit/3f7fe8de3d4" target="_blank" rel="noopener">hw/nvme: Implement shadow doorbell buffer support</a>中的<code>NVME_OACS_DBBUF = 1 &lt;&lt; 8</code>。</p><h2 id="Doorbell-Buffer-Config-command"><a href="#Doorbell-Buffer-Config-command" class="headerlink" title="Doorbell Buffer Config command"></a>Doorbell Buffer Config command</h2><p><img src="/images/2024/03/012.jpg" alt></p><blockquote><p>doorbell values are written by the nvme driver (guest OS) and the event index is written by the virtual device (host OS).</p></blockquote><p>The Doorbell Buffer Config admin command is implemented for the guest to enable shadow doobell buffer. When this feature is enabled, each SQ/CQ is associated with two buffers, i.e., Shadow Doorbell buffer and EventIdx buffer. According to the Spec, each queue’s doorbell register is only updated when the Shadow Doorbell buffer value changes from being less than or equal to the value of the corresponding EventIdx buffer entry to being greater than that value. Therefore, the number of MMIO’s on the doorbell registers is greatly reduced.</p><h2 id="Updating-Controller-Doorbell-Registers-using-a-Shadow-Doorbell-Buffer"><a href="#Updating-Controller-Doorbell-Registers-using-a-Shadow-Doorbell-Buffer" class="headerlink" title="Updating Controller Doorbell Registers using a Shadow Doorbell Buffer"></a>Updating Controller Doorbell Registers using a Shadow Doorbell Buffer</h2><p><img src="/images/2024/03/013.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://nvmexpress.org/wp-content/uploads/NVM_Express_Revision_1.3.pdf" target="_blank" rel="noopener">https://nvmexpress.org/wp-content/uploads/NVM_Express_Revision_1.3.pdf</a></li><li><a href="https://patchwork.kernel.org/project/qemu-devel/patch/1516003315-17878-2-git-send-email-changpeng.liu@intel.com/#21421425" target="_blank" rel="noopener">block/NVMe: introduce a new vhost NVMe host device to QEMU</a></li><li><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f9f38e33389" target="_blank" rel="noopener">nvme: improve performance for virtual NVMe devices</a></li><li><a href="https://events19.linuxfoundation.org/wp-content/uploads/2017/11/Accelerating-NVMe-I_Os-in-Virtual-Machine-via-SPDK-vhost_-Solution-Ziye-Yang-_-Changpeng-Liu-Intel.pdf" target="_blank" rel="noopener">Accelerating NVMe I/Os in Virtual Machine via SPDK vhost* Solution</a></li><li><a href="https://lore.kernel.org/all/20220616123408.3306055-1-fanjinhao21s@ict.ac.cn/" target="_blank" rel="noopener">hw/nvme: Add shadow doorbell buffer support</a></li><li><a href="https://github.com/qemu/qemu/commit/3f7fe8de3d4" target="_blank" rel="noopener">hw/nvme: Implement shadow doorbell buffer support</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将介绍下NVMe中的Shadow doorbell buffer机制。
+    
+    </summary>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
+    
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+  </entry>
   
   <entry>
     <title>(译)QEMU Internals: vhost architecture</title>
@@ -284,9 +306,9 @@
     
       <category term="live migration" scheme="http://liujunming.github.io/tags/live-migration/"/>
     
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
     
   </entry>
   
@@ -308,9 +330,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
     
   </entry>
   
@@ -448,31 +470,9 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
       <category term="AMD" scheme="http://liujunming.github.io/tags/AMD/"/>
     
-  </entry>
-  
-  <entry>
-    <title>Intel FRED feature</title>
-    <link href="http://liujunming.github.io/2023/09/10/Intel-FRED-feature/"/>
-    <id>http://liujunming.github.io/2023/09/10/Intel-FRED-feature/</id>
-    <published>2023-09-10T08:40:11.000Z</published>
-    <updated>2023-09-10T09:13:22.119Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Intel的FRED(Flexible Return and Event Delivery) feature。<a id="more"></a></p><p>FRED has the capability of helping system performance and response time.</p><p>Intel engineers summed up FRED as:</p><blockquote><p>The Intel flexible return and event delivery (FRED) architecture defines simple new transitions that change privilege level (ring transitions).  The FRED architecture was designed with the following goals:<br>1) Improve overall performance and response time by replacing event delivery through the interrupt descriptor table (IDT event delivery) and event return by<br>the IRET instruction with lower latency transitions.<br>2) Improve software robustness by ensuring that event delivery establishes the full supervisor context and that event return establishes the full user context.</p></blockquote><blockquote><p>The new transitions defined by the FRED architecture are FRED event delivery and, for returning from events, two FRED return instructions. FRED event delivery can effect a transition from ring 3 to ring 0, but it is used also to deliver events incident to ring 0(ring0 -&gt; ring0之间也可以用FRED). One FRED instruction (ERETU) effects a return from ring 0 to ring 3, while the other (ERETS) returns while remaining in ring 0.</p></blockquote><blockquote><p>In addition to these transitions, the FRED architecture defines a new instruction (LKGS) for managing the state of the GS segment register. The LKGS instruction can be used by 64-bit operating systems that do not use the new FRED transitions.</p></blockquote><p>Simply put, FRED is basically about lower-latency transitions between CPU privilege levels.</p><p>点到为止，按需再细看吧。</p><hr><p>参考资料:</p><ol><li><a href="https://www.phoronix.com/news/Intel-FRED-Linux-Patches" target="_blank" rel="noopener">Intel Sends Out Initial Linux Kernel Patches For FRED</a></li><li><a href="https://cdrdv2.intel.com/v1/dl/getContent/678938" target="_blank" rel="noopener">FRED spec</a></li><li><a href="https://lore.kernel.org/lkml/20221220063658.19271-1-xin3.li@intel.com/" target="_blank" rel="noopener">RFC patch</a></li><li><a href="https://www.eejournal.com/article/we-interrupt-this-program/" target="_blank" rel="noopener">Intel and AMD Contemplate Different Replacements for x86 Interrupt Handling</a></li><li><a href="https://www.zdnet.com/article/linus-torvalds-on-how-amd-and-intel-are-changing-how-processor-interrupts-are-handled/" target="_blank" rel="noopener">Linus Torvalds on how AMD and Intel are changing how processor interrupts are handled</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Intel的FRED(Flexible Return and Event Delivery) feature。
-    
-    </summary>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
-    
-    
-      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
