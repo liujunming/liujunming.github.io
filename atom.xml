@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-04-04T12:52:44.724Z</updated>
+  <updated>2024-04-05T13:56:00.935Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Intel new feature:monitorless MWAIT</title>
+    <link href="http://liujunming.github.io/2024/04/05/Intel-new-feature-monitorless-MWAIT/"/>
+    <id>http://liujunming.github.io/2024/04/05/Intel-new-feature-monitorless-MWAIT/</id>
+    <published>2024-04-05T03:37:30.000Z</published>
+    <updated>2024-04-05T13:56:00.935Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Intel的新feature:<a href="/pdf/monitorless MWAIT.pdf">monitorless MWAIT</a>。<a id="more"></a></p><h3 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h3><p>Prior this feature, execution of the MWAIT instruction causes a logical processor to suspend execution and enter an implementation-dependent optimized state only if the MONITOR instruction was executed previously, specifying an address range to monitor, and there have been no stores to that address range since MONITOR executed. The logical processor leaves the optimized state and resumes execution when there is a write to the monitored address range.</p><p>This existing functionality <strong>supports software that seeks to suspend execution until an event associated with a write to the monitored address range</strong>. For example, that range may contain the head pointer of a work queue that is written when there is work for the suspended logical processor.</p><p>It is possible that software may wish to suspend execution with no requirement to resume execution in response to a memory write. Such software is not well served by the existing MWAIT instruction since it must incur the overhead of monitoring some (irrelevant) address range and may resume execution earlier than intended following a memory write.<br>软件可能希望暂停执行，而不要求在内存写入后恢复执行。现有的 MWAIT 指令并不能很好地满足这类软件的需求，因为它必须承担监控某些（不相关的）地址范围的开销，而且在内存写入后，可能会比预定时间提前恢复执行。</p><p>Monitorless MWAIT enhances the MWAIT instruction by allowing suspension of execution without monitoring an address range.<br>Monitorless MWAIT允许在不监控地址范围的情况下暂停执行，从而增强了 MWAIT 指令。</p><p>The feature is defined with an enumeration independent of that of existing MONITOR/MWAIT. That allows a VMM to virtualize monitorless MWAIT without having to virtualize the address-range monitoring of the existing feature.<br>该特性是用一个独立于现有MONITOR/MWAIT的枚举定义的。这使得 VMM 可以虚拟化monitorless MWAIT，而无需虚拟化现有功能的地址范围监控。</p><h3 id="Q-amp-amp-A"><a href="#Q-amp-amp-A" class="headerlink" title="Q &amp;&amp; A"></a>Q &amp;&amp; A</h3><p>Q: 使用了monitorless MWAIT后，logical processor什么时候可以resume execution呢？<br>A: spec中其实已经给出了答案:<br><img src="/images/2024/04/002.jpg" alt></p><ul><li>an NMI or SMI</li><li>a debug exception</li><li>a machine check exception</li><li>the BINIT# signal</li><li>the INIT# signal</li><li>the RESET# signal</li><li>an external interrupt if ECX[0] = 1</li></ul><p>Q: monitorless MWAIT与hlt的区别在哪里？<br>A: 与hlt相比，monitorless MWAIT resume execution的delay更低(因为monitorless MWAIT的节能程度不如hlt)，同时monitorless MWAIT还可以精细地指定C-state及Sub C-state。<br><img src="/images/2024/04/003.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="/2020/05/01/Introduction-to-halt-pause-monitor-mwait-instruction/">Introduction to hlt/pause/monitor/mwait instruction</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Intel的新feature:&lt;a href=&quot;/pdf/monitorless MWAIT.pdf&quot;&gt;monitorless MWAIT&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/categories/SDM/"/>
+    
+    
+      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
+    
+  </entry>
   
   <entry>
     <title>Intel new feature:APIC-timer virtualization</title>
@@ -446,32 +468,6 @@
     
     
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about virtio-net failover</title>
-    <link href="http://liujunming.github.io/2023/10/05/Notes-about-virtio-net-failover/"/>
-    <id>http://liujunming.github.io/2023/10/05/Notes-about-virtio-net-failover/</id>
-    <published>2023-10-05T07:03:24.000Z</published>
-    <updated>2023-10-07T13:29:26.784Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要是mark下<a href="https://www.redhat.com/en/blog/virtio-net-failover-introduction" target="_blank" rel="noopener">Virtio-net failover: An introduction</a>相关notes。<a id="more"></a></p><p>Virtio-net failover is a virtualization technology that allows a virtual machine (VM) to switch from a Virtual Function I/O (VFIO) device to a virtio-net device when the VM needs to be migrated from a host to another.</p><p>On one hand, the Single Root I/O Virtualization (SR-IOV) technology allows a device like a networking card to be split into several devices (the Virtual Functions) and with the help of the VFIO technology, the kernel of the VM can directly drive these devices. This is interesting in terms of performance, because it can reach the same level as a bare metal system. In this case, the cost of the performance is that a VFIO device cannot be migrated.</p><p>On the other hand, virtio-net is a paravirtualized networking device that has good performance and can be migrated. The trade off is that performance is not as good as with VFIO devices.</p><p>Virtio-net failover tries to bring the best of both worlds: performance of a VFIO device with the migration capability of a virtio-net device.</p><h3 id="Principles"><a href="#Principles" class="headerlink" title="Principles"></a>Principles</h3><p>Virtio-net failover relies on a several blocks of technology to migrate a VM using a VFIO device:</p><ul><li>Live migration, to move the VM from one host to another</li><li>Virtio-net, to keep network connection while the migration is in progress</li><li>VFIO, to use a host hardware device</li><li>Failover, to switch from a networking device to another in a transparent way</li></ul><h3 id="Failover"><a href="#Failover" class="headerlink" title="Failover"></a>Failover</h3><p>Failover is a term that comes from the high availability (HA) domain in an attempt to provide reliability, availability and serviceability (RAS) to a system.</p><p>The principle of failover is to bind two devices together, so called the primary and the standby, in a redundant way. The system only uses the primary device, but if the primary device becomes unavailable, unusable or disconnected, the failover manager can detect the problem and disable the primary device to switch to the standby device. </p><p>The standby is used to maintain service availability. While the standby is in use, an operator can remove the dysfunctional device and replace it with a healthy one. Once the problem is corrected, the new device can be used as the new standby device while the old standby device becomes the new primary device. Alternately, the newly replaced device could be restored as the primary device and the other switched back to standby.</p><h3 id="Virtio-net-failover-operation"><a href="#Virtio-net-failover-operation" class="headerlink" title="Virtio-net failover operation"></a>Virtio-net failover operation</h3><p>Virtio-net failover plays with the failover principle to bind two devices together, but in this case, the VFIO device is chosen with caution to be the primary device and used during the regular state of operation of the system. When a migration occurs, the hypervisor triggers a primary device fault (by unplugging it), that will force the failover manager (in our case the guest kernel failover_net driver) to disable the primary device and use the standby device, the virtio-net device, that is able to survive to a VM live migration. </p><p>The hypervisor also takes the role of the operator by restoring the disabled device on the migration destination side by hotplugging a new VFIO device. In this case, failover_net driver is configured to restore the VFIO device as the primary and to keep the virtio-net as the standby as the devices are not identical.</p><p><img src="/images/2023/10/016.png" alt></p><p>To implement virtio-net failover, we need support at guest kernel level and at hypervisor level:</p><ul><li>The hypervisor detects when a migration is started and unplugs the VFIO device as it cannot be migrated, at the same time it will block the migration while the VFIO card is being unplugged.</li><li>Guest kernel needs the ability to switch transparently between  the VFIO device and the virtio-net device.</li><li>On normal operation, VFIO is used for its performance, but when the hypervisor asks to unplug the card, the kernel unplugs it and switches the networking traffic from the VFIO device to the virtio-net device.</li><li>While the migration is processed, the VM is not stopped and all the networking traffic that usually crosses the VFIO device is redirected to the virtio-net device. There is no service interruption,</li><li>At the end of the migration, on the destination side, the hypervisor plugs in a VFIO device, and the traffic switches back from the virtio-net device to the VFIO device.</li></ul><p><img src="/images/2023/10/017.png" alt></p><h3 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h3><p>Virtio-net failover allows a VM hypervisor to migrate a VM with a VFIO device without interrupting the network connection. To reach this goal we need collaboration between the hypervisor and the guest kernel — the hypervisor unplugs the card and the guest kernel switches the network connection to the virtio-net device, and then they restore the original state on the destination host.</p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要是mark下&lt;a href=&quot;https://www.redhat.com/en/blog/virtio-net-failover-introduction&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Virtio-net failover: An introduction&lt;/a&gt;相关notes。
-    
-    </summary>
-    
-      <category term="live migration" scheme="http://liujunming.github.io/categories/live-migration/"/>
-    
-    
-      <category term="live migration" scheme="http://liujunming.github.io/tags/live-migration/"/>
-    
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
-    
-      <category term="VFIO" scheme="http://liujunming.github.io/tags/VFIO/"/>
     
   </entry>
   
