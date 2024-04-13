@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-04-13T02:12:12.487Z</updated>
+  <updated>2024-04-13T08:40:31.063Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about linux DAX</title>
+    <link href="http://liujunming.github.io/2024/04/13/Notes-about-linux-DAX/"/>
+    <id>http://liujunming.github.io/2024/04/13/Notes-about-linux-DAX/</id>
+    <published>2024-04-13T08:22:43.000Z</published>
+    <updated>2024-04-13T08:40:31.063Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下DAX(Direct Access)相关notes。</p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>Direct Access (DAX) enables direct access to files stored in persistent memory or on a block device. Without DAX support in a file system, the page cache is generally used to buffer reads and writes to files, and requires an extra copy operation.</p><p>DAX removes the extra copy operation by performing reads and writes directly to the storage device. <a id="more"></a></p><h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>The page cache is usually used to buffer reads and writes to files. It is also used to provide the pages which are mapped into userspace by a call to mmap.</p><p>For block devices that are memory-like, the page cache pages would be unnecessary copies of the original storage. The DAX code removes the extra copy by performing reads and writes directly to the storage device. For file mappings, the storage device is mapped directly into userspace.</p><hr><p>参考资料:</p><ol><li><a href="https://docs.kernel.org/filesystems/dax.html" target="_blank" rel="noopener">Direct Access for Files</a></li><li><a href="https://kb.pmem.io/faq/100000008-What-is-DAX/" target="_blank" rel="noopener">What is Direct-Access (DAX)?</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下DAX(Direct Access)相关notes。&lt;/p&gt;
+&lt;h2 id=&quot;What&quot;&gt;&lt;a href=&quot;#What&quot; class=&quot;headerlink&quot; title=&quot;What&quot;&gt;&lt;/a&gt;What&lt;/h2&gt;&lt;p&gt;Direct Access (DAX) enables direct access to files stored in persistent memory or on a block device. Without DAX support in a file system, the page cache is generally used to buffer reads and writes to files, and requires an extra copy operation.&lt;/p&gt;
+&lt;p&gt;DAX removes the extra copy operation by performing reads and writes directly to the storage device.
+    
+    </summary>
+    
+      <category term="文件系统" scheme="http://liujunming.github.io/categories/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+      <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
+    
+  </entry>
   
   <entry>
     <title>How to pin file page cache</title>
@@ -123,9 +147,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
       <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
   </entry>
   
@@ -446,28 +470,6 @@
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
       <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about virtio-net configuration changes</title>
-    <link href="http://liujunming.github.io/2023/10/28/Notes-about-virtio-net-configuration-changes/"/>
-    <id>http://liujunming.github.io/2023/10/28/Notes-about-virtio-net-configuration-changes/</id>
-    <published>2023-10-28T07:15:59.000Z</published>
-    <updated>2023-10-28T08:26:01.702Z</updated>
-    
-    <content type="html"><![CDATA[<p>参考<a href="https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html#x1-2230004" target="_blank" rel="noopener">virtio 1.2 spec</a>，Linux kernel version <a href="https://elixir.bootlin.com/linux/v6.0/source" target="_blank" rel="noopener">v6.0</a>。<a id="more"></a></p><ul><li><em>speed</em> contains the device speed, in units of 1 MBit per second, 0 to 0x7fffffff, or 0xffffffff for unknown speed.</li><li><em>duplex</em> has the values of 0x01 for full duplex, 0x00 for half duplex and 0xff for unknown duplex state.</li></ul><p>Both <em>speed</em> and <em>duplex</em> can change, thus the driver is expected to re-read these values after receiving a configuration change notification.</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">virtio_net_config</span> &#123;</span> </span><br><span class="line">        u8 mac[<span class="number">6</span>]; </span><br><span class="line">        le16 status; </span><br><span class="line">        le16 max_virtqueue_pairs; </span><br><span class="line">        le16 mtu; </span><br><span class="line">        le32 speed; </span><br><span class="line">        u8 duplex; </span><br><span class="line">        u8 rss_max_key_size; </span><br><span class="line">        le16 rss_max_indirection_table_length; </span><br><span class="line">        le32 supported_hash_types; </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p>Linux kernel source code:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">virtnet_config_changed_work</span><span class="params">(struct work_struct *work)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">virtnet_info</span> *<span class="title">vi</span> =</span></span><br><span class="line"><span class="class">        <span class="title">container_of</span>(<span class="title">work</span>, <span class="title">struct</span> <span class="title">virtnet_info</span>, <span class="title">config_work</span>);</span></span><br><span class="line">    u16 v;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (virtio_cread_feature(vi-&gt;vdev, VIRTIO_NET_F_STATUS,</span><br><span class="line">                 struct virtio_net_config, status, &amp;v) &lt; <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (v &amp; VIRTIO_NET_S_ANNOUNCE) &#123;</span><br><span class="line">        netdev_notify_peers(vi-&gt;dev);</span><br><span class="line">        virtnet_ack_link_announce(vi);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Ignore unknown (future) status bits */</span></span><br><span class="line">    v &amp;= VIRTIO_NET_S_LINK_UP;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (vi-&gt;status == v)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    vi-&gt;status = v;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (vi-&gt;status &amp; VIRTIO_NET_S_LINK_UP) &#123;</span><br><span class="line">        virtnet_update_settings(vi);</span><br><span class="line">        netif_carrier_on(vi-&gt;dev);</span><br><span class="line">        netif_tx_wake_all_queues(vi-&gt;dev);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        netif_carrier_off(vi-&gt;dev);</span><br><span class="line">        netif_tx_stop_all_queues(vi-&gt;dev);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">virtnet_update_settings</span><span class="params">(struct virtnet_info *vi)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    u32 speed;</span><br><span class="line">    u8 duplex;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!virtio_has_feature(vi-&gt;vdev, VIRTIO_NET_F_SPEED_DUPLEX))</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    virtio_cread_le(vi-&gt;vdev, struct virtio_net_config, speed, &amp;speed);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ethtool_validate_speed(speed))</span><br><span class="line">        vi-&gt;speed = speed;</span><br><span class="line"></span><br><span class="line">    virtio_cread_le(vi-&gt;vdev, struct virtio_net_config, duplex, &amp;duplex);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ethtool_validate_duplex(duplex))</span><br><span class="line">        vi-&gt;duplex = duplex;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;参考&lt;a href=&quot;https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html#x1-2230004&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;virtio 1.2 spec&lt;/a&gt;，Linux kernel version &lt;a href=&quot;https://elixir.bootlin.com/linux/v6.0/source&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;v6.0&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="virtio" scheme="http://liujunming.github.io/categories/virtio/"/>
-    
-    
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
     
   </entry>
   
