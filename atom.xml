@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-04-06T10:23:39.180Z</updated>
+  <updated>2024-04-13T02:12:12.487Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>How to pin file page cache</title>
+    <link href="http://liujunming.github.io/2024/04/13/How-to-pin-file-page-cache/"/>
+    <id>http://liujunming.github.io/2024/04/13/How-to-pin-file-page-cache/</id>
+    <published>2024-04-13T01:31:09.000Z</published>
+    <updated>2024-04-13T02:12:12.487Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将会介绍Linux中pin住文件page cache的方法。<a id="more"></a></p><h3 id="vmtouch"><a href="#vmtouch" class="headerlink" title="vmtouch"></a>vmtouch</h3><blockquote><p>-t<br>Touch virtual memory pages. Reads a byte from each page of the file. If the page is not resident in memory, a page fault will be generated and the page will be read from disk into the file system’s memory cache.<br>-l<br>Lock pages into physical memory. This option works the same as “-t” except it calls mlock(2) on all the memory mappings and doesn’t close the descriptors when finished. The files will be locked in physical memory until the vmtouch process is killed.</p></blockquote><h3 id="page-cache"><a href="#page-cache" class="headerlink" title="page cache"></a>page cache</h3><p><img src="/images/2024/04/005.png" alt></p><p>For read reuqest:</p><ol><li><p>When a user-space application wants to read data from disks, it asks the kernel for data using special system calls such as <code>read()</code>, <code>pread()</code>, <code>vread()</code>, <code>mmap()</code>, <code>sendfile()</code>, etc.</p></li><li><p>Linux kernel, in turn, checks whether the pages are present in Page Cache and immediately returns them to the caller if so. As you can see kernel has made 0 disk operations in this case.</p></li><li><p>If there are no such pages in Page Cache, the kernel must load them from disks. In order to do that, it has to find a place in Page Cache for the requested pages. A memory reclaim process must be performed if there is no free memory (in the caller’s cgroup or system). Afterward, kernel schedules a read disk IO operation, stores the target pages in the memory, and finally returns the requested data from Page Cache to the target process. Starting from this moment, any future requests to read this part of the file (no matter from which process or cgroup) will be handled by Page Cache without any disk IO operation until these pages have not been evicted.</p></li></ol><p>由此可知，<code>mmap()</code> file reads也是会使用到page cache的。</p><h3 id="mlock"><a href="#mlock" class="headerlink" title="mlock"></a>mlock</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">mlock</span><span class="params">(<span class="keyword">const</span> <span class="keyword">void</span> addr[.len], <span class="keyword">size_t</span> len)</span></span>;</span><br></pre></td></tr></table></figure><blockquote><p>mlock(), mlock2(), and mlockall() lock part or all of the calling process’s virtual address space into RAM, preventing that memory from being paged to the swap area.</p></blockquote><p>实际上内核对mlock锁住的页面主要做了两步比较重要的操作:</p><ol><li>调用mlock的时候就将所需要的物理页面准备好</li><li>内存回收时，当扫描到相关的物理页面时，将其放入不可回收的lru链表</li></ol><p>第一步保证访问的虚拟地址对应的物理页面在内存中，第二步保证了锁住的页面不会被回收。</p><h3 id="vmtouch-source-code"><a href="#vmtouch-source-code" class="headerlink" title="vmtouch source code"></a>vmtouch source code</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://github.com/hoytech/vmtouch/blob/master/vmtouch.c</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">vmtouch_file</span><span class="params">(<span class="keyword">char</span> *path)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    fd = open(path, open_flags, <span class="number">0</span>);</span><br><span class="line">    ...</span><br><span class="line">    mem = mmap(<span class="literal">NULL</span>, len_of_range, PROT_READ, MAP_SHARED, fd, offset);</span><br><span class="line">    ...</span><br><span class="line">    mlock(mem, len_of_range)</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>实现其实也比较简单，基于<code>mmap</code>和<code>mlock</code>即可！</p><hr><p>参考资料:</p><ol><li><a href="https://github.com/hoytech/vmtouch/blob/master/vmtouch.c" target="_blank" rel="noopener">vmtouch.c</a></li><li><a href="https://linux.die.net/man/8/vmtouch" target="_blank" rel="noopener">man vmtouch</a></li><li><a href="https://man7.org/linux/man-pages/man2/mlock.2.html" target="_blank" rel="noopener">man mlock</a></li><li><a href="https://biriukov.dev/docs/page-cache/2-essential-page-cache-theory/" target="_blank" rel="noopener">Essential Page Cache theory</a></li><li><a href="https://biriukov.dev/docs/page-cache/3-page-cache-and-basic-file-operations/" target="_blank" rel="noopener">Page Cache and basic file operations</a></li><li><a href="https://blog.csdn.net/feelabclihu/article/details/123288206" target="_blank" rel="noopener">mlock锁原理剖析</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将会介绍Linux中pin住文件page cache的方法。
+    
+    </summary>
+    
+      <category term="内存管理" scheme="http://liujunming.github.io/categories/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
+    
+    
+      <category term="内存管理" scheme="http://liujunming.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
+    
+  </entry>
   
   <entry>
     <title>Intel new feature:user-timer events</title>
@@ -446,28 +468,6 @@
     
     
       <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about XDP</title>
-    <link href="http://liujunming.github.io/2023/10/22/Notes-about-XDP/"/>
-    <id>http://liujunming.github.io/2023/10/22/Notes-about-XDP/</id>
-    <published>2023-10-22T06:14:58.000Z</published>
-    <updated>2023-10-22T11:12:06.844Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下eXpress Data Path (XDP)相关notes。<a id="more"></a></p><h3 id="What"><a href="#What" class="headerlink" title="What"></a>What</h3><p>XDP其实是位于网卡驱动程序里的一个快速处理数据包的HOOK点，为什么快？因为数据包处理位置非常底层，避开了很多内核skb处理开销。</p><p>XDP暴露了一个可以加载BPF程序的网络钩子。在这个钩子中，程序能够对传入的数据包进行任意修改和快速决策，避免了内核内部处理带来的额外开销。这使得XDP在性能速度方面成为最佳钩子，例如缓解DDoS攻击等。 </p><h3 id="相关工作"><a href="#相关工作" class="headerlink" title="相关工作"></a>相关工作</h3><p><img src="/images/2023/11/016.jpg" alt></p><p><img src="/images/2023/11/015.jpg" alt></p><h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p><img src="/images/2023/11/014.jpg" alt></p><p><img src="/images/2023/11/017.jpg" alt></p><h3 id="Introduction-to-eBPF-and-XDP"><a href="#Introduction-to-eBPF-and-XDP" class="headerlink" title="Introduction to eBPF and XDP"></a>Introduction to eBPF and XDP</h3><ul><li><a href="https://www.bilibili.com/video/BV1qq4y1r7uB/" target="_blank" rel="noopener">B站视频</a></li><li><a href="https://www.slideshare.net/lcplcp1/introduction-to-ebpf-and-xdp" target="_blank" rel="noopener">slides</a></li></ul><p>建议阅读上述资料，会对XDP有不错的认识。</p><p><img src="/images/2023/11/005.jpg" alt></p><p>以DDoS为例:</p><p><img src="/images/2023/11/006.jpg" alt></p><p><img src="/images/2023/11/007.jpg" alt></p><p><img src="/images/2023/11/008.jpg" alt></p><p><img src="/images/2023/11/009.jpg" alt></p><p>The XDP program is executed at the earliest possible moment after a packet is received from the hardware, before the kernel allocates its per-packet <code>sk_buff</code> data structure.</p><p><img src="/images/2023/11/010.jpg" alt></p><p><img src="/images/2023/11/011.jpg" alt></p><p>代码层的理解:<br><img src="/images/2023/11/001.jpg" alt></p><p><img src="/images/2023/11/002.jpg" alt></p><p><img src="/images/2023/11/003.jpg" alt></p><p><img src="/images/2023/11/004.jpg" alt></p><h3 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h3><p><img src="/images/2023/11/012.jpg" alt></p><h3 id="Execution-flow-of-a-typical-XDP-program"><a href="#Execution-flow-of-a-typical-XDP-program" class="headerlink" title="Execution flow of a typical XDP program"></a>Execution flow of a typical XDP program</h3><p><img src="/images/2023/11/013.jpg" alt></p><p>详情参考<a href="https://github.com/tohojo/xdp-paper/blob/master/xdp-the-express-data-path.pdf" target="_blank" rel="noopener">xdp paper</a>3.1 The XDP Driver Hook。</p><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>建议阅读<a href="http://arthurchiao.art/blog/xdp-paper-acm-2018-zh/" target="_blank" rel="noopener">[译] [论文] XDP (eXpress Data Path)：在操作系统内核中实现快速、可编程包处理（ACM，2018）</a>。</p><p>某种意义上来说，XDP 可以认为是一种 offload 方式：</p><ol><li>性能敏感的处理逻辑下放到网卡驱动中，以提升性能；</li><li>其他的处理逻辑仍然走内核网络栈；</li><li>如果没有用到内核 helper 函数，那整个 XDP 程序都可以 offload 到网卡（目前 Netronome smart-NICs已经支持）。</li></ol><hr><p>参考资料:</p><ol><li><a href="https://github.com/tohojo/xdp-paper/blob/master/xdp-the-express-data-path.pdf" target="_blank" rel="noopener">xdp paper</a></li><li><a href="https://github.com/tohojo/xdp-paper/blob/master/xdp-presentation.pdf" target="_blank" rel="noopener">xdp slides</a></li><li><a href="http://arthurchiao.art/blog/xdp-paper-acm-2018-zh/" target="_blank" rel="noopener">[译] [论文] XDP (eXpress Data Path)：在操作系统内核中实现快速、可编程包处理（ACM，2018）</a></li><li><a href="https://mp.weixin.qq.com/s/BqXhOlRisvNXETRj-TehUQ" target="_blank" rel="noopener">初识XDP</a></li><li><a href="https://mp.weixin.qq.com/s/qlgdIAGGv7yQXFGlGA5I8Q" target="_blank" rel="noopener">实现一个基于XDP_eBPF的学习型网桥</a></li><li><a href="https://www.youtube.com/watch?v=arq5XzodNmY" target="_blank" rel="noopener">Introduction to eBPF and XDP</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下eXpress Data Path (XDP)相关notes。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
   </entry>
   

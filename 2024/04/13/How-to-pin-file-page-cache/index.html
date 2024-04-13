@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="MSI/MSI-x及其虚拟化">
+  <meta name="description" content="How to pin file page cache">
 
 
 
 
-  <meta name="keywords" content="虚拟化, PCI&PCIe, 中断, L">
+  <meta name="keywords" content="内存管理, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2022/08/07/MSI-MSI-x及其虚拟化/">
+<link rel="canonical" href="http://liujunming.github.io/2024/04/13/How-to-pin-file-page-cache/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> MSI/MSI-x及其虚拟化 - L </title>
+    <title> How to pin file page cache - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,18 +260,18 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          MSI/MSI-x及其虚拟化
+          How to pin file page cache
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2022-08-07
+          2024-04-13
         </span>
         
           <span class="post-category">
             
-              <a href="/categories/中断/">中断</a>
+              <a href="/categories/内存管理/">内存管理</a>
             
           </span>
         
@@ -281,11 +281,54 @@
 
     
     
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#vmtouch"><span class="toc-text">vmtouch</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#page-cache"><span class="toc-text">page cache</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#mlock"><span class="toc-text">mlock</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#vmtouch-source-code"><span class="toc-text">vmtouch source code</span></a></li></ol>
+    </div>
+  </div>
+
 
 
     <div class="post-content">
       
-        <p><a href="/pdf/深入理解MSI-X中断和中断虚拟化.pdf">深入理解 MSI/MSI-X 中断和中断虚拟化</a><br><a href="/pdf/MSI-x及其虚拟化.pdf">MSI/MSI-x及其虚拟化</a></p>
+        <p>本文将会介绍Linux中pin住文件page cache的方法。<a id="more"></a></p>
+<h3 id="vmtouch"><a href="#vmtouch" class="headerlink" title="vmtouch"></a>vmtouch</h3><blockquote>
+<p>-t<br>Touch virtual memory pages. Reads a byte from each page of the file. If the page is not resident in memory, a page fault will be generated and the page will be read from disk into the file system’s memory cache.<br>-l<br>Lock pages into physical memory. This option works the same as “-t” except it calls mlock(2) on all the memory mappings and doesn’t close the descriptors when finished. The files will be locked in physical memory until the vmtouch process is killed.</p>
+</blockquote>
+<h3 id="page-cache"><a href="#page-cache" class="headerlink" title="page cache"></a>page cache</h3><p><img src="/images/2024/04/005.png" alt></p>
+<p>For read reuqest:</p>
+<ol>
+<li><p>When a user-space application wants to read data from disks, it asks the kernel for data using special system calls such as <code>read()</code>, <code>pread()</code>, <code>vread()</code>, <code>mmap()</code>, <code>sendfile()</code>, etc.</p>
+</li>
+<li><p>Linux kernel, in turn, checks whether the pages are present in Page Cache and immediately returns them to the caller if so. As you can see kernel has made 0 disk operations in this case.</p>
+</li>
+<li><p>If there are no such pages in Page Cache, the kernel must load them from disks. In order to do that, it has to find a place in Page Cache for the requested pages. A memory reclaim process must be performed if there is no free memory (in the caller’s cgroup or system). Afterward, kernel schedules a read disk IO operation, stores the target pages in the memory, and finally returns the requested data from Page Cache to the target process. Starting from this moment, any future requests to read this part of the file (no matter from which process or cgroup) will be handled by Page Cache without any disk IO operation until these pages have not been evicted.</p>
+</li>
+</ol>
+<p>由此可知，<code>mmap()</code> file reads也是会使用到page cache的。</p>
+<h3 id="mlock"><a href="#mlock" class="headerlink" title="mlock"></a>mlock</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">mlock</span><span class="params">(<span class="keyword">const</span> <span class="keyword">void</span> addr[.len], <span class="keyword">size_t</span> len)</span></span>;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>mlock(), mlock2(), and mlockall() lock part or all of the calling process’s virtual address space into RAM, preventing that memory from being paged to the swap area.</p>
+</blockquote>
+<p>实际上内核对mlock锁住的页面主要做了两步比较重要的操作:</p>
+<ol>
+<li>调用mlock的时候就将所需要的物理页面准备好</li>
+<li>内存回收时，当扫描到相关的物理页面时，将其放入不可回收的lru链表</li>
+</ol>
+<p>第一步保证访问的虚拟地址对应的物理页面在内存中，第二步保证了锁住的页面不会被回收。</p>
+<h3 id="vmtouch-source-code"><a href="#vmtouch-source-code" class="headerlink" title="vmtouch source code"></a>vmtouch source code</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// https://github.com/hoytech/vmtouch/blob/master/vmtouch.c</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">vmtouch_file</span><span class="params">(<span class="keyword">char</span> *path)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    fd = open(path, open_flags, <span class="number">0</span>);</span><br><span class="line">    ...</span><br><span class="line">    mem = mmap(<span class="literal">NULL</span>, len_of_range, PROT_READ, MAP_SHARED, fd, offset);</span><br><span class="line">    ...</span><br><span class="line">    mlock(mem, len_of_range)</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实现其实也比较简单，基于<code>mmap</code>和<code>mlock</code>即可！</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://github.com/hoytech/vmtouch/blob/master/vmtouch.c" target="_blank" rel="noopener">vmtouch.c</a></li>
+<li><a href="https://linux.die.net/man/8/vmtouch" target="_blank" rel="noopener">man vmtouch</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/mlock.2.html" target="_blank" rel="noopener">man mlock</a></li>
+<li><a href="https://biriukov.dev/docs/page-cache/2-essential-page-cache-theory/" target="_blank" rel="noopener">Essential Page Cache theory</a></li>
+<li><a href="https://biriukov.dev/docs/page-cache/3-page-cache-and-basic-file-operations/" target="_blank" rel="noopener">Page Cache and basic file operations</a></li>
+<li><a href="https://blog.csdn.net/feelabclihu/article/details/123288206" target="_blank" rel="noopener">mlock锁原理剖析</a></li>
+</ol>
 
       
     </div>
@@ -305,11 +348,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/虚拟化/">虚拟化</a>
-            
-              <a href="/tags/PCI-PCIe/">PCI&PCIe</a>
-            
-              <a href="/tags/中断/">中断</a>
+              <a href="/tags/内存管理/">内存管理</a>
             
           </div>
         
@@ -317,15 +356,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2022/08/11/Notes-about-proc-self/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Notes about /proc/self/</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2022/07/31/Notes-about-TUN-TAP-Interface/">
-        <span class="next-text nav-default">Notes about TUN/TAP Interface</span>
+      <a class="next" href="/2024/04/06/Intel-new-feature-user-timer-events/">
+        <span class="next-text nav-default">Intel new feature:user-timer events</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -438,9 +471,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2022/08/07/MSI-MSI-x及其虚拟化/';
-        this.page.identifier = '2022/08/07/MSI-MSI-x及其虚拟化/';
-        this.page.title = 'MSI/MSI-x及其虚拟化';
+        this.page.url = 'http://liujunming.github.io/2024/04/13/How-to-pin-file-page-cache/';
+        this.page.identifier = '2024/04/13/How-to-pin-file-page-cache/';
+        this.page.title = 'How to pin file page cache';
     };
     (function() {
     var d = document, s = d.createElement('script');
