@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-04-13T08:40:31.063Z</updated>
+  <updated>2024-04-14T10:25:23.037Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Cuckoo hashing</title>
+    <link href="http://liujunming.github.io/2024/04/14/Notes-about-Cuckoo-hashing/"/>
+    <id>http://liujunming.github.io/2024/04/14/Notes-about-Cuckoo-hashing/</id>
+    <published>2024-04-14T00:02:43.000Z</published>
+    <updated>2024-04-14T10:25:23.037Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Cuckoo hashing相关notes。<a id="more"></a></p><h2 id="1-Why"><a href="#1-Why" class="headerlink" title="1. Why"></a>1. Why</h2><p>Cuckoo hashing is a scheme for resolving hash collisions of values of hash functions in a table(解决表中哈希函数值的哈希碰撞问题), with worst-case constant lookup time. </p><h2 id="2-What"><a href="#2-What" class="headerlink" title="2. What"></a>2. What</h2><p>The name derives from the behavior of some species of cuckoo, where the cuckoo chick pushes the other eggs or young out of the nest when it hatches(这一名称源于某些种类杜鹃的行为，即杜鹃雏鸟在孵化时会将其他蛋或幼鸟推出巢外); analogously, inserting a new key into a cuckoo hashing table may push an older key to a different location in the table.</p><h2 id="3-How"><a href="#3-How" class="headerlink" title="3. How"></a>3. How</h2><p>In the basic variant of Cuckoo hashing we use two hash tables <strong>T1</strong> and <strong>T2</strong> of equal size, and we index them with the hash functions <strong>h1</strong>, respectively <strong>h2</strong>. Here are the main operations:</p><h3 id="3-1-Search"><a href="#3-1-Search" class="headerlink" title="3.1 Search"></a>3.1 Search</h3><p>Search couldn’t be easier: an element <strong>x</strong> can exist in one of two locations: in <strong>T1</strong> at position <strong>h1(x)</strong> or in <strong>T2</strong> at position <strong>h2(x)</strong>. We can check both locations in constant time.</p><h3 id="3-2-Delete"><a href="#3-2-Delete" class="headerlink" title="3.2 Delete"></a>3.2 Delete</h3><p>Delete is similarly easy: we look at the two possible locations, and if the element is there, we delete it.</p><h3 id="3-3-Insert"><a href="#3-3-Insert" class="headerlink" title="3.3 Insert"></a>3.3 Insert</h3><p>Insert is a bit trickier: we put <strong>x</strong> in <strong>T1[h1(x)]</strong>. If there was some element <strong>y</strong> stored in that location, <strong>y</strong> must be evicted (thus the name “cuckoo” hashing). We put <strong>y</strong> in its other valid location <strong>T2[h2(y)]</strong>. If that location is occupied by some element <strong>z</strong>, we have to evict <strong>z</strong> and insert it in its other valid location <strong>T1[h1(z)]</strong>. We continue like this until we find an empty place and the process finishes, or until we give up because because we ran into a loop. If the latter happens, we conclude that insert failed, we stop and we rehash everything with new hash functions (increasing the table sizes if the tables are getting too full).</p><h2 id="4-算法细节"><a href="#4-算法细节" class="headerlink" title="4. 算法细节"></a>4. 算法细节</h2><p><img src="/images/2024/04/006.jpg" alt><br>图(a)解析：想插入元素x，用哈希函数h1(x)计算出下标i1，发现巢穴中i1已经存在元素y，于是用x踢开y；y用哈希函数h2(x)计算出下一个下标，发现存在元素z，于是用y踢开z；z用哈希函数h1(x)计算出下一个下标，填充进去，算法结束。</p><p>注意：在T1的元素发生哈希冲突时，用h2(x)去计算下一个下标、在T2的元素发生哈希冲突时，用h1(x)去计算下一个下标。</p><p>图(b)解析：想插入元素x，x踢出y，y踢出z，z踢出u，u踢出v，v踢出x，形成死循环，在T1插入失败；转而在T2插入，x踢出t，t踢出s，s踢出x，形成死循环，在T2插入失败，需要rehash。</p><p><img src="/images/2024/04/008.svg" alt></p><p>Insert算法与上面的图(b)相比，在T1插入失败就会rehash，不会继续尝试往T2中插入；这属于实现细节问题，无需纠结。</p><p><img src="/images/2024/04/009.svg" alt></p><h2 id="5-布谷鸟哈希表-vs-桶链式哈希表"><a href="#5-布谷鸟哈希表-vs-桶链式哈希表" class="headerlink" title="5. 布谷鸟哈希表 vs 桶链式哈希表"></a>5. 布谷鸟哈希表 vs 桶链式哈希表</h2><p><img src="/images/2024/04/007.jpg" alt></p><h2 id="6-总结"><a href="#6-总结" class="headerlink" title="6. 总结"></a>6. 总结</h2><p>cuckoo hashing适合空间需求量大，对读性能要求高，对写性能相对低，操作比例读为主写为辅的场景。理由是基于Cuckoo hashing的优点和缺点。</p><h3 id="6-1-优点"><a href="#6-1-优点" class="headerlink" title="6.1 优点"></a>6.1 优点</h3><ul><li><p>哈希表本身的空间利用率高:当表宽为1(也就是只使用1个hash表)时，最大load factor（多少空间被利用）大概率能到50%；实验显示表宽大于4以后，load factor大概率能到95%</p></li><li><p>查询可以使用两次读完成:表宽不大的情况下，两次（可并行）的cacheline read就能完成一个查询。相比之下查询链式哈希表可能有多次pointer dereference，查询时间方差会大过cuckoo hashing</p></li></ul><h3 id="6-2-缺点"><a href="#6-2-缺点" class="headerlink" title="6.2 缺点"></a>6.2 缺点</h3><ul><li><p>插入操作的复杂度大:当表接近其最大load factor时，会有很多次kick out操作才能完成一次插入</p></li><li><p>读写的高并发算法复杂:不像链式哈希表，每个bucket放一把读写锁就可以实现细粒度的读写并发，cuckoo hashing的写会涉及到多个且事先不预知的bucket，抢锁会复杂</p></li></ul><hr><p>参考资料:</p><ol><li><a href="https://www.lkozma.net/cuckoo_hashing_visualization/" target="_blank" rel="noopener">Cuckoo Hashing Visualization</a></li><li><a href="https://www.di.ens.fr/~vergnaud/algo0910/Cuckoo.pdf" target="_blank" rel="noopener">Cuckoo hashing paper</a></li><li><a href="https://www.wikiwand.com/en/Cuckoo_hashing" target="_blank" rel="noopener">Wikipedia</a></li><li><a href="https://www.baeldung.com/cs/cuckoo-hashing" target="_blank" rel="noopener">baeldung:Cuckoo Hashing</a></li><li><a href="https://zhuanlan.zhihu.com/p/442498412" target="_blank" rel="noopener">布谷鸟哈希和布谷鸟过滤器</a></li><li><a href="https://zhuanlan.zhihu.com/p/594818514" target="_blank" rel="noopener">布谷鸟哈希（Cuckoo hash）</a></li><li><a href="https://www.zhihu.com/question/28544694?utm_id=0" target="_blank" rel="noopener">Cuckoo hashing主要适合在哪些场景使用?</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Cuckoo hashing相关notes。
+    
+    </summary>
+    
+      <category term="数据结构" scheme="http://liujunming.github.io/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
+    
+    
+      <category term="数据结构" scheme="http://liujunming.github.io/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about linux DAX</title>
@@ -442,30 +464,6 @@
     
     
       <category term="live migration" scheme="http://liujunming.github.io/tags/live-migration/"/>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NVMe Namespaces</title>
-    <link href="http://liujunming.github.io/2023/12/02/Notes-about-NVMe-Namespaces/"/>
-    <id>http://liujunming.github.io/2023/12/02/Notes-about-NVMe-Namespaces/</id>
-    <published>2023-12-02T12:20:04.000Z</published>
-    <updated>2024-01-06T07:24:22.343Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下NVMe Namespaces相关notes。<a id="more"></a></p><ul><li>What is the meaning of nvme0n1 nvme0n2 nvme1n1 nvme1n2 in Linux?<ul><li>nvmeXnY: X means controller, Y means namespace</li></ul></li><li>NVMe controller<ul><li>A PCI Express function that implements the NVM Express interface</li></ul></li><li>NVMe namespace<ul><li>A namespace is a collection of logical block addresses (LBA) accessible to host software. A namespace ID (NSID) is an identifier used by a controller to provide access to a namespace. A namespace is not the physical isolation of blocks, rather the isolation of logical blocks addressable by the host software</li></ul></li><li>A NVM Express controller may support multiple namespaces that are referenced using a namespace ID</li></ul><p><img src="/images/2023/12/001.jpg" alt></p><p>无需理解LUNs。</p><p><img src="/images/2023/12/002.jpg" alt><br>无需理解vSAN。</p><hr><p>参考资料:</p><ol><li><a href="https://www.snia.org/sites/default/files/SDCEMEA/2020/4%20-%20Or%20Lapid%20Micron%20-%20Understanding%20NVMe%20namespaces%20-%20Final.pdf" target="_blank" rel="noopener">NVMe™ Namespaces:Micron Storage Solutions Engineering</a></li><li><a href="https://nvmexpress.org/resource/nvme-namespaces/" target="_blank" rel="noopener">NVMe Namespaces</a></li><li><a href="https://narasimhan-v.github.io/2020/06/12/Managing-NVMe-Namespaces.html" target="_blank" rel="noopener">Managing Nvme Namespaces</a></li><li><a href="https://unix.stackexchange.com/questions/520231/what-are-nvme-namespaces-how-do-they-work" target="_blank" rel="noopener">What are nvme namespaces? How do they work?</a></li><li><a href="https://www.flashmemorysummit.com/English/Collaterals/Proceedings/2013/20130812_PreConfD_Marks.pdf" target="_blank" rel="noopener">An NVM Express Tutorial</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下NVMe Namespaces相关notes。
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
     
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
