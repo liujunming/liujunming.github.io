@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-04-14T10:25:23.037Z</updated>
+  <updated>2024-04-21T11:58:51.760Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>深入理解intel vmfunc指令</title>
+    <link href="http://liujunming.github.io/2024/04/21/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3intel-vmfunc%E6%8C%87%E4%BB%A4/"/>
+    <id>http://liujunming.github.io/2024/04/21/深入理解intel-vmfunc指令/</id>
+    <published>2024-04-21T11:31:37.000Z</published>
+    <updated>2024-04-21T11:58:51.760Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p>VMFUNC is an Intel hardware instruction that allows software in non-root mode (in both kernel and user modes) to invoke a VM function. VM functions are processor features managed by the hypervisor. EPTP (the pointer to an EPT) switching is one of these VM functions<a id="more"></a>, which allows the guest to load a new value for the EPTP from an EPTP list stored in the Virtual Machine Control Structure (VMCS) configured by the hypervisor. The new EPT then translates subsequent guest physical addresses (GPA) to host physical addresses (HPA). The EPTP list can hold at most 512 EPTP entries. The typical usage of EPTP switching is to create multiple domains for one physical address space and these domains usually have different memory mappings and privileges. With the Virtual Processor ID (VPID) feature enabled, the VMFUNC instruction does not flush TLB. </p><h3 id="Details"><a href="#Details" class="headerlink" title="Details"></a>Details</h3><p><img src="/images/2024/04/010.jpg" alt></p><p><img src="/images/2024/04/011.jpg" alt></p><p><img src="/images/2024/04/012.jpg" alt></p><p><img src="/images/2024/04/013.jpg" alt></p><p><img src="/images/2024/04/014.jpg" alt></p><h3 id="Q-amp-A"><a href="#Q-amp-A" class="headerlink" title="Q&amp;A"></a>Q&amp;A</h3><p>Q: TLB是gva-&gt;hpa的映射，EPTP切换之后，此时HPA可能会发生变化，那么vmfunc需要flush TLB吗？</p><p>A: The logical processor starts creating and using guest-physical and combined mappings associated with the new value of bits 51:12 of EPTP; the combined mappings created and used are associated with the current VPID and PCID (these are not changed by VMFUNC).<br>当enable VPID时，硬件会重新creating mappings！所以是由硬件保证了TLB的正确性，无需flush TLB!</p><hr><p>参考资料:</p><ol><li><a href="https://www.cse.unsw.edu.au/~cs9242/19/exam/paper1.pdf" target="_blank" rel="noopener">SkyBridge: Fast and Secure Inter-Process Communication for Microkernels</a></li><li>Intel SDM Vol3</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h3 id=&quot;Overview&quot;&gt;&lt;a href=&quot;#Overview&quot; class=&quot;headerlink&quot; title=&quot;Overview&quot;&gt;&lt;/a&gt;Overview&lt;/h3&gt;&lt;p&gt;VMFUNC is an Intel hardware instruction that allows software in non-root mode (in both kernel and user modes) to invoke a VM function. VM functions are processor features managed by the hypervisor. EPTP (the pointer to an EPT) switching is one of these VM functions
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Cuckoo hashing</title>
@@ -169,9 +191,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
-    
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
     
   </entry>
   
@@ -442,32 +464,6 @@
     
     
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Standardizing Live Migration with NVM Express</title>
-    <link href="http://liujunming.github.io/2023/12/03/Notes-about-Standardizing-Live-Migration-with-NVM-Express/"/>
-    <id>http://liujunming.github.io/2023/12/03/Notes-about-Standardizing-Live-Migration-with-NVM-Express/</id>
-    <published>2023-12-03T12:06:55.000Z</published>
-    <updated>2023-12-03T14:03:01.465Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要是mark下<a href="https://drive.google.com/file/d/1obwZNWd89MPfrZWSsj24ub0N7JHJZ6FU/view?usp=drive_link" target="_blank" rel="noopener">Standardizing Live Migration with NVM Express®</a>相关notes，相关细节可以参考原文。<a id="more"></a></p><p><img src="/images/2023/12/005.jpg" alt></p><p>slides中有如下描述：</p><blockquote><p>Host may use a new mechanism to throttle commands processing by migrating controller to slow down changes</p></blockquote><p>其对应的是:</p><blockquote><p>Support limit the BW and IOPS of a controller to allow slowing down of command processing on a migrating controller</p></blockquote><p>这是QoS的相关实现，考虑写磁盘多的workload，不限速的话，最后一轮的脏LBAs可能会很多，downtime就会有些大了。</p><p>原文考虑了本地盘与非本地盘的NVMe Live Migration。</p><p>对于本地盘的情况，需要记录脏的LBAs，在热迁移每轮迭代中，会传输脏的LBAs(类似于热迁移的脏页传输)。</p><p>对于非本地盘的情况，其实就无效考虑脏的LBAs了。</p><p>对于IPU/DPU的NVMe Live Migration，详情可以参考<a href="https://mp.weixin.qq.com/s/GnN06H864XuXU41-jFH4jA" target="_blank" rel="noopener">NVMe VFIO Live Migration for IPU/DPU Devices</a>。</p><p><img src="/images/2023/12/003.jpg" alt></p><p><img src="/images/2023/12/004.jpg" alt><br>值得注意的是，如果host上的IOMMU支持DMA脏页记录的话，就无需NVMe Device自己去记录DMA脏页了。</p><hr><p>参考资料:</p><ol><li><a href="https://nvmexpress.org/wp-content/uploads/FMS-2023-Host-Controlled-Live-Migration.pdf" target="_blank" rel="noopener">FMS 2023 Host Controlled Live Migration</a></li><li><a href="https://www.bilibili.com/video/BV19N4y1S74F/" target="_blank" rel="noopener">Standardizing Live Migration with NVM Express®</a></li><li><a href="https://www.opencompute.org/events/past-events/2023-ocp-global-summit" target="_blank" rel="noopener">2023 OCP Global Summit</a></li><li><a href="https://mp.weixin.qq.com/s/GnN06H864XuXU41-jFH4jA" target="_blank" rel="noopener">NVMe VFIO Live Migration for IPU/DPU Devices</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要是mark下&lt;a href=&quot;https://drive.google.com/file/d/1obwZNWd89MPfrZWSsj24ub0N7JHJZ6FU/view?usp=drive_link&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Standardizing Live Migration with NVM Express®&lt;/a&gt;相关notes，相关细节可以参考原文。
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
-    
-      <category term="live migration" scheme="http://liujunming.github.io/tags/live-migration/"/>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
     
   </entry>
   
