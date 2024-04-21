@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-04-21T11:58:51.760Z</updated>
+  <updated>2024-04-21T12:28:28.358Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -21,9 +21,9 @@
     <link href="http://liujunming.github.io/2024/04/21/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3intel-vmfunc%E6%8C%87%E4%BB%A4/"/>
     <id>http://liujunming.github.io/2024/04/21/深入理解intel-vmfunc指令/</id>
     <published>2024-04-21T11:31:37.000Z</published>
-    <updated>2024-04-21T11:58:51.760Z</updated>
+    <updated>2024-04-21T12:28:28.358Z</updated>
     
-    <content type="html"><![CDATA[<h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p>VMFUNC is an Intel hardware instruction that allows software in non-root mode (in both kernel and user modes) to invoke a VM function. VM functions are processor features managed by the hypervisor. EPTP (the pointer to an EPT) switching is one of these VM functions<a id="more"></a>, which allows the guest to load a new value for the EPTP from an EPTP list stored in the Virtual Machine Control Structure (VMCS) configured by the hypervisor. The new EPT then translates subsequent guest physical addresses (GPA) to host physical addresses (HPA). The EPTP list can hold at most 512 EPTP entries. The typical usage of EPTP switching is to create multiple domains for one physical address space and these domains usually have different memory mappings and privileges. With the Virtual Processor ID (VPID) feature enabled, the VMFUNC instruction does not flush TLB. </p><h3 id="Details"><a href="#Details" class="headerlink" title="Details"></a>Details</h3><p><img src="/images/2024/04/010.jpg" alt></p><p><img src="/images/2024/04/011.jpg" alt></p><p><img src="/images/2024/04/012.jpg" alt></p><p><img src="/images/2024/04/013.jpg" alt></p><p><img src="/images/2024/04/014.jpg" alt></p><h3 id="Q-amp-A"><a href="#Q-amp-A" class="headerlink" title="Q&amp;A"></a>Q&amp;A</h3><p>Q: TLB是gva-&gt;hpa的映射，EPTP切换之后，此时HPA可能会发生变化，那么vmfunc需要flush TLB吗？</p><p>A: The logical processor starts creating and using guest-physical and combined mappings associated with the new value of bits 51:12 of EPTP; the combined mappings created and used are associated with the current VPID and PCID (these are not changed by VMFUNC).<br>当enable VPID时，硬件会重新creating mappings！所以是由硬件保证了TLB的正确性，无需flush TLB!</p><hr><p>参考资料:</p><ol><li><a href="https://www.cse.unsw.edu.au/~cs9242/19/exam/paper1.pdf" target="_blank" rel="noopener">SkyBridge: Fast and Secure Inter-Process Communication for Microkernels</a></li><li>Intel SDM Vol3</li></ol>]]></content>
+    <content type="html"><![CDATA[<h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p>VMFUNC is an Intel hardware instruction that allows software in non-root mode (in both kernel and user modes) to invoke a VM function. VM functions are processor features managed by the hypervisor. EPTP (the pointer to an EPT) switching is one of these VM functions<a id="more"></a>, which allows the guest to load a new value for the EPTP from an EPTP list stored in the Virtual Machine Control Structure (VMCS) configured by the hypervisor. The new EPT then translates subsequent guest physical addresses (GPA) to host physical addresses (HPA). The EPTP list can hold at most 512 EPTP entries. The typical usage of EPTP switching is to create multiple domains for one physical address space and these domains usually have different memory mappings and privileges. With the Virtual Processor ID (VPID) feature enabled, the VMFUNC instruction does not flush TLB. </p><h3 id="Details"><a href="#Details" class="headerlink" title="Details"></a>Details</h3><p><img src="/images/2024/04/010.jpg" alt></p><p><img src="/images/2024/04/011.jpg" alt></p><p><img src="/images/2024/04/012.jpg" alt></p><p><img src="/images/2024/04/013.jpg" alt></p><p><img src="/images/2024/04/014.jpg" alt></p><h3 id="Q-amp-A"><a href="#Q-amp-A" class="headerlink" title="Q&amp;A"></a>Q&amp;A</h3><p>Q: TLB是gva-&gt;hpa的映射，EPTP切换之后，此时HPA可能会发生变化，那么vmfunc需要flush TLB吗？</p><p>A: The logical processor starts creating and using guest-physical and combined mappings associated with the new value of bits 51:12 of EPTP; the combined mappings created and used are associated with the current VPID and PCID (these are not changed by VMFUNC).<br>当enable VPID时，硬件会重新creating mappings！所以是由硬件保证了TLB的正确性，无需flush TLB!<br>笔者猜测硬件的行为：执行vmfunc命令时，处理器会检查TLB中当前VPID和PCID的相关entry，然后更新TLB中的相关entry(比如会更新HPA的值或者权限)。</p><hr><p>参考资料:</p><ol><li><a href="https://www.cse.unsw.edu.au/~cs9242/19/exam/paper1.pdf" target="_blank" rel="noopener">SkyBridge: Fast and Secure Inter-Process Communication for Microkernels</a></li><li>Intel SDM Vol3</li></ol>]]></content>
     
     <summary type="html">
     
@@ -35,6 +35,8 @@
     
     
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
     
   </entry>
   
@@ -191,9 +193,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
       <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
   </entry>
   

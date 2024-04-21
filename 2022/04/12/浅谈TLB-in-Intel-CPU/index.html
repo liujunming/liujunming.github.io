@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-TLB"><span class="toc-text">1. TLB</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Why"><span class="toc-text">1.1 Why</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-What"><span class="toc-text">1.2 What</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-全局TLB-flush"><span class="toc-text">2. 全局TLB flush</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Global-page"><span class="toc-text">3. Global page</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-PCID"><span class="toc-text">4. PCID</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-Overlap-between-PCID-and-Global-page"><span class="toc-text">4.1 Overlap between PCID and Global page</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-TLB-shootdown"><span class="toc-text">5. TLB shootdown</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-VPID"><span class="toc-text">6. VPID</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-Rethinking-Protection-Keys"><span class="toc-text">7. Rethinking Protection Keys</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-TLB"><span class="toc-text">1. TLB</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Why"><span class="toc-text">1.1 Why</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-What"><span class="toc-text">1.2 What</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-全局TLB-flush"><span class="toc-text">2. 全局TLB flush</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Global-page"><span class="toc-text">3. Global page</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-PCID"><span class="toc-text">4. PCID</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-Overlap-between-PCID-and-Global-page"><span class="toc-text">4.1 Overlap between PCID and Global page</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-TLB-shootdown"><span class="toc-text">5. TLB shootdown</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-VPID"><span class="toc-text">6. VPID</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-Q-amp-A"><span class="toc-text">7. Q&amp;A</span></a></li></ol>
     </div>
   </div>
 
@@ -306,14 +306,10 @@
 <h2 id="6-VPID"><a href="#6-VPID" class="headerlink" title="6. VPID"></a>6. VPID</h2><p>虚拟化下，以(VA,进程信息)已经不能唯一索引TLB Entry了，因为不同virtual processors间，可能产生相同的(VA,进程信息)二元组，为此，在同一个物理CPU上，不同vCPU调度时，Hypervisor需要flush掉所有的TLB Entries。为此，VPID(Virtual-Processor IDentifier)应运而生。以(VA,进程信息，virtual processor信息)这个三元组来唯一索引TLB Entry。这样，在同一个物理CPU上，不同vCPU调度时，Hypervisor无需flush掉TLB Entries。</p>
 <p>当然，VPID与PCID的使用不是绑定的，要看具体(Hypervisor和Guest OS)的实现了。例如，Hypervisor可以使用VPID，Guest OS不使用PCID，那么，此刻硬件是以(VA,virtual processor信息)来索引TLB Entry了。在同一个物理CPU上，不同vCPU调度时，Hypervisor无需flush掉TLB Entries，但是，在Guest OS中，每次进程切换时，Guest OS需要Flush掉TLB Entries来保证正确性。</p>
 <p><img src="/images/2022/04/70.PNG" alt></p>
-<h2 id="7-Rethinking-Protection-Keys"><a href="#7-Rethinking-Protection-Keys" class="headerlink" title="7. Rethinking Protection Keys"></a>7. Rethinking Protection Keys</h2><p>之前已经介绍过了<a href="/2020/03/07/Introduction-to-pkeys/">PKU</a>与<a href="/2022/02/27/Introduction-to-PKS/">PKS</a>，这里，从TLB的视角，重新看下Protection Keys。</p>
+<h2 id="7-Q-amp-A"><a href="#7-Q-amp-A" class="headerlink" title="7. Q&amp;A"></a>7. Q&amp;A</h2><p>之前已经介绍过了<a href="/2020/03/07/Introduction-to-pkeys/">PKU</a>与<a href="/2022/02/27/Introduction-to-PKS/">PKS</a>，这里，从TLB的视角，重新看下Protection Keys。</p>
 <p>Memory Protection Keys (pkeys) are an extension to existing page-based memory permissions. Normal page permissions using page tables require expensive system calls and TLB invalidations when changing permissions. Memory Protection Keys provide a mechanism for changing protections without requiring modification of the page tables on every permission change.</p>
-<p>Protection Keys是无需flush TLB的。留下的open是：</p>
-<ol>
-<li>通过Protection Keys更改permissions，最终硬件是否会更改物理TLB Entry中的access rights位呢?</li>
-<li>如果1成立的话，对于Multiple Processors，是否需要类似于propagating这个过程呢？这个过程是由软件or硬件来完成呢？</li>
-</ol>
-<p>这些问题我当前并不知道答案，等待后续的更新。</p>
+<p>Protection Keys是无需flush TLB的。此时有如下两个question：<br>Q1. 通过Protection Keys更改permissions，最终硬件是否会更改物理TLB Entry中的access rights位呢?<br>Q2. 如果1成立的话，对于Multiple Processors，是否需要类似于propagating这个过程呢？这个过程是由软件or硬件来完成呢？</p>
+<p>笔者猜测硬件的行为：<br>A1. 通过Protection Keys更改permissions，最终硬件会更改物理TLB Entry中的access rights位<br>A2. 对于Multiple Processors，硬件会完成类似于propagating的过程</p>
 
       
     </div>
