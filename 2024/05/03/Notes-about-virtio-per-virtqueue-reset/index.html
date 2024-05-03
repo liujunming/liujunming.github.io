@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about virtio per-virtqueue reset">
+
+
+
+
+  <meta name="keywords" content="virtio, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/05/03/Notes-about-virtio-per-virtqueue-reset/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about virtio per-virtqueue reset - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about virtio per-virtqueue reset
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-05-03
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/virtio/">virtio</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Motivation"><span class="toc-text">Motivation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Implementation-Process"><span class="toc-text">Implementation Process</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Usage"><span class="toc-text">Usage</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Spec-Details"><span class="toc-text">Spec Details</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下virtio per-virtqueue reset特性的相关notes，主要内容转载自<a href="https://developer.aliyun.com/article/996430" target="_blank" rel="noopener">virtio 1.2 来了！</a>。<a id="more"></a></p>
+<h2 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h2><p>引入这个特性的目的是解决virtio-net不支持队列级别的reset操作的问题。这在很多现代化的网卡中是一个比较常见的功能, 是实现很多功能的基础能力, 为了让 virtio-net 支持更多能力, 这个特性的引入是必须的。但是 Per-virtqueue reset 并不只限于 virtio-net 这一种设备，它是一个 virtio 的基础能力，相信其它的 virtio 设备也会慢慢支持这个 feature。</p>
+<h2 id="Implementation-Process"><a href="#Implementation-Process" class="headerlink" title="Implementation Process"></a>Implementation Process</h2><p>Per-virtqueue reset 由 driver 针对某一个队列发起，基于某一种 transport(比如 PCIe) 通知 device。device 停止使用队列，driver 在 reset 之后可以重新 re-enable 队列。virtio spec 定义了这个过程中详细的交互流程和信息。<br>以下是 virtio spec 中定义的详细流程：</p>
+<ul>
+<li>driver 基于 transport 通知 device 某个指定的队列要 reset。</li>
+<li>device 收到请求之后设置 reset 状态为 1，停止此队列的所有操作，包括中断等，并设置队列的所有的状态到初始值。在 device 完成 reset 操作之前，返回给 driver 的 reset 状态都是 1，直到 reset 操作完成。reset 完成之后 reset 及 enable 的值都要设置成 0。</li>
+<li>driver 在检查到队列的 reset 状态变成 0 之后，就表示device reset 操作已经完成了。这个时候开始，driver 就可以安全地回收队列占用的相关资源了。</li>
+</ul>
+<p>到此 driver 对于队列的 reset 操作就已经完成了。</p>
+<ul>
+<li>之后 virtio driver 可选地进行 re-enable 操作，在操作的过程中，driver 可以给 device 新的参数来 re-enable 这个队列。比如新的队列大小。</li>
+</ul>
+<p>以上是一个完整的 reset &amp; re-enable 的过程，理论上 re-enable 是可选的。</p>
+<h2 id="Usage"><a href="#Usage" class="headerlink" title="Usage"></a>Usage</h2><p>对于现代的很多硬件设备来讲，对于队列进行 reset 是一个比较常见的功能，所以这个功能的引入让 virtio 设备更加现代化。早期 virtio 的出现是伴随着高性能的需求而来的，我们原来更加关注它在性能上的基本功能，一些高级功能并不重视。per-virtqueue reset 让 virtio 对于队列的使用更加灵活，譬如我们可以基于 per-vertqueue reset 实现下面两个功能：</p>
+<ol>
+<li>调整virtio-net 网卡队列的ring size。在 virtio-net 的场景下，基于 per-virtqueue reset 我们可以实现网卡队列 ring size 的调整。目前一般的网卡都支持使用<code>ethtool -G eth0 rx &lt;new size&gt; tx &lt;new size&gt;</code>来调整队列的大小，但是原来的 virtio-net 一直是不支持这样一个简单的功能的，现在基于 per-virtqueue reset，我们很快就可以在 Linux 下使用这个命令来调整队列的大小。</li>
+<li>支持AF_XDP，扩展云上应用的边界。除了应用于上述简单的场景之外，我们还可以在更高级的场景应用到这个功能。<strong>per-virtqueue reset 也可以视作一种资源的快速回收机制</strong>。比如在 virtio-net 的情况下，我们必须要等待收到新的数据包或者硬件完成数据包的发送才能完成对于 buffer 资源的回收。而现在基于 per-virtqueue reset，driver 可以不用被动地等待而是可以主动调用 reset 快速地让 device 释放对于某个队列上的 buffer 资源的占用，实现资源的快速回收。这可以让 virtio-net 支持 AF_XDP 这样的高级功能，实现在 linux 内核框架下的高性能收发包。</li>
+</ol>
+<h2 id="Spec-Details"><a href="#Spec-Details" class="headerlink" title="Spec Details"></a>Spec Details</h2><p>per-virtqueue reset的细节请参考<a href="https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html" target="_blank" rel="noopener">virtio 1.2 spec</a>。</p>
+<p><a href="https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html#x1-280001" target="_blank" rel="noopener">2.6.1 Virtqueue Reset</a></p>
+<blockquote>
+<p><strong>VIRTIO_F_RING_RESET(40)</strong> This feature indicates that the driver can reset a queue individually.</p>
+</blockquote>
+<blockquote>
+<p>2.6.1.1.2 Driver Requirements: Virtqueue Reset<br>After the driver tells the device to reset a queue, the driver MUST verify that the queue has actually been reset.<br>After the queue has been successfully reset, the driver MAY release any resource associated with that virtqueue.</p>
+</blockquote>
+<blockquote>
+<p>2.6.1.2.1 Device Requirements: Virtqueue Re-enable<br>The device MUST observe any queue configuration that may have been changed by the driver, like the maximum queue size.</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">virtio_pci_common_cfg</span> &#123;</span> </span><br><span class="line">        ...</span><br><span class="line"> </span><br><span class="line">        <span class="comment">/* About a specific virtqueue. */</span> </span><br><span class="line">        le16 queue_select;              <span class="comment">/* read-write */</span> </span><br><span class="line">        le16 queue_size;                <span class="comment">/* read-write */</span> </span><br><span class="line">        le16 queue_msix_vector;         <span class="comment">/* read-write */</span> </span><br><span class="line">        le16 queue_enable;              <span class="comment">/* read-write */</span> </span><br><span class="line">        ...</span><br><span class="line">        le16 queue_reset;               <span class="comment">/* read-write */</span> </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><strong>queue_size</strong><br>Queue Size. On reset, specifies the maximum queue size supported by the device. This can be modified by the driver to reduce memory requirements.</p>
+<p><strong>queue_reset</strong><br>The driver uses this to selectively reset the queue.</p>
+</blockquote>
+<blockquote>
+<p><strong>4.1.4.3.1 Device Requirements: Common configuration structure layout</strong><br>If VIRTIO_F_RING_RESET has been negotiated, the device MUST present a 0 in queue_reset on reset.<br>If VIRTIO_F_RING_RESET has been negotiated, the device MUST present a 0 in queue_reset after the virtqueue is enabled with queue_enable.<br>The device MUST reset the queue when 1 is written to queue_reset. The device MUST continue to present 1 in queue_reset as long as the queue reset is ongoing. The device MUST present 0 in both queue_reset and queue_enable when queue reset has completed.</p>
+</blockquote>
+<blockquote>
+<p><strong>4.1.4.3.2 Driver Requirements: Common configuration structure layout</strong><br>If VIRTIO_F_RING_RESET has been negotiated, after the driver writes 1 to queue_reset to reset the queue, the driver MUST NOT consider queue reset to be complete until it reads back 0 in queue_reset. The driver MAY re-enable the queue by writing 1 to queue_enable after ensuring that other virtqueue fields have been set up correctly. The driver MAY set driver-writeable queue configuration values to different values than those that were used before the queue reset.</p>
+</blockquote>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.alibabacloud.com/blog/virtio-1-2-is-coming_599615" target="_blank" rel="noopener">Virtio 1.2 is Coming!</a></li>
+<li><a href="https://developer.aliyun.com/article/996430" target="_blank" rel="noopener">virtio 1.2 来了！</a></li>
+<li><a href="https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html" target="_blank" rel="noopener">virtio 1.2 spec</a></li>
+<li><a href="https://lore.kernel.org/kvm/20220801063902.129329-1-xuanzhuo@linux.alibaba.com/" target="_blank" rel="noopener">virtio pci support VIRTIO_F_RING_RESET</a></li>
+<li><a href="https://lists.oasis-open.org/archives/virtio-dev/202111/msg00013.html" target="_blank" rel="noopener">virtio: pci support virtqueue reset</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/virtio/">virtio</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/05/03/Notes-about-AF-XDP/">
+        <span class="next-text nav-default">Notes about AF_XDP</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/05/03/Notes-about-virtio-per-virtqueue-reset/';
+        this.page.identifier = '2024/05/03/Notes-about-virtio-per-virtqueue-reset/';
+        this.page.title = 'Notes about virtio per-virtqueue reset';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
