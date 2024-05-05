@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-05-05T10:10:54.472Z</updated>
+  <updated>2024-05-05T11:00:32.845Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about UDP Segmentation Offload</title>
+    <link href="http://liujunming.github.io/2024/05/05/Notes-about-UDP-Segmentation-Offload/"/>
+    <id>http://liujunming.github.io/2024/05/05/Notes-about-UDP-Segmentation-Offload/</id>
+    <published>2024-05-05T10:31:32.000Z</published>
+    <updated>2024-05-05T11:00:32.845Z</updated>
+    
+    <content type="html"><![CDATA[<p>UDP Segmentation Offload(USO)，有时候也叫UDP Fragmentation Offload(UFO)。本文将mark下USO相关notes。</p><p>UDP Segmentation Offload (USO)is a feature that enables network interface cards (NICs) to offload the segmentation of UDP datagrams that are larger than the maximum transmission unit (MTU) of the network medium. <a id="more"></a></p><p>UDP fragmentation offload allows a device to fragment an oversized UDP datagram into multiple IPv4 fragments.</p><p>UDP 协议层本身不对大的数据报进行分片，而是交给IP层去做。因此，UFO 就是将IP层分片工作offload 到网卡(NIC)中进行，其原理同<a href="/2023/04/23/Notes-about-TSO、GSO、LRO、GRO/#TSO">TSO</a>。</p><blockquote><p>“IPv4/IPv6: UFO (UDP Fragmentation Offload) Scatter-gather approach: UFO is a feature wherein the Linux kernel network stack will offload the IP fragmentation functionality of large UDP datagram to hardware. This will reduce the overhead of stack in fragmenting the large UDP datagram to MTU sized packets”</p></blockquote><hr><p>参考资料:</p><ol><li><a href="https://www.cnblogs.com/sammyliu/p/5227121.html" target="_blank" rel="noopener">理解 Linux 网络栈（2）：非虚拟化Linux 环境中的 Segmentation Offloading 技术 </a></li><li><a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/network/udp-segmentation-offload-uso-" target="_blank" rel="noopener">UDP Segmentation Offload (USO)</a></li><li><a href="https://www.kernel.org/doc/html/next/networking/segmentation-offloads.html" target="_blank" rel="noopener">Segmentation Offloads</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;UDP Segmentation Offload(USO)，有时候也叫UDP Fragmentation Offload(UFO)。本文将mark下USO相关notes。&lt;/p&gt;
+&lt;p&gt;UDP Segmentation Offload (USO)is a feature that enables network interface cards (NICs) to offload the segmentation of UDP datagrams that are larger than the maximum transmission unit (MTU) of the network medium.
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about RSS(Receive Side Scaling)</title>
@@ -441,30 +464,6 @@
       <category term="I/O系统" scheme="http://liujunming.github.io/tags/I-O%E7%B3%BB%E7%BB%9F/"/>
     
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>深入理解VMDq(Virtual Machine Device Queue)</title>
-    <link href="http://liujunming.github.io/2024/01/27/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3VMDq-Virtual-Machine-Device-Queue/"/>
-    <id>http://liujunming.github.io/2024/01/27/深入理解VMDq-Virtual-Machine-Device-Queue/</id>
-    <published>2024-01-27T12:31:01.000Z</published>
-    <updated>2024-01-28T09:06:50.969Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将深入探究VMDq(Virtual Machine Device Queue)相关内容。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>强烈建议观看视频<a href="https://www.youtube.com/watch?v=QvKXbpV6WXk" target="_blank" rel="noopener">Intel VMDq Explanation</a>，非常清晰地介绍了VMDq，下面主要是视频中的概要总结，将以Without VMDq与With VMDq来做对比。</p><h3 id="Without-VMDq"><a href="#Without-VMDq" class="headerlink" title="Without VMDq"></a>Without VMDq</h3><p>A single core(you have one core that’s actually in charge of handling every packet before it determines which other core interrupt for the action, copy the data to the target vm) cannot keep up with 10 Gbps of data. Most packets coming in require two interrupts, one for the core assigned to handle Ethernet interrupts, followed by an interrupt of the core processing the VM where the packet is targetd for.</p><h3 id="With-VMDq"><a href="#With-VMDq" class="headerlink" title="With VMDq"></a>With VMDq</h3><p>Receive Path</p><ul><li>Data packets for different VMs get sorted at the Ethernet silicon based on MAC address/VLAN tags</li><li>Sorted data packets get parsed to the respective VMs</li><li>Data packets being received by respective VMs</li></ul><p>Reduces overhead and increases throughput by sorting packets with the Intel Ethernet Controller and spreading the workload amongst multiple CPU cores.</p><h2 id="Details"><a href="#Details" class="headerlink" title="Details"></a>Details</h2><p>这节主要是mark下<a href="https://www.intel.sg/content/dam/www/public/us/en/documents/white-papers/vmdq-technology-paper.pdf" target="_blank" rel="noopener">Intel® VMDq Technology white paper</a>中的关键notes。</p><p><img src="/images/2024/01/009.jpg" alt></p><p><img src="/images/2024/01/010.jpg" alt></p><h2 id="VMDq-vs-SR-IOV"><a href="#VMDq-vs-SR-IOV" class="headerlink" title="VMDq vs SR-IOV"></a>VMDq vs SR-IOV</h2><ul><li><p>VMDq<br>VMM在服务器的物理网卡中为每个虚机分配一个独立的队列，这样虚机出来的流量可以直接经过软件交换机发送到指定队列上，软件交换机无需进行排序和路由操作。<br>但是，VMM和虚拟交换机仍然需要将网络流量在VMDq和虚机之间进行复制。</p></li><li><p>SR-IOV<br>对于SR-IOV来说，则更加彻底，它通过创建不同虚拟功能（VF）的方式，呈现给虚拟机的就是独立的网卡，因此，虚拟机直接跟网卡通信，不需要经过软件交换机，VF和VM之间通过DMA进行高速数据传输，SR-IOV的性能是最好的。</p></li></ul><p><img src="/images/2024/01/011.jpeg" alt></p><p>Unlike SR-IOV, which exposes a complete device interface to the virtual machine guest, VMDq only provides network queues to the virtual machine guest.</p><p>VMDq只是一个过渡性的技术，当前已经被SR-IOV所替代。</p><hr><p>参考资料:</p><ol><li><a href="https://www.youtube.com/watch?v=QvKXbpV6WXk" target="_blank" rel="noopener">Intel VMDq Explanation</a></li><li><a href="https://www.intel.sg/content/dam/www/public/us/en/documents/white-papers/vmdq-technology-paper.pdf" target="_blank" rel="noopener">Intel® VMDq Technology white paper</a></li><li><a href="https://blog.csdn.net/yeasy/article/details/39178335" target="_blank" rel="noopener">网卡虚拟化技术：VMDq和SR-IOV</a></li><li>CompSC: live migration with pass-through devices</li><li><a href="https://forum.huawei.com/enterprise/en/what-is-the-difference-between-sr-iov-and-vmdq/thread/667229636603559936-667213860102352896" target="_blank" rel="noopener">What is the difference between SR-IOV and VMDQ?</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将深入探究VMDq(Virtual Machine Device Queue)相关内容。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
   </entry>
   
