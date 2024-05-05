@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about RSS(Receive Side Scaling)">
+
+
+
+
+  <meta name="keywords" content="计算机网络, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/05/05/Notes-about-RSS-Receive-Side-Scaling/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about RSS(Receive Side Scaling) - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about RSS(Receive Side Scaling)
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-05-05
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机网络/">计算机网络</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Overview"><span class="toc-text">1. Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Hash计算"><span class="toc-text">2. Hash计算</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-RSS-Input-Fields"><span class="toc-text">2.1 RSS Input Fields</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-RSS-Hash-Key"><span class="toc-text">2.2 RSS Hash Key</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-Hash-Algorithm"><span class="toc-text">2.3 Hash Algorithm</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-hash计算总结"><span class="toc-text">2.4 hash计算总结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Working-of-RSS"><span class="toc-text">3. Working of RSS</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Advantage"><span class="toc-text">4. Advantage</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-Usage"><span class="toc-text">5. Usage</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下RSS(Receive Side Scaling)相关notes，内容主要转载自<a href="https://medium.com/@anubhavchoudhary/introduction-to-receive-side-scaling-rss-7cd97307d220" target="_blank" rel="noopener">Introduction to Receive Side Scaling (RSS)</a>。<a id="more"></a></p>
+<h2 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h2><p>A network interface card (NIC) can be configured with multiple receive queue (Rx). This is done to improve the throughput (i.e, the number of packets that can be processed per second) of the device and to achieve higher throughput, more than one CPU is used to poll(笔者注:这里指的是MSI-x中断收包) packets from the device independently. Each CPU polls(笔者注:这里指的是MSI-x中断收包) for its assigned Rx queue, but still we need a strategy to distribute the packets over all the queues, otherwise all the packets will go to one queue and only one CPU will be utilised.</p>
+<h2 id="2-Hash计算"><a href="#2-Hash计算" class="headerlink" title="2. Hash计算"></a>2. Hash计算</h2><h3 id="2-1-RSS-Input-Fields"><a href="#2-1-RSS-Input-Fields" class="headerlink" title="2.1 RSS Input Fields"></a>2.1 RSS Input Fields</h3><p>The RSS input fields plays a vital role in deciding the criteria for distributing the packets over multiple receive queue. There are lot of hash input fields available like source mac address, destination mac address, source IP, destination IP etc.</p>
+<h3 id="2-2-RSS-Hash-Key"><a href="#2-2-RSS-Hash-Key" class="headerlink" title="2.2 RSS Hash Key"></a>2.2 RSS Hash Key</h3><p>The RSS hash is a 40/52 byte key used to randomize the distribution of packets over the receive queues. The size of the hash key depends on the hardware of the NIC.</p>
+<h3 id="2-3-Hash-Algorithm"><a href="#2-3-Hash-Algorithm" class="headerlink" title="2.3 Hash Algorithm"></a>2.3 Hash Algorithm</h3><p>Once the hash function and hash key is configured, the hash algorithm is used to determine the receive queue index using the input fields and hash Key.</p>
+<p>The hash functions which are generally used are:</p>
+<ul>
+<li>Simple XOR Hash Function</li>
+<li>Toeplitz Hash Function</li>
+</ul>
+<h3 id="2-4-hash计算总结"><a href="#2-4-hash计算总结" class="headerlink" title="2.4 hash计算总结"></a>2.4 hash计算总结</h3><p><img src="/images/2024/05/014.png" alt></p>
+<p>Incoming packets进入到parser模块，五元组src ip、dst ip、src port、dst port和protocol中的子集作为input set，结合一个任意的hash key以及hash function(默认hash function是Toeplitz function)计算得到hash value。</p>
+<h2 id="3-Working-of-RSS"><a href="#3-Working-of-RSS" class="headerlink" title="3. Working of RSS"></a>3. Working of RSS</h2><p>When a NIC is started with multiple Rx queues then based on the configured RSS configurations like Input Fields, hash key and number of Rx queues, an <strong>indirection table</strong> is generated. An indirection table represents mapping between the hash value and the queue index.<br><img src="/images/2024/05/012.webp" alt></p>
+<p>When a packet is received by the NIC, all the values from the configured fields are extracted and those values are fed into the hash function. The generated hash value is used to do a lookup in the indirection table in order to get the destination queue index.</p>
+<p><img src="/images/2024/05/013.svg" alt><br>A number of least significant bits (LSBs) of the hash value are used to index an indirection table.</p>
+<h2 id="4-Advantage"><a href="#4-Advantage" class="headerlink" title="4. Advantage"></a>4. Advantage</h2><p>There are two main advantages of using RSS:</p>
+<ol>
+<li>Higher throughput as more number of CPUs can be used independently.</li>
+<li>The computational cost of load balancing is offloaded to the NIC’s hardware instead of doing software based load-balancing.</li>
+</ol>
+<h2 id="5-Usage"><a href="#5-Usage" class="headerlink" title="5. Usage"></a>5. Usage</h2><p>RSS is the mechanism to process packets with multiple RX queues. When the network card with RSS receives packets, it will apply a filter to packets and distribute the packets to RX queues. The filter is usually a hash function and can be configured from <code>ethtool -X</code>. If you want to spread flows evenly among the first 3 queues:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ethtool -X eth0 equal 3</span><br></pre></td></tr></table></figure></p>
+<p>Or, if you find a magic hash key that is particularly useful:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ethtool -X eth0 hkey &lt;magic hash key&gt;</span><br></pre></td></tr></table></figure></p>
+<p><img src="/images/2024/05/011.png" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-receive-side-scaling" target="_blank" rel="noopener">Introduction to Receive Side Scaling</a></li>
+<li><a href="https://medium.com/@anubhavchoudhary/introduction-to-receive-side-scaling-rss-7cd97307d220" target="_blank" rel="noopener">Introduction to Receive Side Scaling (RSS)</a></li>
+<li><a href="https://garycplin.blogspot.com/2017/06/linux-network-scaling-receives-packets.html" target="_blank" rel="noopener">Linux Network Scaling: Receiving Packets</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/467319331" target="_blank" rel="noopener">关于RSS的一些知识</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/148756667" target="_blank" rel="noopener">Linux网络栈的性能缩放</a></li>
+<li><a href="https://blog.csdn.net/weixin_35804181/article/details/123519222" target="_blank" rel="noopener">网卡调优RSS、RPS、RFS和XPS</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/networking/scaling.txt" target="_blank" rel="noopener">Scaling in the Linux Networking Stack</a></li>
+<li><a href="https://doc.dpdk.org/guides/prog_guide/toeplitz_hash_lib.html" target="_blank" rel="noopener">Toeplitz Hash Library</a></li>
+<li><a href="https://www.sdnlab.com/24494.html" target="_blank" rel="noopener">Intel E810 Advanced RSS介绍</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/计算机网络/">计算机网络</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/05/04/Notes-about-Vdmabuf/">
+        <span class="next-text nav-default">Notes about Vdmabuf</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/05/05/Notes-about-RSS-Receive-Side-Scaling/';
+        this.page.identifier = '2024/05/05/Notes-about-RSS-Receive-Side-Scaling/';
+        this.page.title = 'Notes about RSS(Receive Side Scaling)';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

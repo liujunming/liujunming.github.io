@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-05-04T12:00:19.282Z</updated>
+  <updated>2024-05-05T10:10:54.472Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about RSS(Receive Side Scaling)</title>
+    <link href="http://liujunming.github.io/2024/05/05/Notes-about-RSS-Receive-Side-Scaling/"/>
+    <id>http://liujunming.github.io/2024/05/05/Notes-about-RSS-Receive-Side-Scaling/</id>
+    <published>2024-05-05T05:16:56.000Z</published>
+    <updated>2024-05-05T10:10:54.472Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下RSS(Receive Side Scaling)相关notes，内容主要转载自<a href="https://medium.com/@anubhavchoudhary/introduction-to-receive-side-scaling-rss-7cd97307d220" target="_blank" rel="noopener">Introduction to Receive Side Scaling (RSS)</a>。<a id="more"></a></p><h2 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h2><p>A network interface card (NIC) can be configured with multiple receive queue (Rx). This is done to improve the throughput (i.e, the number of packets that can be processed per second) of the device and to achieve higher throughput, more than one CPU is used to poll(笔者注:这里指的是MSI-x中断收包) packets from the device independently. Each CPU polls(笔者注:这里指的是MSI-x中断收包) for its assigned Rx queue, but still we need a strategy to distribute the packets over all the queues, otherwise all the packets will go to one queue and only one CPU will be utilised.</p><h2 id="2-Hash计算"><a href="#2-Hash计算" class="headerlink" title="2. Hash计算"></a>2. Hash计算</h2><h3 id="2-1-RSS-Input-Fields"><a href="#2-1-RSS-Input-Fields" class="headerlink" title="2.1 RSS Input Fields"></a>2.1 RSS Input Fields</h3><p>The RSS input fields plays a vital role in deciding the criteria for distributing the packets over multiple receive queue. There are lot of hash input fields available like source mac address, destination mac address, source IP, destination IP etc.</p><h3 id="2-2-RSS-Hash-Key"><a href="#2-2-RSS-Hash-Key" class="headerlink" title="2.2 RSS Hash Key"></a>2.2 RSS Hash Key</h3><p>The RSS hash is a 40/52 byte key used to randomize the distribution of packets over the receive queues. The size of the hash key depends on the hardware of the NIC.</p><h3 id="2-3-Hash-Algorithm"><a href="#2-3-Hash-Algorithm" class="headerlink" title="2.3 Hash Algorithm"></a>2.3 Hash Algorithm</h3><p>Once the hash function and hash key is configured, the hash algorithm is used to determine the receive queue index using the input fields and hash Key.</p><p>The hash functions which are generally used are:</p><ul><li>Simple XOR Hash Function</li><li>Toeplitz Hash Function</li></ul><h3 id="2-4-hash计算总结"><a href="#2-4-hash计算总结" class="headerlink" title="2.4 hash计算总结"></a>2.4 hash计算总结</h3><p><img src="/images/2024/05/014.png" alt></p><p>Incoming packets进入到parser模块，五元组src ip、dst ip、src port、dst port和protocol中的子集作为input set，结合一个任意的hash key以及hash function(默认hash function是Toeplitz function)计算得到hash value。</p><h2 id="3-Working-of-RSS"><a href="#3-Working-of-RSS" class="headerlink" title="3. Working of RSS"></a>3. Working of RSS</h2><p>When a NIC is started with multiple Rx queues then based on the configured RSS configurations like Input Fields, hash key and number of Rx queues, an <strong>indirection table</strong> is generated. An indirection table represents mapping between the hash value and the queue index.<br><img src="/images/2024/05/012.webp" alt></p><p>When a packet is received by the NIC, all the values from the configured fields are extracted and those values are fed into the hash function. The generated hash value is used to do a lookup in the indirection table in order to get the destination queue index.</p><p><img src="/images/2024/05/013.svg" alt><br>A number of least significant bits (LSBs) of the hash value are used to index an indirection table.</p><h2 id="4-Advantage"><a href="#4-Advantage" class="headerlink" title="4. Advantage"></a>4. Advantage</h2><p>There are two main advantages of using RSS:</p><ol><li>Higher throughput as more number of CPUs can be used independently.</li><li>The computational cost of load balancing is offloaded to the NIC’s hardware instead of doing software based load-balancing.</li></ol><h2 id="5-Usage"><a href="#5-Usage" class="headerlink" title="5. Usage"></a>5. Usage</h2><p>RSS is the mechanism to process packets with multiple RX queues. When the network card with RSS receives packets, it will apply a filter to packets and distribute the packets to RX queues. The filter is usually a hash function and can be configured from <code>ethtool -X</code>. If you want to spread flows evenly among the first 3 queues:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ethtool -X eth0 equal 3</span><br></pre></td></tr></table></figure></p><p>Or, if you find a magic hash key that is particularly useful:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ethtool -X eth0 hkey &lt;magic hash key&gt;</span><br></pre></td></tr></table></figure></p><p><img src="/images/2024/05/011.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-receive-side-scaling" target="_blank" rel="noopener">Introduction to Receive Side Scaling</a></li><li><a href="https://medium.com/@anubhavchoudhary/introduction-to-receive-side-scaling-rss-7cd97307d220" target="_blank" rel="noopener">Introduction to Receive Side Scaling (RSS)</a></li><li><a href="https://garycplin.blogspot.com/2017/06/linux-network-scaling-receives-packets.html" target="_blank" rel="noopener">Linux Network Scaling: Receiving Packets</a></li><li><a href="https://zhuanlan.zhihu.com/p/467319331" target="_blank" rel="noopener">关于RSS的一些知识</a></li><li><a href="https://zhuanlan.zhihu.com/p/148756667" target="_blank" rel="noopener">Linux网络栈的性能缩放</a></li><li><a href="https://blog.csdn.net/weixin_35804181/article/details/123519222" target="_blank" rel="noopener">网卡调优RSS、RPS、RFS和XPS</a></li><li><a href="https://www.kernel.org/doc/Documentation/networking/scaling.txt" target="_blank" rel="noopener">Scaling in the Linux Networking Stack</a></li><li><a href="https://doc.dpdk.org/guides/prog_guide/toeplitz_hash_lib.html" target="_blank" rel="noopener">Toeplitz Hash Library</a></li><li><a href="https://www.sdnlab.com/24494.html" target="_blank" rel="noopener">Intel E810 Advanced RSS介绍</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下RSS(Receive Side Scaling)相关notes，内容主要转载自&lt;a href=&quot;https://medium.com/@anubhavchoudhary/introduction-to-receive-side-scaling-rss-7cd97307d220&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Introduction to Receive Side Scaling (RSS)&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Vdmabuf</title>
@@ -303,9 +325,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
       <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
   </entry>
   
@@ -443,28 +465,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Live Migration with SR-IOV Pass-through on KVM Forum 2015</title>
-    <link href="http://liujunming.github.io/2024/01/27/Live-Migration-with-SR-IOV-Pass-through-on-KVM-Forum-2015/"/>
-    <id>http://liujunming.github.io/2024/01/27/Live-Migration-with-SR-IOV-Pass-through-on-KVM-Forum-2015/</id>
-    <published>2024-01-27T12:00:36.000Z</published>
-    <updated>2024-01-27T12:22:05.235Z</updated>
-    
-    <content type="html"><![CDATA[<p>Notes about Live migration with SR-IOV pass-through by Weidong Han on KVM Forum 2015.<a id="more"></a></p><ul><li><a href="https://www.linux-kvm.org/images/9/9a/03x07-Juniper-Weidong_Han-LiveMigrationWithSR-IOVPass-through.pdf" target="_blank" rel="noopener">slides</a></li><li><a href="https://www.youtube.com/watch?v=vnwEnzVp9Zo" target="_blank" rel="noopener">video</a></li></ul><p><img src="/images/2024/01/005.jpg" alt></p><p>iproute2 is a collection of userspace utilities for controlling and monitoring various aspects of networking in the Linux kernel, including routing, network interfaces, tunnels, traffic control, and network-related device drivers.</p><p><img src="/images/2024/01/008.jpg" alt></p><p><img src="/images/2024/01/006.jpg" alt></p><p><img src="/images/2024/01/007.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.wikiwand.com/en/Iproute2" target="_blank" rel="noopener">https://www.wikiwand.com/en/Iproute2</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Notes about Live migration with SR-IOV pass-through by Weidong Han on KVM Forum 2015.
-    
-    </summary>
-    
-      <category term="live migration" scheme="http://liujunming.github.io/categories/live-migration/"/>
-    
-    
-      <category term="live migration" scheme="http://liujunming.github.io/tags/live-migration/"/>
     
   </entry>
   
