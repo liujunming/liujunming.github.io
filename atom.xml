@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-05-25T14:29:15.944Z</updated>
+  <updated>2024-05-26T09:46:55.384Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Interrupt Coalescing under virtio-net</title>
+    <link href="http://liujunming.github.io/2024/05/26/Interrupt-Coalescing-under-virtio-net/"/>
+    <id>http://liujunming.github.io/2024/05/26/Interrupt-Coalescing-under-virtio-net/</id>
+    <published>2024-05-26T07:13:44.000Z</published>
+    <updated>2024-05-26T09:46:55.384Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下virtio-net的Interrupt Coalescing技术相关notes。<a id="more"></a></p><h2 id="SPEC"><a href="#SPEC" class="headerlink" title="SPEC"></a>SPEC</h2><h3 id="feature-bit"><a href="#feature-bit" class="headerlink" title="feature bit"></a>feature bit</h3><p>spec中<code>VIRTIO_NET_F_VQ_NOTF_COAL</code>和<code>VIRTIO_NET_F_NOTF_COAL</code>这两个feature bit是Interrupt Coalescing相关特性。</p><blockquote><p>VIRTIO_NET_F_VQ_NOTF_COAL(52) Device supports virtqueue notification coalescing.<br>VIRTIO_NET_F_NOTF_COAL(53) Device supports notifications coalescing.</p></blockquote><h3 id="Coalescing-parameters"><a href="#Coalescing-parameters" class="headerlink" title="Coalescing parameters"></a>Coalescing parameters</h3><p>virtio-net通过control queue来配置Interrupt Coalescing的参数，详情可参见”Notifications Coalescing”一节。</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">virtio_net_ctrl_coal</span> &#123;</span></span><br><span class="line">    le32 max_packets;</span><br><span class="line">    le32 max_usecs;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p>Coalescing parameters:</p><ul><li>max_usecs for RX: Maximum number of microseconds to delay a RX notification.</li><li>max_usecs for TX: Maximum number of microseconds to delay a TX notification.</li><li>max_packets for RX: Maximum number of packets to receive before a RX notification.</li><li>max_packets for TX: Maximum number of packets to send before a TX notification.</li></ul><h3 id="Operation"><a href="#Operation" class="headerlink" title="Operation"></a>Operation</h3><p>The device sends a used buffer notification once the notification conditions are met and if the notifications are not suppressed.</p><p>When the device has non-zero max_usecs and non-zero max_packets, it starts counting microseconds and packets upon receiving/sending a packet. The device counts packets and microseconds for each receive virtqueue and transmit virtqueue separately. In this case, the notification conditions are met when max_usecs microseconds elapse, or upon sending/receiving max_packets packets, whichever happens first. Afterwards, the device waits for the next packet and starts counting packets and microseconds again.</p><p>When the device has max_usecs = 0 or max_packets = 0, the notification conditions are met after every packet received/sent.</p><h2 id="virtqueue-coalescing-moderation"><a href="#virtqueue-coalescing-moderation" class="headerlink" title="virtqueue coalescing moderation"></a>virtqueue coalescing moderation</h2><p><a href="https://lists.oasis-open.org/archives/virtio-dev/202303/msg00415.html" target="_blank" rel="noopener">virtio-net: support the virtqueue coalescing moderation</a></p><p><a href="https://lore.kernel.org/all/20230731070656.96411-1-gavinl@nvidia.com/" target="_blank" rel="noopener">virtio_net: add per queue interrupt coalescing support</a></p><p>Currently, coalescing parameters are grouped for all transmit and receive virtqueues. virtqueue coalescing moderation supports setting or getting the parameters for a specified virtqueue, and a typical application of this function is <a href="https://github.com/torvalds/linux/blob/master/lib/dim/net_dim.c" target="_blank" rel="noopener">netdim</a>.</p><p>When the traffic between virtqueues is unbalanced, for example, one virtqueue is busy and another virtqueue is idle, then it will be very useful to control coalescing parameters at the virtqueue granularity.</p><h2 id="DIM"><a href="#DIM" class="headerlink" title="DIM"></a>DIM</h2><p>virtio-net already supports per-queue moderation parameter setting. Based on this, we use the <a href="https://github.com/torvalds/linux/blob/master/lib/dim/net_dim.c" target="_blank" rel="noopener">netdim</a> library of linux to support dynamic coalescing moderation for virtio-net.</p><p><a href="https://docs.kernel.org/networking/net_dim.html" target="_blank" rel="noopener">Net DIM算法</a>通过统计当前网络中单个队列的流量信息和中断次数，自适应计算中断调整方向和步长，并将结果配置下发到设备，以达到提升网络吞吐量的目的。virtqueue coalescing moderation 可以让 virtio-net支持动态中断调节，并对逐个队列下发中断调节参数。</p><p><strong>Dynamic Interrupt Moderation (DIM) (in networking) refers to changing the interrupt moderation configuration of a channel in order to optimize packet processing</strong>. <em>The mechanism includes an algorithm which decides if and how to change moderation parameters for a channel, usually by performing an analysis on runtime data sampled from the system</em>. Net DIM is such a mechanism. In each iteration of the algorithm, it analyses a given sample of the data, compares it to the previous sample and if required, it can decide to change some of the interrupt moderation configuration fields. The data sample is composed of data bandwidth, the number of packets and the number of events. The time between samples is also measured. <strong>Net DIM compares the current and the previous data and returns an adjusted interrupt moderation configuration object</strong>. In some cases, the algorithm might decide not to change anything. <strong>The configuration fields are the minimum duration (microseconds) allowed between events and the maximum number of wanted packets per event</strong>(笔者注：在virtio-net中，configuration fields就是max_usecs和max_packets，感觉是maximum duration allowed between events才对). The Net DIM algorithm ascribes importance to increase bandwidth over reducing interrupt rate.</p><hr><p>参考资料:</p><ol><li><a href="https://docs.oasis-open.org/virtio/virtio/v1.3/csd01/virtio-v1.3-csd01.pdf" target="_blank" rel="noopener">virtio v1.3</a></li><li><a href="https://mp.weixin.qq.com/s/hQN7Y0XCJwMPfo--IGA_kg" target="_blank" rel="noopener">高性能网络SIG月度动态：virtio-net 支持动态中断调节，SMC v2 协议增加新扩展</a></li><li><a href="https://mp.weixin.qq.com/s/bT3ANrOjzJdTu1oP9qO89w" target="_blank" rel="noopener">高性能网络SIG月度动态：virtio 支持动态中断聚合，SMCv2.1协议正式发布</a></li><li><a href="https://mp.weixin.qq.com/s/syR8nt2poO96bA9-oDSR2g" target="_blank" rel="noopener">高性能网络SIG月度动态：virtio 动态中断调节优化、多项内核网络缺陷修复</a></li><li><a href="https://lists.oasis-open.org/archives/virtio-dev/202303/msg00415.html" target="_blank" rel="noopener">virtio-net: support the virtqueue coalescing moderation</a></li><li><a href="https://docs.kernel.org/networking/net_dim.html" target="_blank" rel="noopener">Net DIM - Generic Network Dynamic Interrupt Moderation</a></li><li><a href="https://enterprise-support.nvidia.com/s/article/dynamically-tuned-interrupt-moderation--dim-x" target="_blank" rel="noopener">DYNAMICALLY-TUNED INTERRUPT MODERATION (DIM)</a></li><li><a href="https://techdocs.broadcom.com/us/en/storage-and-ethernet-connectivity/ethernet-nic-controllers/bcm957xxx/adapters/Tuning/tcp-performance-tuning/nic-tuning_22/interrupt-moderation.html" target="_blank" rel="noopener">Broadcom Ethernet Network Adapter User Guide:Interrupt Moderation</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下virtio-net的Interrupt Coalescing技术相关notes。
+    
+    </summary>
+    
+      <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
+    
+    
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
+    
+  </entry>
   
   <entry>
     <title>Interrupt Coalescing under NVMe</title>
@@ -441,30 +465,6 @@
     
     
       <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Share Virtual Address</title>
-    <link href="http://liujunming.github.io/2024/02/25/Notes-about-Share-Virtual-Address/"/>
-    <id>http://liujunming.github.io/2024/02/25/Notes-about-Share-Virtual-Address/</id>
-    <published>2024-02-25T12:49:48.000Z</published>
-    <updated>2024-02-25T13:15:05.974Z</updated>
-    
-    <content type="html"><![CDATA[<p>之前记录过<a href="/2022/03/30/Introduction-to-Shared-Virtual-Memory/">Introduction to Shared Virtual Memory</a>，但主要偏向于Intel的SVA方案。本文主要是mark下多个架构下的SVA方案。<a id="more"></a></p><p><img src="/images/2024/02/001.jpg" alt></p><p><img src="/images/2024/02/002.jpg" alt></p><p>Shared Virtual Addressing (SVA) is the ability to share process address spaces with devices. It is called “SVM” (Shared Virtual Memory) by OpenCL and some IOMMU architectures, but since that abbreviation is already used for AMD virtualisation in Linux (Secure Virtual Machine), we prefer the less ambiguous “SVA”.<br><a href="https://lwn.net/Articles/747230/" target="_blank" rel="noopener">Shared Virtual Addressing for the IOMMU</a></p><p><img src="/images/2024/02/003.jpg" alt></p><p><img src="/images/2024/02/004.jpg" alt></p><p><img src="/images/2024/02/005.jpg" alt></p><p>cc:Cache Coherent</p><p><img src="/images/2024/02/006.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://soft.cs.tsinghua.edu.cn/os2atc2018/ppt/osd5.pdf" target="_blank" rel="noopener">SVA：基于异构系统的内存管理技术</a></li><li><a href="https://events19.linuxfoundation.cn/wp-content/uploads/2017/11/Shared-Virtual-Addressing_Yisheng-Xie-_-Bob-Liu.pdf" target="_blank" rel="noopener">Share Virtual Address</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;之前记录过&lt;a href=&quot;/2022/03/30/Introduction-to-Shared-Virtual-Memory/&quot;&gt;Introduction to Shared Virtual Memory&lt;/a&gt;，但主要偏向于Intel的SVA方案。本文主要是mark下多个架构下的SVA方案。
-    
-    </summary>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="I/O系统" scheme="http://liujunming.github.io/tags/I-O%E7%B3%BB%E7%BB%9F/"/>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   

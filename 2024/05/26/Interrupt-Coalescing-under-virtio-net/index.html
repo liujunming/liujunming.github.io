@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Interrupt Coalescing under virtio-net">
+
+
+
+
+  <meta name="keywords" content="中断, virtio, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/05/26/Interrupt-Coalescing-under-virtio-net/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Interrupt Coalescing under virtio-net - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Interrupt Coalescing under virtio-net
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-05-26
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/中断/">中断</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#SPEC"><span class="toc-text">SPEC</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#feature-bit"><span class="toc-text">feature bit</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Coalescing-parameters"><span class="toc-text">Coalescing parameters</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Operation"><span class="toc-text">Operation</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#virtqueue-coalescing-moderation"><span class="toc-text">virtqueue coalescing moderation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DIM"><span class="toc-text">DIM</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下virtio-net的Interrupt Coalescing技术相关notes。<a id="more"></a></p>
+<h2 id="SPEC"><a href="#SPEC" class="headerlink" title="SPEC"></a>SPEC</h2><h3 id="feature-bit"><a href="#feature-bit" class="headerlink" title="feature bit"></a>feature bit</h3><p>spec中<code>VIRTIO_NET_F_VQ_NOTF_COAL</code>和<code>VIRTIO_NET_F_NOTF_COAL</code>这两个feature bit是Interrupt Coalescing相关特性。</p>
+<blockquote>
+<p>VIRTIO_NET_F_VQ_NOTF_COAL(52) Device supports virtqueue notification coalescing.<br>VIRTIO_NET_F_NOTF_COAL(53) Device supports notifications coalescing.</p>
+</blockquote>
+<h3 id="Coalescing-parameters"><a href="#Coalescing-parameters" class="headerlink" title="Coalescing parameters"></a>Coalescing parameters</h3><p>virtio-net通过control queue来配置Interrupt Coalescing的参数，详情可参见”Notifications Coalescing”一节。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">virtio_net_ctrl_coal</span> &#123;</span></span><br><span class="line">    le32 max_packets;</span><br><span class="line">    le32 max_usecs;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>Coalescing parameters:</p>
+<ul>
+<li>max_usecs for RX: Maximum number of microseconds to delay a RX notification.</li>
+<li>max_usecs for TX: Maximum number of microseconds to delay a TX notification.</li>
+<li>max_packets for RX: Maximum number of packets to receive before a RX notification.</li>
+<li>max_packets for TX: Maximum number of packets to send before a TX notification.</li>
+</ul>
+<h3 id="Operation"><a href="#Operation" class="headerlink" title="Operation"></a>Operation</h3><p>The device sends a used buffer notification once the notification conditions are met and if the notifications are not suppressed.</p>
+<p>When the device has non-zero max_usecs and non-zero max_packets, it starts counting microseconds and packets upon receiving/sending a packet. The device counts packets and microseconds for each receive virtqueue and transmit virtqueue separately. In this case, the notification conditions are met when max_usecs microseconds elapse, or upon sending/receiving max_packets packets, whichever happens first. Afterwards, the device waits for the next packet and starts counting packets and microseconds again.</p>
+<p>When the device has max_usecs = 0 or max_packets = 0, the notification conditions are met after every packet received/sent.</p>
+<h2 id="virtqueue-coalescing-moderation"><a href="#virtqueue-coalescing-moderation" class="headerlink" title="virtqueue coalescing moderation"></a>virtqueue coalescing moderation</h2><p><a href="https://lists.oasis-open.org/archives/virtio-dev/202303/msg00415.html" target="_blank" rel="noopener">virtio-net: support the virtqueue coalescing moderation</a></p>
+<p><a href="https://lore.kernel.org/all/20230731070656.96411-1-gavinl@nvidia.com/" target="_blank" rel="noopener">virtio_net: add per queue interrupt coalescing support</a></p>
+<p>Currently, coalescing parameters are grouped for all transmit and receive virtqueues. virtqueue coalescing moderation supports setting or getting the parameters for a specified virtqueue, and a typical application of this function is <a href="https://github.com/torvalds/linux/blob/master/lib/dim/net_dim.c" target="_blank" rel="noopener">netdim</a>.</p>
+<p>When the traffic between virtqueues is unbalanced, for example, one virtqueue is busy and another virtqueue is idle, then it will be very useful to control coalescing parameters at the virtqueue granularity.</p>
+<h2 id="DIM"><a href="#DIM" class="headerlink" title="DIM"></a>DIM</h2><p>virtio-net already supports per-queue moderation parameter setting. Based on this, we use the <a href="https://github.com/torvalds/linux/blob/master/lib/dim/net_dim.c" target="_blank" rel="noopener">netdim</a> library of linux to support dynamic coalescing moderation for virtio-net.</p>
+<p><a href="https://docs.kernel.org/networking/net_dim.html" target="_blank" rel="noopener">Net DIM算法</a>通过统计当前网络中单个队列的流量信息和中断次数，自适应计算中断调整方向和步长，并将结果配置下发到设备，以达到提升网络吞吐量的目的。virtqueue coalescing moderation 可以让 virtio-net支持动态中断调节，并对逐个队列下发中断调节参数。</p>
+<p><strong>Dynamic Interrupt Moderation (DIM) (in networking) refers to changing the interrupt moderation configuration of a channel in order to optimize packet processing</strong>. <em>The mechanism includes an algorithm which decides if and how to change moderation parameters for a channel, usually by performing an analysis on runtime data sampled from the system</em>. Net DIM is such a mechanism. In each iteration of the algorithm, it analyses a given sample of the data, compares it to the previous sample and if required, it can decide to change some of the interrupt moderation configuration fields. The data sample is composed of data bandwidth, the number of packets and the number of events. The time between samples is also measured. <strong>Net DIM compares the current and the previous data and returns an adjusted interrupt moderation configuration object</strong>. In some cases, the algorithm might decide not to change anything. <strong>The configuration fields are the minimum duration (microseconds) allowed between events and the maximum number of wanted packets per event</strong>(笔者注：在virtio-net中，configuration fields就是max_usecs和max_packets，感觉是maximum duration allowed between events才对). The Net DIM algorithm ascribes importance to increase bandwidth over reducing interrupt rate.</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://docs.oasis-open.org/virtio/virtio/v1.3/csd01/virtio-v1.3-csd01.pdf" target="_blank" rel="noopener">virtio v1.3</a></li>
+<li><a href="https://mp.weixin.qq.com/s/hQN7Y0XCJwMPfo--IGA_kg" target="_blank" rel="noopener">高性能网络SIG月度动态：virtio-net 支持动态中断调节，SMC v2 协议增加新扩展</a></li>
+<li><a href="https://mp.weixin.qq.com/s/bT3ANrOjzJdTu1oP9qO89w" target="_blank" rel="noopener">高性能网络SIG月度动态：virtio 支持动态中断聚合，SMCv2.1协议正式发布</a></li>
+<li><a href="https://mp.weixin.qq.com/s/syR8nt2poO96bA9-oDSR2g" target="_blank" rel="noopener">高性能网络SIG月度动态：virtio 动态中断调节优化、多项内核网络缺陷修复</a></li>
+<li><a href="https://lists.oasis-open.org/archives/virtio-dev/202303/msg00415.html" target="_blank" rel="noopener">virtio-net: support the virtqueue coalescing moderation</a></li>
+<li><a href="https://docs.kernel.org/networking/net_dim.html" target="_blank" rel="noopener">Net DIM - Generic Network Dynamic Interrupt Moderation</a></li>
+<li><a href="https://enterprise-support.nvidia.com/s/article/dynamically-tuned-interrupt-moderation--dim-x" target="_blank" rel="noopener">DYNAMICALLY-TUNED INTERRUPT MODERATION (DIM)</a></li>
+<li><a href="https://techdocs.broadcom.com/us/en/storage-and-ethernet-connectivity/ethernet-nic-controllers/bcm957xxx/adapters/Tuning/tcp-performance-tuning/nic-tuning_22/interrupt-moderation.html" target="_blank" rel="noopener">Broadcom Ethernet Network Adapter User Guide:Interrupt Moderation</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/中断/">中断</a>
+            
+              <a href="/tags/virtio/">virtio</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/05/19/Interrupt-Coalescing-under-NVMe/">
+        <span class="next-text nav-default">Interrupt Coalescing under NVMe</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/05/26/Interrupt-Coalescing-under-virtio-net/';
+        this.page.identifier = '2024/05/26/Interrupt-Coalescing-under-virtio-net/';
+        this.page.title = 'Interrupt Coalescing under virtio-net';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
