@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-06-02T09:12:22.776Z</updated>
+  <updated>2024-06-02T13:21:51.159Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -17,11 +17,38 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Notes about NVMe Identify command</title>
+    <link href="http://liujunming.github.io/2024/06/02/Notes-about-NVMe-Identify-command/"/>
+    <id>http://liujunming.github.io/2024/06/02/Notes-about-NVMe-Identify-command/</id>
+    <published>2024-06-02T11:33:21.000Z</published>
+    <updated>2024-06-02T13:21:51.159Z</updated>
+    
+    <content type="html"><![CDATA[<ul><li>Opcode is 0x06.</li><li>The base address of the output (a single page) should be put in the DWORDs 6 and 7 of the command.</li><li>The low byte of command DWORD 10 indicates what is to be identified: 0 - a namespace, 1 - the controller, 2 - the namespace list.</li><li>If identifying a namespace, set DWORD 1 to the namespace ID.</li></ul><a id="more"></a><p><img src="/images/2024/06/003.jpg" alt></p><p><img src="/images/2024/06/005.jpg" alt></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> &#123;</span><br><span class="line">    NVME_ID_CNS_NS          = <span class="number">0x00</span>,</span><br><span class="line">    NVME_ID_CNS_CTRL        = <span class="number">0x01</span>,</span><br><span class="line">    NVME_ID_CNS_NS_ACTIVE_LIST  = <span class="number">0x02</span>,</span><br><span class="line">    NVME_ID_CNS_NS_DESC_LIST    = <span class="number">0x03</span>,</span><br><span class="line">    NVME_ID_CNS_CS_NS       = <span class="number">0x05</span>,</span><br><span class="line">    NVME_ID_CNS_CS_CTRL     = <span class="number">0x06</span>,</span><br><span class="line">    NVME_ID_CNS_NS_CS_INDEP     = <span class="number">0x08</span>,</span><br><span class="line">    NVME_ID_CNS_NS_PRESENT_LIST = <span class="number">0x10</span>,</span><br><span class="line">    NVME_ID_CNS_NS_PRESENT      = <span class="number">0x11</span>,</span><br><span class="line">    NVME_ID_CNS_CTRL_NS_LIST    = <span class="number">0x12</span>,</span><br><span class="line">    NVME_ID_CNS_CTRL_LIST       = <span class="number">0x13</span>,</span><br><span class="line">    NVME_ID_CNS_SCNDRY_CTRL_LIST    = <span class="number">0x15</span>,</span><br><span class="line">    NVME_ID_CNS_NS_GRANULARITY  = <span class="number">0x16</span>,</span><br><span class="line">    NVME_ID_CNS_UUID_LIST       = <span class="number">0x17</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p>CDW1.NSID的含义:<br><img src="/images/2024/06/004.jpg" alt></p><p>总结:</p><ol><li>想要某个controller或者namespace的identity，需要在command中指定controller id或者namespace id</li><li>controller将结果以DMA的形式放到DWORDs 6 and 7指定的地址中</li></ol><hr><p>参考资料:</p><ol><li>NVMe 1.3 spec</li><li><a href="https://wiki.osdev.org/NVMe" target="_blank" rel="noopener">https://wiki.osdev.org/NVMe</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;ul&gt;
+&lt;li&gt;Opcode is 0x06.&lt;/li&gt;
+&lt;li&gt;The base address of the output (a single page) should be put in the DWORDs 6 and 7 of the command.&lt;/li&gt;
+&lt;li&gt;The low byte of command DWORD 10 indicates what is to be identified: 0 - a namespace, 1 - the controller, 2 - the namespace list.&lt;/li&gt;
+&lt;li&gt;If identifying a namespace, set DWORD 1 to the namespace ID.&lt;/li&gt;
+&lt;/ul&gt;
+    
+    </summary>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
+    
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+  </entry>
+  
+  <entry>
     <title>virtio-net offloads reconfiguration</title>
     <link href="http://liujunming.github.io/2024/06/02/virtio-net-offloads-reconfiguration/"/>
     <id>http://liujunming.github.io/2024/06/02/virtio-net-offloads-reconfiguration/</id>
     <published>2024-06-02T00:46:16.000Z</published>
-    <updated>2024-06-02T09:12:22.776Z</updated>
+    <updated>2024-06-02T12:49:07.166Z</updated>
     
     <content type="html"><![CDATA[<blockquote><p>Virtio-net driver currently negotiates network offloads on startup via features mechanism and have no ability to disable and re-enable offloads later.<br>This patch introduced a new control command that allows to configure device network offloads state dynamically. The patch also introduces a new feature flag VIRTIO_NET_F_CTRL_GUEST_OFFLOADS.</p></blockquote><blockquote><p>VIRTIO_NET_F_CTRL_GUEST_OFFLOADS (2) Control channel offloads reconfiguration support.</p></blockquote><p>control virtqueue “Offloads State Configuration”.<br><a id="more"></a></p><p><img src="/images/2024/06/001.jpg" alt></p><p>“offloads”是名词，按照名词去阅读spec。</p><p>“negotiate”指的是在driver_feature中正确配置好了feature bits。<br><img src="/images/2024/06/002.jpg" alt></p><p>VIRTIO_NET_F_CTRL_GUEST_OFFLOADS支持动态地更改offloads的状态(enable/disbale)配置。</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// feature bits</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_CSUM       1</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_TSO4       7</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_TSO6       8</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_ECN        9</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_UFO        10</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_USO4       54</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_USO6       55</span></span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Control network offloads</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Reconfigures the network offloads that Guest can handle.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Available with the VIRTIO_NET_F_CTRL_GUEST_OFFLOADS feature bit.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Command data format matches the feature bit mask exactly.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * See VIRTIO_NET_F_GUEST_* for the list of offloads</span></span><br><span class="line"><span class="comment"> * that can be enabled/disabled.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_CTRL_GUEST_OFFLOADS   5</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_CTRL_GUEST_OFFLOADS_SET        0</span></span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://docs.oasis-open.org/virtio/virtio/v1.3/csd01/virtio-v1.3-csd01.pdf" target="_blank" rel="noopener">virtio v1.3</a></li><li><a href="https://lists.nongnu.org/archive/html/qemu-devel/2013-05/msg02505.html" target="_blank" rel="noopener">virtio-net: dynamic network offloads configuration</a></li></ol>]]></content>
     
@@ -37,7 +64,7 @@
     
     </summary>
     
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+      <category term="virtio" scheme="http://liujunming.github.io/categories/virtio/"/>
     
     
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
@@ -64,9 +91,9 @@
       <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
     
     
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
-    
       <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
     
   </entry>
   
@@ -88,9 +115,9 @@
       <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
     
     
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
       <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
   </entry>
   
@@ -218,6 +245,8 @@
       &lt;p&gt;本文将mark下AMD spec相关信息。
     
     </summary>
+    
+      <category term="AMD" scheme="http://liujunming.github.io/categories/AMD/"/>
     
     
       <category term="AMD" scheme="http://liujunming.github.io/tags/AMD/"/>
@@ -401,9 +430,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
       <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
   </entry>
   
@@ -442,24 +471,6 @@
     
       &lt;p&gt;原文链接: &lt;a href=&quot;https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;This post explains how vhost provides in-kernel virtio devices for KVM. I have been hacking on vhost-scsi and have answered questions about ioeventfd, irqfd, and vhost recently, so I thought this would be a useful QEMU Internals post.&lt;br&gt;这篇文章介绍了 vhost 如何为 KVM 提供内核 virtio 设备。我最近一直在研究 vhost-scsi，并回答了有关 ioeventfd、irqfd 和 vhost 的问题，因此我认为这将是一篇有用的 QEMU Internals 帖子。
-    
-    </summary>
-    
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about vhost-pci</title>
-    <link href="http://liujunming.github.io/2024/03/09/Notes-about-vhost-pci/"/>
-    <id>http://liujunming.github.io/2024/03/09/Notes-about-vhost-pci/</id>
-    <published>2024-03-09T12:27:55.000Z</published>
-    <updated>2024-03-09T12:40:38.797Z</updated>
-    
-    <content type="html"><![CDATA[<p>vhost-pci的详细介绍可以参考<a href="https://www.linux-kvm.org/images/5/55/02x07A-Wei_Wang-Design_of-Vhost-pci.pdf" target="_blank" rel="noopener">Design of Vhost-pci slides</a>与<a href="https://www.youtube.com/watch?v=xITj0qsaSJQ" target="_blank" rel="noopener">video</a>，本文主要mark下相关notes。<a id="more"></a></p><h2 id="Usage-and-Motivation"><a href="#Usage-and-Motivation" class="headerlink" title="Usage and Motivation"></a>Usage and Motivation</h2><p><img src="/images/2024/03/007.jpg" alt></p><p><img src="/images/2024/03/008.jpg" alt></p><p><img src="/images/2024/03/009.jpg" alt></p><p>如上图所示，通过network packet的数据流向对比，可以显示vhost-pci的作用:<strong>high performance inter-VM communication schemes</strong>，vhost-pci机制可以让network packet直接从一个vm传输到另外一个vm中，无需经过vSwitch的中转。</p><h2 id="Vhost-pci-Design-Details"><a href="#Vhost-pci-Design-Details" class="headerlink" title="Vhost-pci Design Details"></a>Vhost-pci Design Details</h2><p><img src="/images/2024/03/001.jpg" alt></p><p><img src="/images/2024/03/005.jpg" alt></p><p><img src="/images/2024/03/006.jpg" alt></p><h2 id="vhost-pci-vs-virtio-vhost-user"><a href="#vhost-pci-vs-virtio-vhost-user" class="headerlink" title="vhost-pci vs virtio-vhost-user"></a>vhost-pci vs virtio-vhost-user</h2><p><img src="/images/2024/03/002.jpg" alt><br>详细内容可以参考<a href="https://lore.kernel.org/qemu-devel/20180110161438.GA28096@stefanha-x1.localdomain/" target="_blank" rel="noopener">vhost-pci and virtio-vhost-user</a>。</p><hr><p>参考资料:</p><ol><li><a href="https://www.linux-kvm.org/images/5/55/02x07A-Wei_Wang-Design_of-Vhost-pci.pdf" target="_blank" rel="noopener">Design of Vhost-pci slides</a></li><li><a href="https://www.youtube.com/watch?v=xITj0qsaSJQ" target="_blank" rel="noopener">Design of Vhost-pci video</a></li><li><a href="https://archive.fosdem.org/2018/schedule/event/virtio/attachments/slides/2167/export/events/attachments/virtio/slides/2167/fosdem_virtio1_1.pdf" target="_blank" rel="noopener">What’s new in Virtio 1.1?</a></li><li><a href="https://static.sched.com/hosted_files/dpdkuserspace22/93/DPDK22_virtualization_of_DPDK_applications_using_virtio_vhost_user.pdf" target="_blank" rel="noopener">Virtualization of DPDK applications using virtio-vhost-user</a></li><li><a href="https://lore.kernel.org/qemu-devel/1494578148-102868-1-git-send-email-wei.w.wang@intel.com/" target="_blank" rel="noopener">Vhost-pci for inter-VM communication</a></li><li><a href="https://lore.kernel.org/qemu-devel/20180110161438.GA28096@stefanha-x1.localdomain/" target="_blank" rel="noopener">vhost-pci and virtio-vhost-user</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;vhost-pci的详细介绍可以参考&lt;a href=&quot;https://www.linux-kvm.org/images/5/55/02x07A-Wei_Wang-Design_of-Vhost-pci.pdf&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Design of Vhost-pci slides&lt;/a&gt;与&lt;a href=&quot;https://www.youtube.com/watch?v=xITj0qsaSJQ&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;video&lt;/a&gt;，本文主要mark下相关notes。
     
     </summary>
     
