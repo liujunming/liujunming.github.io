@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-06-02T13:21:51.159Z</updated>
+  <updated>2024-06-22T12:31:37.174Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about MBEC(Mode Based Execution Control)</title>
+    <link href="http://liujunming.github.io/2024/06/22/Notes-about-MBEC-Mode-Based-Execution-Control/"/>
+    <id>http://liujunming.github.io/2024/06/22/Notes-about-MBEC-Mode-Based-Execution-Control/</id>
+    <published>2024-06-22T08:45:21.000Z</published>
+    <updated>2024-06-22T12:31:37.174Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下MBEC(Mode Based Execution Control)相关notes。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>MBEC provides finer grain control on execute permissions to help protect the integrity of the system code from malicious changes. It provides additional refinement within the Extended Page Tables (EPT) by turning the Execute Enable (X) permission bit into two options:</p><ul><li>XU for user pages</li><li>XS for supervisor pages</li></ul><p>The CPU selects one or the other based on permission of the guest page and <strong>maintains an invariant for every page that does not allow it to be writable and supervisor-executable at the same time</strong>. A benefit of this feature is that a hypervisor can more reliably verify and enforce the integrity of kernel-level code(hypervisor可以更可靠地验证和执行内核级代码的完整性). The value of the XU/XS bits is delivered through the hypervisor, so hypervisor support is necessary.</p><p>这个特性主要是安全方面的考虑，如果想了解安全相关的更多背景，可以参考<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Wojtczuk-Analysis-Of-The-Attack-Surface-Of-Windows-10-Virtualization-Based-Security-wp.pdf" target="_blank" rel="noopener">Analysis of the Attack Surface of Windows 10 Virtualization-based Security</a>。本文主要侧重于虚拟化侧的内容，安全相关的细节，不在本文的范围之内。</p><h2 id="Details"><a href="#Details" class="headerlink" title="Details"></a>Details</h2><p><img src="/images/2024/06/006.jpg" alt></p><p><img src="/images/2024/06/007.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/xeon-processor-scalable-family-technical-overview.html#-12" target="_blank" rel="noopener">Intel Xeon Processor Scalable Family Technical Overview</a></li><li><a href="https://www.wikiwand.com/en/Second_Level_Address_Translation" target="_blank" rel="noopener">wikiwand: Second Level Address Translation</a></li><li><a href="https://www.blackhat.com/docs/us-16/materials/us-16-Wojtczuk-Analysis-Of-The-Attack-Surface-Of-Windows-10-Virtualization-Based-Security-wp.pdf" target="_blank" rel="noopener">Analysis of the Attack Surface of Windows 10 Virtualization-based Security</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下MBEC(Mode Based Execution Control)相关notes。
+    
+    </summary>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NVMe Identify command</title>
@@ -455,29 +479,6 @@
     
     
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>(译)QEMU Internals: vhost architecture</title>
-    <link href="http://liujunming.github.io/2024/03/24/QEMU-Internals-vhost-architecture/"/>
-    <id>http://liujunming.github.io/2024/03/24/QEMU-Internals-vhost-architecture/</id>
-    <published>2024-03-24T10:27:39.000Z</published>
-    <updated>2024-03-24T10:34:07.875Z</updated>
-    
-    <content type="html"><![CDATA[<p>原文链接: <a href="https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html" target="_blank" rel="noopener">https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html</a></p><p>This post explains how vhost provides in-kernel virtio devices for KVM. I have been hacking on vhost-scsi and have answered questions about ioeventfd, irqfd, and vhost recently, so I thought this would be a useful QEMU Internals post.<br>这篇文章介绍了 vhost 如何为 KVM 提供内核 virtio 设备。我最近一直在研究 vhost-scsi，并回答了有关 ioeventfd、irqfd 和 vhost 的问题，因此我认为这将是一篇有用的 QEMU Internals 帖子。<a id="more"></a></p><h2 id="Vhost-overview"><a href="#Vhost-overview" class="headerlink" title="Vhost overview"></a>Vhost overview</h2><p>The vhost drivers in Linux provide in-kernel virtio device emulation. Normally the QEMU userspace process emulates I/O accesses from the guest. Vhost puts virtio emulation code into the kernel, taking QEMU userspace out of the picture. This allows device emulation code to directly call into kernel subsystems instead of performing system calls from userspace.<br>Linux 中的 vhost 驱动程序提供内核 virtio 设备模拟。通常，QEMU 用户空间进程会模拟guest的 I/O 访问。Vhost 将 virtio 仿真代码放入内核，将 QEMU 用户空间排除在外。这允许设备仿真代码直接调用内核子系统，而不是从用户空间执行系统调用。</p><p>The vhost-net driver emulates the virtio-net network card in the host kernel. Vhost-net is the oldest vhost device and the only one which is available in mainline Linux. Experimental vhost-blk and vhost-scsi devices have also been developed.<br>vhost-net 驱动程序在主机内核中模拟 virtio-net 网卡。vhost-net 是最古老的 vhost 设备，也是主线 Linux 中唯一可用的设备。此外，还开发了试验性的 vhost-blk 和 vhost-scsi 设备。</p><p>In Linux 3.0 the vhost code lives in drivers/vhost/. Common code that is used by all devices is in drivers/vhost/vhost.c. This includes the virtio vring access functions which all virtio devices need in order to communicate with the guest. The vhost-net code lives in drivers/vhost/net.c.<br>在 Linux 3.0 中，vhost 代码位于 drivers/vhost/。所有设备都要使用的通用代码位于 drivers/vhost/vhost.c 中。其中包括 virtio vring 访问函数，所有 virtio 设备都需要这些函数才能与guest通信。vhost-net 代码位于 drivers/vhost/net.c 中。</p><h2 id="The-vhost-driver-model"><a href="#The-vhost-driver-model" class="headerlink" title="The vhost driver model"></a>The vhost driver model</h2><p>The vhost-net driver creates a /dev/vhost-net character device on the host. This character device serves as the interface for configuring the vhost-net instance.<br>vhost-net 驱动程序会在主机上创建一个 /dev/vhost-net 字符设备。该字符设备是配置 vhost-net 实例的接口。</p><p>When QEMU is launched with -netdev tap,vhost=on it opens /dev/vhost-net and initializes the vhost-net instance with several ioctl(2) calls. These are necessary to associate the QEMU process with the vhost-net instance, prepare for virtio feature negotiation, and pass the guest physical memory mapping to the vhost-net driver.<br>当使用 -netdev tap,vhost=on 启动 QEMU 时，它会打开 /dev/vhost-net 并通过几个 ioctl(2) 调用初始化 vhost-net 实例。这些调用对于将 QEMU 进程与 vhost-net 实例关联、准备 virtio 功能协商以及将guest物理内存映射传递给 vhost-net 驱动程序都是必要的。</p><p>During initialization the vhost driver creates a kernel thread called vhost-$pid, where $pid is the QEMU process pid. This thread is called the “vhost worker thread”. The job of the worker thread is to handle I/O events and perform the device emulation.<br>在初始化过程中，vhost 驱动程序会创建一个名为 vhost-$pid 的内核线程，其中 $pid 是 QEMU 进程的 pid。该线程被称为 “vhost 工作线程”。工作线程的任务是处理 I/O 事件和执行设备仿真。</p><p><img src="/images/2024/03/010.png" alt></p><h2 id="In-kernel-virtio-emulation"><a href="#In-kernel-virtio-emulation" class="headerlink" title="In-kernel virtio emulation"></a>In-kernel virtio emulation</h2><p>Vhost does not emulate a complete virtio PCI adapter. Instead it restricts itself to virtqueue operations only. QEMU is still used to perform virtio feature negotiation and live migration, for example. This means a vhost driver is not a self-contained virtio device implementation, it depends on userspace to handle the control plane while the data plane is done in-kernel.<br>Vhost 不会模拟完整的 virtio PCI 适配器。相反，它仅限于进行 virtqueue 操作。例如，QEMU 仍用于执行 virtio 功能协商和热迁移。这意味着 vhost 驱动程序不是独立的 virtio 设备实现，它依赖用户空间来处理控制面，而数据面则在内核中完成。</p><p>The vhost worker thread waits for virtqueue kicks and then handles buffers that have been placed on the virtqueue. In vhost-net this means taking packets from the tx virtqueue and transmitting them over the tap file descriptor.<br>vhost 工作线程会等待 virtqueue kicks，然后处理放在 virtqueue 上的缓冲区。在 vhost-net 中，这意味着从 tx virtqueue 获取数据包并通过 tap 文件描述符传输。</p><p>File descriptor polling is also done by the vhost worker thread. In vhost-net the worker thread wakes up when packets come in over the tap file descriptor and it places them into the rx virtqueue so the guest can receive them.<br>文件描述符轮询也由 vhost 工作线程完成。在 vhost-net 中，当数据包通过 tap 文件描述符进入时，工作线程就会被唤醒，并将数据包放入 rx virtqueue，这样guest就能接收到这些数据包。</p><h2 id="Vhost-as-a-userspace-interface"><a href="#Vhost-as-a-userspace-interface" class="headerlink" title="Vhost as a userspace interface"></a>Vhost as a userspace interface</h2><p>One surprising aspect of the vhost architecture is that it is not tied to KVM in any way. Vhost is a userspace interface and has no dependency on the KVM kernel module. This means other userspace code, like libpcap, could in theory use vhost devices if they find them convenient high-performance I/O interfaces.<br>vhost 架构令人惊讶的一点是，它与 KVM 没有任何关联。Vhost 是一个用户空间接口，不依赖于 KVM 内核模块。这意味着其他用户空间代码（如 libpcap）如果发现 vhost 设备是方便的高性能 I/O 接口，理论上也可以使用 vhost 设备。</p><p>When a guest kicks the host because it has placed buffers onto a virtqueue, there needs to be a way to signal the vhost worker thread that there is work to do. Since vhost does not depend on the KVM kernel module they cannot communicate directly. Instead vhost instances are set up with an eventfd file descriptor which the vhost worker thread watches for activity. The KVM kernel module has a feature known as ioeventfd for taking an eventfd and hooking it up to a particular guest I/O exit. QEMU userspace registers an ioeventfd for the VIRTIO_PCI_QUEUE_NOTIFY hardware register access which kicks the virtqueue. This is how the vhost worker thread gets notified by the KVM kernel module when the guest kicks the virtqueue.<br>当guest因为在 virtqueue 上放置了buffers而kick主机时，需要有一种方法来向 vhost 工作线程发出有工作要做的信号。由于 vhost 并不依赖于 KVM 内核模块，因此它们无法直接通信。相反，vhost 实例会设置一个 eventfd 文件描述符，由 vhost 工作线程监视其活动。KVM 内核模块有一个名为 ioeventfd 的功能，用于获取 eventfd 并将其连接到特定的guest I/O VM exit。QEMU 用户空间会为 VIRTIO_PCI_QUEUE_NOTIFY 硬件寄存器访问注册一个 ioeventfd，从而kick virtqueue。这样，当 guest kick virtqueue 时，vhost 工作线程就会收到 KVM 内核模块的通知。</p><p>On the return trip from the vhost worker thread to interrupting the guest a similar approach is used. Vhost takes a “call” file descriptor which it will write to in order to kick the guest. The KVM kernel module has a feature called irqfd which allows an eventfd to trigger guest interrupts. QEMU userspace registers an irqfd for the virtio PCI device interrupt and hands it to the vhost instance. This is how the vhost worker thread can interrupt the guest.<br>在从 vhost 工作线程返回到中断guest的过程中，也使用了类似的方法。Vhost 会获取一个 “call “文件描述符，并写入该文件描述符以通知guest。KVM 内核模块有一个名为 irqfd 的功能，允许 eventfd 触发guest中断。QEMU 用户空间为 virtio PCI 设备中断注册了一个 irqfd，并将其交给 vhost 实例。这就是 vhost 工作线程中断guest的方式。</p><p>In the end the vhost instance only knows about the guest memory mapping, a kick eventfd, and a call eventfd.<br>最终，vhost 实例只知道 guest 内存映射、ioeventfd 和 irqfd。</p><h2 id="Where-to-find-out-more"><a href="#Where-to-find-out-more" class="headerlink" title="Where to find out more"></a>Where to find out more</h2><p>Here are the main points to begin exploring the code:<br>以下是开始探索代码的要点：</p><ul><li>drivers/vhost/vhost.c - common vhost driver code</li><li>drivers/vhost/net.c - vhost-net driver</li><li>virt/kvm/eventfd.c - ioeventfd and irqfd</li></ul><p>The QEMU userspace code shows how to initialize the vhost instance:<br>QEMU 用户空间代码显示了如何初始化 vhost 实例:</p><ul><li>hw/vhost.c - common vhost initialization code</li><li>hw/vhost_net.c - vhost-net initialization</li></ul>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;原文链接: &lt;a href=&quot;https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;This post explains how vhost provides in-kernel virtio devices for KVM. I have been hacking on vhost-scsi and have answered questions about ioeventfd, irqfd, and vhost recently, so I thought this would be a useful QEMU Internals post.&lt;br&gt;这篇文章介绍了 vhost 如何为 KVM 提供内核 virtio 设备。我最近一直在研究 vhost-scsi，并回答了有关 ioeventfd、irqfd 和 vhost 的问题，因此我认为这将是一篇有用的 QEMU Internals 帖子。
-    
-    </summary>
-    
-      <category term="virtio" scheme="http://liujunming.github.io/categories/virtio/"/>
-    
-    
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
     
   </entry>
   
