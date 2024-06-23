@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about Flow Bifurcation">
+
+
+
+
+  <meta name="keywords" content="计算机网络, DPDK, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/06/23/Notes-about-Flow-Bifurcation-mechanism/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about Flow Bifurcation - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about Flow Bifurcation
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-06-23
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机网络/">计算机网络</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#flow-bifurcation介绍"><span class="toc-text">flow bifurcation介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#流量分叉的优缺点"><span class="toc-text">流量分叉的优缺点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#不同网卡的流量分叉实现"><span class="toc-text">不同网卡的流量分叉实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#mellanox"><span class="toc-text">mellanox</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#其他"><span class="toc-text">其他</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#流量分叉的应用场景"><span class="toc-text">流量分叉的应用场景</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#减少网卡的数量"><span class="toc-text">减少网卡的数量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DPDK程序中控制流量和业务流量分离"><span class="toc-text">DPDK程序中控制流量和业务流量分离</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#案例"><span class="toc-text">案例</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文主要转载自<a href="https://blog.csdn.net/legend050709/article/details/124872468" target="_blank" rel="noopener">DPDK中的流量分叉(flow bifurcation)</a>。<a id="more"></a></p>
+<h2 id="flow-bifurcation介绍"><a href="#flow-bifurcation介绍" class="headerlink" title="flow bifurcation介绍"></a>flow bifurcation介绍</h2><p><img src="/images/2024/06/008.png" alt></p>
+<p><img src="/images/2024/06/009.png" alt></p>
+<p><img src="/images/2024/06/010.png" alt></p>
+<p>使用分岔驱动程序的PMDs与设备内核驱动程序共存。在这样的模型中，NIC由内核控制，而数据路径则由设备上的PMD直接执行。</p>
+<h2 id="流量分叉的优缺点"><a href="#流量分叉的优缺点" class="headerlink" title="流量分叉的优缺点"></a>流量分叉的优缺点</h2><p>这种模式有以下好处:</p>
+<ul>
+<li>它是安全且健壮的.</li>
+</ul>
+<p>因为内存管理和隔离是由内核完成的。</p>
+<ul>
+<li><p>它允许用户在相同的网络端口上运行DPDK应用程序时使用传统的linux工具，如ethtool或ifconfig。</p>
+</li>
+<li><p>它允许DPDK应用程序只过滤部分流量，而其余的流量将由内核驱动程序定向和处理；流分岔由NIC硬件完成，例如，使用流隔离模式<a href="https://doc.dpdk.org/guides/prog_guide/rte_flow.html#flow-isolated-mode" target="_blank" rel="noopener">dpdk rte_flow isolated mode</a>可以严格选择DPDK中接收到的内容。</p>
+</li>
+</ul>
+<p><img src="/images/2024/06/011.png" alt></p>
+<p>优点总结：</p>
+<ul>
+<li>更好的性能</li>
+</ul>
+<p>流量分叉是硬件特性，不需要CPU的参与。可以提供更好的性能。</p>
+<ul>
+<li>和 kni 对比</li>
+</ul>
+<p>kni 的话，需要在DPDK中实现具体的代码来进行流量从DPDK应用到内核协议栈。流量分叉只需要通过软件给硬件配置对应的规则即可。</p>
+<ul>
+<li>实现流量分叉的方式<ul>
+<li>SR-IOV</li>
+<li>Flow filter(rte_flow/ fdir)</li>
+</ul>
+</li>
+</ul>
+<p>SR-IOV 实现流量分叉的优缺点：</p>
+<p><img src="/images/2024/06/012.png" alt></p>
+<h2 id="不同网卡的流量分叉实现"><a href="#不同网卡的流量分叉实现" class="headerlink" title="不同网卡的流量分叉实现"></a>不同网卡的流量分叉实现</h2><h3 id="mellanox"><a href="#mellanox" class="headerlink" title="mellanox"></a>mellanox</h3><p><img src="/images/2024/06/013.png" alt></p>
+<p>Mellanox Cx系列网卡天然支持流量分叉，不需要配置SR-IOV PF/VF 进行流量分叉。Mellanox Cx系列流量分叉的好处有：</p>
+<ul>
+<li>更好的性能，DPDK应用直接处理数据面的流量。</li>
+<li>网卡依然可以被内核控制。</li>
+<li>Linux kernel 的控制工具/命令依然可以使用。比如，ethtool</li>
+</ul>
+<h3 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h3><p>其他系列的网卡，比如Intel，博通的网卡不是天然支持流量分叉。需要配置SR-IOV或者 FDIR 规则来实现流量分叉。</p>
+<h2 id="流量分叉的应用场景"><a href="#流量分叉的应用场景" class="headerlink" title="流量分叉的应用场景"></a>流量分叉的应用场景</h2><h3 id="减少网卡的数量"><a href="#减少网卡的数量" class="headerlink" title="减少网卡的数量"></a>减少网卡的数量</h3><p>正常情况下，在一个机器上部署DPDK程序，需要2块网卡：</p>
+<ul>
+<li>管理口</li>
+</ul>
+<p>登陆机器，管理机器。</p>
+<ul>
+<li>业务口</li>
+</ul>
+<p>一个单卡双口的网卡作为DPDK程序转发流量的业务口。</p>
+<p>如果使用基于SR-IOV的 flow bifurcation，只需要一块卡即可。利用网卡的SR-IOV，存在一个PF以及多个VF。 在网卡上配置管理IP，以及一些flow filter。 将DPDK的流量，交给VF对应的队列，进而给VF处理。 将其他流量交给PF处理，对设备进行管理。这样即使DPDK程序退出，不影响设备的管理。</p>
+<h3 id="DPDK程序中控制流量和业务流量分离"><a href="#DPDK程序中控制流量和业务流量分离" class="headerlink" title="DPDK程序中控制流量和业务流量分离"></a>DPDK程序中控制流量和业务流量分离</h3><p>目前的DPDK程序，比如DPVS，控制流量（健康检查、bgp流量）也可能和业务流量混在一起（比如交给了相同的接收队列）。在业务流量很大的情况下，有可能导致控制流量丢包，进而导致BGP保活失败，VIP路由发送失败，流量偶发断连的情况。 如果可以将控制流量和业务流量分发到不同的队列中，可以做到互不影响。</p>
+<h2 id="案例"><a href="#案例" class="headerlink" title="案例"></a>案例</h2><p>ATC’23 <a href="https://www.usenix.org/conference/atc23/presentation/zhu-lingjun" target="_blank" rel="noopener">Deploying User-space TCP at Cloud Scale with LUNA</a></p>
+<p><img src="/images/2024/06/015.jpg" alt><br>细节可参考论文中的”7.1 Traffic Split”一节:</p>
+<blockquote>
+<p>LUNA routes the incoming TCP packets with certain destination ports to the specific virtual functions, which are then processed in user space. The TCP packets that do not align with the port filters and the not-TCP packets would still be accepted and processed by the kernel network stack.</p>
+</blockquote>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.redhat.com/en/blog/getting-best-both-worlds-queue-splitting-bifurcated-driver" target="_blank" rel="noopener">Getting the Best of Both Worlds with Queue Splitting (Bifurcated Driver)</a></li>
+<li><a href="https://www.dpdk.org/wp-content/uploads/sites/35/2016/10/Day02-Session05-JingjingWu-Userspace2016.pdf" target="_blank" rel="noopener">Flow Bifurcation on Intel® Ethernet Controller X710/XL710</a></li>
+<li><a href="https://doc.dpdk.org/guides/howto/flow_bifurcation.html" target="_blank" rel="noopener">Flow Bifurcation How-to Guide</a></li>
+<li><a href="https://blog.csdn.net/legend050709/article/details/124872468" target="_blank" rel="noopener">DPDK中的流量分叉(flow bifurcation)</a></li>
+<li><a href="https://www.usenix.org/conference/atc23/presentation/zhu-lingjun" target="_blank" rel="noopener">Deploying User-space TCP at Cloud Scale with LUNA</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/计算机网络/">计算机网络</a>
+            
+              <a href="/tags/DPDK/">DPDK</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/06/22/Notes-about-MBEC-Mode-Based-Execution-Control/">
+        <span class="next-text nav-default">Notes about MBEC(Mode Based Execution Control)</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/06/23/Notes-about-Flow-Bifurcation-mechanism/';
+        this.page.identifier = '2024/06/23/Notes-about-Flow-Bifurcation-mechanism/';
+        this.page.title = 'Notes about Flow Bifurcation';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
