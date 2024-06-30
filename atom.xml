@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-06-23T13:00:05.922Z</updated>
+  <updated>2024-06-30T10:52:45.680Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>深入理解NVMe CMB机制</title>
+    <link href="http://liujunming.github.io/2024/06/30/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3NVMe-CMB%E6%9C%BA%E5%88%B6/"/>
+    <id>http://liujunming.github.io/2024/06/30/深入理解NVMe-CMB机制/</id>
+    <published>2024-06-30T02:00:52.000Z</published>
+    <updated>2024-06-30T10:52:45.680Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下NVMe CMB机制相关notes。<a id="more"></a></p><h2 id="1-What"><a href="#1-What" class="headerlink" title="1. What"></a>1. What</h2><p>CMB（Controller Memory Buffer）是指SSD控制器内部的读写缓冲区，与HMB（Host Memory Buffer）的不同处在于所使用的内存地址位于控制器自己的内存中，而不是位于主机内存中，但它们使用队列的方式都是一样的。</p><p>NVMe CMB是NVMe SSD上的一块内存空间，可以通过PCIe MMIO BAR的方式暴露到主机内存空间中，并可由主机直接读写。这一块内存空间可以用来放置一些NVMe上特定的数据结构（如 SQ，CQ等），也可以将需要传输的数据直接放在CMB中。</p><h2 id="2-CMB-的功能"><a href="#2-CMB-的功能" class="headerlink" title="2. CMB 的功能"></a>2. CMB 的功能</h2><p>CMB 至少需要NVMe设备增加下面两个额外的寄存器，其中CMBLOC表示CMB的位置，CMBSZ表示CMB的大小，另外其中还附带了一些feature的标志位。关于这两个寄存器的细节可以阅读NVMe spec中的相关内容：</p><ul><li>3.1.3.11 Offset 38h: CMBLOC – Controller Memory Buffer Location</li><li>3.1.3.12 Offset 3Ch: CMBSZ – Controller Memory Buffer Size</li></ul><p>下图展示了CMBSZ中所包含的一些feature的介绍:</p><p><img src="/images/2024/06/016.png" alt></p><ol><li>Write Data Support (WDS): 对于将数据从主机写入到设备的命令（如Write），可以直接写入到CMB中</li><li>Read Data Support (RDS): 对于将数据从设备读取到主机的命令（如Read），可以直接从CMB中读取</li><li>PRP SGL List Support (LISTS): 可以将PRP List和SGL List放在CMB中</li><li>Completion Queue Support (CQS): 可以将CQ放在CMB中</li><li>Submission Queue Support (SQS): 可以将SQ放在CMB中</li></ol><p>PRP List的定义如下:<br><img src="/images/2024/06/017.jpg" alt></p><h2 id="3-使用CMB的例子"><a href="#3-使用CMB的例子" class="headerlink" title="3. 使用CMB的例子"></a>3. 使用CMB的例子</h2><h3 id="3-1-将CQ和SQ都放在CMB中"><a href="#3-1-将CQ和SQ都放在CMB中" class="headerlink" title="3.1 将CQ和SQ都放在CMB中"></a>3.1 将CQ和SQ都放在CMB中</h3><p>以写SQ为例，原来是主机先把请求写到内存的SQ，然后写Doorbell通知SSD，然后SSD再从内存中的SQ将命令拷贝过来。</p><p>现在是主机直接写到CMB中的SQ，然后写Doorbell通知SSD。</p><p>两个相比较，后者少了一次one read from the controller to the host，将SQ放在CMB上降低了执行命令的延迟。</p><blockquote><p>Submission Queues in host memory require the controller to perform a PCI Express read from host memory in order to fetch the queue entries. Submission Queues in controller memory enable host software to directly write the entire Submission Queue Entry to the controller’s internal memory space, avoiding one read from the controller to the host. This approach reduces latency in command execution and improves efficiency in a PCI Express fabric topology that may include multiple switches.</p></blockquote><h3 id="3-2-让CMB支持数据传输，优化NIC和NVMe-SSD之间的数据传输"><a href="#3-2-让CMB支持数据传输，优化NIC和NVMe-SSD之间的数据传输" class="headerlink" title="3.2 让CMB支持数据传输，优化NIC和NVMe SSD之间的数据传输"></a>3.2 让CMB支持数据传输，优化NIC和NVMe SSD之间的数据传输</h3><p>原本将数据从NIC发送到SSD需要从内存中转一次，现在不需要，直接发送到CMB里就好。</p><p><img src="/images/2024/06/020.jpg" alt></p><h3 id="3-2-让CMB支持数据传输，优化NVMe-SSD之间的数据传输"><a href="#3-2-让CMB支持数据传输，优化NVMe-SSD之间的数据传输" class="headerlink" title="3.2 让CMB支持数据传输，优化NVMe SSD之间的数据传输"></a>3.2 让CMB支持数据传输，优化NVMe SSD之间的数据传输</h3><p>利用了p2p功能，在NVMe设备之间直接传数据到CMB上即可，完全无需CPU和内存的介入，也不需要Root Complex参与其中。</p><p><img src="/images/2024/06/021.jpg" alt></p><h2 id="4-Spec关键notes"><a href="#4-Spec关键notes" class="headerlink" title="4. Spec关键notes"></a>4. Spec关键notes</h2><p><img src="/images/2024/06/018.jpg" alt></p><h2 id="5-p2p操作序列"><a href="#5-p2p操作序列" class="headerlink" title="5. p2p操作序列"></a>5. p2p操作序列</h2><p><img src="/images/2024/06/019.jpg" alt><br><strong>RDMA网卡利用p2p将数据写入到NVMe盘</strong></p><ol><li>driver计算出要写入到NVMe盘的数据量，从CMB中分配一段连续的buffer</li><li>RDMA利用p2p(在RDMA的MTT中，将VA映射到CMB的MMIO地址即可)将数据写入到CMB中的buffer</li><li>driver往submission queue中下发写盘的命令</li><li>driver更新SQ tail doorbell寄存器</li><li>NVMe controller根据command中的metadata与CMB buffer中的内容，将数据刷到NVMe盘中</li></ol><h2 id="6-总结"><a href="#6-总结" class="headerlink" title="6. 总结"></a>6. 总结</h2><p>在CMB之前，像SQ、CQ、PRP List、Write Data、Read Data都是放置在HMB(DRAM)中；有了CMB之后，SQ、CQ、PRP List、Write Data、Read Data可以放置在CMB(MMIO)中。</p><p>driver为了效率，将与NVMe controller交互的信息，由DRAM移动到了MMIO(CMB)中。CMB的RDS和WDS可以支持p2p，同时SQS这些feature可以提升NVMe controller的执行效率(比如避免了NVMe controller DMA读取SQE这些信息，直接从CMB中读取即可)。</p><hr><p>参考资料:</p><ol><li>NVMe 1.3 spec</li><li><a href="https://zhuanlan.zhihu.com/p/457874205" target="_blank" rel="noopener">NVME CMB详解</a></li><li><a href="https://nvmexpress.org/wp-content/uploads/Session-2-Enabling-the-NVMe-CMB-and-PMR-Ecosystem-Eideticom-and-Mell....pdf" target="_blank" rel="noopener">Enabling the NVMe™ CMB and PMR Ecosystem</a></li><li><a href="https://0x10.sh/controller-memory-buffers" target="_blank" rel="noopener">Controller Memory Buffers</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下NVMe CMB机制相关notes。
+    
+    </summary>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+  </entry>
   
   <entry>
     <title>Flow Bifurcation vs RSS</title>
@@ -456,28 +480,6 @@
     
     
       <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Intel new feature:APIC-timer virtualization</title>
-    <link href="http://liujunming.github.io/2024/04/04/Intel-new-feature-APIC-timer-virtualization/"/>
-    <id>http://liujunming.github.io/2024/04/04/Intel-new-feature-APIC-timer-virtualization/</id>
-    <published>2024-04-04T10:40:40.000Z</published>
-    <updated>2024-04-06T10:23:35.592Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将记录下<a href="https://cdrdv2.intel.com/v1/dl/getContent/671368" target="_blank" rel="noopener">Intel® Architecture Instruction Set Extensions Programming Reference</a>中的APIC-timer virtualization技术。笔者特意裁剪了本文相关的描述: <a href="/pdf/APIC-timer virtualization.pdf">APIC-timer virtualization</a><a id="more"></a></p><h2 id="1-overview"><a href="#1-overview" class="headerlink" title="1. overview"></a>1. overview</h2><p>The new feature virtualizes the TSC-deadline mode of the APIC timer. When this mode is active, software can program the APIC timer with a deadline written to the IA32_TSC_DEADLINE MSR. A timer interrupt becomes pending when the logical processor’s timestamp counter (TSC) is greater or equal to the deadline.</p><p>APIC-timer virtualization operates in conjunction with the existing virtual-interrupt delivery feature. With that feature, a virtual-machine monitor (VMM) establishes a virtual-APIC page in memory for each virtual logical processor (vCPU). A logical processor uses this page to virtualize certain aspects of APIC operation for the vCPU.</p><p>The feature is based on new guest-timer hardware that introduces two new architectural features: <strong>guest-timer events</strong> and a <strong>guest deadline</strong>. With APIC-timer virtualization, guest writes to the IA32_TSC_DEADLINE MSR do not interact with the APIC (or its timer) but instead establish a guest deadline to arm the guest-timer hardware. When a logical processor’s TSC is greater than or equal to the guest deadline(shadow context), a guest-timer event becomes pending. (笔者注:硬件)Processing of a guest-timer event updates the virtual-APIC page to record the fact that a new virtual interrupt is pending.</p><h2 id="2-guest-timer-hardware"><a href="#2-guest-timer-hardware" class="headerlink" title="2. guest-timer hardware"></a>2. guest-timer hardware</h2><p>A logical processor supports APIC-timer virtualization using new guest-timer hardware. Software controls this hardware using an unsigned 64-bit value called the <strong>guest deadline</strong>. (There is a separate guest deadline for each logical processor.) If the guest deadline is non-zero, a guest-timer event will be pending when the timestamp counter (TSC) reaches or exceeds the guest deadline.</p><h2 id="3-changes-to-vmx-non-root-operation"><a href="#3-changes-to-vmx-non-root-operation" class="headerlink" title="3. changes to vmx non-root operation"></a>3. changes to vmx non-root operation</h2><p>The 1-setting of the “APIC-timer virtualization” VM-execution control changes how a logical processor responds to accesses to the IA32_TSC_DEADLINE MSR.</p><h3 id="3-1-Accesses-to-the-IA32-TSC-DEADLINE-MSR"><a href="#3-1-Accesses-to-the-IA32-TSC-DEADLINE-MSR" class="headerlink" title="3.1 Accesses to the IA32_TSC_DEADLINE MSR"></a>3.1 Accesses to the IA32_TSC_DEADLINE MSR</h3><p>If the “APIC-timer virtualization” VM-execution control is 1, the operation of reads and writes to the<br>IA32_TSC_DEADLINE MSR (MSR 6E0H) is modified:</p><ul><li>Any read from the IA32_TSC_DEADLINE MSR (e.g., by RDMSR) that does not cause a fault or a VM exit returns the value of the guest deadline shadow (from the VMCS).</li><li>Any write to the IA32_TSC_DEADLINE MSR (e.g., by WRMSR) that does not cause a fault or a VM exit is treated as follows:<ul><li>The source operand is written to the guest deadline shadow (updating the VMCS).</li><li>If the source operand is zero, the guest deadline (<strong>the value that controls when hardware generates a guest time event</strong>) is cleared to 0.</li><li>If the source operand is not zero, the guest deadline is computed as follows. The source operand is interpreted as a virtual deadline. The processor converts that value to the actual guest deadline based on the current configuration of TSC offsetting and TSC scaling.</li></ul></li></ul><p>Note that when the “APIC-timer virtualization” VM-execution control is 1, such writes do not change the value of the IA32_TSC_DEADLINE MSR nor do they interact with the APIC timer in any way.</p><h3 id="3-2-Processing-of-Guest-Timer-Events"><a href="#3-2-Processing-of-Guest-Timer-Events" class="headerlink" title="3.2 Processing of Guest-Timer Events"></a>3.2 Processing of Guest-Timer Events</h3><p>Processing of a guest-timer event updates the virtual-APIC page to cause a virtual timer interrupt to become pending. Specifically, the logical processor performs the following steps:</p><ul><li>V := virtual timer vector;</li><li>VIRR[V] := 1;// update virtual IRR field on virtual-APIC page</li><li>RVI := max{RVI, V};// update guest interrupt status field in VMCS</li><li>evaluate pending virtual interrupts;// a virtual interrupt may be delivered immediately after this processing </li><li>Guest deadline := 0;</li><li>Guest deadline shadow := 0;</li></ul><h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h2><ul><li>guest 在non-root mode写IA32_TSC_DEADLINE MSR时，无需发生VM Exit，硬件会更新guest deadline shadow(virtual context)，同时也会更新guest deadline(shadow context)；</li><li>硬件会利用guest deadline(<strong>the value that controls when hardware generates a guest time event</strong>)与physical TSC相比，当physical timestap大于等于guest deadline时，就会给non-root mode的vCPU注入timer中断</li><li>给vCPU注入的timer中断vector由Virtual timer vector决定</li></ul><p><img src="/images/2024/04/001.jpg" alt></p><p>利用<a href="/2021/03/20/虚拟化学习心得-three-context/">three context思想</a>以及理解上述三个VMCS fields的作用，即可对APIC-timer virtualization有深入的理解。</p><h2 id="5-Q-amp-A"><a href="#5-Q-amp-A" class="headerlink" title="5. Q &amp; A"></a>5. Q &amp; A</h2><p>Q: hypervisor如何获知vCPU的timer中断vector的呢？<br>A: guest配置LVT的Timer时，会发生VM Exit，这样hypervisor就可以知道vCPU的timer中断vector，然后将Virtual timer vector这一VMCS field设置为vCPU的timer中断vector即可！<br><img src="/images/2024/04/004.jpg" alt></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将记录下&lt;a href=&quot;https://cdrdv2.intel.com/v1/dl/getContent/671368&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Intel® Architecture Instruction Set Extensions Programming Reference&lt;/a&gt;中的APIC-timer virtualization技术。笔者特意裁剪了本文相关的描述: &lt;a href=&quot;/pdf/APIC-timer virtualization.pdf&quot;&gt;APIC-timer virtualization&lt;/a&gt;
-    
-    </summary>
-    
-      <category term="Time" scheme="http://liujunming.github.io/categories/Time/"/>
-    
-    
-      <category term="Time" scheme="http://liujunming.github.io/tags/Time/"/>
     
   </entry>
   
