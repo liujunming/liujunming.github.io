@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="Interrupt Stack Table">
+  <meta name="description" content="Notes about Mellanox SF technology">
 
 
 
 
-  <meta name="keywords" content="Kernel, 体系结构, L">
+  <meta name="keywords" content="PCI&PCIe, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2020/02/08/Interrupt-Stack-Table/">
+<link rel="canonical" href="http://liujunming.github.io/2024/07/20/Notes-about-Mellanox-sub-functions-technology/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Interrupt Stack Table - L </title>
+    <title> Notes about Mellanox SF technology - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,18 +260,18 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Interrupt Stack Table
+          Notes about Mellanox SF technology
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2020-02-08
+          2024-07-20
         </span>
         
           <span class="post-category">
             
-              <a href="/categories/体系结构/">体系结构</a>
+              <a href="/categories/PCI-PCIe/">PCI&PCIe</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#何为IST"><span class="toc-text">何为IST</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IST的motivation"><span class="toc-text">IST的motivation</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Internals"><span class="toc-text">Internals</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SFs-vs-VFs"><span class="toc-text">SFs vs VFs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
     </div>
   </div>
 
@@ -292,22 +292,51 @@
 
     <div class="post-content">
       
-        <p>本文将从如下几个方面介绍IST(Interrupt Stack Table)：</p>
-<ol>
-<li>何为IST</li>
-<li>IST的motivaion</li>
+        <p>本文将mark下Mellanox的SF(Scalable Function/Sub Function)技术。<br><a id="more"></a><img src="/images/2024/07/013.png" alt></p>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>Scalable functions (SFs), or sub-functions, are very similar to virtual functions (VFs) which are part of a Single Root I/O Virtualization (SR-IOV) solution. I/O virtualization is one of the key features used in data centers today. It improves the performance of enterprise servers by giving virtual machines direct access to hardware I/O devices. The SR-IOV specification allows one PCI Express (PCIe) device to present itself to the host as multiple distinct “virtual” devices. This is done with a new PCIe capability structure added to a traditional PCIe function (i.e., a physical function or PF).</p>
+<p>The PF provides control over the creation and allocation of new VFs. VFs share the device’s underlying hardware and PCIe. A key feature of the SR-IOV specification is that VFs are very lightweight so that many of them can be implemented in a single device.</p>
+<p><strong>To utilize the capabilities of VF in the BlueField, SFs are used. SFs allow support for a larger number of functions than VFs</strong>, and more importantly, they allow running multiple services concurrently on the DPU.</p>
+<p>An SF is a lightweight function which has a parent PCIe function on which it is deployed. The SF, therefore, has access to the capabilities and resources of its parent PCIe function and <strong>has its own function capabilities and its own resources. This means that an SF would also have its own dedicated queues (i.e., txq, rxq).</strong></p>
+<p>SFs co-exist with PCIe SR-IOV virtual functions (on the host) but also do not require enabling PCIe SR-IOV.</p>
+<p>SFs support E-Switch representation offload like existing PF and VF representors. An SF shares PCIe-level resources with other SFs and/or with its parent PCIe function.</p>
+<p><img src="/images/2024/07/014.webp" alt></p>
+<h2 id="Internals"><a href="#Internals" class="headerlink" title="Internals"></a>Internals</h2><ul>
+<li><p>When scalable function is RDMA capable, it has its own <a href="https://zhuanlan.zhihu.com/p/195757767" target="_blank" rel="noopener">QP1</a>, <a href="https://zhuanlan.zhihu.com/p/163552044" target="_blank" rel="noopener">GID table</a> and rdma resources neither shared nor stolen from the parent PCI function.</p>
+</li>
+<li><p><strong>A scalable function has dedicated window in PCI BAR space</strong> that is not shared with the other scalable functions or parent PCI function. <em>This ensures that all class devices of the scalable function accesses only assigned PCI BAR space</em>.</p>
+</li>
+<li><p>A scalable function supports eswitch representation through which it supports <a href="https://netdevconf.info/2.2/papers/horman-tcflower-talk.pdf" target="_blank" rel="noopener">tc offloads</a>. User must configure eswitch to send/receive packets from/to scalable function port.</p>
+</li>
+<li><p>Scalable functions share PCI level resources such as PCI MSI-X IRQs with their other scalable function and/or with its parent PCI function.</p>
+</li>
+</ul>
+<h2 id="SFs-vs-VFs"><a href="#SFs-vs-VFs" class="headerlink" title="SFs vs VFs"></a>SFs vs VFs</h2><ol>
+<li>SFs are deployed in unit of one unlike SR-IOV VFs which are enabled all together. When a new container is spawned, at that point needed SF can be created and deployed.</li>
+<li><strong>SFs do not have to implement full PCI config space, reset, registers</strong>. This makes the device light weight.</li>
+<li>SFs share MSI-X vectors with owner PCI PF and other peer SFs. This reduces the demand on total number of vectors in hardware and platform interrupt controller.</li>
 </ol>
-<a id="more"></a>
-<h2 id="何为IST"><a href="#何为IST" class="headerlink" title="何为IST"></a>何为IST</h2><p>通过阅读<a href="/2020/01/18/浅谈tss/">浅谈tss</a>可以，当线程发生fault 时，会切换到线程的内核栈来调用handler。<br>但是却可能存在如下情况：内核栈溢出导致double fault时，不换栈大概率会导致triple fault。triple fault会导致系统重启。<br>IST(Interrupt Stack Table)，顾名思义，当handle特定的interrupt(或fault)时，会运行在特定的stack中，而非内核栈中。<br>这样IST可以确保double fault的handler运行在一个good stack中。</p>
-<h2 id="IST的motivation"><a href="#IST的motivation" class="headerlink" title="IST的motivation"></a>IST的motivation</h2><p>The motivation for the IST mechanism is to provide a method for specific interrupts (such as NMI, double-fault, and machine-check) to always execute on a known good stack. </p>
-<p><img src="/images/2020/01/5.PNG" alt></p>
-<p>详情请参考sdm vol3 6.14.5 Interrupt Stack Table。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以下内容只是个人的理解与猜测:</p>
+<ul>
+<li>SF与SR-IOV是正交的<ul>
+<li>不支持SR-IOV，也是可以支持SF的</li>
+<li>支持SR-IOV的话，可以在VF中支持SF</li>
+</ul>
+</li>
+<li>SF类比于Intel的SIOV技术，但是当前SF只支持容器，还不支持vm</li>
+<li>当前SF应该不支持PASID，SF的DMA视角如下:<ul>
+<li>对于netdevice的queue，不同容器(进程)的页表是不一样的，但是只有一个parent PCI function，因此只有一个BDF，如果使用IOMMU页表的话，无法保证不同进程使用不同的IOMMU页表，所以在容器场景下，不会使用IOMMU；因此对于DMA内存地址，queue中entry使用的是HPA，而非HVA</li>
+<li>对于RDMA的queue，由于MTT的支持，所以queue中entry使用的是HVA，MTT会完成HVA到HPA的翻译</li>
+</ul>
+</li>
+<li>如果支持PASID的话，SF也是可以支持VM的</li>
+</ul>
 <hr>
-<p>参考资料：</p>
+<p>参考资料:</p>
 <ol>
-<li><a href="https://www.cnblogs.com/flying-shark/p/8454533.html" target="_blank" rel="noopener">解析因内核栈溢出导致的 “DOUBLE FAULT” 蓝屏</a></li>
-<li><a href="https://en.wikipedia.org/wiki/Triple_fault" target="_blank" rel="noopener">Triple fault</a></li>
-<li><a href="https://www.kernel.org/doc/Documentation/x86/kernel-stacks" target="_blank" rel="noopener">Kernel stacks on x86-64 bit</a></li>
+<li><a href="https://github.com/Mellanox/scalablefunctions/wiki" target="_blank" rel="noopener">https://github.com/Mellanox/scalablefunctions/wiki</a></li>
+<li><a href="https://github.com/Mellanox/scalablefunctions" target="_blank" rel="noopener">https://github.com/Mellanox/scalablefunctions</a></li>
+<li><a href="https://docs.nvidia.com/doca/sdk/scalable-functions/index.html" target="_blank" rel="noopener">https://docs.nvidia.com/doca/sdk/scalable-functions/index.html</a></li>
+<li><a href="https://lore.kernel.org/kvm/20191107.155709.1716879557397915384.davem@davemloft.net/T/#mcad775350561ccb706f671920a874967dd7376d3" target="_blank" rel="noopener">net/mlx5: E-switch, Move devlink port close to eswitch port</a></li>
 </ol>
 
       
@@ -328,9 +357,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/Kernel/">Kernel</a>
-            
-              <a href="/tags/体系结构/">体系结构</a>
+              <a href="/tags/PCI-PCIe/">PCI&PCIe</a>
             
           </div>
         
@@ -338,15 +365,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2020/02/12/RMRR-related-notes/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">RMRR & identity mapping related notes</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2020/01/20/浅谈spinlock/">
-        <span class="next-text nav-default">浅谈spinlock的实现</span>
+      <a class="next" href="/2024/07/20/IRQ-bypass-for-posted-interrupt/">
+        <span class="next-text nav-default">IRQ bypass for posted interrupt</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -459,9 +480,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2020/02/08/Interrupt-Stack-Table/';
-        this.page.identifier = '2020/02/08/Interrupt-Stack-Table/';
-        this.page.title = 'Interrupt Stack Table';
+        this.page.url = 'http://liujunming.github.io/2024/07/20/Notes-about-Mellanox-sub-functions-technology/';
+        this.page.identifier = '2024/07/20/Notes-about-Mellanox-sub-functions-technology/';
+        this.page.title = 'Notes about Mellanox SF technology';
     };
     (function() {
     var d = document, s = d.createElement('script');
