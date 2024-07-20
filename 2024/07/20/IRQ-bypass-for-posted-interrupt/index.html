@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="IRQ bypass for posted interrupt">
+
+
+
+
+  <meta name="keywords" content="虚拟化, QEMU, 中断, VFIO, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/07/20/IRQ-bypass-for-posted-interrupt/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> IRQ bypass for posted interrupt - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          IRQ bypass for posted interrupt
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-07-20
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/中断/">中断</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kvm-arch-irq-bypass-add-producer"><span class="toc-text">kvm_arch_irq_bypass_add_producer</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#irq-bypass-register-producer"><span class="toc-text">irq_bypass_register_producer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#irq-bypass-register-consumer"><span class="toc-text">irq_bypass_register_consumer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#vmx-update-pi-irte"><span class="toc-text">vmx_update_pi_irte</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kvm-arch-update-irqfd-routing"><span class="toc-text">kvm_arch_update_irqfd_routing</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>IRQ bypass仅仅是一套软件框架而已!<a id="more"></a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">When a physical I/O device is assigned to a virtual machine through</span><br><span class="line">facilities like VFIO and KVM, the interrupt for the device generally</span><br><span class="line">bounces through the host system before being injected into the VM.</span><br><span class="line">However, hardware technologies exist that often allow the host to be</span><br><span class="line">bypassed for some of these scenarios.  Intel Posted Interrupts allow</span><br><span class="line">the specified physical edge interrupts to be directly injected into a</span><br><span class="line">guest when delivered to a physical processor while the vCPU is</span><br><span class="line">running.  ARM IRQ Forwarding allows forwarded physical interrupts to</span><br><span class="line">be directly deactivated by the guest.</span><br><span class="line"></span><br><span class="line">The IRQ bypass manager here is meant to provide the shim to connect</span><br><span class="line">interrupt producers, generally the host physical device driver, with</span><br><span class="line">interrupt consumers, generally the hypervisor, in order to configure</span><br><span class="line">these bypass mechanism.  To do this, we base the connection on a</span><br><span class="line">shared, opaque token.  For KVM-VFIO this is expected to be an</span><br><span class="line">eventfd_ctx since this is the connection we already use to connect an</span><br><span class="line">eventfd to an irqfd on the in-kernel path.  When a producer and</span><br><span class="line">consumer with matching tokens is found, callbacks via both registered</span><br><span class="line">participants allow the bypass facilities to be automatically enabled.</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> * Theory of operation</span><br><span class="line"> *</span><br><span class="line"> * The IRQ bypass manager is a simple set of lists and callbacks that allows</span><br><span class="line"> * IRQ producers (ex. physical interrupt sources) to be matched to IRQ</span><br><span class="line"> * consumers (ex. virtualization hardware that allows IRQ bypass or offload)</span><br><span class="line"> * via a shared token (ex. eventfd_ctx).  Producers and consumers register</span><br><span class="line"> * independently.  When a token match is found, the optional @stop callback</span><br><span class="line"> * will be called for each participant.  The pair will then be connected via</span><br><span class="line"> * the @add_* callbacks, and finally the optional @start callback will allow</span><br><span class="line"> * any final coordination.  When either participant is unregistered, the</span><br><span class="line"> * process is repeated using the @del_* callbacks in place of the @add_*</span><br><span class="line"> * callbacks.  Match tokens must be unique per producer/consumer, 1:N pairings</span><br><span class="line"> * are not supported.</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">irq_bypass_register_producer</span><span class="params">(struct irq_bypass_producer *)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">irq_bypass_unregister_producer</span><span class="params">(struct irq_bypass_producer *)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">irq_bypass_register_consumer</span><span class="params">(struct irq_bypass_consumer *)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">irq_bypass_unregister_consumer</span><span class="params">(struct irq_bypass_consumer *)</span></span>;</span><br></pre></td></tr></table></figure>
+<h2 id="kvm-arch-irq-bypass-add-producer"><a href="#kvm-arch-irq-bypass-add-producer" class="headerlink" title="kvm_arch_irq_bypass_add_producer"></a>kvm_arch_irq_bypass_add_producer</h2><h3 id="irq-bypass-register-producer"><a href="#irq-bypass-register-producer" class="headerlink" title="irq_bypass_register_producer"></a>irq_bypass_register_producer</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">vfio_pci_set_irqs_ioctl</span><br><span class="line">└── vfio_pci_set_msi_trigger</span><br><span class="line">    └── vfio_msi_set_block</span><br><span class="line">        └── vfio_msi_set_vector_signal</span><br><span class="line">            └── irq_bypass_register_producer</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">vfio_msi_set_vector_signal</span><span class="params">(struct vfio_pci_device *vdev,</span></span></span><br><span class="line"><span class="function"><span class="params">                      <span class="keyword">int</span> <span class="built_in">vector</span>, <span class="keyword">int</span> fd, <span class="keyword">bool</span> msix)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">eventfd_ctx</span> *<span class="title">trigger</span>;</span></span><br><span class="line">    ...</span><br><span class="line">    trigger = eventfd_ctx_fdget(fd); <span class="comment">// 正常情况下，这里的fd就是irqfd</span></span><br><span class="line">    ...</span><br><span class="line">    vdev-&gt;ctx[<span class="built_in">vector</span>].producer.token = trigger;</span><br><span class="line">    vdev-&gt;ctx[<span class="built_in">vector</span>].producer.irq = irq;</span><br><span class="line">    ret = irq_bypass_register_producer(&amp;vdev-&gt;ctx[<span class="built_in">vector</span>].producer);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * irq_bypass_register_producer - register IRQ bypass producer</span></span><br><span class="line"><span class="comment"> * @producer: pointer to producer structure</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Add the provided IRQ producer to the list of producers and connect</span></span><br><span class="line"><span class="comment"> * with any matching token found on the IRQ consumers list.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">irq_bypass_register_producer</span><span class="params">(struct irq_bypass_producer *producer)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">irq_bypass_producer</span> *<span class="title">tmp</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">irq_bypass_consumer</span> *<span class="title">consumer</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!producer-&gt;token)</span><br><span class="line">        <span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">    might_sleep();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!try_module_get(THIS_MODULE))</span><br><span class="line">        <span class="keyword">return</span> -ENODEV;</span><br><span class="line"></span><br><span class="line">    mutex_lock(&amp;lock);</span><br><span class="line"></span><br><span class="line">    list_for_each_entry(tmp, &amp;producers, node) &#123;</span><br><span class="line">        <span class="keyword">if</span> (tmp-&gt;token == producer-&gt;token) &#123;</span><br><span class="line">            mutex_unlock(&amp;lock);</span><br><span class="line">            module_put(THIS_MODULE);</span><br><span class="line">            <span class="keyword">return</span> -EBUSY;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    list_for_each_entry(consumer, &amp;consumers, node) &#123;</span><br><span class="line">        <span class="keyword">if</span> (consumer-&gt;token == producer-&gt;token) &#123;</span><br><span class="line">            <span class="keyword">int</span> ret = __connect(producer, consumer);</span><br><span class="line">            <span class="keyword">if</span> (ret) &#123;</span><br><span class="line">                mutex_unlock(&amp;lock);</span><br><span class="line">                module_put(THIS_MODULE);</span><br><span class="line">                <span class="keyword">return</span> ret;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    list_add(&amp;producer-&gt;node, &amp;producers);</span><br><span class="line"></span><br><span class="line">    mutex_unlock(&amp;lock);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(irq_bypass_register_producer);</span><br></pre></td></tr></table></figure>
+<h3 id="irq-bypass-register-consumer"><a href="#irq-bypass-register-consumer" class="headerlink" title="irq_bypass_register_consumer"></a>irq_bypass_register_consumer</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kvm_vm_ioctl</span><br><span class="line">└── kvm_irqfd</span><br><span class="line">    └── kvm_irqfd_assign</span><br><span class="line">        └── irq_bypass_register_consumer</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">int</span></span><br><span class="line">kvm_irqfd_assign(struct kvm *kvm, struct kvm_irqfd *args)</span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_HAVE_KVM_IRQ_BYPASS</span></span><br><span class="line">    <span class="keyword">if</span> (kvm_arch_has_irq_bypass()) &#123;</span><br><span class="line">        irqfd-&gt;consumer.token = (<span class="keyword">void</span> *)irqfd-&gt;eventfd;</span><br><span class="line">        irqfd-&gt;consumer.add_producer = kvm_arch_irq_bypass_add_producer;</span><br><span class="line">        irqfd-&gt;consumer.del_producer = kvm_arch_irq_bypass_del_producer;</span><br><span class="line">        irqfd-&gt;consumer.stop = kvm_arch_irq_bypass_stop;</span><br><span class="line">        irqfd-&gt;consumer.start = kvm_arch_irq_bypass_start;</span><br><span class="line">        ret = irq_bypass_register_consumer(&amp;irqfd-&gt;consumer);</span><br><span class="line">        <span class="keyword">if</span> (ret)</span><br><span class="line">            pr_info(<span class="string">"irq bypass consumer (token %p) registration fails: %d\n"</span>,</span><br><span class="line">                irqfd-&gt;consumer.token, ret);</span><br><span class="line">    &#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * irq_bypass_register_consumer - register IRQ bypass consumer</span></span><br><span class="line"><span class="comment"> * @consumer: pointer to consumer structure</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Add the provided IRQ consumer to the list of consumers and connect</span></span><br><span class="line"><span class="comment"> * with any matching token found on the IRQ producer list.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">irq_bypass_register_consumer</span><span class="params">(struct irq_bypass_consumer *consumer)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">irq_bypass_consumer</span> *<span class="title">tmp</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">irq_bypass_producer</span> *<span class="title">producer</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!consumer-&gt;token ||</span><br><span class="line">        !consumer-&gt;add_producer || !consumer-&gt;del_producer)</span><br><span class="line">        <span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">    might_sleep();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!try_module_get(THIS_MODULE))</span><br><span class="line">        <span class="keyword">return</span> -ENODEV;</span><br><span class="line"></span><br><span class="line">    mutex_lock(&amp;lock);</span><br><span class="line"></span><br><span class="line">    list_for_each_entry(tmp, &amp;consumers, node) &#123;</span><br><span class="line">        <span class="keyword">if</span> (tmp-&gt;token == consumer-&gt;token || tmp == consumer) &#123;</span><br><span class="line">            mutex_unlock(&amp;lock);</span><br><span class="line">            module_put(THIS_MODULE);</span><br><span class="line">            <span class="keyword">return</span> -EBUSY;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    list_for_each_entry(producer, &amp;producers, node) &#123;</span><br><span class="line">        <span class="keyword">if</span> (producer-&gt;token == consumer-&gt;token) &#123;</span><br><span class="line">            <span class="keyword">int</span> ret = __connect(producer, consumer);</span><br><span class="line">            <span class="keyword">if</span> (ret) &#123;</span><br><span class="line">                mutex_unlock(&amp;lock);</span><br><span class="line">                module_put(THIS_MODULE);</span><br><span class="line">                <span class="keyword">return</span> ret;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    list_add(&amp;consumer-&gt;node, &amp;consumers);</span><br><span class="line"></span><br><span class="line">    mutex_unlock(&amp;lock);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(irq_bypass_register_consumer);</span><br></pre></td></tr></table></figure>
+<h3 id="vmx-update-pi-irte"><a href="#vmx-update-pi-irte" class="headerlink" title="vmx_update_pi_irte"></a>vmx_update_pi_irte</h3><p>当irq bypass的producer和consumer token(eventfd_ctx)匹配成功时，才会调用<code>kvm_arch_irq_bypass_add_producer</code>。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* @lock must be held when calling connect */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __connect(struct irq_bypass_producer *prod,</span><br><span class="line">             struct irq_bypass_consumer *cons)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">int</span> ret = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (prod-&gt;stop)</span><br><span class="line">        prod-&gt;stop(prod);</span><br><span class="line">    <span class="keyword">if</span> (cons-&gt;stop)</span><br><span class="line">        cons-&gt;stop(cons);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (prod-&gt;add_consumer)</span><br><span class="line">        ret = prod-&gt;add_consumer(prod, cons);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!ret) &#123;</span><br><span class="line">        ret = cons-&gt;add_producer(cons, prod);</span><br><span class="line">        <span class="keyword">if</span> (ret &amp;&amp; prod-&gt;del_consumer)</span><br><span class="line">            prod-&gt;del_consumer(prod, cons);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (cons-&gt;start)</span><br><span class="line">        cons-&gt;start(cons);</span><br><span class="line">    <span class="keyword">if</span> (prod-&gt;start)</span><br><span class="line">        prod-&gt;start(prod);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kvm_arch_irq_bypass_add_producer</span><span class="params">(struct irq_bypass_consumer *cons,</span></span></span><br><span class="line"><span class="function"><span class="params">                      struct irq_bypass_producer *prod)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">kvm_kernel_irqfd</span> *<span class="title">irqfd</span> =</span></span><br><span class="line"><span class="class">        <span class="title">container_of</span>(<span class="title">cons</span>, <span class="title">struct</span> <span class="title">kvm_kernel_irqfd</span>, <span class="title">consumer</span>);</span></span><br><span class="line"></span><br><span class="line">    irqfd-&gt;producer = prod;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> kvm_x86_ops-&gt;update_pi_irte(irqfd-&gt;kvm,</span><br><span class="line">                       prod-&gt;irq, irqfd-&gt;gsi, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>add_producer其实就是设置irte为Posted-Interrupts而已！<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vmx_update_pi_irte</span><br><span class="line">└── irq_set_vcpu_affinity</span><br><span class="line">    └── intel_ir_set_vcpu_affinity</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * vmx_update_pi_irte - set IRTE for Posted-Interrupts</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @kvm: kvm</span></span><br><span class="line"><span class="comment"> * @host_irq: host irq of the interrupt</span></span><br><span class="line"><span class="comment"> * @guest_irq: gsi of the interrupt</span></span><br><span class="line"><span class="comment"> * @set: set or unset PI</span></span><br><span class="line"><span class="comment"> * returns 0 on success, &lt; 0 on failure</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">vmx_update_pi_irte</span><span class="params">(struct kvm *kvm, <span class="keyword">unsigned</span> <span class="keyword">int</span> host_irq,</span></span></span><br><span class="line"><span class="function"><span class="params">                  <span class="keyword">uint32_t</span> guest_irq, <span class="keyword">bool</span> <span class="built_in">set</span>)</span></span></span><br></pre></td></tr></table></figure>
+<h2 id="kvm-arch-update-irqfd-routing"><a href="#kvm-arch-update-irqfd-routing" class="headerlink" title="kvm_arch_update_irqfd_routing"></a>kvm_arch_update_irqfd_routing</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kvm_vm_ioctl</span><br><span class="line">└── kvm_set_irq_routing</span><br><span class="line">    └── kvm_irq_routing_update</span><br><span class="line">        └── kvm_arch_update_irqfd_routing</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kvm_arch_update_irqfd_routing</span><span class="params">(struct kvm *kvm, <span class="keyword">unsigned</span> <span class="keyword">int</span> host_irq,</span></span></span><br><span class="line"><span class="function"><span class="params">                   <span class="keyword">uint32_t</span> guest_irq, <span class="keyword">bool</span> <span class="built_in">set</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!kvm_x86_ops-&gt;update_pi_irte)</span><br><span class="line">        <span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> kvm_x86_ops-&gt;update_pi_irte(kvm, host_irq, guest_irq, <span class="built_in">set</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>既然irq bypass的producer和consumer token匹配成功时就调用了<code>update_pi_irte</code>，为什么还要在<code>kvm_irq_routing_update</code>中也调用<code>update_pi_irte</code>呢？其实是在guest内部做irq balance时才会触发。</p>
+<p>以guest内部对msi-x table中断做irq balance为例, qemu的函数调用链如下:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">msix_table_mmio_write</span><br><span class="line">└── msix_handle_mask_update</span><br><span class="line">    └── msix_fire_vector_notifier</span><br><span class="line">        └── vfio_msix_vector_use</span><br><span class="line">            └── vfio_msix_vector_do_use</span><br><span class="line">                └── vfio_update_kvm_msi_virq</span><br><span class="line">                    ├── kvm_irqchip_update_msi_route</span><br><span class="line">                    └── kvm_irqchip_commit_routes</span><br><span class="line">                        └── kvm_vm_ioctl(s, KVM_SET_GSI_ROUTING, s-&gt;irq_routes)</span><br></pre></td></tr></table></figure></p>
+<p><img src="/images/2024/07/011.jpg" alt></p>
+<p><img src="/images/2024/07/012.jpg" alt></p>
+<p>guest内部做irq balance时，可能会更改vCPU与vector号，需要将guest更改后的vector更新到IRTE中的vv字段。所以在guest内部做irq balance时，需要调用<code>update_pi_irte</code>来更新IRTE。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://lwn.net/Articles/653706/" target="_blank" rel="noopener">virt: IRQ bypass manager</a></li>
+<li><a href="https://github.com/torvalds/linux/blob/master/include/linux/irqbypass.h" target="_blank" rel="noopener">include/linux/irqbypass.h</a></li>
+<li><a href="https://lore.kernel.org/kvm/1442586596-5920-2-git-send-email-feng.wu@intel.com/" target="_blank" rel="noopener">virt: IRQ bypass manager</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/中断/">中断</a>
+            
+              <a href="/tags/VFIO/">VFIO</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/07/14/File-Descriptor-Transfer-over-Unix-Domain-Sockets/">
+        <span class="next-text nav-default">File Descriptor Transfer over Unix Domain Sockets</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/07/20/IRQ-bypass-for-posted-interrupt/';
+        this.page.identifier = '2024/07/20/IRQ-bypass-for-posted-interrupt/';
+        this.page.title = 'IRQ bypass for posted interrupt';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
