@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="(转)GPU虚拟化调度方案">
+
+
+
+
+  <meta name="keywords" content="虚拟化, GPU, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/07/27/转-GPU虚拟化调度方案/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> (转)GPU虚拟化调度方案 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          (转)GPU虚拟化调度方案
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-07-27
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#API-Remoting与vCUDA"><span class="toc-text">API Remoting与vCUDA</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GRID-vGPU"><span class="toc-text">GRID vGPU</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Nvidia-MIG"><span class="toc-text">Nvidia MIG</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文转载自: <a href="https://mp.weixin.qq.com/s/wIvCnlfndPp05fMqPfX8gA" target="_blank" rel="noopener">大模型时代的基础架构长什么样？</a><a id="more"></a></p>
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>无论是基于虚拟机的PCI-E设备直通，还是基于Kubernetes的Device Plugin，对GPU调度的颗粒度都是整颗GPU芯片，这样，是不能将一颗GPU芯片共享给多个应用使用的。然而，在实践中，将GPU共享给多个应用使用是很常见的需求，特别是对于推理场景，往往不需要一直使用整颗GPU芯片的算力资源。所以，将昂贵的GPU分享给其他应用的能力就变得非常有价值。</p>
+<p>因此，无论是GPU厂商、云计算厂商，还是开源社区，都推出了一系列GPU虚拟化方案。</p>
+<p>Nvidia（英伟达）作为GPU领域的Top供应商，从2010年起就推出了GPU虚拟化的方案，其大致的发展路线图如图8-1所示。</p>
+<p><img src="/images/2024/07/021.webp" alt></p>
+<p>在图8-1中，GPU虚拟化的发展路线分为三个阶段：以vCUDA为代表的APIRemoting阶段、以GRID vGPU为代表的Driver Virtualization（驱动虚拟化）阶段，以及以MIG为代表的Hardware Virtualization（硬件虚拟化）阶段。</p>
+<h2 id="API-Remoting与vCUDA"><a href="#API-Remoting与vCUDA" class="headerlink" title="API Remoting与vCUDA"></a>API Remoting与vCUDA</h2><p>vCUDA技术出现于2010年前后，其实现思路是：在虚拟机中提供一个物理GPU的逻辑映像——虚拟GPU，在用户态拦截CUDA API，在虚拟GPU中重定向到真正的物理GPU上执行计算。同时，在宿主机上基于原生的CUDA运行时库和GPU驱动，运行vCUDA服务端，接管虚拟GPU拦截的CUDA API，同时进行计算任务的调度。</p>
+<p>vCUDA的工作原理如图8-2所示。</p>
+<p><img src="/images/2024/07/022.webp" alt></p>
+<p>从图8-2可以看出，虚拟机的CUDA运行时库被替换为vCUDA，其作用就是拦截来自CUDA App的所有CUDA API调用。vCUDA运行时库会在内核中调用vGPU驱动（或称之为“客户端驱动”），vGPU驱动实际的作用就是通过虚拟机到宿主机的VMRPC（Virtual Machine Remote Procedure Call）通道，将CUDA调用发送到宿主机。宿主机的vCUDA Stub（管理端）接收到CUDA调用后，调用宿主机上真正的CUDA运行时库和物理GPU驱动，完成GPU运算。</p>
+<p>在客户端驱动处理API之前，还需要向管理端申请GPU资源。每一个独立的调用过程都必须向宿主机的管理端申请GPU资源，从而实现GPU资源和任务的实时调度。</p>
+<p>显然，vCUDA是一种时间片调度的虚拟化技术，也就是“时分复用”。此种实现对于用户的应用而言是透明的，无须针对虚拟GPU做任何修改，而且也可以实现非常灵活的调度，单GPU能服务的虚拟机数量不受限制。但缺点也是显而易见的：CUDA API只是GPU运算使用的API中的一种，业界还有DirectX/OpenGL等其他API标准，而且同一套API又有多个不同的版本（如DirectX 9和DirectX 11等），兼容性非常复杂。</p>
+<p>Nvidia如何在下一代GPU虚拟化技术中解决这一问题呢？</p>
+<h2 id="GRID-vGPU"><a href="#GRID-vGPU" class="headerlink" title="GRID vGPU"></a>GRID vGPU</h2><p>Nvidia在2014年前后推出了vCUDA的替代品——GRID vGPU。</p>
+<p>GRID vGPU是一种GPU分片虚拟化方案，也可以被认为是一种半虚拟化方案。“分片”实际上还是采用“时分复用”。</p>
+<p>GRID vGPU的实现原理如图8-3所示。</p>
+<p><img src="/images/2024/07/023.webp" alt></p>
+<p>在图8-3中，VM中的CUDA应用调用的是原生的CUDA运行时库，但GuestOS（虚拟机操作系统）中的GPU驱动并不是访问GPU物理的BAR（Base Address Register），而是访问虚拟的BAR。</p>
+<p>在进行计算工作时，GuestOS的GPU驱动会将保存待计算Workload的GPA通过MMIO CSR（Configuration and Status Register）传递给HostOS中的GPU驱动，从而让HostOS的GPU驱动拿到GPA并将其转换为HPA，写入物理GPU的MMIO CSR，也就是启动物理GPU的计算任务。</p>
+<p>物理GPU在计算完成后，会发送一个MSI中断到HostOS的驱动，HostOS的驱动根据Workload反查提交这个Workload的vGPU实例，发送中断到对应的VM中。VM的GuestOS处理该中断，直到完成计算Workload，上报CUDA和应用，vGPU计算过程处理完毕。</p>
+<p>vGPU方案也被称为MPT（Mediated Pass Through，受控直通）方案。该方案的思路是：将一些敏感资源和关键资源（如PCI-E配置空间和MMIO CSR）虚拟化，而GPU显存的MMIO则进行直通，并在HostOS上增加一个能够感知虚拟化的驱动程序，以进行硬件资源的调度。这样，在VM中就可以看出一个PCI-E设备，并安装原生的GPU驱动。</p>
+<p>该方案的优势在于，继承了vCUDA的调度灵活性，并且不需要替换原有的CUDA API库，解决了上一代vCUDA的兼容性问题。该方案的缺陷在于，宿主机上的驱动为硬件厂商所控制，而该物理GPU驱动是实现整个调度能力的核心。也就是说，该方案存在着对厂商软件的依赖，厂商软件可以基于这个收取高额的软件授权费用。</p>
+<h2 id="Nvidia-MIG"><a href="#Nvidia-MIG" class="headerlink" title="Nvidia MIG"></a>Nvidia MIG</h2><p>在业界的推动下，Nvidia又在2020年前后更新了一代GPU虚拟化方案MIG（Multi-Instance GPU）。MIG的实现原理如图8-4所示。</p>
+<p><img src="/images/2024/07/024.webp" alt></p>
+<p>我们对比图8-3和图8-4会发现，MIG与vGPU的相同点在于，VM上的CUDA运行时库和GPU驱动均为原生版本。但其差异在于，MIG上看到的GPU设备实际上是真实物理硬件的一部分，其BAR和MMIO CSR的背后都是真实的物理硬件。</p>
+<p>这是Nvidia在Nvidia A100和Nvidia H100等高端GPU上引入的硬件能力，它不仅能将一个GPU芯片虚拟出7个实例，提供给不同的VM使用，还可以为虚拟化的实例分配指定的GPU算力和GPU内存，这实际上是一种空分复用，也就是硬件资源隔离（Hardware Partition）。</p>
+<p>硬件资源隔离所带来的一个重要价值就是硬件故障隔离。在前两种方案中，从本质上说，GPU侧并没有实现真正的故障隔离，一旦某个提交给Nvidia的CUDA作业程序越界访问了GPU显存，其他VM的CUDA应用就都有可能在抛出的异常中被中止。而MIG提供了硬件安全机制，不同MIG实例中的程序不会相互影响，从而从根源上解决了这一问题。</p>
+<p>SR-IOV is a pre-requisite for running vGPUs on MIG，所以MMIO BAR是直通的，无需trap(而GRID vGPU需要trap MMIO BAR)。</p>
+<p><img src="/images/2024/07/025.jpg" alt></p>
+<p>MIG看起来是一个完美的方案，但实际上并非如此。</p>
+<p>首先，MIG只在高端的训练GPU上才得到了支持，但实际上推理场景需要使用GPU虚拟化技术来实现多应用共享GPU的可能性更大；其次，MIG支持的实例数受硬件设计限制，目前只能支持7个GPU实例；最后，MIG只支持CUDA计算，对于渲染等其他场景不支持。</p>
+<p>因此，工程师们也构思了更多的方案，特别是云计算厂商也推出了一系列基于容器的GPU调度方案。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://cloud-atlas.readthedocs.io/zh-cn/latest/kvm/iommu/mig/intro_mig.html" target="_blank" rel="noopener">NVIDIA Multi-Instance GPU(MIG) 技术简介¶</a></li>
+<li><a href="https://blogs.vmware.com/apps/2020/09/vsphere-7-0-u1-with-multi-instance-gpus-mig-on-the-nvidia-a100-for-machine-learning-applications-part-2-profiles-and-setup.html" target="_blank" rel="noopener">vSphere 7 with Multi-Instance GPUs (MIG) on the NVIDIA A100 for Machine Learning Applications – Part 2 : Profiles and Setup</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/GPU/">GPU</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/07/21/Notes-about-Smart-Data-Accelerator-Interface-SDXI/">
+        <span class="next-text nav-default">Notes about Smart Data Accelerator Interface (SDXI)</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/07/27/转-GPU虚拟化调度方案/';
+        this.page.identifier = '2024/07/27/转-GPU虚拟化调度方案/';
+        this.page.title = '(转)GPU虚拟化调度方案';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
