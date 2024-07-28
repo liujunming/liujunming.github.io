@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="深入理解virtio kick操作">
+
+
+
+
+  <meta name="keywords" content="virtio, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/07/28/深入理解virtio-kick操作/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 深入理解virtio kick操作 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          深入理解virtio kick操作
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-07-28
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/virtio/">virtio</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#legacy-device"><span class="toc-text">legacy device</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#modern-device"><span class="toc-text">modern device</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#VIRTIO-F-NOTIFICATION-DATA-feature"><span class="toc-text">VIRTIO_F_NOTIFICATION_DATA feature</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将结合virtio spec与linux 源码，深入解析下virtio中的kick操作。<a id="more"></a></p>
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>本文将详细的阐述virtio中的kick操作。根据kick操作的发展历史，按照如下顺序去介绍:</p>
+<ol>
+<li>legacy device kick</li>
+<li>modern device kick</li>
+<li>VIRTIO_F_NOTIFICATION_DATA feature的kick</li>
+</ol>
+<h2 id="legacy-device"><a href="#legacy-device" class="headerlink" title="legacy device"></a>legacy device</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* the notify function used when creating a virt queue */</span></span><br><span class="line"><span class="function"><span class="keyword">bool</span> <span class="title">vp_notify</span><span class="params">(struct virtqueue *vq)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">/* we write the queue's selector into the notification register to</span></span><br><span class="line"><span class="comment">	 * signal the other end */</span></span><br><span class="line">	iowrite16(vq-&gt;index, (<span class="keyword">void</span> __iomem *)vq-&gt;priv);</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// legacy device</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> struct virtqueue *<span class="title">setup_vq</span><span class="params">(struct virtio_pci_device *vp_dev,</span></span></span><br><span class="line"><span class="function"><span class="params">				  struct virtio_pci_vq_info *info,</span></span></span><br><span class="line"><span class="function"><span class="params">				  <span class="keyword">unsigned</span> <span class="keyword">int</span> index,</span></span></span><br><span class="line">				  void (*callback)(struct virtqueue *vq),</span><br><span class="line">				  <span class="keyword">const</span> <span class="keyword">char</span> *name,</span><br><span class="line">				  <span class="keyword">bool</span> ctx,</span><br><span class="line">				  u16 msix_vec)</span><br><span class="line">&#123;</span><br><span class="line">        ...</span><br><span class="line">	<span class="comment">/* create the vring */</span></span><br><span class="line">	vq = vring_create_virtqueue(index, num,</span><br><span class="line">				    VIRTIO_PCI_VRING_ALIGN, &amp;vp_dev-&gt;vdev,</span><br><span class="line">				    <span class="literal">true</span>, <span class="literal">false</span>, ctx,</span><br><span class="line">				    vp_notify, callback, name);</span><br><span class="line">        ...</span><br><span class="line">        vq-&gt;priv = (<span class="keyword">void</span> __force *)vp_dev-&gt;ldev.ioaddr + VIRTIO_PCI_QUEUE_NOTIFY;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2024/07/033.jpg" alt></p>
+<p>kick寄存器位于bar0中的<code>VIRTIO_PCI_QUEUE_NOTIFY</code>位置；不同vq使用同一个kick寄存器地址，往kick寄存器写入vq的index，告诉virtio后端要处理哪个vq。</p>
+<h2 id="modern-device"><a href="#modern-device" class="headerlink" title="modern device"></a>modern device</h2><p><img src="/images/2024/07/037.jpg" alt></p>
+<p>在设备实现中，一般会将<code>queue_notify_off</code>设置为vq index；也就是说，<code>vp_modern_get_queue_notify_off</code>的返回值，一般会与输入变量index相同。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * vp_modern_get_queue_notify_off - get notification offset for a virtqueue</span></span><br><span class="line"><span class="comment"> * @mdev: the modern virtio-pci device</span></span><br><span class="line"><span class="comment"> * @index: the queue index</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Returns the notification offset for a virtqueue</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> u16 <span class="title">vp_modern_get_queue_notify_off</span><span class="params">(struct virtio_pci_modern_device *mdev,</span></span></span><br><span class="line"><span class="function"><span class="params">					  u16 index)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	vp_iowrite16(index, &amp;mdev-&gt;common-&gt;queue_select);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> vp_ioread16(&amp;mdev-&gt;common-&gt;queue_notify_off);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="/images/2024/07/038.jpg" alt></p>
+<p><img src="/images/2024/07/036.jpg" alt></p>
+<ul>
+<li>当notify_off_multiplier不为0时，不同vq使用不同的kick寄存器地址，往kick寄存器写入vq的index，告诉virtio后端要处理哪个vq</li>
+<li>当notify_off_multiplier为0时，不同vq使用相同的kick寄存器地址，往kick寄存器写入vq的index，告诉virtio后端要处理哪个vq</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// modern device</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> struct virtqueue *<span class="title">setup_vq</span><span class="params">(struct virtio_pci_device *vp_dev,</span></span></span><br><span class="line"><span class="function"><span class="params">				  struct virtio_pci_vq_info *info,</span></span></span><br><span class="line"><span class="function"><span class="params">				  <span class="keyword">unsigned</span> <span class="keyword">int</span> index,</span></span></span><br><span class="line">				  void (*callback)(struct virtqueue *vq),</span><br><span class="line">				  <span class="keyword">const</span> <span class="keyword">char</span> *name,</span><br><span class="line">				  <span class="keyword">bool</span> ctx,</span><br><span class="line">				  u16 msix_vec)</span><br><span class="line">&#123;</span><br><span class="line">        ...</span><br><span class="line">	<span class="comment">/* create the vring */</span></span><br><span class="line">	vq = vring_create_virtqueue(index, num,</span><br><span class="line">				    SMP_CACHE_BYTES, &amp;vp_dev-&gt;vdev,</span><br><span class="line">				    <span class="literal">true</span>, <span class="literal">true</span>, ctx,</span><br><span class="line">				    notify, callback, name);</span><br><span class="line">        ...</span><br><span class="line">        vq-&gt;priv = (<span class="keyword">void</span> __force *)vp_modern_map_vq_notify(mdev, index, <span class="literal">NULL</span>);</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * vp_modern_map_vq_notify - map notification area for a</span></span><br><span class="line"><span class="comment"> * specific virtqueue</span></span><br><span class="line"><span class="comment"> * @mdev: the modern virtio-pci device</span></span><br><span class="line"><span class="comment"> * @index: the queue index</span></span><br><span class="line"><span class="comment"> * @pa: the pointer to the physical address of the nofity area</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Returns the address of the notification area</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">void</span> __<span class="function">iomem *<span class="title">vp_modern_map_vq_notify</span><span class="params">(struct virtio_pci_modern_device *mdev,</span></span></span><br><span class="line"><span class="function"><span class="params">				      u16 index, <span class="keyword">resource_size_t</span> *pa)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	u16 off = vp_modern_get_queue_notify_off(mdev, index);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (mdev-&gt;notify_base) &#123;</span><br><span class="line">		<span class="comment">/* offset should not wrap */</span></span><br><span class="line">		<span class="keyword">if</span> ((u64)off * mdev-&gt;notify_offset_multiplier + <span class="number">2</span></span><br><span class="line">			&gt; mdev-&gt;notify_len) &#123;</span><br><span class="line">			dev_warn(&amp;mdev-&gt;pci_dev-&gt;dev,</span><br><span class="line">				 <span class="string">"bad notification offset %u (x %u) "</span></span><br><span class="line">				 <span class="string">"for queue %u &gt; %zd"</span>,</span><br><span class="line">				 off, mdev-&gt;notify_offset_multiplier,</span><br><span class="line">				 index, mdev-&gt;notify_len);</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (pa)</span><br><span class="line">			*pa = mdev-&gt;notify_pa +</span><br><span class="line">			      off * mdev-&gt;notify_offset_multiplier;</span><br><span class="line">		<span class="keyword">return</span> mdev-&gt;notify_base + off * mdev-&gt;notify_offset_multiplier;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		...</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="VIRTIO-F-NOTIFICATION-DATA-feature"><a href="#VIRTIO-F-NOTIFICATION-DATA-feature" class="headerlink" title="VIRTIO_F_NOTIFICATION_DATA feature"></a>VIRTIO_F_NOTIFICATION_DATA feature</h2><p><img src="/images/2024/07/034.jpg" alt></p>
+<p>值得注意的是，对于split vq，desc table的最大size为2^16；对于packed vq，desc table的最大size为2^15；</p>
+<p><img src="/images/2024/07/031.jpg" alt></p>
+<p><img src="/images/2024/07/032.jpg" alt></p>
+<p>在kick寄存器中，不止存放了vq index:</p>
+<ul>
+<li>对于split vq，kick寄存器中还存放了avail_idx</li>
+<li>对于packed vq，kick寄存器中还存放了avail_idx(为了表述的方便，严格来说，packed vq已经没有了avail ring，也就不存在avail_idx了)与wrap counter</li>
+</ul>
+<p><img src="/images/2024/07/035.jpg" alt></p>
+<p><code>vq_notif_config_data</code>在一般情况下，就是vq index。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// modern device</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> struct virtqueue *<span class="title">setup_vq</span><span class="params">(struct virtio_pci_device *vp_dev,</span></span></span><br><span class="line"><span class="function"><span class="params">				  struct virtio_pci_vq_info *info,</span></span></span><br><span class="line"><span class="function"><span class="params">				  <span class="keyword">unsigned</span> <span class="keyword">int</span> index,</span></span></span><br><span class="line">				  void (*callback)(struct virtqueue *vq),</span><br><span class="line">				  <span class="keyword">const</span> <span class="keyword">char</span> *name,</span><br><span class="line">				  <span class="keyword">bool</span> ctx,</span><br><span class="line">				  u16 msix_vec)</span><br><span class="line">&#123;</span><br><span class="line">        ...</span><br><span class="line">	<span class="keyword">if</span> (__virtio_test_bit(&amp;vp_dev-&gt;vdev, VIRTIO_F_NOTIFICATION_DATA))</span><br><span class="line">		notify = vp_notify_with_data;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		notify = vp_notify;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">bool</span> <span class="title">vp_notify_with_data</span><span class="params">(struct virtqueue *vq)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	u32 data = vring_notification_data(vq);</span><br><span class="line"></span><br><span class="line">	iowrite32(data, (<span class="keyword">void</span> __iomem *)vq-&gt;priv);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">u32 <span class="title">vring_notification_data</span><span class="params">(struct virtqueue *_vq)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vring_virtqueue</span> *<span class="title">vq</span> = <span class="title">to_vvq</span>(_<span class="title">vq</span>);</span></span><br><span class="line">	u16 next;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (vq-&gt;packed_ring)</span><br><span class="line">		next = (vq-&gt;packed.next_avail_idx &amp;</span><br><span class="line">				~(-(<span class="number">1</span> &lt;&lt; VRING_PACKED_EVENT_F_WRAP_CTR))) |</span><br><span class="line">			vq-&gt;packed.avail_wrap_counter &lt;&lt;</span><br><span class="line">				VRING_PACKED_EVENT_F_WRAP_CTR;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		next = vq-&gt;split.avail_idx_shadow;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> next &lt;&lt; <span class="number">16</span> | _vq-&gt;index;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li>virtio 0.9.5 spec</li>
+<li>virtio 1.3 spec</li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/virtio/">virtio</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/07/27/用户态GPU池化技术/">
+        <span class="next-text nav-default">(转)用户态GPU池化技术</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/07/28/深入理解virtio-kick操作/';
+        this.page.identifier = '2024/07/28/深入理解virtio-kick操作/';
+        this.page.title = '深入理解virtio kick操作';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
