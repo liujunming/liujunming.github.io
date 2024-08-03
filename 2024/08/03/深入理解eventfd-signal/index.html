@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="深入理解eventfd_signal">
+
+
+
+
+  <meta name="keywords" content="Kernel, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/08/03/深入理解eventfd-signal/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 深入理解eventfd_signal - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          深入理解eventfd_signal
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-08-03
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Kernel/">Kernel</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#vhost-poll-wakeup"><span class="toc-text">vhost_poll_wakeup</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#select-poll-epoll-wait-queue-entry的func回调"><span class="toc-text">select/poll/epoll wait_queue_entry的func回调</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下eventfd_signal的实现。<a id="more"></a></p>
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">eventfd_signal</span><br><span class="line">└── eventfd_signal_mask</span><br><span class="line">    └── wake_up_locked_poll[__wake_up_locked_key]</span><br><span class="line">        └── __wake_up_common</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __wake_up_common(struct wait_queue_head *wq_head, <span class="keyword">unsigned</span> <span class="keyword">int</span> mode,</span><br><span class="line">			<span class="keyword">int</span> nr_exclusive, <span class="keyword">int</span> wake_flags, <span class="keyword">void</span> *key,</span><br><span class="line">			<span class="keyword">wait_queue_entry_t</span> *bookmark)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">wait_queue_entry_t</span> *curr, *next;</span><br><span class="line">	<span class="keyword">int</span> cnt = <span class="number">0</span>;</span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">	list_for_each_entry_safe_from(curr, next, &amp;wq_head-&gt;head, entry) &#123;</span><br><span class="line">		<span class="keyword">unsigned</span> flags = curr-&gt;flags;</span><br><span class="line">		<span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (flags &amp; WQ_FLAG_BOOKMARK)</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">		ret = curr-&gt;func(curr, mode, wake_flags, key);</span><br><span class="line">                ...</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由<code>__wake_up_common</code>的实现可知，最终<code>eventfd_signal</code>调用了<code>wait_queue_entry</code>的<code>func</code>回调。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * A single wait-queue entry structure:</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">wait_queue_entry</span> &#123;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>		flags;</span><br><span class="line">	<span class="keyword">void</span>			*<span class="keyword">private</span>;</span><br><span class="line">	<span class="keyword">wait_queue_func_t</span>	func;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">entry</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h2 id="vhost-poll-wakeup"><a href="#vhost-poll-wakeup" class="headerlink" title="vhost_poll_wakeup"></a>vhost_poll_wakeup</h2><p><a href="/2024/07/13/vhost-eventfd-pov/">源码解析:vhost ioeventfd与irqfd</a>中提到过<code>vhost_poll_wakeup</code>，那么这个函数又是如何与<code>eventfd_signal</code>关联起来的呢？</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">vhost_poll_init</span><span class="params">(struct vhost_poll *poll, <span class="keyword">vhost_work_fn_t</span> fn,</span></span></span><br><span class="line"><span class="function"><span class="params">		     <span class="keyword">__poll_t</span> mask, struct vhost_dev *dev,</span></span></span><br><span class="line"><span class="function"><span class="params">		     struct vhost_virtqueue *vq)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        ...</span><br><span class="line">        init_waitqueue_func_entry(&amp;poll-&gt;wait, vhost_poll_wakeup);</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span></span><br><span class="line">init_waitqueue_func_entry(struct wait_queue_entry *wq_entry, <span class="keyword">wait_queue_func_t</span> func)</span><br><span class="line">&#123;</span><br><span class="line">	wq_entry-&gt;flags		= <span class="number">0</span>;</span><br><span class="line">	wq_entry-&gt;<span class="keyword">private</span>	= <span class="literal">NULL</span>;</span><br><span class="line">	wq_entry-&gt;func		= func;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由上述代码片段可知，<code>vhost_poll_wakeup</code>被设置为了<code>wait_queue_entry</code>的<code>func</code>回调。</p>
+<p>由此可知，<code>eventfd_signal</code>最终调用了<code>vhost_poll_wakeup</code>函数；因此，<code>vhost_poll_wakeup</code>函数运行上下文是vCPU线程(kvm调用了<code>eventfd_signal</code>，而kvm的运行上下文是vCPU线程)。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ioeventfd_write</span><br><span class="line">└── eventfd_signal</span><br><span class="line">    └── eventfd_signal_mask</span><br><span class="line">        └── wake_up_locked_poll[__wake_up_locked_key]</span><br><span class="line">            └── __wake_up_common</span><br><span class="line">                └── vhost_poll_wakeup</span><br></pre></td></tr></table></figure>
+<h2 id="select-poll-epoll-wait-queue-entry的func回调"><a href="#select-poll-epoll-wait-queue-entry的func回调" class="headerlink" title="select/poll/epoll wait_queue_entry的func回调"></a>select/poll/epoll <code>wait_queue_entry</code>的<code>func</code>回调</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// for select and poll</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __pollwait(struct file *filp, <span class="keyword">wait_queue_head_t</span> *wait_address,</span><br><span class="line">				poll_table *p)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">poll_wqueues</span> *<span class="title">pwq</span> = <span class="title">container_of</span>(<span class="title">p</span>, <span class="title">struct</span> <span class="title">poll_wqueues</span>, <span class="title">pt</span>);</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> *<span class="title">entry</span> = <span class="title">poll_get_entry</span>(<span class="title">pwq</span>);</span></span><br><span class="line">	<span class="keyword">if</span> (!entry)</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	entry-&gt;filp = get_file(filp);</span><br><span class="line">	entry-&gt;wait_address = wait_address;</span><br><span class="line">	entry-&gt;key = p-&gt;_key;</span><br><span class="line">	init_waitqueue_func_entry(&amp;entry-&gt;wait, pollwake);</span><br><span class="line">	entry-&gt;wait.<span class="keyword">private</span> = pwq;</span><br><span class="line">	add_wait_queue(wait_address, &amp;entry-&gt;wait);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于<code>select</code>和<code>poll</code>，<code>wait_queue_entry</code>的<code>func</code>回调是<code>pollwake</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// for epoll</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">ep_ptable_queue_proc</span><span class="params">(struct file *file, <span class="keyword">wait_queue_head_t</span> *whead,</span></span></span><br><span class="line"><span class="function"><span class="params">				 poll_table *pt)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ep_pqueue</span> *<span class="title">epq</span> = <span class="title">container_of</span>(<span class="title">pt</span>, <span class="title">struct</span> <span class="title">ep_pqueue</span>, <span class="title">pt</span>);</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">epitem</span> *<span class="title">epi</span> = <span class="title">epq</span>-&gt;<span class="title">epi</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">eppoll_entry</span> *<span class="title">pwq</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (unlikely(!epi))	<span class="comment">// an earlier allocation has failed</span></span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	pwq = kmem_cache_alloc(pwq_cache, GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span> (unlikely(!pwq)) &#123;</span><br><span class="line">		epq-&gt;epi = <span class="literal">NULL</span>;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	init_waitqueue_func_entry(&amp;pwq-&gt;wait, ep_poll_callback);</span><br><span class="line">	pwq-&gt;whead = whead;</span><br><span class="line">	pwq-&gt;base = epi;</span><br><span class="line">	<span class="keyword">if</span> (epi-&gt;event.events &amp; EPOLLEXCLUSIVE)</span><br><span class="line">		add_wait_queue_exclusive(whead, &amp;pwq-&gt;wait);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		add_wait_queue(whead, &amp;pwq-&gt;wait);</span><br><span class="line">	pwq-&gt;next = epi-&gt;pwqlist;</span><br><span class="line">	epi-&gt;pwqlist = pwq;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于<code>epoll</code>，<code>wait_queue_entry</code>的<code>func</code>回调是<code>ep_poll_callback</code>。</p>
+<p>为了方便起见，本文只详细介绍下<code>pollwake</code>。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 在等待队列(wait_queue_t)上回调函数(func)  </span></span><br><span class="line"><span class="comment">// 文件就绪后被调用，唤醒调用进程，其中key是文件提供的当前状态掩码  </span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">pollwake</span><span class="params">(<span class="keyword">wait_queue_t</span> *wait, <span class="keyword">unsigned</span> mode, <span class="keyword">int</span> sync, <span class="keyword">void</span> *key)</span>  </span></span><br><span class="line"><span class="function"></span>&#123;  </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">poll_table_entry</span> *<span class="title">entry</span>;</span>  </span><br><span class="line">    <span class="comment">// 取得文件对应的poll_table_entry  </span></span><br><span class="line">    entry = container_of(wait, struct poll_table_entry, wait);  </span><br><span class="line">    <span class="comment">// 过滤不关注的事件  </span></span><br><span class="line">    <span class="keyword">if</span> (key &amp;&amp; !((<span class="keyword">unsigned</span> <span class="keyword">long</span>)key &amp; entry-&gt;key)) &#123;  </span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;  </span><br><span class="line">    &#125;  </span><br><span class="line">    <span class="comment">// 唤醒  </span></span><br><span class="line">    <span class="keyword">return</span> __pollwake(wait, mode, sync, key);  </span><br><span class="line">&#125;  </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __pollwake(<span class="keyword">wait_queue_t</span> *wait, <span class="keyword">unsigned</span> mode, <span class="keyword">int</span> sync, <span class="keyword">void</span> *key)  </span><br><span class="line">&#123;  </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">poll_wqueues</span> *<span class="title">pwq</span> = <span class="title">wait</span>-&gt;<span class="title">private</span>;</span>  </span><br><span class="line">    <span class="comment">// 将调用进程 pwq-&gt;polling_task 关联到 dummy_wait  </span></span><br><span class="line">    DECLARE_WAITQUEUE(dummy_wait, pwq-&gt;polling_task);  </span><br><span class="line">    smp_wmb();  </span><br><span class="line">    pwq-&gt;triggered = <span class="number">1</span>;<span class="comment">// 标记为已触发  </span></span><br><span class="line">    <span class="comment">// 唤醒调用进程  </span></span><br><span class="line">    <span class="keyword">return</span> default_wake_function(&amp;dummy_wait, mode, sync, key);  </span><br><span class="line">&#125;  </span><br><span class="line">  </span><br><span class="line"><span class="comment">// 默认的唤醒函数,poll/select 设置的回调函数会调用此函数唤醒  </span></span><br><span class="line"><span class="comment">// 直接唤醒等待队列上的线程,即将线程移到运行队列(rq)  </span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">default_wake_function</span><span class="params">(<span class="keyword">wait_queue_t</span> *curr, <span class="keyword">unsigned</span> mode, <span class="keyword">int</span> wake_flags,  </span></span></span><br><span class="line"><span class="function"><span class="params">                          <span class="keyword">void</span> *key)</span>  </span></span><br><span class="line"><span class="function"></span>&#123;  </span><br><span class="line">    <span class="comment">// 这个函数比较复杂, 这里就不具体分析了  </span></span><br><span class="line">    <span class="keyword">return</span> try_to_wake_up(curr-&gt;<span class="keyword">private</span>, mode, wake_flags);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://zhuanlan.zhihu.com/p/398699496" target="_blank" rel="noopener">linux 内核poll/select/epoll实现剖析（经典）-上</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/07/28/深入理解virtio-kick操作/">
+        <span class="next-text nav-default">深入理解virtio kick操作</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/08/03/深入理解eventfd-signal/';
+        this.page.identifier = '2024/08/03/深入理解eventfd-signal/';
+        this.page.title = '深入理解eventfd_signal';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
