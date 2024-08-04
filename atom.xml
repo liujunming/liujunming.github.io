@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-08-03T07:07:21.257Z</updated>
+  <updated>2024-08-04T09:08:58.375Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about flock 文件锁</title>
+    <link href="http://liujunming.github.io/2024/08/04/Notes-about-flock-%E6%96%87%E4%BB%B6%E9%94%81/"/>
+    <id>http://liujunming.github.io/2024/08/04/Notes-about-flock-文件锁/</id>
+    <published>2024-08-04T07:16:39.000Z</published>
+    <updated>2024-08-04T09:08:58.375Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下flock 文件锁相关notes。<a id="more"></a>本文内容主要转载自<a href="https://zhuanlan.zhihu.com/p/25134841" target="_blank" rel="noopener">被遗忘的桃源——flock 文件锁</a>。</p><h2 id="文件锁-flock"><a href="#文件锁-flock" class="headerlink" title="文件锁 flock"></a>文件锁 flock</h2><p>为解决多进程对同一文件的读写冲突，在linux 系统中，提供了 flock 这一系统调用，用来实现对文件的读写保护，即文件锁的功能。文件锁保护文件的功能，与pthread 库中多线程使用读写锁来保护内存资源的方式是类似的。 flock 的 man page 中有如下介绍：</p><blockquote><p>flock - apply or remove an advisory lock on an open file</p></blockquote><p>从中可以解读出两点内容：</p><ul><li>flock 提供的文件锁是<strong>建议性质</strong>的。所谓 “建议性锁”，通常也叫作非强制性锁，即一个进程可以忽略其他进程加的锁，直接对目标文件进行读写操作。因而，<strong>只有当前进程主动调用 flock去检测是否已有其他进程对目标文件加了锁，文件锁才会在多进程的同步中起到作用</strong>。表述的更明确一点，就是如果其他进程已经用 flock 对某个文件加了锁，当前进程在读写这一文件时，未使用 flock 加锁（即未检测是否已有其他进程锁定文件），那么当前进程可以直接操作这一文件，其他进程加的文件锁对当前进程的操作不会有任何影响。<strong>这种可以被忽略、需要双方互相检测确认的加锁机制，就被称为 ”建议性“ 锁</strong>。</li><li>文件锁必须作用在一个打开的文件上，即从应用的角度看，文件锁应当作用于一个打开的文件句柄上。</li></ul><h2 id="共享锁与互斥锁"><a href="#共享锁与互斥锁" class="headerlink" title="共享锁与互斥锁"></a>共享锁与互斥锁</h2><p>linux 中 flock 系统调用的原型如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/file.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">flock</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">int</span> operation)</span></span>;</span><br></pre></td></tr></table></figure></p><p>当 flock 执行成功时，会返回0；当出现错误时，会返回 -1，并设置相应的 errno 值。</p><p>在flock 原型中，参数 operation 可以使用 LOCK_SH 或 LOCK_EX 常量，分别对应共享锁和排他锁。这两个常量的定义在 file.h 中。与 flock 相关的常量定义如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Operations for the `flock' call.  */</span>                                          </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_SH 1 <span class="comment">/* Shared lock.  */</span>                                            </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_EX 2   <span class="comment">/* Exclusive lock.  */</span>                                       </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_UN 8 <span class="comment">/* Unlock.  */</span>                                                 </span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* Can be OR'd in to one of the above.  */</span>                                       </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_NB 4 <span class="comment">/* Don't block when locking.  */</span></span></span><br></pre></td></tr></table></figure><p>当使用 LOCK_SH 共享锁时，多个进程都可以使用共享锁锁定同一个文件，从而实现多个进程对文件的并行读取。由此可见，LOCK_SH 共享锁类似于多线程读写锁 pthread_rwlock_t 类型中的读锁。当使用LOCK_EX 排他锁时，同一时刻只能有一个进程锁定成功，其余进行只能阻塞，这种行为与多线程读写锁中的写锁类似。</p><h2 id="阻塞与非阻塞"><a href="#阻塞与非阻塞" class="headerlink" title="阻塞与非阻塞"></a>阻塞与非阻塞</h2><p>flock 文件锁提供了阻塞和非阻塞两种使用方式。当处于阻塞模式时，如果当前进程无法成功获取到文件锁，那么进程就会一直阻塞等待，直到其他进程在对应文件上释放了锁，本进程能成功持有锁为止。在默认情况下，flock 提供是阻塞模式的文件锁。</p><p>在日常使用中，文件锁还会使用在另外一种场景下，即进程首先尝试对文件加锁，当加锁失败时，不希望进程阻塞，而是希望 flock 返回错误信息，进程进行错误处理后，继续进行下面的处理。在这种情形下就需要使用 flock 的非阻塞模式。把flock 的工作模式设置为非阻塞模式非常简单，只要将原有的 operation 参数改为锁的类型与 LOCK_NB 常量进行按位或操作即可，例如：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> ret = flock(open_fd, LOCK_SH | LOCK_NB);</span><br><span class="line"><span class="keyword">int</span> ret = flock(open_fd, LOCK_EX | LOCK_NB);</span><br></pre></td></tr></table></figure><p>在非阻塞模式下，加文件锁失败并不影响进程流程的执行，但要注意加入错误处理逻辑，在加锁失败时，不能对目标文件进行操作。</p><h2 id="flock-命令"><a href="#flock-命令" class="headerlink" title="flock 命令"></a>flock 命令</h2><p>除了多种语言提供 flock 系统调用或函数，linux shell 中也提供了 flock 命令。<br><a href="https://man7.org/linux/man-pages/man1/flock.1.html" target="_blank" rel="noopener">flock(1)</a></p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/25134841" target="_blank" rel="noopener">被遗忘的桃源——flock 文件锁</a></li><li><a href="https://man7.org/linux/man-pages/man1/flock.1.html" target="_blank" rel="noopener">flock(1)</a></li><li><a href="https://man7.org/linux/man-pages/man2/flock.2.html" target="_blank" rel="noopener">flock(2)</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下flock 文件锁相关notes。
+    
+    </summary>
+    
+      <category term="Concurrency" scheme="http://liujunming.github.io/categories/Concurrency/"/>
+    
+    
+      <category term="Concurrency" scheme="http://liujunming.github.io/tags/Concurrency/"/>
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>深入理解eventfd_signal</title>
@@ -288,9 +312,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
@@ -463,31 +487,9 @@
       <category term="中断" scheme="http://liujunming.github.io/categories/%E4%B8%AD%E6%96%AD/"/>
     
     
-      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
-    
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
-  </entry>
-  
-  <entry>
-    <title>Notes about RSS(Receive Side Scaling)</title>
-    <link href="http://liujunming.github.io/2024/05/05/Notes-about-RSS-Receive-Side-Scaling/"/>
-    <id>http://liujunming.github.io/2024/05/05/Notes-about-RSS-Receive-Side-Scaling/</id>
-    <published>2024-05-05T05:16:56.000Z</published>
-    <updated>2024-05-05T10:10:54.472Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下RSS(Receive Side Scaling)相关notes，内容主要转载自<a href="https://medium.com/@anubhavchoudhary/introduction-to-receive-side-scaling-rss-7cd97307d220" target="_blank" rel="noopener">Introduction to Receive Side Scaling (RSS)</a>。<a id="more"></a></p><h2 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h2><p>A network interface card (NIC) can be configured with multiple receive queue (Rx). This is done to improve the throughput (i.e, the number of packets that can be processed per second) of the device and to achieve higher throughput, more than one CPU is used to poll(笔者注:这里指的是MSI-x中断收包) packets from the device independently. Each CPU polls(笔者注:这里指的是MSI-x中断收包) for its assigned Rx queue, but still we need a strategy to distribute the packets over all the queues, otherwise all the packets will go to one queue and only one CPU will be utilised.</p><h2 id="2-Hash计算"><a href="#2-Hash计算" class="headerlink" title="2. Hash计算"></a>2. Hash计算</h2><h3 id="2-1-RSS-Input-Fields"><a href="#2-1-RSS-Input-Fields" class="headerlink" title="2.1 RSS Input Fields"></a>2.1 RSS Input Fields</h3><p>The RSS input fields plays a vital role in deciding the criteria for distributing the packets over multiple receive queue. There are lot of hash input fields available like source mac address, destination mac address, source IP, destination IP etc.</p><h3 id="2-2-RSS-Hash-Key"><a href="#2-2-RSS-Hash-Key" class="headerlink" title="2.2 RSS Hash Key"></a>2.2 RSS Hash Key</h3><p>The RSS hash is a 40/52 byte key used to randomize the distribution of packets over the receive queues. The size of the hash key depends on the hardware of the NIC.</p><h3 id="2-3-Hash-Algorithm"><a href="#2-3-Hash-Algorithm" class="headerlink" title="2.3 Hash Algorithm"></a>2.3 Hash Algorithm</h3><p>Once the hash function and hash key is configured, the hash algorithm is used to determine the receive queue index using the input fields and hash Key.</p><p>The hash functions which are generally used are:</p><ul><li>Simple XOR Hash Function</li><li>Toeplitz Hash Function</li></ul><h3 id="2-4-hash计算总结"><a href="#2-4-hash计算总结" class="headerlink" title="2.4 hash计算总结"></a>2.4 hash计算总结</h3><p><img src="/images/2024/05/014.png" alt></p><p>Incoming packets进入到parser模块，五元组src ip、dst ip、src port、dst port和protocol中的子集作为input set，结合一个任意的hash key以及hash function(默认hash function是Toeplitz function)计算得到hash value。</p><h2 id="3-Working-of-RSS"><a href="#3-Working-of-RSS" class="headerlink" title="3. Working of RSS"></a>3. Working of RSS</h2><p>When a NIC is started with multiple Rx queues then based on the configured RSS configurations like Input Fields, hash key and number of Rx queues, an <strong>indirection table</strong> is generated. An indirection table represents mapping between the hash value and the queue index.<br><img src="/images/2024/05/012.webp" alt></p><p>When a packet is received by the NIC, all the values from the configured fields are extracted and those values are fed into the hash function. The generated hash value is used to do a lookup in the indirection table in order to get the destination queue index.</p><p><img src="/images/2024/05/013.svg" alt><br>A number of least significant bits (LSBs) of the hash value are used to index an indirection table.</p><h2 id="4-Advantage"><a href="#4-Advantage" class="headerlink" title="4. Advantage"></a>4. Advantage</h2><p>There are two main advantages of using RSS:</p><ol><li>Higher throughput as more number of CPUs can be used independently.</li><li>The computational cost of load balancing is offloaded to the NIC’s hardware instead of doing software based load-balancing.</li></ol><h2 id="5-Usage"><a href="#5-Usage" class="headerlink" title="5. Usage"></a>5. Usage</h2><p>RSS is the mechanism to process packets with multiple RX queues. When the network card with RSS receives packets, it will apply a filter to packets and distribute the packets to RX queues. The filter is usually a hash function and can be configured from <code>ethtool -X</code>. If you want to spread flows evenly among the first 3 queues:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ethtool -X eth0 equal 3</span><br></pre></td></tr></table></figure></p><p>Or, if you find a magic hash key that is particularly useful:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ethtool -X eth0 hkey &lt;magic hash key&gt;</span><br></pre></td></tr></table></figure></p><p><img src="/images/2024/05/011.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-receive-side-scaling" target="_blank" rel="noopener">Introduction to Receive Side Scaling</a></li><li><a href="https://medium.com/@anubhavchoudhary/introduction-to-receive-side-scaling-rss-7cd97307d220" target="_blank" rel="noopener">Introduction to Receive Side Scaling (RSS)</a></li><li><a href="https://garycplin.blogspot.com/2017/06/linux-network-scaling-receives-packets.html" target="_blank" rel="noopener">Linux Network Scaling: Receiving Packets</a></li><li><a href="https://zhuanlan.zhihu.com/p/467319331" target="_blank" rel="noopener">关于RSS的一些知识</a></li><li><a href="https://zhuanlan.zhihu.com/p/148756667" target="_blank" rel="noopener">Linux网络栈的性能缩放</a></li><li><a href="https://blog.csdn.net/weixin_35804181/article/details/123519222" target="_blank" rel="noopener">网卡调优RSS、RPS、RFS和XPS</a></li><li><a href="https://www.kernel.org/doc/Documentation/networking/scaling.txt" target="_blank" rel="noopener">Scaling in the Linux Networking Stack</a></li><li><a href="https://doc.dpdk.org/guides/prog_guide/toeplitz_hash_lib.html" target="_blank" rel="noopener">Toeplitz Hash Library</a></li><li><a href="https://www.sdnlab.com/24494.html" target="_blank" rel="noopener">Intel E810 Advanced RSS介绍</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下RSS(Receive Side Scaling)相关notes，内容主要转载自&lt;a href=&quot;https://medium.com/@anubhavchoudhary/introduction-to-receive-side-scaling-rss-7cd97307d220&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Introduction to Receive Side Scaling (RSS)&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+      <category term="中断" scheme="http://liujunming.github.io/tags/%E4%B8%AD%E6%96%AD/"/>
     
   </entry>
   

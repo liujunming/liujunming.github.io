@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about flock 文件锁">
+
+
+
+
+  <meta name="keywords" content="Concurrency, linux, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/08/04/Notes-about-flock-文件锁/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about flock 文件锁 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about flock 文件锁
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-08-04
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/Concurrency/">Concurrency</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#文件锁-flock"><span class="toc-text">文件锁 flock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#共享锁与互斥锁"><span class="toc-text">共享锁与互斥锁</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#阻塞与非阻塞"><span class="toc-text">阻塞与非阻塞</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#flock-命令"><span class="toc-text">flock 命令</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下flock 文件锁相关notes。<a id="more"></a>本文内容主要转载自<a href="https://zhuanlan.zhihu.com/p/25134841" target="_blank" rel="noopener">被遗忘的桃源——flock 文件锁</a>。</p>
+<h2 id="文件锁-flock"><a href="#文件锁-flock" class="headerlink" title="文件锁 flock"></a>文件锁 flock</h2><p>为解决多进程对同一文件的读写冲突，在linux 系统中，提供了 flock 这一系统调用，用来实现对文件的读写保护，即文件锁的功能。文件锁保护文件的功能，与pthread 库中多线程使用读写锁来保护内存资源的方式是类似的。 flock 的 man page 中有如下介绍：</p>
+<blockquote>
+<p>flock - apply or remove an advisory lock on an open file</p>
+</blockquote>
+<p>从中可以解读出两点内容：</p>
+<ul>
+<li>flock 提供的文件锁是<strong>建议性质</strong>的。所谓 “建议性锁”，通常也叫作非强制性锁，即一个进程可以忽略其他进程加的锁，直接对目标文件进行读写操作。因而，<strong>只有当前进程主动调用 flock去检测是否已有其他进程对目标文件加了锁，文件锁才会在多进程的同步中起到作用</strong>。表述的更明确一点，就是如果其他进程已经用 flock 对某个文件加了锁，当前进程在读写这一文件时，未使用 flock 加锁（即未检测是否已有其他进程锁定文件），那么当前进程可以直接操作这一文件，其他进程加的文件锁对当前进程的操作不会有任何影响。<strong>这种可以被忽略、需要双方互相检测确认的加锁机制，就被称为 ”建议性“ 锁</strong>。</li>
+<li>文件锁必须作用在一个打开的文件上，即从应用的角度看，文件锁应当作用于一个打开的文件句柄上。</li>
+</ul>
+<h2 id="共享锁与互斥锁"><a href="#共享锁与互斥锁" class="headerlink" title="共享锁与互斥锁"></a>共享锁与互斥锁</h2><p>linux 中 flock 系统调用的原型如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/file.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">flock</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">int</span> operation)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>当 flock 执行成功时，会返回0；当出现错误时，会返回 -1，并设置相应的 errno 值。</p>
+<p>在flock 原型中，参数 operation 可以使用 LOCK_SH 或 LOCK_EX 常量，分别对应共享锁和排他锁。这两个常量的定义在 file.h 中。与 flock 相关的常量定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Operations for the `flock' call.  */</span>                                          </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_SH 1 <span class="comment">/* Shared lock.  */</span>                                            </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_EX 2   <span class="comment">/* Exclusive lock.  */</span>                                       </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_UN 8 <span class="comment">/* Unlock.  */</span>                                                 </span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* Can be OR'd in to one of the above.  */</span>                                       </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_NB 4 <span class="comment">/* Don't block when locking.  */</span></span></span><br></pre></td></tr></table></figure>
+<p>当使用 LOCK_SH 共享锁时，多个进程都可以使用共享锁锁定同一个文件，从而实现多个进程对文件的并行读取。由此可见，LOCK_SH 共享锁类似于多线程读写锁 pthread_rwlock_t 类型中的读锁。当使用LOCK_EX 排他锁时，同一时刻只能有一个进程锁定成功，其余进行只能阻塞，这种行为与多线程读写锁中的写锁类似。</p>
+<h2 id="阻塞与非阻塞"><a href="#阻塞与非阻塞" class="headerlink" title="阻塞与非阻塞"></a>阻塞与非阻塞</h2><p>flock 文件锁提供了阻塞和非阻塞两种使用方式。当处于阻塞模式时，如果当前进程无法成功获取到文件锁，那么进程就会一直阻塞等待，直到其他进程在对应文件上释放了锁，本进程能成功持有锁为止。在默认情况下，flock 提供是阻塞模式的文件锁。</p>
+<p>在日常使用中，文件锁还会使用在另外一种场景下，即进程首先尝试对文件加锁，当加锁失败时，不希望进程阻塞，而是希望 flock 返回错误信息，进程进行错误处理后，继续进行下面的处理。在这种情形下就需要使用 flock 的非阻塞模式。把flock 的工作模式设置为非阻塞模式非常简单，只要将原有的 operation 参数改为锁的类型与 LOCK_NB 常量进行按位或操作即可，例如：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> ret = flock(open_fd, LOCK_SH | LOCK_NB);</span><br><span class="line"><span class="keyword">int</span> ret = flock(open_fd, LOCK_EX | LOCK_NB);</span><br></pre></td></tr></table></figure>
+<p>在非阻塞模式下，加文件锁失败并不影响进程流程的执行，但要注意加入错误处理逻辑，在加锁失败时，不能对目标文件进行操作。</p>
+<h2 id="flock-命令"><a href="#flock-命令" class="headerlink" title="flock 命令"></a>flock 命令</h2><p>除了多种语言提供 flock 系统调用或函数，linux shell 中也提供了 flock 命令。<br><a href="https://man7.org/linux/man-pages/man1/flock.1.html" target="_blank" rel="noopener">flock(1)</a></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://zhuanlan.zhihu.com/p/25134841" target="_blank" rel="noopener">被遗忘的桃源——flock 文件锁</a></li>
+<li><a href="https://man7.org/linux/man-pages/man1/flock.1.html" target="_blank" rel="noopener">flock(1)</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/flock.2.html" target="_blank" rel="noopener">flock(2)</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Concurrency/">Concurrency</a>
+            
+              <a href="/tags/linux/">linux</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/08/03/深入理解eventfd-signal/">
+        <span class="next-text nav-default">深入理解eventfd_signal</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/08/04/Notes-about-flock-文件锁/';
+        this.page.identifier = '2024/08/04/Notes-about-flock-文件锁/';
+        this.page.title = 'Notes about flock 文件锁';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
