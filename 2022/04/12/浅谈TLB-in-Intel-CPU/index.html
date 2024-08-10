@@ -309,7 +309,9 @@
 <h2 id="7-Q-amp-A"><a href="#7-Q-amp-A" class="headerlink" title="7. Q&amp;A"></a>7. Q&amp;A</h2><p>之前已经介绍过了<a href="/2020/03/07/Introduction-to-pkeys/">PKU</a>与<a href="/2022/02/27/Introduction-to-PKS/">PKS</a>，这里，从TLB的视角，重新看下Protection Keys。</p>
 <p>Memory Protection Keys (pkeys) are an extension to existing page-based memory permissions. Normal page permissions using page tables require expensive system calls and TLB invalidations when changing permissions. Memory Protection Keys provide a mechanism for changing protections without requiring modification of the page tables on every permission change.</p>
 <p>Protection Keys是无需flush TLB的。此时有如下两个question：<br>Q1. 通过Protection Keys更改permissions，最终硬件是否会更改物理TLB Entry中的access rights位呢?<br>Q2. 如果1成立的话，对于Multiple Processors，是否需要类似于propagating这个过程呢？这个过程是由软件or硬件来完成呢？</p>
-<p>笔者猜测硬件的行为：<br>A1. 通过Protection Keys更改permissions，最终硬件会更改物理TLB Entry中的access rights位<br>A2. 对于Multiple Processors，硬件会完成类似于propagating的过程</p>
+<p>笔者猜测硬件的行为：<br>A1. <del>通过Protection Keys更改permissions，最终硬件会更改物理TLB Entry中的access rights位</del><br>TLB中已经包含了Protection Key，TLB的access rights就是基于Protection Key的，如果cpu更改了permissions，TLB的access rights也会随之更改<br>A2. <del>对于Multiple Processors，硬件会完成类似于propagating的过程</del><br>对于Multiple Processors的多线程程序，单个Processor中的thread更改了permissions，只会影响该thread中的TLB access rights，其他Processor中的thread的TLB access rights并未发生变化，因此无需propagating这个过程</p>
+<p><img src="/images/2024/08/010.jpg" alt></p>
+<p><img src="/images/2022/02/20.PNG" alt></p>
 
       
     </div>
