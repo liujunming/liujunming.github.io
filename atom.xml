@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-08-10T06:37:21.231Z</updated>
+  <updated>2024-08-11T12:03:43.222Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,50 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Network Segmentation vs Fragmentation</title>
+    <link href="http://liujunming.github.io/2024/08/11/Network-Segmentation-vs-Fragmentation/"/>
+    <id>http://liujunming.github.io/2024/08/11/Network-Segmentation-vs-Fragmentation/</id>
+    <published>2024-08-11T09:28:22.000Z</published>
+    <updated>2024-08-11T12:03:43.222Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下计算机网络中的分段(Segmentation)与分片(Fragmentation)操作。<a id="more"></a>本文主要内容转载自<a href="https://cloud.tencent.com/developer/article/1828823" target="_blank" rel="noopener">动图图解！既然IP层会分片，为什么TCP层也还要分段？</a>。</p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>分段特指发生在使用TCP协议的传输层中的数据切分行为<br><img src="/images/2024/08/011.gif" alt></p><p>分片特指发生在使用IP协议的网络IP层中的数据切分行为<br><img src="/images/2024/08/012.gif" alt></p><p>TCP协议在将用户数据传给IP层之前，会先将大段的数据根据MSS（Maximum Segment Size）分成多个小段，这个过程是Segmentation，分出来的数据是Segments。IP协议因为MTU（Maximum Transmission Unit）的限制，会将上层传过来的并且超过MTU的数据，分成多个分片，这个过程是Fragmentation，分出来的数据是Fragments。这两个过程都是大块的数据分成多个小块数据，区别就是一个在TCP（L4），一个在IP（L3）完成。</p><h2 id="MSS与MTU的区别"><a href="#MSS与MTU的区别" class="headerlink" title="MSS与MTU的区别"></a>MSS与MTU的区别</h2><p>TCP 提交给 IP 层最大分段大小，不包含 TCP Header 和  TCP Option，只包含 TCP Payload ，MSS 是 TCP 用来限制应用层最大的发送字节数。<br>假设 MTU= 1500 byte，那么 MSS = 1500- 20(IP Header) -20 (TCP Header) = 1460 byte，如果应用层有 2000 byte 发送，那么需要两个切片才可以完成发送，第一个 TCP 切片 = 1460，第二个 TCP 切片 = 540。</p><p>MTU是由<strong>数据链路层</strong>提供，为了告诉上层IP层，自己的传输能力是多大。IP层就会根据它进行数据包切分。一般 MTU=1500 Byte。<br>假设IP层有 &lt;= 1500 byte 需要发送，只需要一个 IP 包就可以完成发送任务；假设 IP 层有 &gt; 1500 byte 数据需要发送，需要分片才能完成发送，分片后的 IP Header ID 相同，同时为了分片后能在接收端把切片组装起来，还需要在分片后的IP包里加上各种信息。比如这个分片在原来的IP包里的偏移offset。</p><p><img src="/images/2024/08/015.jpg" alt></p><p>在一台机器的应用层到这台机器的网卡，<strong>这条链路上</strong>，基本上可以保证，MSS &lt; MTU。</p><p><img src="/images/2024/08/013.png" alt></p><h2 id="为什么MTU一般是1500"><a href="#为什么MTU一般是1500" class="headerlink" title="为什么MTU一般是1500"></a>为什么MTU一般是1500</h2><p>这其实是由传输效率决定的。虽然我们平时用的网络感觉挺稳定的，但其实这是因为TCP在背地里做了各种重传等保证了传输的可靠，其实背地里线路是动不动就丢包的，而越大的包，发生丢包的概率就越大。</p><p>那是不是包越小就越好？也不是</p><p>如果选择一个比较小的长度，假设选择MTU为300Byte，TCP payload = 300 - IP Header - TCP Header = 300 - 20 - 20 = 260 byte。那有效传输效率= 260 / 300 = 86%</p><p>而如果以太网MTU长度为1500，那有效传输效率= 1460 / 1500 = 96% ，显然比 86% 高多了。</p><p>所以，包越小越不容易丢包，包越大，传输效率又越高，因此权衡之下，选了1500。</p><h2 id="为什么IP层会分片，TCP还要分段"><a href="#为什么IP层会分片，TCP还要分段" class="headerlink" title="为什么IP层会分片，TCP还要分段"></a>为什么IP层会分片，TCP还要分段</h2><p>由于本身IP层就会做分片这件事情。就算TCP不分段，到了IP层，数据包也会被分片，数据也能正常传输。</p><p>既然网络层就会分片了，那么TCP为什么还要分段？是不是有些多此一举？</p><p>假设有一份数据，较大，且在TCP层不分段，如果这份数据在发送的过程中出现丢包现象，TCP会发生重传，那么重传的就是这一大份数据（虽然IP层会把数据切分为MTU长度的N多个小包，但是TCP重传的单位却是那一大份数据）。</p><p>如果TCP把这份数据，分段为N个小于等于MSS长度的数据包，到了IP层后加上IP头和TCP头，还是小于MTU，那么IP层也不会再进行分片。此时在传输路上发生了丢包，那么TCP重传的时候也只是重传那一小部分的MSS段。效率会比TCP不分段时更高。</p><p>类似的，传输层除了TCP外，还有UDP协议，但UDP本身不会分段，所以当数据量较大时，只能交给IP层去分片，然后传到底层进行发送。</p><p>正常情况下，在一台机器的传输层到网络层<strong>这条链路</strong>上，如果传输层对数据做了分段，那么IP层就不会再分片。如果传输层没分段，那么IP层就可能会进行分片。</p><p><strong>数据在TCP分段，就是为了在IP层不需要分片，同时发生重传的时候只重传分段后的小份数据</strong>。</p><h2 id="TCP分段了，IP层就一定不会分片了吗"><a href="#TCP分段了，IP层就一定不会分片了吗" class="headerlink" title="TCP分段了，IP层就一定不会分片了吗"></a>TCP分段了，IP层就一定不会分片了吗</h2><p>在发送端，TCP分段后，IP层就不会再分片了。</p><p>但是整个传输链路中，可能还会有其他网络层设备，而这些设备的MTU可能小于发送端的MTU。此时虽然数据包在发送端已经分段过了，但是在IP层还会再分片一次。</p><p>如果链路上还有设备<strong>有更小的MTU</strong>，那么还会再分片，最后所有的分片都会在<strong>接收端</strong>进行组装。</p><p><img src="/images/2024/08/014.gif" alt></p><p>因此，就算TCP分段过后，在链路上的其他节点的IP层也是有可能再分片的，而且哪怕数据被第一次IP分片过了，也是有可能被其他机器的IP层进行二次、三次、四次….分片的。</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul><li>(TCP)分段和(IP)分片各自发生在不同的协议层(分段-TCP传输层，分片-IP层)</li><li>TCP分段的原因是TCP报文段大小受MSS限制，IP分片则是因为IP数据报大小受MTU限制</li><li>在发送方，数据在TCP分段，在IP层就不需要分片，同时发生重传的时候只重传分段后的小份数据</li><li>虽然分段和分片不会在发送方同时发生，但却可能在同一次通信过程中分别在发送主机(分段)和转发设备(分片)中发生</li><li>IP分片是<strong>不得已</strong>的行为，尽量不在IP层分片，尤其是链路上中间设备的IP分片</li><li>UDP不会分段，就由IP来分片</li></ul><hr><p>参考资料:</p><ol><li><a href="https://cloud.tencent.com/developer/article/1828823" target="_blank" rel="noopener">动图图解！既然IP层会分片，为什么TCP层也还要分段？</a></li><li><a href="https://cloud.tencent.com/developer/article/1173790" target="_blank" rel="noopener">TCP分段与IP分片的区别与联系</a></li><li><a href="https://zhuanlan.zhihu.com/p/44635205" target="_blank" rel="noopener">常见网络加速技术浅谈（一）</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下计算机网络中的分段(Segmentation)与分片(Fragmentation)操作。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Network RFC合集</title>
+    <link href="http://liujunming.github.io/2024/08/11/Network-RFC%E5%90%88%E9%9B%86/"/>
+    <id>http://liujunming.github.io/2024/08/11/Network-RFC合集/</id>
+    <published>2024-08-11T08:40:33.000Z</published>
+    <updated>2024-08-11T08:56:38.726Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将持续记录计算机网络中协议的RFC号。<a id="more"></a></p><ul><li><a href="https://datatracker.ietf.org/doc/html/rfc791" target="_blank" rel="noopener">RFC 791: INTERNET PROTOCOL</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc9293" target="_blank" rel="noopener">RFC 9293: Transmission Control Protocol</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc1180" target="_blank" rel="noopener">RFC 9293: A TCP/IP Tutorial</a></li></ul>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将持续记录计算机网络中协议的RFC号。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about pci-pci bridge</title>
@@ -429,63 +473,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NVMe Identify command</title>
-    <link href="http://liujunming.github.io/2024/06/02/Notes-about-NVMe-Identify-command/"/>
-    <id>http://liujunming.github.io/2024/06/02/Notes-about-NVMe-Identify-command/</id>
-    <published>2024-06-02T11:33:21.000Z</published>
-    <updated>2024-06-02T13:21:51.159Z</updated>
-    
-    <content type="html"><![CDATA[<ul><li>Opcode is 0x06.</li><li>The base address of the output (a single page) should be put in the DWORDs 6 and 7 of the command.</li><li>The low byte of command DWORD 10 indicates what is to be identified: 0 - a namespace, 1 - the controller, 2 - the namespace list.</li><li>If identifying a namespace, set DWORD 1 to the namespace ID.</li></ul><a id="more"></a><p><img src="/images/2024/06/003.jpg" alt></p><p><img src="/images/2024/06/005.jpg" alt></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> &#123;</span><br><span class="line">    NVME_ID_CNS_NS          = <span class="number">0x00</span>,</span><br><span class="line">    NVME_ID_CNS_CTRL        = <span class="number">0x01</span>,</span><br><span class="line">    NVME_ID_CNS_NS_ACTIVE_LIST  = <span class="number">0x02</span>,</span><br><span class="line">    NVME_ID_CNS_NS_DESC_LIST    = <span class="number">0x03</span>,</span><br><span class="line">    NVME_ID_CNS_CS_NS       = <span class="number">0x05</span>,</span><br><span class="line">    NVME_ID_CNS_CS_CTRL     = <span class="number">0x06</span>,</span><br><span class="line">    NVME_ID_CNS_NS_CS_INDEP     = <span class="number">0x08</span>,</span><br><span class="line">    NVME_ID_CNS_NS_PRESENT_LIST = <span class="number">0x10</span>,</span><br><span class="line">    NVME_ID_CNS_NS_PRESENT      = <span class="number">0x11</span>,</span><br><span class="line">    NVME_ID_CNS_CTRL_NS_LIST    = <span class="number">0x12</span>,</span><br><span class="line">    NVME_ID_CNS_CTRL_LIST       = <span class="number">0x13</span>,</span><br><span class="line">    NVME_ID_CNS_SCNDRY_CTRL_LIST    = <span class="number">0x15</span>,</span><br><span class="line">    NVME_ID_CNS_NS_GRANULARITY  = <span class="number">0x16</span>,</span><br><span class="line">    NVME_ID_CNS_UUID_LIST       = <span class="number">0x17</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p>CDW1.NSID的含义:<br><img src="/images/2024/06/004.jpg" alt></p><p>总结:</p><ol><li>想要某个controller或者namespace的identity，需要在command中指定controller id或者namespace id</li><li>controller将结果以DMA的形式放到DWORDs 6 and 7指定的地址中</li></ol><hr><p>参考资料:</p><ol><li>NVMe 1.3 spec</li><li><a href="https://wiki.osdev.org/NVMe" target="_blank" rel="noopener">https://wiki.osdev.org/NVMe</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;ul&gt;
-&lt;li&gt;Opcode is 0x06.&lt;/li&gt;
-&lt;li&gt;The base address of the output (a single page) should be put in the DWORDs 6 and 7 of the command.&lt;/li&gt;
-&lt;li&gt;The low byte of command DWORD 10 indicates what is to be identified: 0 - a namespace, 1 - the controller, 2 - the namespace list.&lt;/li&gt;
-&lt;li&gt;If identifying a namespace, set DWORD 1 to the namespace ID.&lt;/li&gt;
-&lt;/ul&gt;
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>virtio-net offloads reconfiguration</title>
-    <link href="http://liujunming.github.io/2024/06/02/virtio-net-offloads-reconfiguration/"/>
-    <id>http://liujunming.github.io/2024/06/02/virtio-net-offloads-reconfiguration/</id>
-    <published>2024-06-02T00:46:16.000Z</published>
-    <updated>2024-06-02T12:49:07.166Z</updated>
-    
-    <content type="html"><![CDATA[<blockquote><p>Virtio-net driver currently negotiates network offloads on startup via features mechanism and have no ability to disable and re-enable offloads later.<br>This patch introduced a new control command that allows to configure device network offloads state dynamically. The patch also introduces a new feature flag VIRTIO_NET_F_CTRL_GUEST_OFFLOADS.</p></blockquote><blockquote><p>VIRTIO_NET_F_CTRL_GUEST_OFFLOADS (2) Control channel offloads reconfiguration support.</p></blockquote><p>control virtqueue “Offloads State Configuration”.<br><a id="more"></a></p><p><img src="/images/2024/06/001.jpg" alt></p><p>“offloads”是名词，按照名词去阅读spec。</p><p>“negotiate”指的是在driver_feature中正确配置好了feature bits。<br><img src="/images/2024/06/002.jpg" alt></p><p>VIRTIO_NET_F_CTRL_GUEST_OFFLOADS支持动态地更改offloads的状态(enable/disbale)配置。</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// feature bits</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_CSUM       1</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_TSO4       7</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_TSO6       8</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_ECN        9</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_UFO        10</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_USO4       54</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_F_GUEST_USO6       55</span></span><br></pre></td></tr></table></figure><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Control network offloads</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Reconfigures the network offloads that Guest can handle.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Available with the VIRTIO_NET_F_CTRL_GUEST_OFFLOADS feature bit.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Command data format matches the feature bit mask exactly.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * See VIRTIO_NET_F_GUEST_* for the list of offloads</span></span><br><span class="line"><span class="comment"> * that can be enabled/disabled.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_CTRL_GUEST_OFFLOADS   5</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> VIRTIO_NET_CTRL_GUEST_OFFLOADS_SET        0</span></span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://docs.oasis-open.org/virtio/virtio/v1.3/csd01/virtio-v1.3-csd01.pdf" target="_blank" rel="noopener">virtio v1.3</a></li><li><a href="https://lists.nongnu.org/archive/html/qemu-devel/2013-05/msg02505.html" target="_blank" rel="noopener">virtio-net: dynamic network offloads configuration</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;blockquote&gt;
-&lt;p&gt;Virtio-net driver currently negotiates network offloads on startup via features mechanism and have no ability to disable and re-enable offloads later.&lt;br&gt;This patch introduced a new control command that allows to configure device network offloads state dynamically. The patch also introduces a new feature flag VIRTIO_NET_F_CTRL_GUEST_OFFLOADS.&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;blockquote&gt;
-&lt;p&gt;VIRTIO_NET_F_CTRL_GUEST_OFFLOADS (2) Control channel offloads reconfiguration support.&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;control virtqueue “Offloads State Configuration”.&lt;br&gt;
-    
-    </summary>
-    
-      <category term="virtio" scheme="http://liujunming.github.io/categories/virtio/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
     
   </entry>
   
