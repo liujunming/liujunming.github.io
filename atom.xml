@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-08-11T12:03:43.222Z</updated>
+  <updated>2024-08-18T12:11:53.952Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about network checksum offload</title>
+    <link href="http://liujunming.github.io/2024/08/18/Notes-about-network-checksum-offload/"/>
+    <id>http://liujunming.github.io/2024/08/18/Notes-about-network-checksum-offload/</id>
+    <published>2024-08-18T11:21:20.000Z</published>
+    <updated>2024-08-18T12:11:53.952Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下network checksum offload技术的相关notes。<a id="more"></a></p><h2 id="软件协议checksum"><a href="#软件协议checksum" class="headerlink" title="软件协议checksum"></a>软件协议checksum</h2><p>很多网络协议，例如IP、TCP、UDP都有自己的校验和(checksum)。</p><h3 id="TCP-checksum"><a href="#TCP-checksum" class="headerlink" title="TCP checksum"></a>TCP checksum</h3><p>TCP校验和计算三部分：TCP头部、TCP数据和TCP伪头部。TCP校验和是必须的。<br><img src="/images/2024/08/016.jpg" alt></p><p><img src="/images/2024/08/017.jpg" alt></p><h3 id="UDP-checksum"><a href="#UDP-checksum" class="headerlink" title="UDP checksum"></a>UDP checksum</h3><p>UDP校验和计算三部分：UDP头部、UDP数据和UDP伪头部。UDP校验和是可选的。</p><p><img src="/images/2024/08/018.jpg" alt></p><p><img src="/images/2024/08/019.jpg" alt></p><h3 id="IP-checksum"><a href="#IP-checksum" class="headerlink" title="IP checksum"></a>IP checksum</h3><p>IP校验和只计算检验IP数据报的首部，但不包括IP数据报中的数据部分。</p><p><img src="/images/2024/08/020.jpg" alt></p><p><img src="/images/2024/08/021.jpg" alt></p><h2 id="checksum-offload"><a href="#checksum-offload" class="headerlink" title="checksum offload"></a>checksum offload</h2><p>传统上，校验和的计算（发送数据包）和验证（接收数据包）是通过CPU完成的。这对CPU的影响很大，因为校验和需要每个字节的数据都参与计算。对于一个100G带宽的网络，需要CPU最多每秒计算大约12G的数据。</p><p>为了减轻这部分的影响，现在的网卡，都支持校验和的计算和验证。系统内核在封装网络数据包的时候，可以跳过校验和。网卡收到网络数据包之后，根据网络协议的规则，进行计算，再将校验和填入相应的位置。</p><p>因为Checksum offload的存在，在用tcpdump之类的抓包分析工具时，有时会发现抓到的包提示校验和错误（checksum incorrect）。tcpdump抓到的网络包就是系统内核发给网卡的网络包，如果校验和放到网卡去计算，那么tcpdump抓到包的时刻，校验和还没有被计算出来，自然看到的是错误的值。</p><h2 id="virtio-net"><a href="#virtio-net" class="headerlink" title="virtio-net"></a>virtio-net</h2><blockquote><p>VIRTIO_NET_F_CSUM (0)<br>Device handles packets with partial checksum. This “checksum offload” is a common feature on modern network cards.</p></blockquote><blockquote><p>VIRTIO_NET_F_HOST_TSO4<br>Requires VIRTIO_NET_F_CSUM.</p></blockquote><p>由上述描述可知<a href="/2023/04/23/Notes-about-TSO、GSO、LRO、GRO/#TSO">TSO</a>需要Checksum offload的支持。因为在enable TSO时，TCP/IP协议栈并不知道最终的网络数据包是什么样，自然也没办法完成校验和计算。</p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/44635205" target="_blank" rel="noopener">常见网络加速技术浅谈（一）</a></li><li><a href="https://zhuanlan.zhihu.com/p/106400339" target="_blank" rel="noopener">Wireshark 提示和技巧 | Checksum Offload</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc9293" target="_blank" rel="noopener">RFC 9293: Transmission Control Protocol</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc768" target="_blank" rel="noopener">RFC 768: User Datagram Protocol</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc791" target="_blank" rel="noopener">RFC 791: INTERNET PROTOCOL</a></li><li><a href="https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html" target="_blank" rel="noopener">Virtual I/O Device (VIRTIO) Version 1.2</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下network checksum offload技术的相关notes。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Network Segmentation vs Fragmentation</title>
@@ -43,9 +65,9 @@
     <link href="http://liujunming.github.io/2024/08/11/Network-RFC%E5%90%88%E9%9B%86/"/>
     <id>http://liujunming.github.io/2024/08/11/Network-RFC合集/</id>
     <published>2024-08-11T08:40:33.000Z</published>
-    <updated>2024-08-11T08:56:38.726Z</updated>
+    <updated>2024-08-18T11:18:22.585Z</updated>
     
-    <content type="html"><![CDATA[<p>本文将持续记录计算机网络中协议的RFC号。<a id="more"></a></p><ul><li><a href="https://datatracker.ietf.org/doc/html/rfc791" target="_blank" rel="noopener">RFC 791: INTERNET PROTOCOL</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc9293" target="_blank" rel="noopener">RFC 9293: Transmission Control Protocol</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc1180" target="_blank" rel="noopener">RFC 9293: A TCP/IP Tutorial</a></li></ul>]]></content>
+    <content type="html"><![CDATA[<p>本文将持续记录计算机网络中协议的RFC号。<a id="more"></a></p><ul><li><a href="https://datatracker.ietf.org/doc/html/rfc791" target="_blank" rel="noopener">RFC 791: INTERNET PROTOCOL</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc9293" target="_blank" rel="noopener">RFC 9293: Transmission Control Protocol</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc1180" target="_blank" rel="noopener">RFC 9293: A TCP/IP Tutorial</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc768" target="_blank" rel="noopener">RFC 768: User Datagram Protocol</a></li></ul>]]></content>
     
     <summary type="html">
     
@@ -449,30 +471,6 @@
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
       <category term="DPDK" scheme="http://liujunming.github.io/tags/DPDK/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about MBEC(Mode Based Execution Control)</title>
-    <link href="http://liujunming.github.io/2024/06/22/Notes-about-MBEC-Mode-Based-Execution-Control/"/>
-    <id>http://liujunming.github.io/2024/06/22/Notes-about-MBEC-Mode-Based-Execution-Control/</id>
-    <published>2024-06-22T08:45:21.000Z</published>
-    <updated>2024-06-22T12:31:37.174Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下MBEC(Mode Based Execution Control)相关notes。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>MBEC provides finer grain control on execute permissions to help protect the integrity of the system code from malicious changes. It provides additional refinement within the Extended Page Tables (EPT) by turning the Execute Enable (X) permission bit into two options:</p><ul><li>XU for user pages</li><li>XS for supervisor pages</li></ul><p>The CPU selects one or the other based on permission of the guest page and <strong>maintains an invariant for every page that does not allow it to be writable and supervisor-executable at the same time</strong>. A benefit of this feature is that a hypervisor can more reliably verify and enforce the integrity of kernel-level code(hypervisor可以更可靠地验证和执行内核级代码的完整性). The value of the XU/XS bits is delivered through the hypervisor, so hypervisor support is necessary.</p><p>这个特性主要是安全方面的考虑，如果想了解安全相关的更多背景，可以参考<a href="https://www.blackhat.com/docs/us-16/materials/us-16-Wojtczuk-Analysis-Of-The-Attack-Surface-Of-Windows-10-Virtualization-Based-Security-wp.pdf" target="_blank" rel="noopener">Analysis of the Attack Surface of Windows 10 Virtualization-based Security</a>。本文主要侧重于虚拟化侧的内容，安全相关的细节，不在本文的范围之内。</p><h2 id="Details"><a href="#Details" class="headerlink" title="Details"></a>Details</h2><p><img src="/images/2024/06/006.jpg" alt></p><p><img src="/images/2024/06/007.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/xeon-processor-scalable-family-technical-overview.html#-12" target="_blank" rel="noopener">Intel Xeon Processor Scalable Family Technical Overview</a></li><li><a href="https://www.wikiwand.com/en/Second_Level_Address_Translation" target="_blank" rel="noopener">wikiwand: Second Level Address Translation</a></li><li><a href="https://www.blackhat.com/docs/us-16/materials/us-16-Wojtczuk-Analysis-Of-The-Attack-Surface-Of-Windows-10-Virtualization-Based-Security-wp.pdf" target="_blank" rel="noopener">Analysis of the Attack Surface of Windows 10 Virtualization-based Security</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下MBEC(Mode Based Execution Control)相关notes。
-    
-    </summary>
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-      <category term="SDM" scheme="http://liujunming.github.io/tags/SDM/"/>
     
   </entry>
   
