@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-08-18T12:11:53.952Z</updated>
+  <updated>2024-08-18T12:56:39.938Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>network: USO vs UFO</title>
+    <link href="http://liujunming.github.io/2024/08/18/network-USO-vs-UFO/"/>
+    <id>http://liujunming.github.io/2024/08/18/network-USO-vs-UFO/</id>
+    <published>2024-08-18T12:24:36.000Z</published>
+    <updated>2024-08-18T12:56:39.938Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下USO(UDP Segmentation offload) vs UFO(UDP Fragmentation Offload)相关notes。<a id="more"></a><br>需阅读<a href="/2024/08/11/Network-Segmentation-vs-Fragmentation/">Network Segmentation vs Fragmentation</a>，值得注意的是，UDP也是存在Segmentation的。</p><h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><p>UDP Segmentation Offload (USO)is a feature that enables network interface cards (NICs) to offload the segmentation of UDP datagrams that are larger than the maximum transmission unit (MTU) of the network medium.</p><p>UDP fragmentation offload allows a device to fragment an oversized UDP datagram into multiple IPv4 fragments.</p><h2 id="USO-vs-UFO"><a href="#USO-vs-UFO" class="headerlink" title="USO vs UFO"></a>USO vs UFO</h2><p>There is a USO feature that is different from existing UFO:</p><ul><li>UFO fragments the UDP packet and only first fragment carries the UDP header (SKB_GSO_UDP in the Linux network stack)</li><li>USO segments the UDP packet, each segment has a UDP header and IP identification field is incremented for each segment. It is designated as SKB_GSO_UDP_L4 in the Linux network stack</li></ul><blockquote><p>VIRTIO_NET_F_HOST_USO (56)<br>Device can receive USO packets. Unlike UFO (fragmenting the packet) the USO splits large UDP packet to several segments when each of these smaller packets has UDP header.</p></blockquote><hr><p>参考资料:</p><ol><li><a href="https://docs.oasis-open.org/virtio/virtio/v1.2/csd01/virtio-v1.2-csd01.html" target="_blank" rel="noopener">Virtual I/O Device (VIRTIO) Version 1.2</a></li><li><a href="https://github.com/oasis-tcs/virtio-spec/issues/104" target="_blank" rel="noopener">virtio-net: define USO feature</a></li><li><a href="https://lore.kernel.org/netdev/20221207113558.19003-4-andrew@daynix.com/T/" target="_blank" rel="noopener">udp: allow header check for dodgy GSO_UDP_L4 packets</a></li><li><a href="https://www.slideshare.net/slideshow/20140928-gso-eurobsdcon2014/43398725" target="_blank" rel="noopener">Software segmentation offloading for FreeBSD by Stefano Garzarella</a></li><li><a href="https://www.cnblogs.com/sammyliu/p/5227121.html" target="_blank" rel="noopener">理解 Linux 网络栈（2）：非虚拟化Linux 环境中的 Segmentation Offloading 技术</a></li><li><a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/network/udp-segmentation-offload-uso-" target="_blank" rel="noopener">UDP Segmentation Offload (USO)</a></li><li><a href="https://www.kernel.org/doc/html/next/networking/segmentation-offloads.html" target="_blank" rel="noopener">Segmentation Offloads</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下USO(UDP Segmentation offload) vs UFO(UDP Fragmentation Offload)相关notes。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about network checksum offload</title>
@@ -447,30 +469,6 @@
     
     
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Flow Bifurcation</title>
-    <link href="http://liujunming.github.io/2024/06/23/Notes-about-Flow-Bifurcation-mechanism/"/>
-    <id>http://liujunming.github.io/2024/06/23/Notes-about-Flow-Bifurcation-mechanism/</id>
-    <published>2024-06-23T02:04:52.000Z</published>
-    <updated>2024-06-23T10:00:17.313Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要转载自<a href="https://blog.csdn.net/legend050709/article/details/124872468" target="_blank" rel="noopener">DPDK中的流量分叉(flow bifurcation)</a>。<a id="more"></a></p><h2 id="flow-bifurcation介绍"><a href="#flow-bifurcation介绍" class="headerlink" title="flow bifurcation介绍"></a>flow bifurcation介绍</h2><p><img src="/images/2024/06/008.png" alt></p><p><img src="/images/2024/06/009.png" alt></p><p><img src="/images/2024/06/010.png" alt></p><p>使用分岔驱动程序的PMDs与设备内核驱动程序共存。在这样的模型中，NIC由内核控制，而数据路径则由设备上的PMD直接执行。</p><h2 id="流量分叉的优缺点"><a href="#流量分叉的优缺点" class="headerlink" title="流量分叉的优缺点"></a>流量分叉的优缺点</h2><p>这种模式有以下好处:</p><ul><li>它是安全且健壮的.</li></ul><p>因为内存管理和隔离是由内核完成的。</p><ul><li><p>它允许用户在相同的网络端口上运行DPDK应用程序时使用传统的linux工具，如ethtool或ifconfig。</p></li><li><p>它允许DPDK应用程序只过滤部分流量，而其余的流量将由内核驱动程序定向和处理；流分岔由NIC硬件完成，例如，使用流隔离模式<a href="https://doc.dpdk.org/guides/prog_guide/rte_flow.html#flow-isolated-mode" target="_blank" rel="noopener">dpdk rte_flow isolated mode</a>可以严格选择DPDK中接收到的内容。</p></li></ul><p><img src="/images/2024/06/011.png" alt></p><p>优点总结：</p><ul><li>更好的性能</li></ul><p>流量分叉是硬件特性，不需要CPU的参与。可以提供更好的性能。</p><ul><li>和 kni 对比</li></ul><p>kni 的话，需要在DPDK中实现具体的代码来进行流量从DPDK应用到内核协议栈。流量分叉只需要通过软件给硬件配置对应的规则即可。</p><ul><li>实现流量分叉的方式<ul><li>SR-IOV</li><li>Flow filter(rte_flow/ fdir)</li></ul></li></ul><p>SR-IOV 实现流量分叉的优缺点：</p><p><img src="/images/2024/06/012.png" alt></p><h2 id="不同网卡的流量分叉实现"><a href="#不同网卡的流量分叉实现" class="headerlink" title="不同网卡的流量分叉实现"></a>不同网卡的流量分叉实现</h2><h3 id="mellanox"><a href="#mellanox" class="headerlink" title="mellanox"></a>mellanox</h3><p><img src="/images/2024/06/013.png" alt></p><p>Mellanox Cx系列网卡天然支持流量分叉，不需要配置SR-IOV PF/VF 进行流量分叉。Mellanox Cx系列流量分叉的好处有：</p><ul><li>更好的性能，DPDK应用直接处理数据面的流量。</li><li>网卡依然可以被内核控制。</li><li>Linux kernel 的控制工具/命令依然可以使用。比如，ethtool</li></ul><h3 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h3><p>其他系列的网卡，比如Intel，博通的网卡不是天然支持流量分叉。需要配置SR-IOV或者 FDIR(Flow Director)规则来实现流量分叉。</p><h2 id="流量分叉的应用场景"><a href="#流量分叉的应用场景" class="headerlink" title="流量分叉的应用场景"></a>流量分叉的应用场景</h2><h3 id="减少网卡的数量"><a href="#减少网卡的数量" class="headerlink" title="减少网卡的数量"></a>减少网卡的数量</h3><p>正常情况下，在一个机器上部署DPDK程序，需要2块网卡：</p><ul><li>管理口</li></ul><p>登陆机器，管理机器。</p><ul><li>业务口</li></ul><p>一个单卡双口的网卡作为DPDK程序转发流量的业务口。</p><p>如果使用基于SR-IOV的 flow bifurcation，只需要一块卡即可。利用网卡的SR-IOV，存在一个PF以及多个VF。 在网卡上配置管理IP，以及一些flow filter。 将DPDK的流量，交给VF对应的队列，进而给VF处理。 将其他流量交给PF处理，对设备进行管理。这样即使DPDK程序退出，不影响设备的管理。</p><h3 id="DPDK程序中控制流量和业务流量分离"><a href="#DPDK程序中控制流量和业务流量分离" class="headerlink" title="DPDK程序中控制流量和业务流量分离"></a>DPDK程序中控制流量和业务流量分离</h3><p>目前的DPDK程序，比如DPVS，控制流量（健康检查、bgp流量）也可能和业务流量混在一起（比如交给了相同的接收队列）。在业务流量很大的情况下，有可能导致控制流量丢包，进而导致BGP保活失败，VIP路由发送失败，流量偶发断连的情况。 如果可以将控制流量和业务流量分发到不同的队列中，可以做到互不影响。</p><h2 id="案例"><a href="#案例" class="headerlink" title="案例"></a>案例</h2><p>ATC’23 <a href="https://www.usenix.org/conference/atc23/presentation/zhu-lingjun" target="_blank" rel="noopener">Deploying User-space TCP at Cloud Scale with LUNA</a></p><p><img src="/images/2024/06/015.jpg" alt><br>细节可参考论文中的”7.1 Traffic Split”一节:</p><blockquote><p>LUNA routes the incoming TCP packets with certain destination ports to the specific virtual functions, which are then processed in user space. The TCP packets that do not align with the port filters and the not-TCP packets would still be accepted and processed by the kernel network stack.</p></blockquote><hr><p>参考资料:</p><ol><li><a href="https://www.redhat.com/en/blog/getting-best-both-worlds-queue-splitting-bifurcated-driver" target="_blank" rel="noopener">Getting the Best of Both Worlds with Queue Splitting (Bifurcated Driver)</a></li><li><a href="https://www.dpdk.org/wp-content/uploads/sites/35/2016/10/Day02-Session05-JingjingWu-Userspace2016.pdf" target="_blank" rel="noopener">Flow Bifurcation on Intel® Ethernet Controller X710/XL710</a></li><li><a href="https://doc.dpdk.org/guides/howto/flow_bifurcation.html" target="_blank" rel="noopener">Flow Bifurcation How-to Guide</a></li><li><a href="https://blog.csdn.net/legend050709/article/details/124872468" target="_blank" rel="noopener">DPDK中的流量分叉(flow bifurcation)</a></li><li><a href="https://www.usenix.org/conference/atc23/presentation/zhu-lingjun" target="_blank" rel="noopener">Deploying User-space TCP at Cloud Scale with LUNA</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文主要转载自&lt;a href=&quot;https://blog.csdn.net/legend050709/article/details/124872468&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;DPDK中的流量分叉(flow bifurcation)&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-      <category term="DPDK" scheme="http://liujunming.github.io/tags/DPDK/"/>
     
   </entry>
   
