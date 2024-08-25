@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about RDMA Event Queue mechanism">
+
+
+
+
+  <meta name="keywords" content="RDMA, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/08/25/Notes-about-RDMA-Event-Queue-mechanism/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about RDMA Event Queue mechanism - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about RDMA Event Queue mechanism
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-08-25
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/RDMA/">RDMA</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Q-amp-amp-A"><span class="toc-text">Q &amp;&amp; A</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#eRDMA-example"><span class="toc-text">eRDMA example</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#CQ与EQ的绑定"><span class="toc-text">CQ与EQ的绑定</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#eqe获取CQ-number"><span class="toc-text">eqe获取CQ number</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#mellanox-mlx4-example"><span class="toc-text">mellanox mlx4 example</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#CQ与EQ的重新绑定"><span class="toc-text">CQ与EQ的重新绑定</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#eqe获取CQ-number-1"><span class="toc-text">eqe获取CQ number</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下RDMA中的Event Queue机制。<a id="more"></a><br>Host Channel Adapter(HCA) device, HCA device, NIC, NIC device and adapter device are used interchangeably.</p>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><blockquote>
+<p>HCA has multiple sources that can generate events (completion events, asynchronous events/<br>errors). Once an event is generated internally, it can be reported to the host software via the Event<br>Queue mechanism. The EQ is a memory-resident circular buffer used by hardware to write event<br>cause information for consumption by the host software. Once event reporting is enabled, event<br>cause information is written by hardware to the EQ when the event occurs. If EQ is armed, HW<br>will subsequently generate an interrupt on the device interface (send MSI-X message or assert<br>the pin) as configured in the EQ.</p>
+</blockquote>
+<h2 id="Q-amp-amp-A"><a href="#Q-amp-amp-A" class="headerlink" title="Q &amp;&amp; A"></a>Q &amp;&amp; A</h2><p>Q1: 都有cq了，为什么还要有completion EQ？<br>A1: 如果只有cq，就只能用轮询方式了，加上ceq之后，中断上来就能从ceqe中拿到哪个cq有数据</p>
+<p>Q2: 为什么不能为每个cq分配一个中断vector，这样就无需eq机制了?<br>A2: 一个RDMA设备的CQ会很多，大概率会超过2048个，此时就超过了MSI-x table的上限，因而引入了eq机制，将多个cq绑定到1个eq上，然后为每个eq分配一个中断vector，控制eq的数量，就会保证vector个数不超过MSI-x table的上限</p>
+<p>Q3: CQ与EQ是如何绑定的？<br>A3: While creating a CQ, software configures the EQ number to which this CQ will report completion events.</p>
+<h2 id="eRDMA-example"><a href="#eRDMA-example" class="headerlink" title="eRDMA example"></a>eRDMA example</h2><p>Event queue (EQ) is the main notification way from erdma hardware to its driver. Each erdma device contains 2 kinds EQs: asynchronous EQ (AEQ) and completion EQ (CEQ). Per device has 1 AEQ, which used for RDMA async event report, and max to 32 CEQs (numbered for CEQ0 to CEQ31). CEQ0 is used for cmdq completion event report, and the rest CEQs are used for RDMA completion event report.</p>
+<h3 id="CQ与EQ的绑定"><a href="#CQ与EQ的绑定" class="headerlink" title="CQ与EQ的绑定"></a>CQ与EQ的绑定</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">create_cq_cmd</span><span class="params">(struct erdma_ucontext *uctx, struct erdma_cq *cq)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">erdma_dev</span> *<span class="title">dev</span> = <span class="title">to_edev</span>(<span class="title">cq</span>-&gt;<span class="title">ibcq</span>.<span class="title">device</span>);</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">erdma_cmdq_create_cq_req</span> <span class="title">req</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">erdma_mem</span> *<span class="title">mem</span>;</span></span><br><span class="line">	u32 page_size;</span><br><span class="line"></span><br><span class="line">	erdma_cmdq_build_reqhdr(&amp;req.hdr, CMDQ_SUBMOD_RDMA,</span><br><span class="line">				CMDQ_OPCODE_CREATE_CQ);</span><br><span class="line"></span><br><span class="line">        ...</span><br><span class="line">	req.cfg1 = FIELD_PREP(ERDMA_CMD_CREATE_CQ_EQN_MASK, cq-&gt;assoc_eqn);</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">erdma_create_cq</span><span class="params">(struct ib_cq *ibcq, <span class="keyword">const</span> struct ib_cq_init_attr *attr,</span></span></span><br><span class="line"><span class="function"><span class="params">		    struct ib_udata *udata)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        ...</span><br><span class="line">        cq-&gt;assoc_eqn = attr-&gt;comp_vector + <span class="number">1</span>;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2024/08/030.jpg" alt></p>
+<h3 id="eqe获取CQ-number"><a href="#eqe获取CQ-number" class="headerlink" title="eqe获取CQ number"></a>eqe获取CQ number</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> irqreturn_t <span class="title">erdma_intr_ceq_handler</span><span class="params">(<span class="keyword">int</span> irq, <span class="keyword">void</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">erdma_eq_cb</span> *<span class="title">ceq_cb</span> = <span class="title">data</span>;</span></span><br><span class="line"></span><br><span class="line">	tasklet_schedule(&amp;ceq_cb-&gt;tasklet); <span class="comment">//会调用erdma_intr_ceq_task</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> IRQ_HANDLED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">erdma_intr_ceq_task</span><br><span class="line">└── erdma_ceq_completion_handler</span><br><span class="line">    ├── get_next_valid_eqe</span><br><span class="line">    └── cqn = FIELD_GET(ERDMA_CEQE_HDR_CQN_MASK, READ_ONCE(*ceqe))</span><br></pre></td></tr></table></figure>
+<h2 id="mellanox-mlx4-example"><a href="#mellanox-mlx4-example" class="headerlink" title="mellanox mlx4 example"></a>mellanox mlx4 example</h2><h3 id="CQ与EQ的重新绑定"><a href="#CQ与EQ的重新绑定" class="headerlink" title="CQ与EQ的重新绑定"></a>CQ与EQ的重新绑定</h3><p><img src="/images/2024/08/025.jpg" alt></p>
+<p><img src="/images/2024/08/026.jpg" alt></p>
+<p><img src="/images/2024/08/027.jpg" alt></p>
+<p><img src="/images/2024/08/028.jpg" alt></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">mlx4_cq_alloc</span><span class="params">(struct mlx4_dev *dev, <span class="keyword">int</span> nent,</span></span></span><br><span class="line"><span class="function"><span class="params">		  struct mlx4_mtt *mtt, struct mlx4_uar *uar, u64 db_rec,</span></span></span><br><span class="line"><span class="function"><span class="params">		  struct mlx4_cq *cq, <span class="keyword">unsigned</span> <span class="built_in">vector</span>, <span class="keyword">int</span> collapsed,</span></span></span><br><span class="line"><span class="function"><span class="params">		  <span class="keyword">int</span> timestamp_en, <span class="keyword">void</span> *buf_addr, <span class="keyword">bool</span> user_cq)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">bool</span> sw_cq_init = dev-&gt;caps.flags2 &amp; MLX4_DEV_CAP_FLAG2_SW_CQ_INIT;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mlx4_priv</span> *<span class="title">priv</span> = <span class="title">mlx4_priv</span>(<span class="title">dev</span>);</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mlx4_cq_table</span> *<span class="title">cq_table</span> = &amp;<span class="title">priv</span>-&gt;<span class="title">cq_table</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mlx4_cmd_mailbox</span> *<span class="title">mailbox</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mlx4_cq_context</span> *<span class="title">cq_context</span>;</span></span><br><span class="line">	u64 mtt_addr;</span><br><span class="line">	<span class="keyword">int</span> err;</span><br><span class="line"></span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">	mailbox = mlx4_alloc_cmd_mailbox(dev);</span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">	cq_context = mailbox-&gt;buf;</span><br><span class="line">        ...</span><br><span class="line">	cq_context-&gt;comp_eqn	    = priv-&gt;eq_table.eq[MLX4_CQ_TO_EQ_VECTOR(<span class="built_in">vector</span>)].eqn;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="eqe获取CQ-number-1"><a href="#eqe获取CQ-number-1" class="headerlink" title="eqe获取CQ number"></a>eqe获取CQ number</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> mlx4_event &#123;</span><br><span class="line">	MLX4_EVENT_TYPE_COMP		   = <span class="number">0x00</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_PATH_MIG	   = <span class="number">0x01</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_COMM_EST	   = <span class="number">0x02</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_SQ_DRAINED	   = <span class="number">0x03</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_SRQ_QP_LAST_WQE	   = <span class="number">0x13</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_SRQ_LIMIT	   = <span class="number">0x14</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_CQ_ERROR	   = <span class="number">0x04</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_WQ_CATAS_ERROR	   = <span class="number">0x05</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_EEC_CATAS_ERROR	   = <span class="number">0x06</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_PATH_MIG_FAILED	   = <span class="number">0x07</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_WQ_INVAL_REQ_ERROR = <span class="number">0x10</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_WQ_ACCESS_ERROR	   = <span class="number">0x11</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_SRQ_CATAS_ERROR	   = <span class="number">0x12</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_LOCAL_CATAS_ERROR  = <span class="number">0x08</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_PORT_CHANGE	   = <span class="number">0x09</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_EQ_OVERFLOW	   = <span class="number">0x0f</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_ECC_DETECT	   = <span class="number">0x0e</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_CMD		   = <span class="number">0x0a</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_VEP_UPDATE	   = <span class="number">0x19</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_COMM_CHANNEL	   = <span class="number">0x18</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_OP_REQUIRED	   = <span class="number">0x1a</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_FATAL_WARNING	   = <span class="number">0x1b</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_FLR_EVENT	   = <span class="number">0x1c</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_PORT_MNG_CHG_EVENT = <span class="number">0x1d</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_RECOVERABLE_ERROR_EVENT  = <span class="number">0x3e</span>,</span><br><span class="line">	MLX4_EVENT_TYPE_NONE		   = <span class="number">0xff</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">mlx4_eq_int</span><span class="params">(struct mlx4_dev *dev, struct mlx4_eq *eq)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mlx4_priv</span> *<span class="title">priv</span> = <span class="title">mlx4_priv</span>(<span class="title">dev</span>);</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mlx4_eqe</span> *<span class="title">eqe</span>;</span></span><br><span class="line">	<span class="keyword">int</span> cqn;</span><br><span class="line">	<span class="keyword">int</span> eqes_found = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">int</span> set_ci = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">int</span> port;</span><br><span class="line">	<span class="keyword">int</span> slave = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">int</span> ret;</span><br><span class="line">	<span class="keyword">int</span> flr_slave;</span><br><span class="line">	u8 update_slave_state;</span><br><span class="line">	<span class="keyword">int</span> i;</span><br><span class="line">	<span class="keyword">enum</span> slave_port_gen_event gen_event;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> flags;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mlx4_vport_state</span> *<span class="title">s_info</span>;</span></span><br><span class="line">	<span class="keyword">int</span> eqe_size = dev-&gt;caps.eqe_size;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> ((eqe = next_eqe_sw(eq, dev-&gt;caps.eqe_factor, eqe_size))) &#123;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * Make sure we read EQ entry contents after we've</span></span><br><span class="line"><span class="comment">		 * checked the ownership bit.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		dma_rmb();</span><br><span class="line"></span><br><span class="line">		<span class="keyword">switch</span> (eqe-&gt;type) &#123;</span><br><span class="line">		<span class="keyword">case</span> MLX4_EVENT_TYPE_COMP:</span><br><span class="line">			cqn = be32_to_cpu(eqe-&gt;event.comp.cqn) &amp; <span class="number">0xffffff</span>;</span><br><span class="line">			mlx4_cq_completion(dev, cqn);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">                        ...</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2024/08/022.jpg" alt></p>
+<p><img src="/images/2024/08/023.jpg" alt></p>
+<p><img src="/images/2024/08/024.jpg" alt></p>
+<p><code>cqn = be32_to_cpu(eqe-&gt;event.comp.cqn) &amp; 0xffffff</code>保证了cq number就是event data的0~23位。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://network.nvidia.com/files/doc-2020/ethernet-adapters-programming-manual.pdf" target="_blank" rel="noopener">Mellanox Adapters Programmer’s Reference Manual (PRM)</a></li>
+<li><a href="https://lore.kernel.org/all/20220711131316.3449-6-chengyou@linux.alibaba.com/" target="_blank" rel="noopener">RDMA/erdma: Add event queue implementation</a></li>
+<li><a href="https://www.rdmamojo.com/2012/11/03/ibv_create_cq/" target="_blank" rel="noopener">ibv_create_cq()</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/RDMA/">RDMA</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/08/25/Notes-about-RDMA-cmdq/">
+        <span class="next-text nav-default">Notes about RDMA cmdq</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/08/25/Notes-about-RDMA-Event-Queue-mechanism/';
+        this.page.identifier = '2024/08/25/Notes-about-RDMA-Event-Queue-mechanism/';
+        this.page.title = 'Notes about RDMA Event Queue mechanism';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

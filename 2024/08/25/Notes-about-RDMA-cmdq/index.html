@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about RDMA cmdq">
+
+
+
+
+  <meta name="keywords" content="RDMA, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/08/25/Notes-about-RDMA-cmdq/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about RDMA cmdq - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about RDMA cmdq
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-08-25
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/RDMA/">RDMA</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#mellanox-mlx4-example"><span class="toc-text">mellanox mlx4 example</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#eRDMA-example"><span class="toc-text">eRDMA example</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#cmdq命令"><span class="toc-text">cmdq命令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#erdma-device-ops"><span class="toc-text">erdma_device_ops</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#erdma-post-cmd-wait"><span class="toc-text">erdma_post_cmd_wait</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cmdq初始化"><span class="toc-text">cmdq初始化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cmdq中断通知"><span class="toc-text">cmdq中断通知</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cmdq相关寄存器"><span class="toc-text">cmdq相关寄存器</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下RDMA中cmdq(command queue)相关notes。<a id="more"></a><br>Host Channel Adapter(HCA) device, HCA device, NIC, NIC device and adapter device are used interchangeably.</p>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>The HCA command interface is used for:</p>
+<ul>
+<li>configuring the HCA</li>
+<li>the handshake between hardware and system software</li>
+<li>handling (querying, configuring, modifying) HCA objects</li>
+</ul>
+<p>The HCA is configured using the command queues. Each function has its own command queues to get commands from its HCA driver.</p>
+<p>The command queue is the transport that is used to pass commands to the HCA.</p>
+<p>cmdq其实属于一种sq(Send Queue)，可以类比于NVMe的admin sq(submission queue)。</p>
+<p>对于不同的RDMA设备，cmdq的具体实现是存在差异的。</p>
+<h2 id="mellanox-mlx4-example"><a href="#mellanox-mlx4-example" class="headerlink" title="mellanox mlx4 example"></a>mellanox mlx4 example</h2><p>mellanox mlx4 cmdq的细节，可以参考spec中的7.14 Command Interface一节。<br><img src="/images/2024/08/029.jpg" alt></p>
+<h2 id="eRDMA-example"><a href="#eRDMA-example" class="headerlink" title="eRDMA example"></a>eRDMA example</h2><p>Cmdq is the main control plane channel between erdma driver and hardware. After erdma device is initialized, the cmdq channel will be active in the whole lifecycle of this driver.</p>
+<h3 id="cmdq命令"><a href="#cmdq命令" class="headerlink" title="cmdq命令"></a>cmdq命令</h3><p>eRDMA支持如下命令:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">enum CMDQ_RDMA_OPCODE &#123;</span><br><span class="line">	CMDQ_OPCODE_QUERY_DEVICE = 0,</span><br><span class="line">	CMDQ_OPCODE_CREATE_QP = 1,</span><br><span class="line">	CMDQ_OPCODE_DESTROY_QP = 2,</span><br><span class="line">	CMDQ_OPCODE_MODIFY_QP = 3,</span><br><span class="line">	CMDQ_OPCODE_CREATE_CQ = 4,</span><br><span class="line">	CMDQ_OPCODE_DESTROY_CQ = 5,</span><br><span class="line">	CMDQ_OPCODE_REFLUSH = 6,</span><br><span class="line">	CMDQ_OPCODE_REG_MR = 8,</span><br><span class="line">	CMDQ_OPCODE_DEREG_MR = 9</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">enum CMDQ_COMMON_OPCODE &#123;</span><br><span class="line">	CMDQ_OPCODE_CREATE_EQ = 0,</span><br><span class="line">	CMDQ_OPCODE_DESTROY_EQ = 1,</span><br><span class="line">	CMDQ_OPCODE_QUERY_FW_INFO = 2,</span><br><span class="line">	CMDQ_OPCODE_CONF_MTU = 3,</span><br><span class="line">	CMDQ_OPCODE_CONF_DEVICE = 5,</span><br><span class="line">	CMDQ_OPCODE_ALLOC_DB = 8,</span><br><span class="line">	CMDQ_OPCODE_FREE_DB = 9,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h3 id="erdma-device-ops"><a href="#erdma-device-ops" class="headerlink" title="erdma_device_ops"></a>erdma_device_ops</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">ib_device_ops</span> <span class="title">erdma_device_ops</span> = &#123;</span></span><br><span class="line">	.owner = THIS_MODULE,</span><br><span class="line">	.driver_id = RDMA_DRIVER_ERDMA,</span><br><span class="line">	.uverbs_abi_ver = ERDMA_ABI_VERSION,</span><br><span class="line"></span><br><span class="line">	.alloc_mr = erdma_ib_alloc_mr,</span><br><span class="line">	.alloc_pd = erdma_alloc_pd,</span><br><span class="line">	.alloc_ucontext = erdma_alloc_ucontext,</span><br><span class="line">	.create_cq = erdma_create_cq,</span><br><span class="line">	.create_qp = erdma_create_qp,</span><br><span class="line">	.dealloc_pd = erdma_dealloc_pd,</span><br><span class="line">	.dealloc_ucontext = erdma_dealloc_ucontext,</span><br><span class="line">	.dereg_mr = erdma_dereg_mr,</span><br><span class="line">	.destroy_cq = erdma_destroy_cq,</span><br><span class="line">	.destroy_qp = erdma_destroy_qp,</span><br><span class="line">	.get_dma_mr = erdma_get_dma_mr,</span><br><span class="line">	.get_port_immutable = erdma_get_port_immutable,</span><br><span class="line">	.iw_accept = erdma_accept,</span><br><span class="line">	.iw_add_ref = erdma_qp_get_ref,</span><br><span class="line">	.iw_connect = erdma_connect,</span><br><span class="line">	.iw_create_listen = erdma_create_listen,</span><br><span class="line">	.iw_destroy_listen = erdma_destroy_listen,</span><br><span class="line">	.iw_get_qp = erdma_get_ibqp,</span><br><span class="line">	.iw_reject = erdma_reject,</span><br><span class="line">	.iw_rem_ref = erdma_qp_put_ref,</span><br><span class="line">	.map_mr_sg = erdma_map_mr_sg,</span><br><span class="line">	.mmap = erdma_mmap,</span><br><span class="line">	.mmap_free = erdma_mmap_free,</span><br><span class="line">	.modify_qp = erdma_modify_qp,</span><br><span class="line">	.post_recv = erdma_post_recv,</span><br><span class="line">	.post_send = erdma_post_send,</span><br><span class="line">	.poll_cq = erdma_poll_cq,</span><br><span class="line">	.query_device = erdma_query_device,</span><br><span class="line">	.query_gid = erdma_query_gid,</span><br><span class="line">	.query_port = erdma_query_port,</span><br><span class="line">	.query_qp = erdma_query_qp,</span><br><span class="line">	.req_notify_cq = erdma_req_notify_cq,</span><br><span class="line">	.reg_user_mr = erdma_reg_user_mr,</span><br><span class="line"></span><br><span class="line">	INIT_RDMA_OBJ_SIZE(ib_cq, erdma_cq, ibcq),</span><br><span class="line">	INIT_RDMA_OBJ_SIZE(ib_pd, erdma_pd, ibpd),</span><br><span class="line">	INIT_RDMA_OBJ_SIZE(ib_ucontext, erdma_ucontext, ibucontext),</span><br><span class="line">	INIT_RDMA_OBJ_SIZE(ib_qp, erdma_qp, ibqp),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>struct ib_device_ops</code> - InfiniBand device operations, 其实是内核与cmdq的交互接口。以<code>alloc_mr</code>为例，用户态下发创建Memory Region的请求到内核，此时<code>erdma_ib_alloc_mr</code>就会被调用。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">erdma_ib_alloc_mr</span><br><span class="line">└── regmr_cmd</span><br><span class="line">    ├── erdma_cmdq_build_reqhdr(&amp;req.hdr, CMDQ_SUBMOD_RDMA, CMDQ_OPCODE_REG_MR)</span><br><span class="line">    └── erdma_post_cmd_wait</span><br></pre></td></tr></table></figure></p>
+<p>最终，eRDMA driver会往cmdq中下发<code>CMDQ_OPCODE_REG_MR</code>命令来创建Memory Region。</p>
+<h3 id="erdma-post-cmd-wait"><a href="#erdma-post-cmd-wait" class="headerlink" title="erdma_post_cmd_wait"></a>erdma_post_cmd_wait</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">erdma_post_cmd_wait</span><br><span class="line">├── push_cmdq_sqe</span><br><span class="line">│   └── kick_cmdq_db <span class="comment">//更新sq的db寄存器</span></span><br><span class="line">├── erdma_wait_cmd_completion <span class="comment">// 如果使用cmdq eq中断</span></span><br><span class="line">│   └── wait_for_completion_timeout <span class="comment">//当前进程等待eq中断handler来唤醒(complete(&amp;comp_wait-&gt;wait_event))</span></span><br><span class="line">└── erdma_poll_cmd_completion <span class="comment">// 如果使用polling</span></span><br><span class="line">    └── erdma_polling_cmd_completions</span><br></pre></td></tr></table></figure>
+<h3 id="cmdq初始化"><a href="#cmdq初始化" class="headerlink" title="cmdq初始化"></a>cmdq初始化</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">erdma_probe</span><br><span class="line">└── erdma_probe_dev</span><br><span class="line">    ├── erdma_comm_irq_init</span><br><span class="line">    │   └── request_irq(...erdma_comm_irq_handler...)</span><br><span class="line">    └── erdma_cmdq_init</span><br><span class="line">        ├── erdma_cmdq_sq_init</span><br><span class="line">        ├── erdma_cmdq_cq_init</span><br><span class="line">        └── erdma_cmdq_eq_init</span><br></pre></td></tr></table></figure>
+<h3 id="cmdq中断通知"><a href="#cmdq中断通知" class="headerlink" title="cmdq中断通知"></a>cmdq中断通知</h3><p>Q: cmdq已经有cq了，为什么还需要eq(CEQ0)?<br>A: 如果只有cq，就只能用轮询模式了，加上ceq之后，cmdq与eq配合就能完成中断通知。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> irqreturn_t <span class="title">erdma_comm_irq_handler</span><span class="params">(<span class="keyword">int</span> irq, <span class="keyword">void</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">erdma_dev</span> *<span class="title">dev</span> = <span class="title">data</span>;</span></span><br><span class="line"></span><br><span class="line">	erdma_cmdq_completion_handler(&amp;dev-&gt;cmdq);</span><br><span class="line">	erdma_aeq_event_handler(dev);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> IRQ_HANDLED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">erdma_cmdq_completion_handler</span><br><span class="line">├── erdma_polling_cmd_completions</span><br><span class="line">│   ├── erdma_poll_single_cmd_completion</span><br><span class="line">│   │   ├── get_next_valid_cmdq_cqe</span><br><span class="line">│   │   └── complete(&amp;comp_wait-&gt;wait_event) <span class="comment">//唤醒等待wait_event的进程(erdma_wait_cmd_completion)</span></span><br><span class="line">│   └── arm_cmdq_cq <span class="comment">//更新cq的db寄存器</span></span><br><span class="line">└── notify_eq <span class="comment">//更新eq的db寄存器</span></span><br></pre></td></tr></table></figure>
+<h3 id="cmdq相关寄存器"><a href="#cmdq相关寄存器" class="headerlink" title="cmdq相关寄存器"></a>cmdq相关寄存器</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERDMA_REGS_CMDQ_SQ_ADDR_L_REG 0x20</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERDMA_REGS_CMDQ_SQ_ADDR_H_REG 0x24</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERDMA_REGS_CMDQ_CQ_ADDR_L_REG 0x28</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERDMA_REGS_CMDQ_CQ_ADDR_H_REG 0x2C</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERDMA_REGS_CMDQ_DEPTH_REG 0x30</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERDMA_REGS_CMDQ_EQ_DEPTH_REG 0x34</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERDMA_REGS_CMDQ_EQ_ADDR_L_REG 0x38</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ERDMA_REGS_CMDQ_EQ_ADDR_H_REG 0x3C</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://network.nvidia.com/files/doc-2020/ethernet-adapters-programming-manual.pdf" target="_blank" rel="noopener">Mellanox Adapters Programmer’s Reference Manual (PRM)</a></li>
+<li><a href="https://lore.kernel.org/all/20220711131316.3449-5-chengyou@linux.alibaba.com/" target="_blank" rel="noopener">RDMA/erdma: Add cmdq implementation</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/RDMA/">RDMA</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+      <a class="prev" href="/2024/08/25/Notes-about-RDMA-Event-Queue-mechanism/">
+        <i class="iconfont icon-left"></i>
+        <span class="prev-text nav-default">Notes about RDMA Event Queue mechanism</span>
+        <span class="prev-text nav-mobile">上一篇</span>
+      </a>
+    
+    
+      <a class="next" href="/2024/08/24/RDMA-spec合集/">
+        <span class="next-text nav-default">RDMA spec合集</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/08/25/Notes-about-RDMA-cmdq/';
+        this.page.identifier = '2024/08/25/Notes-about-RDMA-cmdq/';
+        this.page.title = 'Notes about RDMA cmdq';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
