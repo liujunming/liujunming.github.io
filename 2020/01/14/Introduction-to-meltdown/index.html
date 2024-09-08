@@ -296,19 +296,19 @@
 <h2 id="什么是meltdown"><a href="#什么是meltdown" class="headerlink" title="什么是meltdown"></a>什么是meltdown</h2><p>meltdown漏洞是体系结构的设计漏洞。meltdown允许用户态程序访问内核内存。</p>
 <h2 id="过程"><a href="#过程" class="headerlink" title="过程"></a>过程</h2><p><img src="/images/2020/01/1.png" alt></p>
 <p>漏洞引起的根源还是CPU的<a href="/2019/10/06/Speculative-Execution-and-Branch-Prediction/">Speculative Execution</a>。</p>
-<p>上图1,2,3三条指令表面上看是依次执行的，但是实际上呢，只能的CPU早就开始并行执行了，当然是为了提高效率。 比如上面在执行指令1的时候也可以同时执行指令2,3。当然，因为执行指令1的时候出错了，依赖于此的后续指令虽然已经执行了，但是并不会提交到寄存器，也就是说CPU其实白忙活了, rax, rbx的数据并不会被改变。这叫做CPU预测出错回滚。问题就出在这个回滚上，<strong>表面看上似乎各种寄存器/架构状态都回滚回去了，但是其实TLB或者缓存并没有回滚。</strong></p>
-<p>正常情况下执行指令1的时候由于我们直接在用户态访问内核地址，肯定是访问不了的。但是在CPU层面，其实权限检查和数据读取时分开的，当然也是为了提高效率。CPU在读取了内核地址的数据之后，也就是1a执行了，然后由于预测执行，也在并行执行2,3指令，如果执行完了2,3指令，还没有执行到1b这部分，也就是没有设置异常的一个flag，这个时候3的指令就会把<code>rbx+rax*4096</code>地址里面的数据读到缓存中。我们在2中把这个指令左移了0xc位，所以相当于乘了4096。我们用<code>rax*4096</code>来访问一个数组，所以<code>rbx+rax*4096</code>就会被缓存了。这个时候，CPU再执行1b发现权限不对，开始回滚，但是由于缓存没有清理，所以这个数据还在缓存里面。</p>
+<p>上图1,2,3三条指令表面上看是依次执行的，但是实际上呢，智能的CPU早就开始并行执行了，当然是为了提高效率。 比如上面在执行指令1的时候也可以同时执行指令2,3。当然，因为执行指令1的时候出错了，依赖于此的后续指令虽然已经执行了，但是并不会提交到寄存器，也就是说CPU其实白忙活了, rax, rbx的数据并不会被改变。这叫做CPU预测出错回滚。问题就出在这个回滚上，<strong>表面上看似乎各种寄存器/架构状态都回滚回去了，但是其实TLB或者缓存并没有回滚。</strong></p>
+<p>正常情况下执行指令1的时候由于我们直接在用户态访问内核地址，肯定是访问不了的。但是在CPU层面，其实权限检查和数据读取是分开的，当然也是为了提高效率。CPU在读取了内核地址的数据之后，也就是1a执行了，然后由于预测执行，也在并行执行2,3指令，如果执行完了2,3指令，还没有执行到1b这部分，这个时候3的指令就会把<code>rbx+rax*4096</code>地址里面的数据读到缓存中。我们在2中把这个指令左移了0xc位，所以相当于乘了4096。我们用<code>rax*4096</code>来访问一个数组，所以<code>rbx+rax*4096</code>就会被缓存了。这个时候，CPU再执行1b发现权限不对，开始回滚，但是由于缓存没有清理，所以这个数据还在缓存里面。</p>
 <p>这个时候我们就可以对<code>rbx + i*4096</code>这些位置进行访问了。由于我们只有一个地址被缓存了，所以访问其中某一个地址用的时间会远远小于其他地址，这样我们就猜出了相应的内存地址的值。这就是所谓的侧信道攻击(Side-channel attack)。</p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>总结下造成meltdown漏洞的原因：</p>
 <ol>
-<li>在CPU层面，权限检查和数据读取时分开的</li>
+<li>在CPU层面，权限检查和数据读取是分开的</li>
 <li>Speculative Execution预测出错回滚时，各种寄存器/架构状态都回滚回去了，但是其实TLB或者缓存并没有回滚。</li>
 </ol>
 <hr>
 <p>参考资料：</p>
 <ol>
 <li><a href="https://blog.csdn.net/wlmnzf/article/details/79319509" target="_blank" rel="noopener">Meltdown &amp; Spectre原理简要梳理</a></li>
-<li><a href="http://gv7.me/articles/2018/learning-notes-of-meltdown-and-spectre/" target="_blank" rel="noopener">Meltdown和Spectre漏洞学习笔记</a></li>
+<li><a href="https://blog.plusplus7.com/2021/03/202103.MeltdownSpectreNotes/" target="_blank" rel="noopener">Meltdown和Spectre漏洞学习笔记</a></li>
 </ol>
 
       
