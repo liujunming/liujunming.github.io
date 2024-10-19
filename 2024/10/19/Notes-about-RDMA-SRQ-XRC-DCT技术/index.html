@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about RDMA SRQ/XRC/DCT技术">
+
+
+
+
+  <meta name="keywords" content="RDMA, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/10/19/Notes-about-RDMA-SRQ-XRC-DCT技术/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about RDMA SRQ/XRC/DCT技术 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about RDMA SRQ/XRC/DCT技术
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-10-19
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/RDMA/">RDMA</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-SRQ"><span class="toc-text">1. SRQ</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-为什么需要SRQ"><span class="toc-text">1.1 为什么需要SRQ</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-SRQ-Limit"><span class="toc-text">1.2 SRQ Limit</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-XRC"><span class="toc-text">2. XRC</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-为什么需要XRC"><span class="toc-text">2.1 为什么需要XRC</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-核心概念"><span class="toc-text">2.2 核心概念</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-DCT"><span class="toc-text">3. DCT</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-为什么需要DCT"><span class="toc-text">3.1 为什么需要DCT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-什么是DCT"><span class="toc-text">3.2 什么是DCT</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-思考"><span class="toc-text">3.3 思考</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-4-XRC-vs-DCT"><span class="toc-text">3.4 XRC vs DCT</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下RDMA SRQ(Shared Receive Queue)/XRC(eXtended Reliable Connection)/DCT(Dynamically Connected Transport)技术相关notes。<a id="more"></a></p>
+<h2 id="1-SRQ"><a href="#1-SRQ" class="headerlink" title="1. SRQ"></a>1. SRQ</h2><h3 id="1-1-为什么需要SRQ"><a href="#1-1-为什么需要SRQ" class="headerlink" title="1.1 为什么需要SRQ"></a>1.1 为什么需要SRQ</h3><p><img src="/images/2024/10/007.webp" alt></p>
+<p>在没有SRQ的情况下，因为RC/UC/UD的接收方不知道对端什么时候会发送过来多少数据，所以必须做好最坏的打算，做好突发性收到大量数据的准备，也就是向RQ中下发足量的的接收WQE；另外RC服务类型可以利用流控机制来抑制发送方，也就是告诉对端”我这边RQ WQE不够了”，这样发送端就会暂时放缓或停止发送数据。</p>
+<p>但是第一种方法由于是为最坏情况准备的，大部分时候有大量的RQ WQE处于空闲状态未被使用，这对内存是一种极大地浪费(主要是WQE指向的用于存放数据的内存空间)；第二种方法虽然不用下发那么多RQ WQE了，但是流控是有代价的，即会增加通信时延。</p>
+<p>而SRQ通过允许很多QP共享接收WQE(本身其实不是很大)以及<strong>用于存放数据的内存空间</strong>(这可是很大一块内存)来解决上面的问题。当任何一个QP收到消息后，硬件会从SRQ中取出一个WQE，根据其内容存放接收到的数据，然后硬件通过Completion Queue来返回接收任务的完成信息给对应的上层用户。</p>
+<p><img src="/images/2024/10/008.webp" alt></p>
+<h3 id="1-2-SRQ-Limit"><a href="#1-2-SRQ-Limit" class="headerlink" title="1.2 SRQ Limit"></a>1.2 SRQ Limit</h3><p>SRQ可以设置一个阈值，当队列中剩余的WQE数量小于阈值时，这个SRQ就会上报一个异步事件。提醒用户“队列中的WQE快用完了，请下发更多WQE以防没有地方接收新的数据”。这个阈值就被称为SRQ Limit，这个上报的事件就被称为SRQ Limit Reached。</p>
+<h2 id="2-XRC"><a href="#2-XRC" class="headerlink" title="2. XRC"></a>2. XRC</h2><h3 id="2-1-为什么需要XRC"><a href="#2-1-为什么需要XRC" class="headerlink" title="2.1 为什么需要XRC"></a>2.1 为什么需要XRC</h3><p>当前的计算节点一般都有多核，因此可以运行多进程。在这样的计算节点组成的集群中，如果想用RC连接建立full mesh的全连接拓扑时，每个节点就需要建立N*p*p个QP(这里假设集群有N个节点，每个节点上有p个进程，需要让任何2个进程都连通)。当集群扩张，N和p同时增长时，一个节点所需的RC QP资源将变得不可接受。</p>
+<p>XRC的思想是<strong>当一个进程想与某个远程节点的p个进程通信时不需要跟各个进程建立p个连接而只需要跟对端节点建立一个连接</strong>，连接上传输的报文携带了对端目的进程号(XRC SRQ)，报文到达连接对端(XRC TGT QP)时根据进程号分发至各个进程对应的XRC SRQ。这样源端进程只需要创建一个源端连接(XRC INI QP)就能跟对端所有进程通信了，这样所需总的QP数量就会除以p。</p>
+<h3 id="2-2-核心概念"><a href="#2-2-核心概念" class="headerlink" title="2.2 核心概念"></a>2.2 核心概念</h3><p><img src="/images/2024/10/009.webp" alt></p>
+<p>上图中XRC下标xyz的含义:x代表发起端的node号，y代表发起端的进程号，z代表接收端的node号。</p>
+<ul>
+<li>XRC INI QP</li>
+</ul>
+<p>XRC发起端QP，是XRC操作的源端队列，用于发出XRC操作，但它没有接收XRC操作的功能，对比常规RC QP来说可以认为它是只有SQ没有RQ。XRC操作在对端由XRC TGT QP处理。</p>
+<ul>
+<li>XRC TGT QP</li>
+</ul>
+<p>XRC接收端QP，它处理XRC操作将其分发至报文SRQ number对应的SRQ。XRC TGT QP只能接收XRC操作，但它没有发出XRC操作的功能，对比常规RC QP来说可以认为它是只有RQ没有SQ。XRC操作在对端由XRC INI QP发出。</p>
+<ul>
+<li>XRC SRQ</li>
+</ul>
+<p>接收缓冲区(receive WQE)被放在XRC SRQ中以接收XRC请求，XRC请求中携带了XRC SRQ number，所以XRC TGT QP收到报文后会从报文指定的XRC SRQ中取receive WQE来存放XRC请求。</p>
+<ul>
+<li>XRC domain</li>
+</ul>
+<p>用于关联XRC TGT QP和XRC SRQ，XRC报文只能指定与XRC TGT QP在同一domain内的XRC SRQ，否则报文会被丢弃。这起到了隔离资源的作用，防止攻击报文随意指定XRC SRQ。</p>
+<p>XRC INI QP和XRC TGT QP是一一对应的，host2上的每个进程在远端节点host0上都有自己对应的XRC TGT QP。<strong>XRC的共享体现在一个XRC TGT QP可以分发至多个XRC SRQ</strong>。一个进程一般只有一个XRC SRQ，它可以接收多个XRC TGT QP来的包。</p>
+<h2 id="3-DCT"><a href="#3-DCT" class="headerlink" title="3. DCT"></a>3. DCT</h2><p>Dynamically Connected transport (DCT) service is an extension to transport services to enable a higher degree of scalability while maintaining high performance for <strong>sparse traffic</strong>. Utilization of DCT reduces the total number of QPs required system wide by <em>having Reliable type QPs dynamically connect and disconnect from any remote node</em>. <strong>DCT connections only stay connected while they are active</strong>. This results in smaller memory footprint, less overhead to set connections and higher on-chip cache utilization and hence increased performance. </p>
+<h3 id="3-1-为什么需要DCT"><a href="#3-1-为什么需要DCT" class="headerlink" title="3.1 为什么需要DCT"></a>3.1 为什么需要DCT</h3><p><img src="/images/2024/10/011.jpg" alt></p>
+<p><img src="/images/2024/10/010.webp" alt></p>
+<p>UD虽然扩展性很好，但是不支持read/write单边语义。RC虽然支持read/write单边语义，但是扩展性不好。DCT的初衷就是融合2者的优点，保持RC的read/write单边语义和可靠连接特性，同时像UD一样<strong>用一个QP去跟多个远端通信，保持良好的可扩展性</strong>。DCT一般用于sparse traffic场景。</p>
+<p><img src="/images/2024/10/012.jpg" alt></p>
+<p>想用RC连接建立full mesh的全连接拓扑时:</p>
+<ul>
+<li>在RC机制下，每个节点就需要建立N*p*p个QP</li>
+<li>在XRC机制下，每个节点就需要建立N*p个QP</li>
+<li>在DCT机制下，每个节点就需要建立p(可能p+n)个QP</li>
+</ul>
+<h3 id="3-2-什么是DCT"><a href="#3-2-什么是DCT" class="headerlink" title="3.2 什么是DCT"></a>3.2 什么是DCT</h3><p><img src="/images/2024/10/013.jpg" alt></p>
+<ul>
+<li>Dynamic Connectivity</li>
+<li>Each DC Initiator can be used to reach any remote DC Target</li>
+</ul>
+<p>DCT具有非对称的API：DC在发送侧的部分称为DC initiator(DCI)，在接收侧的部分称为DC target(DCT)。DCI和DCT不过是特殊类型的QP，它们依然遵循基本的QP操作，比如post send/receive。</p>
+<p>DC意味着临时连接，在DCI上发送的每个send-WR都携带了目的地址信息，如果DCI当前连接的对端不是send-WR里携带的对端(node地址不一样)，则它会首先断开当前的连接，再连接到send-WR里携带的对端。只要后续的send-WR里携带的都是当前已连接对端，则都可以复用当前已建立的连接。如果DCI在一段指定的时间内都没有发送操作则也会断开当前连接。注意DCT每次临时建立的是一个RC可靠连接。</p>
+<h3 id="3-3-思考"><a href="#3-3-思考" class="headerlink" title="3.3 思考"></a>3.3 思考</h3><p>DCT preserves their core connection-oriented design, but dynamically creates and destroys one-to-one connections. This provides software the illusion of using one QP to communicate with multiple remote machines, but at a prohibitively large performance cost for our workloads: DCT requires three additional network messages when the target machine of a DCT queue pair changes: a disconnect packet to the current machine, and a two-way handshake with the next machine to establish a connection[FaSST, OSDI’16].</p>
+<p>所以DCT在<strong>sparse traffic</strong>场景中，性能才高。</p>
+<h3 id="3-4-XRC-vs-DCT"><a href="#3-4-XRC-vs-DCT" class="headerlink" title="3.4 XRC vs DCT"></a>3.4 XRC vs DCT</h3><ul>
+<li>XRC: 发起端进程与不同node通信时，需要与不同node都建立XRC连接</li>
+<li>DCT: 发起端进程与不同node通信时，只需建立一个连接，当发起端进程切换node时，先与原先的node断连，再与新node建连，从而达到复用连接的目的</li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://zhuanlan.zhihu.com/p/567720023" target="_blank" rel="noopener">RDMA 高级</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/279904125" target="_blank" rel="noopener">Savir专栏:11. RDMA之Shared Receive Queue</a></li>
+<li><a href="https://docs.nvidia.com/networking/display/mlnxofedv543100/advanced+transport" target="_blank" rel="noopener">Advanced Transport</a></li>
+<li><a href="https://www.openfabrics.org/images/eventpresos/workshops2014/DevWorkshop/presos/Monday/pdf/05_DC_Verbs.pdf" target="_blank" rel="noopener">Dynamically Connected Transport</a></li>
+<li><a href="https://www.usenix.org/system/files/conference/osdi16/osdi16-kalia.pdf" target="_blank" rel="noopener">FaSST: Fast, Scalable and Simple Distributed Transactions with Two-Sided (RDMA) Datagram RPCs</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/RDMA/">RDMA</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/10/19/Intel架构下TLB-shutdown使用pause指令/">
+        <span class="next-text nav-default">Intel架构下TLB shutdown使用pause指令</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/10/19/Notes-about-RDMA-SRQ-XRC-DCT技术/';
+        this.page.identifier = '2024/10/19/Notes-about-RDMA-SRQ-XRC-DCT技术/';
+        this.page.title = 'Notes about RDMA SRQ/XRC/DCT技术';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
