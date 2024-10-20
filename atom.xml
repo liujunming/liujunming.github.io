@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-10-20T08:16:54.452Z</updated>
+  <updated>2024-10-20T11:42:27.410Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about RDMA ODP feature</title>
+    <link href="http://liujunming.github.io/2024/10/20/Notes-about-RDMA-ODP-feature/"/>
+    <id>http://liujunming.github.io/2024/10/20/Notes-about-RDMA-ODP-feature/</id>
+    <published>2024-10-20T08:27:30.000Z</published>
+    <updated>2024-10-20T11:42:27.410Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下RDMA ODP(On-Demand-Paging) feature相关notes。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>On-Demand-Paging (ODP) is a technique to alleviate much of the shortcomings of memory registration. Applications no longer need to pin down the underlying physical pages of the address space, and track the validity of the mappings. Rather, the HCA requests the latest translations from the OS when pages are not present, and the OS invalidates translations which are no longer valid due to either non-present pages or mapping changes.</p><p><img src="/images/2024/10/017.jpg" alt></p><h2 id="Synchronizing-between-CPU-and-RNIC-page-tables"><a href="#Synchronizing-between-CPU-and-RNIC-page-tables" class="headerlink" title="Synchronizing between CPU and RNIC page tables"></a>Synchronizing between CPU and RNIC page tables</h2><p><img src="/images/2024/10/018.jpg" alt></p><h3 id="Faulting"><a href="#Faulting" class="headerlink" title="Faulting"></a>Faulting</h3><p>When an RDMA request accesses data on invalid virtual pages, (1a) the RNIC stalls the QP and raises an RNIC page fault interrupt. (1b) The driver requests the OS kernel for virtual-to-physical mappings via <code>hmm_range_fault</code>. The OS kernel triggers CPU page faults on these virtual pages and fills the CPU page table if necessary. (1c) The driver updates the mappings on the RNIC page table and (1d) resumes the QP.</p><h3 id="Invalidation"><a href="#Invalidation" class="headerlink" title="Invalidation"></a>Invalidation</h3><p>When the OS kernel tries to unmap virtual pages in scenarios like swapping out or page migration, (2a)it notifies the RNIC driver to invalidate virtual pages via <code>mmu_interval_notifier</code>. (2b) The RNIC driver erases the virtual-to-physical mapping from the RNIC page table. (2c) The driver notifies the kernel that the physical pages are no longer used by the RNIC. Then, the OS kernel modifies the CPU page table and reuses the physical pages.</p><p>ODP MR(Memory Region) relies on faulting and invalidation flows to synchronize CPU and RNIC page tables. </p><h3 id="Advising"><a href="#Advising" class="headerlink" title="Advising"></a>Advising</h3><p>An application can proactively request the RNIC driver to populate a range in the RNIC page table. The RNIC driver completes advising by steps (3a) – (3b), which are identical to steps (1b) – (1c).</p><h2 id="Related-code"><a href="#Related-code" class="headerlink" title="Related code"></a>Related code</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> ib_odp_general_cap_bits &#123;</span><br><span class="line">IB_ODP_SUPPORT= <span class="number">1</span> &lt;&lt; <span class="number">0</span>,</span><br><span class="line">IB_ODP_SUPPORT_IMPLICIT = <span class="number">1</span> &lt;&lt; <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">enum</span> ib_odp_transport_cap_bits &#123;</span><br><span class="line">IB_ODP_SUPPORT_SEND= <span class="number">1</span> &lt;&lt; <span class="number">0</span>,</span><br><span class="line">IB_ODP_SUPPORT_RECV= <span class="number">1</span> &lt;&lt; <span class="number">1</span>,</span><br><span class="line">IB_ODP_SUPPORT_WRITE= <span class="number">1</span> &lt;&lt; <span class="number">2</span>,</span><br><span class="line">IB_ODP_SUPPORT_READ= <span class="number">1</span> &lt;&lt; <span class="number">3</span>,</span><br><span class="line">IB_ODP_SUPPORT_ATOMIC= <span class="number">1</span> &lt;&lt; <span class="number">4</span>,</span><br><span class="line">IB_ODP_SUPPORT_SRQ_RECV= <span class="number">1</span> &lt;&lt; <span class="number">5</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://docs.nvidia.com/networking/display/mlnxofedv461000/optimized+memory+access" target="_blank" rel="noopener">Optimized Memory Access</a></li><li>TeRM: Extending RDMA-Attached Memory with SSD(FAST’24)</li><li><a href="https://dlsvr04.asus.com.cn/pub/ASUS/mb/accessory/PEM-FDR/Manual/Mellanox_OFED_Linux_User_Manual_v2_3-1_0_1.pdf" target="_blank" rel="noopener">Mellanox OFED for Linux User Manual</a></li><li><a href="https://lore.kernel.org/linux-rdma/1418310266-9584-1-git-send-email-haggaie@mellanox.com/" target="_blank" rel="noopener">[PATCH v3 00/17] On demand paging</a></li><li><a href="https://lore.kernel.org/linux-rdma/cover.1699503619.git.matsuda-daisuke@fujitsu.com/" target="_blank" rel="noopener">[PATCH for-next v7 0/7] On-Demand Paging on SoftRoCE</a></li><li><a href="https://cloud.tencent.com/developer/article/2428026" target="_blank" rel="noopener">RDMA - ODP按需分页设计原理-优点-源码浅析</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下RDMA ODP(On-Demand-Paging) feature相关notes。
+    
+    </summary>
+    
+      <category term="RDMA" scheme="http://liujunming.github.io/categories/RDMA/"/>
+    
+    
+      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about RDMA Device Memory</title>
@@ -122,9 +144,9 @@
       <category term="ARM" scheme="http://liujunming.github.io/categories/ARM/"/>
     
     
-      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
       <category term="ARM" scheme="http://liujunming.github.io/tags/ARM/"/>
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -439,28 +461,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Smart Data Accelerator Interface (SDXI)</title>
-    <link href="http://liujunming.github.io/2024/07/21/Notes-about-Smart-Data-Accelerator-Interface-SDXI/"/>
-    <id>http://liujunming.github.io/2024/07/21/Notes-about-Smart-Data-Accelerator-Interface-SDXI/</id>
-    <published>2024-07-21T13:09:23.000Z</published>
-    <updated>2024-07-21T13:55:07.863Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Smart Data Accelerator Interface (SDXI)相关notes。本文只是简单介绍下SDXI技术，不涉及技术细节。<a id="more"></a></p><h2 id="Motivaion"><a href="#Motivaion" class="headerlink" title="Motivaion"></a>Motivaion</h2><p><img src="/images/2024/07/016.jpg" alt></p><p><img src="/images/2024/07/017.jpg" alt></p><p><img src="/images/2024/07/018.jpg" alt></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2024/07/019.jpg" alt></p><h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p><img src="/images/2024/07/020.jpg" alt></p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>(个人理解)<br><a href="/2022/10/23/Notes-about-Intel-Data-Streaming-Accelerator-DSA/">DSA</a>是当前Intel最新的data copy accelerator；SDXI是各大厂商(不包括Intel)一起定义的Memory to Memory Data Movement and Acceleration Interface标准，个人感觉SDXI的定位可能就是与DSA相竞争的。</p><p><img src="/images/2024/07/015.jpg" alt></p><p>SDXI是否能成为业界标准呢？ecosystem是成功的关键，且待时间给出答案吧。</p><hr><p>参考资料:</p><ol><li><a href="https://www.snia.org/sdxi" target="_blank" rel="noopener">Smart Data Accelerator Interface (SDXI) Specification</a></li><li><a href="https://www.snia.org/educational-library/introducing-sdxi-smart-data-acceleration-interface-new-twg-standardize-memory" target="_blank" rel="noopener">Introducing SDXI (Smart Data Acceleration Interface)</a></li><li><a href="https://www.snia.org/educational-library/smart-data-accelerator-interface-use-cases-futures-and-proof-points-2024-0" target="_blank" rel="noopener">Smart Data Accelerator Interface: Use Cases, Futures, and Proof Points</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Smart Data Accelerator Interface (SDXI)相关notes。本文只是简单介绍下SDXI技术，不涉及技术细节。
-    
-    </summary>
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
