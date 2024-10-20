@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-10-19T14:01:40.031Z</updated>
+  <updated>2024-10-20T08:16:54.452Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about RDMA Device Memory</title>
+    <link href="http://liujunming.github.io/2024/10/20/Notes-about-RDMA-Device-Memory/"/>
+    <id>http://liujunming.github.io/2024/10/20/Notes-about-RDMA-Device-Memory/</id>
+    <published>2024-10-20T00:29:55.000Z</published>
+    <updated>2024-10-20T08:16:54.452Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下RDMA Device Memory相关notes。<a id="more"></a></p><h3 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h3><p>Device Memory is a verbs API that allows using on-chip memory, located on the device, as a data buffer for send/receive and RDMA operations. The device memory can be mapped and accessed directly by user and kernel applications, and can be allocated in various sizes, registered as memory regions with local and remote access keys for performing the send/ receive and RDMA operations. Using the device memory to store packets for transmission can significantly reduce transmission latency compared to the host memory.</p><p><img src="/images/2024/10/014.jpg" alt></p><h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p><img src="/images/2024/10/015.jpg" alt></p><p>staging buffer: 暂存缓冲区</p><h3 id="Concepts"><a href="#Concepts" class="headerlink" title="Concepts"></a>Concepts</h3><p><img src="/images/2024/10/016.jpg" alt></p><h3 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h3><p>可以类比于NVMe的<a href="/2024/06/30/深入理解NVMe-CMB机制/">CMB</a>，RDMA Device Memory以mmio的形式expose给host，目的是让RDMA直接使用Device Memory，无需DMA到host的内存，减少了PCIe TLP的交互。</p><h3 id="相关paper"><a href="#相关paper" class="headerlink" title="相关paper"></a>相关paper</h3><p>Sherman(SIGMOD’22) is the first RDMA-based system that leverages on-chip memory of commodity RDMA NICs.</p><hr><p>参考资料:</p><ol><li><a href="https://docs.nvidia.com/networking/display/rdmacore50/device+memory" target="_blank" rel="noopener">Device Memory</a></li><li><a href="https://www.openfabrics.org/images/2018workshop/presentations/304_LLiss_OnDeviceMemory.pdf" target="_blank" rel="noopener">On-device memory usage for RDMA transactions</a></li><li><a href="http://lastweek.io/notes/source_code/rdma/" target="_blank" rel="noopener">On DPDK and RDMA Related Software</a></li><li><a href="https://www.man7.org/linux/man-pages/man3/ibv_alloc_dm.3.html" target="_blank" rel="noopener">ibv_alloc_dm(3)</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下RDMA Device Memory相关notes。
+    
+    </summary>
+    
+      <category term="RDMA" scheme="http://liujunming.github.io/categories/RDMA/"/>
+    
+    
+      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about RDMA SRQ/XRC/DCT技术</title>
@@ -439,28 +461,6 @@
     
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Mellanox SF technology</title>
-    <link href="http://liujunming.github.io/2024/07/20/Notes-about-Mellanox-sub-functions-technology/"/>
-    <id>http://liujunming.github.io/2024/07/20/Notes-about-Mellanox-sub-functions-technology/</id>
-    <published>2024-07-20T10:02:45.000Z</published>
-    <updated>2024-07-20T13:07:28.722Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Mellanox的SF(Scalable Function/Sub Function)技术。<br><a id="more"></a><img src="/images/2024/07/013.png" alt></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>Scalable functions (SFs), or sub-functions, are very similar to virtual functions (VFs) which are part of a Single Root I/O Virtualization (SR-IOV) solution. I/O virtualization is one of the key features used in data centers today. It improves the performance of enterprise servers by giving virtual machines direct access to hardware I/O devices. The SR-IOV specification allows one PCI Express (PCIe) device to present itself to the host as multiple distinct “virtual” devices. This is done with a new PCIe capability structure added to a traditional PCIe function (i.e., a physical function or PF).</p><p>The PF provides control over the creation and allocation of new VFs. VFs share the device’s underlying hardware and PCIe. A key feature of the SR-IOV specification is that VFs are very lightweight so that many of them can be implemented in a single device.</p><p><strong>To utilize the capabilities of VF in the BlueField, SFs are used. SFs allow support for a larger number of functions than VFs</strong>, and more importantly, they allow running multiple services concurrently on the DPU.</p><p>An SF is a lightweight function which has a parent PCIe function on which it is deployed. The SF, therefore, has access to the capabilities and resources of its parent PCIe function and <strong>has its own function capabilities and its own resources. This means that an SF would also have its own dedicated queues (i.e., txq, rxq).</strong></p><p>SFs co-exist with PCIe SR-IOV virtual functions (on the host) but also do not require enabling PCIe SR-IOV.</p><p>SFs support E-Switch representation offload like existing PF and VF representors. An SF shares PCIe-level resources with other SFs and/or with its parent PCIe function.</p><p><img src="/images/2024/07/014.webp" alt></p><h2 id="Internals"><a href="#Internals" class="headerlink" title="Internals"></a>Internals</h2><ul><li><p>When scalable function is RDMA capable, it has its own <a href="https://zhuanlan.zhihu.com/p/195757767" target="_blank" rel="noopener">QP1</a>, <a href="https://zhuanlan.zhihu.com/p/163552044" target="_blank" rel="noopener">GID table</a> and rdma resources neither shared nor stolen from the parent PCI function.</p></li><li><p><strong>A scalable function has dedicated window in PCI BAR space</strong> that is not shared with the other scalable functions or parent PCI function. <em>This ensures that all class devices of the scalable function accesses only assigned PCI BAR space</em>.</p></li><li><p>A scalable function supports eswitch representation through which it supports <a href="https://netdevconf.info/2.2/papers/horman-tcflower-talk.pdf" target="_blank" rel="noopener">tc offloads</a>. User must configure eswitch to send/receive packets from/to scalable function port.</p></li><li><p>Scalable functions share PCI level resources such as PCI MSI-X IRQs with their other scalable function and/or with its parent PCI function.</p></li></ul><h2 id="SFs-vs-VFs"><a href="#SFs-vs-VFs" class="headerlink" title="SFs vs VFs"></a>SFs vs VFs</h2><ol><li>SFs are deployed in unit of one unlike SR-IOV VFs which are enabled all together. When a new container is spawned, at that point needed SF can be created and deployed.</li><li><strong>SFs do not have to implement full PCI config space, reset, registers</strong>. This makes the device light weight.</li><li>SFs share MSI-X vectors with owner PCI PF and other peer SFs. This reduces the demand on total number of vectors in hardware and platform interrupt controller.</li></ol><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以下内容只是个人的理解与猜测:</p><ul><li>SF与SR-IOV是正交的<ul><li>不支持SR-IOV，也是可以支持SF的</li><li>支持SR-IOV的话，可以在VF中支持SF</li></ul></li><li>SF类比于Intel的SIOV技术，但是当前SF只支持容器，还不支持vm</li><li>当前SF应该不支持PASID，SF的DMA视角如下:<ul><li>对于netdevice的queue，不同容器(进程)的页表是不一样的，但是只有一个parent PCI function，因此只有一个BDF，如果使用IOMMU页表的话，无法保证不同进程使用不同的IOMMU页表，所以在容器场景下，不会使用IOMMU；因此对于DMA内存地址，queue中entry使用的是HPA，而非HVA</li><li>对于RDMA的queue，由于MTT的支持，所以queue中entry使用的是HVA，MTT会完成HVA到HPA的翻译</li></ul></li><li>如果支持PASID的话，SF也是可以支持VM的</li></ul><hr><p>参考资料:</p><ol><li><a href="https://github.com/Mellanox/scalablefunctions/wiki" target="_blank" rel="noopener">https://github.com/Mellanox/scalablefunctions/wiki</a></li><li><a href="https://github.com/Mellanox/scalablefunctions" target="_blank" rel="noopener">https://github.com/Mellanox/scalablefunctions</a></li><li><a href="https://docs.nvidia.com/doca/sdk/scalable-functions/index.html" target="_blank" rel="noopener">https://docs.nvidia.com/doca/sdk/scalable-functions/index.html</a></li><li><a href="https://lore.kernel.org/kvm/20191107.155709.1716879557397915384.davem@davemloft.net/T/#mcad775350561ccb706f671920a874967dd7376d3" target="_blank" rel="noopener">net/mlx5: E-switch, Move devlink port close to eswitch port</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Mellanox的SF(Scalable Function/Sub Function)技术。&lt;br&gt;
-    
-    </summary>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
