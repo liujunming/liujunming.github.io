@@ -320,6 +320,14 @@
 <p>在第4步中，就出现了问题。由于写回导致DMA传输的部分数据(buff[3]-buffer[49])被改写(改写成了没有DMA传输前的值)。这不是我们想要的结果。因此，为了避免出现这种情况。我们应该保证DMA Buffer不会跟其他数据共享cacheline。所以我们要求DMA Buffer首地址必须cacheline对齐，并且buffer的大小也cacheline对齐。这样就不会跟其他数据共享cacheline。也就不会出现这样的问题。</p>
 <h2 id="5-总结"><a href="#5-总结" class="headerlink" title="5. 总结"></a>5. 总结</h2><p>x86_64硬件保证了DMA一致性，无需考虑一致性DMA映射与流式DMA映射。</p>
 <p>流式DMA映射根据数据方向对cache进行”flush/invalid”，既保证了数据一致性，也避免了完全关闭cache带来的性能影响。既然如此，为什么不抛弃一致性DMA映射，全面拥抱“更强大”的流式DMA映射呢？<br>考虑如下情况：当CPU和DMA需要频繁的操作一块内存区域的时候，如果采用流式DMA映射的话，需要频繁的”cache flush/invalid”操作(没有cache hit或者write hit的话，cache存在的意义就不大了)，而刷cache是比较耗时的，就会导致开销比较大。这个时候，更适合采用一致性DMA映射。</p>
+<p>From <a href="https://www.intel.com/content/dam/develop/external/us/en/documents/intel-whitepaper-using-iommu-for-dma-protection-in-uefi-820238.pdf" target="_blank" rel="noopener">Using IOMMU for DMA Protection in UEFI Firmware</a>:</p>
+<blockquote>
+<p>The x86 architecture can guarantee the DMA and the cache are consistent. An I/O agent can perform the direct memory access (DMA) to write-back memory and the cache protocol maintains cache coherency.</p>
+</blockquote>
+<p>From A Primer on Memory Consistency and Cache Coherence:</p>
+<blockquote>
+<p>It is straightforward to provide coherent DMA by adding a coherent cache to the DMA controller, and thus having DMA participate in the coherence protocol. In such a model, a DMA controller is indistinguishable from a dedicated core, guaranteeing that DMA reads will always find the most recent version of a block and DMA writes will invalidate all stale copies.</p>
+</blockquote>
 <hr>
 <p>参考资料：</p>
 <ol>
@@ -327,6 +335,8 @@
 <li><a href="https://blog.csdn.net/zifehng/article/details/120615394" target="_blank" rel="noopener">对一致性DMA映射与流式DMA映射的一些粗浅认识</a></li>
 <li><a href="https://zhuanlan.zhihu.com/p/55289896" target="_blank" rel="noopener">对流式DMA和一致性DMA的认识</a></li>
 <li><a href="https://www.kernel.org/doc/Documentation/DMA-API-HOWTO.txt" target="_blank" rel="noopener">Dynamic DMA mapping Guide</a></li>
+<li><a href="https://forum.osdev.org/viewtopic.php?t=32232" target="_blank" rel="noopener">Is DMA cache coherent?</a></li>
+<li><a href="https://course.ece.cmu.edu/~ece847c/S15/lib/exe/fetch.php?media=part2_2_sorin12.pdf" target="_blank" rel="noopener">A Primer on Memory Consistency and Cache Coherence</a></li>
 </ol>
 
       
