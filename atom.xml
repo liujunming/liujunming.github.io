@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-11-10T07:12:32.928Z</updated>
+  <updated>2024-11-10T11:52:37.336Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about AMD IOMMU IRTCache机制</title>
+    <link href="http://liujunming.github.io/2024/11/10/Notes-about-AMD-IOMMU-IRTCache/"/>
+    <id>http://liujunming.github.io/2024/11/10/Notes-about-AMD-IOMMU-IRTCache/</id>
+    <published>2024-11-10T10:52:35.000Z</published>
+    <updated>2024-11-10T11:52:37.336Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下AMD IOMMU IRTCache机制的相关notes。<a id="more"></a></p><h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p>在没有IRTCache机制之前，设备的MSI data到IRTE(Interrupt Remapping Table Entry)的映射，需要硬件从内存中读取Interrupt Remapping Table来获取IRTE。<br><img src="/images/2024/11/009.png" alt></p><p>在引入IRTCache机制之后，IOMMU硬件中就会缓存设备MSI data到IRTE的映射了,这样就可以避免IOMMU硬件从内存中读取IRTE。</p><h3 id="How"><a href="#How" class="headerlink" title="How"></a>How</h3><p>For IOMMU AVIC, the IOMMU driver needs to keep track of vcpu scheduling changes, and updates interrupt remapping table entry (IRTE) accordingly. The IRTE is normally cached by the hardware, which requires the IOMMU driver to issue IOMMU IRT invalidation command and wait for completion everytime it updates the table.</p><p>Enabling IOMMU AVIC on a large scale system with lots of vcpus and VFIO pass-through devices running interrupt-intensive workload, it could result in high IRT invalidation rate. In such case, the overhead from IRT invalidation could outweigh the benefit of IRTE caching.</p><p>Therefore, introduce a new AMD IOMMU driver option “amd_iommu=irtcachedis” to allow disabling IRTE caching, and avoid the need for IRTE invalidation.</p><p><img src="/images/2024/11/008.png" alt></p><p><img src="/images/2024/11/010.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://lore.kernel.org/lkml/20230530141137.14376-1-suravee.suthikulpanit@amd.com/" target="_blank" rel="noopener">[PATCH v3 0/5] iommu/amd: AVIC Interrupt Remapping Improvements</a></li><li>AMD I/O Virtualization Technology (IOMMU) Specification, 48882</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下AMD IOMMU IRTCache机制的相关notes。
+    
+    </summary>
+    
+      <category term="IOMMU" scheme="http://liujunming.github.io/categories/IOMMU/"/>
+    
+    
+      <category term="AMD" scheme="http://liujunming.github.io/tags/AMD/"/>
+    
+      <category term="IOMMU" scheme="http://liujunming.github.io/tags/IOMMU/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PCIe flow control机制</title>
@@ -232,9 +256,9 @@
       <category term="ARM" scheme="http://liujunming.github.io/categories/ARM/"/>
     
     
-      <category term="ARM" scheme="http://liujunming.github.io/tags/ARM/"/>
-    
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="ARM" scheme="http://liujunming.github.io/tags/ARM/"/>
     
   </entry>
   
@@ -433,30 +457,6 @@
     
     
       <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about flock 文件锁</title>
-    <link href="http://liujunming.github.io/2024/08/04/Notes-about-flock-%E6%96%87%E4%BB%B6%E9%94%81/"/>
-    <id>http://liujunming.github.io/2024/08/04/Notes-about-flock-文件锁/</id>
-    <published>2024-08-04T07:16:39.000Z</published>
-    <updated>2024-08-04T09:08:58.375Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下flock 文件锁相关notes。<a id="more"></a>本文内容主要转载自<a href="https://zhuanlan.zhihu.com/p/25134841" target="_blank" rel="noopener">被遗忘的桃源——flock 文件锁</a>。</p><h2 id="文件锁-flock"><a href="#文件锁-flock" class="headerlink" title="文件锁 flock"></a>文件锁 flock</h2><p>为解决多进程对同一文件的读写冲突，在linux 系统中，提供了 flock 这一系统调用，用来实现对文件的读写保护，即文件锁的功能。文件锁保护文件的功能，与pthread 库中多线程使用读写锁来保护内存资源的方式是类似的。 flock 的 man page 中有如下介绍：</p><blockquote><p>flock - apply or remove an advisory lock on an open file</p></blockquote><p>从中可以解读出两点内容：</p><ul><li>flock 提供的文件锁是<strong>建议性质</strong>的。所谓 “建议性锁”，通常也叫作非强制性锁，即一个进程可以忽略其他进程加的锁，直接对目标文件进行读写操作。因而，<strong>只有当前进程主动调用 flock去检测是否已有其他进程对目标文件加了锁，文件锁才会在多进程的同步中起到作用</strong>。表述的更明确一点，就是如果其他进程已经用 flock 对某个文件加了锁，当前进程在读写这一文件时，未使用 flock 加锁（即未检测是否已有其他进程锁定文件），那么当前进程可以直接操作这一文件，其他进程加的文件锁对当前进程的操作不会有任何影响。<strong>这种可以被忽略、需要双方互相检测确认的加锁机制，就被称为 ”建议性“ 锁</strong>。</li><li>文件锁必须作用在一个打开的文件上，即从应用的角度看，文件锁应当作用于一个打开的文件句柄上。</li></ul><h2 id="共享锁与互斥锁"><a href="#共享锁与互斥锁" class="headerlink" title="共享锁与互斥锁"></a>共享锁与互斥锁</h2><p>linux 中 flock 系统调用的原型如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/file.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">flock</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">int</span> operation)</span></span>;</span><br></pre></td></tr></table></figure></p><p>当 flock 执行成功时，会返回0；当出现错误时，会返回 -1，并设置相应的 errno 值。</p><p>在flock 原型中，参数 operation 可以使用 LOCK_SH 或 LOCK_EX 常量，分别对应共享锁和排他锁。这两个常量的定义在 file.h 中。与 flock 相关的常量定义如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Operations for the `flock' call.  */</span>                                          </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_SH 1 <span class="comment">/* Shared lock.  */</span>                                            </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_EX 2   <span class="comment">/* Exclusive lock.  */</span>                                       </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_UN 8 <span class="comment">/* Unlock.  */</span>                                                 </span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* Can be OR'd in to one of the above.  */</span>                                       </span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LOCK_NB 4 <span class="comment">/* Don't block when locking.  */</span></span></span><br></pre></td></tr></table></figure><p>当使用 LOCK_SH 共享锁时，多个进程都可以使用共享锁锁定同一个文件，从而实现多个进程对文件的并行读取。由此可见，LOCK_SH 共享锁类似于多线程读写锁 pthread_rwlock_t 类型中的读锁。当使用LOCK_EX 排他锁时，同一时刻只能有一个进程锁定成功，其余进行只能阻塞，这种行为与多线程读写锁中的写锁类似。</p><h2 id="阻塞与非阻塞"><a href="#阻塞与非阻塞" class="headerlink" title="阻塞与非阻塞"></a>阻塞与非阻塞</h2><p>flock 文件锁提供了阻塞和非阻塞两种使用方式。当处于阻塞模式时，如果当前进程无法成功获取到文件锁，那么进程就会一直阻塞等待，直到其他进程在对应文件上释放了锁，本进程能成功持有锁为止。在默认情况下，flock 提供是阻塞模式的文件锁。</p><p>在日常使用中，文件锁还会使用在另外一种场景下，即进程首先尝试对文件加锁，当加锁失败时，不希望进程阻塞，而是希望 flock 返回错误信息，进程进行错误处理后，继续进行下面的处理。在这种情形下就需要使用 flock 的非阻塞模式。把flock 的工作模式设置为非阻塞模式非常简单，只要将原有的 operation 参数改为锁的类型与 LOCK_NB 常量进行按位或操作即可，例如：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> ret = flock(open_fd, LOCK_SH | LOCK_NB);</span><br><span class="line"><span class="keyword">int</span> ret = flock(open_fd, LOCK_EX | LOCK_NB);</span><br></pre></td></tr></table></figure><p>在非阻塞模式下，加文件锁失败并不影响进程流程的执行，但要注意加入错误处理逻辑，在加锁失败时，不能对目标文件进行操作。</p><h2 id="flock-命令"><a href="#flock-命令" class="headerlink" title="flock 命令"></a>flock 命令</h2><p>除了多种语言提供 flock 系统调用或函数，linux shell 中也提供了 flock 命令。<br><a href="https://man7.org/linux/man-pages/man1/flock.1.html" target="_blank" rel="noopener">flock(1)</a></p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/25134841" target="_blank" rel="noopener">被遗忘的桃源——flock 文件锁</a></li><li><a href="https://man7.org/linux/man-pages/man1/flock.1.html" target="_blank" rel="noopener">flock(1)</a></li><li><a href="https://man7.org/linux/man-pages/man2/flock.2.html" target="_blank" rel="noopener">flock(2)</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下flock 文件锁相关notes。
-    
-    </summary>
-    
-      <category term="Concurrency" scheme="http://liujunming.github.io/categories/Concurrency/"/>
-    
-    
-      <category term="Concurrency" scheme="http://liujunming.github.io/tags/Concurrency/"/>
-    
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
     
   </entry>
   
