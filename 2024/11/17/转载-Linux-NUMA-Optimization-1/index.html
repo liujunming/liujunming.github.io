@@ -326,13 +326,13 @@
 </li>
 </ul>
 <p>以下图为例，1 个 x86 CPU Socket 有 4 个物理 Core，每个 Core 有两个 HT (Hyper Thread)，L1 L2 Cache 被两个 HT 共享， 而 L3 Cache 则在 Socket 内，被所有 4 个 Core 共享，<br><img src="/images/2024/11/013.jpg" alt></p>
-<h4 id="2-1-2-本地内存"><a href="#2-1-2-本地内存" class="headerlink" title="2.1.2 本地内存"></a>2.1.2 本地内存</h4><p>在Intel x86平台上，所谓本地内存，就是CPU可以经过Uncore部件里的iMC访问到的内存。而那些非本地的， 远程内存(Remote Memory)，则需要经过QPI的链路到该内存所在的本地CPU的iMC来访问。 曾经在Intel IvyBridge的NUMA平台上做的内存访问性能测试显示，远程内存访问的延时时本地内存的一倍。</p>
+<h4 id="2-1-2-本地内存"><a href="#2-1-2-本地内存" class="headerlink" title="2.1.2 本地内存"></a>2.1.2 本地内存</h4><p>在Intel x86平台上，所谓本地内存，就是CPU可以经过Uncore部件里的iMC访问到的内存。而那些非本地的， 远程内存(Remote Memory)，则需要经过QPI的链路到该内存所在的本地CPU的iMC来访问。 曾经在Intel IvyBridge的NUMA平台上做的内存访问性能测试显示，远程内存访问的延时是本地内存的一倍。</p>
 <p>可以假设，操作系统应该尽量利用本地内存的低访问延迟特性来优化应用和系统的性能。</p>
-<h4 id="2-1-3-本地IO资源"><a href="#2-1-3-本地IO资源" class="headerlink" title="2.1.3 本地IO资源"></a>2.1.3 本地IO资源</h4><p>如前所述，Intel自从SandyBridge处理器开始，已经把PCIe Root Complex集成到CPU里了。 正因为如此，从CPU直接引出PCIe Root Port的PCIe 3.0的链路可以直接与PCIe Switch或者PCIe Endpoint相连。 一个PCIe Endpoint就是一个PCIe外设。这就意味着，对某个PCIe外设来说，如果它直接于哪个CPU相连， 它就属于哪个CPU所在的NUMA Node。</p>
+<h4 id="2-1-3-本地IO资源"><a href="#2-1-3-本地IO资源" class="headerlink" title="2.1.3 本地IO资源"></a>2.1.3 本地IO资源</h4><p>如前所述，Intel自从SandyBridge处理器开始，已经把PCIe Root Complex集成到CPU里了。 正因为如此，从CPU直接引出PCIe Root Port的PCIe 3.0的链路可以直接与PCIe Switch或者PCIe Endpoint相连。 一个PCIe Endpoint就是一个PCIe外设。这就意味着，对某个PCIe外设来说，如果它直接与哪个CPU相连， 它就属于哪个CPU所在的NUMA Node。</p>
 <p>与本地内存一样，所谓本地IO资源，就是CPU可以经过Uncore部件里的PCIe Root Complex直接访问到的IO资源。 如果是非本地IO资源，则需要经过QPI链路到该IO资源所属的CPU，再通过该CPU PCIe Root Complex访问。 如果同一个NUMA Node内的CPU和内存和另外一个NUMA Node的IO资源发生互操作，因为要跨越QPI链路， 会存在额外的访问延迟问题。</p>
 <p>其它体系结构里，为降低外设访问延迟，也有将IB(Infiniband)总线集成到CPU里的。 这样IB设备也属于NUMA Node的一部分了。</p>
 <p>可以假设，操作系统如果是NUMA Aware的话，应该会尽量针对本地IO资源低延迟的优点进行优化。</p>
-<h3 id="2-2-NUMA-Node互联"><a href="#2-2-NUMA-Node互联" class="headerlink" title="2.2 NUMA Node互联"></a>2.2 NUMA Node互联</h3><p>在Intel x86上，NUMA Node之间的互联是通过<a href="https://en.wikipedia.org/wiki/Intel_QuickPath_Interconnect" target="_blank" rel="noopener">QPI(QuickPath Interconnect) Link</a>的。 CPU的Uncore部分有QPI的控制器来控制CPU到QPI的数据访问。</p>
+<h3 id="2-2-NUMA-Node互联"><a href="#2-2-NUMA-Node互联" class="headerlink" title="2.2 NUMA Node互联"></a>2.2 NUMA Node互联</h3><p>在Intel x86上，NUMA Node之间的互联是通过<a href="https://en.wikipedia.org/wiki/Intel_QuickPath_Interconnect" target="_blank" rel="noopener">QPI(QuickPath Interconnect)</a> Link的。 CPU的Uncore部分有QPI的控制器来控制CPU到QPI的数据访问。</p>
 <p>不借助第三方的 Node Controller，2 或 4 个 NUMA Node (取决于具体架构)可以通过 QPI(QuickPath Interconnect) 总线互联起来， 构成一个NUMA系统。例如，<a href="https://www.doit.com.cn/p/118059.html" target="_blank" rel="noopener">SGI UV计算机系统</a>， 它就是借助自家的 SGI NUMAlink® 互联技术来达到 4 到 256 个 CPU socket 扩展的能力的。这是一个 SMP 系统， 所以支持运行一个 Linux 操作系统实例去管理系统。</p>
 <p>下图就是一个利用 QPI Switch 互联的 8 NUMA Node 的 x86 系统，</p>
 <p><img src="/images/2024/11/014.png" alt></p>
@@ -342,7 +342,7 @@
 <p>设备NUMA亲和性是指从PCIe外设的角度看，如果和CPU和内存相关的IO活动都发生在外设所属的NUMA Node， 将会有更低延迟。这里有两种设备NUMA亲和性的问题，</p>
 <h4 id="3-2-1-DMA-Buffer-NUMA-Affinity"><a href="#3-2-1-DMA-Buffer-NUMA-Affinity" class="headerlink" title="3.2.1 DMA Buffer NUMA Affinity"></a>3.2.1 DMA Buffer NUMA Affinity</h4><p>大部分PCIe设备支持DMA功能的。也就是说，设备可以直接把数据写入到位于内存中的DMA缓冲区。 显然，如果DMA缓冲区在PCIe外设所属的NUMA Node里分配，那么将会有最低的延迟。 否则，外设的DMA操作要跨越QPI链接去读写另外一个NUMA Node里的DMA缓冲区。 因此，操作系统如果可以根据PCIe设备所属的NUMA node分配DMA缓冲区， 将会有最好的DMA操作的性能。</p>
 <h4 id="3-2-2-Interrupt-NUMA-Affinity"><a href="#3-2-2-Interrupt-NUMA-Affinity" class="headerlink" title="3.2.2 Interrupt NUMA Affinity"></a>3.2.2 Interrupt NUMA Affinity</h4><p>设备DMA操作完成后，需要在CPU上触发中断来通知驱动程序的中断处理例程(ISR)来读写DMA缓冲区。 很多时候，ISR触发下半部机制(SoftIRQ)来进入到协议栈相关(Network，Storage)的代码路径来传送数据。 对大部分操作系统来说，硬件中断(HardIRQ)和下半部机制的代码在同一个CPU上发生。 因此，DMA缓冲区的读写操作发生的位置和设备硬件中断(HardIRQ)密切相关。假设操作系统可以把设备的硬件中断绑定到自己所属的NUMA node， 那之后中断处理函数和协议栈代码对DMA缓冲区的读写将会有更低的延迟。</p>
-<h2 id="4-Firmware接口"><a href="#4-Firmware接口" class="headerlink" title="4. Firmware接口"></a>4. Firmware接口</h2><p>由于NUMA的亲和性对应用的性能非常重要，那么硬件平台就需要给操作系统提供接口机制来感知硬件的NUMA层级结构。 在x86平台，ACPI规范提供了以下接口来让操作系统来检测系统的NUMA层级结构。</p>
+<h2 id="4-Firmware接口"><a href="#4-Firmware接口" class="headerlink" title="4. Firmware接口"></a>4. Firmware接口</h2><p>由于NUMA的亲和性对应用的性能非常重要，那么硬件平台就需要给操作系统提供接口机制来感知硬件的NUMA层级结构。 在x86平台，ACPI规范提供了以下接口来让操作系统检测系统的NUMA层级结构。</p>
 <p>ACPI 5.0a规范的第17章是有关NUMA的章节。ACPI规范里，NUMA Node被第9章定义的Module Device所描述。 ACPI规范里用<strong>Proximity Domain</strong>对NUMA Node做了抽象，两者的概念大多时候等同。</p>
 <ul>
 <li><p><strong>SRAT(System Resource Affinity Table)</strong><br>主要描述了系统boot时的CPU和内存都属于哪个Proximity Domain(NUMA Node)。 这个表格里的信息时静态的，如果是启动后热插拔，需要用OSPM的_PXM方法去获得相关信息。</p>
