@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2024-11-24T00:25:05.878Z</updated>
+  <updated>2024-11-24T03:18:01.764Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>virtio-net RSS Inner Header Hash</title>
+    <link href="http://liujunming.github.io/2024/11/24/virtio-net-Inner-Header-Hash/"/>
+    <id>http://liujunming.github.io/2024/11/24/virtio-net-Inner-Header-Hash/</id>
+    <published>2024-11-24T02:03:40.000Z</published>
+    <updated>2024-11-24T03:18:01.764Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下virtio-net RSS Inner Header Hash的相关notes。<a id="more"></a></p><h2 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2><p><a href="/2024/11/23/Notes-about-virtio-net-RSS-featute/">virtio-net RSS feature</a></p><p>需要理解网络<a href="https://www.wikiwand.com/en/articles/Tunneling_protocol" target="_blank" rel="noopener">Tunnel协议</a>，清楚Outer Header与Inner Header的概念。<br><img src="/images/2024/11/021.png" alt></p><h2 id="distribute-different-flows"><a href="#distribute-different-flows" class="headerlink" title="distribute different flows"></a>distribute different flows</h2><p>传统隧道协议由于在外头部中缺少足够的熵，导致收包时报文汇聚到单个队列上，无法发挥多队列收包的优势。</p><p>For legacy systems, they may lack entropy fields which modern protocols have in the outer header, resulting in multiple flows with the same outer header but different inner headers being directed to the same receive queue. This results in poor receive performance.</p><p>To address this limitation, inner header hash can be used to enable the device to advertise the capability to calculate the hash for the inner packet, regaining better receive performance.</p><blockquote><p>Legacy tunneling protocols, lacking the outer header entropy, can use RSS with the inner header hash to distribute flows with identical outer but different inner headers across various queues, improving performance.</p></blockquote><h2 id="identify-same-flow"><a href="#identify-same-flow" class="headerlink" title="identify same flow"></a>identify same flow</h2><blockquote><p>Identify an inner flow distributed across multiple outer tunnels.</p></blockquote><p>现代隧道协议在某些场景需要通过将同一条流接收在同一个队列上以获得性能收益，而外头部不容易做到。</p><p>Currently, a received encapsulated packet has an outer and an inner header, but the virtio device is unable to calculate the hash for the inner header. The same flow can traverse through different tunnels, resulting in the encapsulated packets being spread across multiple receive queues (refer to the figure below). However, in certain scenarios, we may need to direct these encapsulated packets of the same flow to a single receive queue. This facilitates the processing of the flow by the same CPU to improve performance (warm caches, less locking, etc.).</p><pre><code>client1                    client2   |        +-------+         |   +-------&gt;|tunnels|&lt;--------+            +-------+               |  |               v  v       +-----------------+       | monitoring host |       +-----------------+</code></pre><p>To achieve this, the device can calculate a symmetric hash based on the inner headers of the same flow.</p><h3 id="symmetric-hash"><a href="#symmetric-hash" class="headerlink" title="symmetric hash"></a>symmetric hash</h3><blockquote><p>symmetric hash确保同一个五元组(无论方向)哈希到同一个桶中，即当源IP和目标IP、源端口和目标端口互换时，哈希值仍然能保持一致。</p></blockquote><h2 id="Spec描述"><a href="#Spec描述" class="headerlink" title="Spec描述"></a>Spec描述</h2><p>VIRTIO_NET_F_HASH_TUNNEL</p><p><a href="https://docs.oasis-open.org/virtio/virtio/v1.3/csd01/virtio-v1.3-csd01.html#x1-2620004" target="_blank" rel="noopener">5.1.6.4.4 Inner Header Hash</a></p><blockquote><p>5.1.6.4.4.1 Encapsulated packet<br>Multiple tunneling protocols allow encapsulating an inner, payload packet in an outer, encapsulated packet. The encapsulated packet thus contains an outer header and an inner header, and the device calculates the hash over either the inner header or the outer header.<br>If VIRTIO_NET_F_HASH_TUNNEL is negotiated and a received encapsulated packet’s outer header matches one of the encapsulation types enabled in enabled_tunnel_types, then the device uses the inner header for hash calculations (only a single level of encapsulation is currently supported).<br>If VIRTIO_NET_F_HASH_TUNNEL is negotiated and a received packet’s (outer) header does not match any encapsulation types enabled in enabled_tunnel_types, then the device uses the outer header for hash calculations.</p></blockquote><hr><p>参考资料:</p><ol><li><a href="https://networkdirection.net/articles/routingandswitching/gretunnels/" target="_blank" rel="noopener">GRE Tunnels</a></li><li><a href="https://lore.kernel.org/virtio-dev/20230703152711.106008-1-hengqi@linux.alibaba.com/" target="_blank" rel="noopener">[PATCH v21] virtio-net: support inner header hash</a></li><li><a href="https://developer.aliyun.com/article/1257786" target="_blank" rel="noopener">高性能网络 SIG 月度动态：联合 IBM 就 SMC v2.1 协议升级达成一致，ANCK 率先完成支持</a></li><li><a href="https://developer.aliyun.com/article/1305988" target="_blank" rel="noopener">高性能网络 SIG 月度动态：ANCK 首次支持 SMCv2.1，virtio 规范支持隧道报文内头部哈希</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下virtio-net RSS Inner Header Hash的相关notes。
+    
+    </summary>
+    
+      <category term="virtio" scheme="http://liujunming.github.io/categories/virtio/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about virtio-net RSS feature</title>
@@ -430,28 +454,6 @@
     <summary type="html">
     
       &lt;p&gt;本文将mark下计算机网络中的分段(Segmentation)与分片(Fragmentation)操作。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Network RFC合集</title>
-    <link href="http://liujunming.github.io/2024/08/11/Network-RFC%E5%90%88%E9%9B%86/"/>
-    <id>http://liujunming.github.io/2024/08/11/Network-RFC合集/</id>
-    <published>2024-08-11T08:40:33.000Z</published>
-    <updated>2024-08-18T11:18:22.585Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将持续记录计算机网络中协议的RFC号。<a id="more"></a></p><ul><li><a href="https://datatracker.ietf.org/doc/html/rfc791" target="_blank" rel="noopener">RFC 791: INTERNET PROTOCOL</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc9293" target="_blank" rel="noopener">RFC 9293: Transmission Control Protocol</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc1180" target="_blank" rel="noopener">RFC 9293: A TCP/IP Tutorial</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc768" target="_blank" rel="noopener">RFC 768: User Datagram Protocol</a></li></ul>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将持续记录计算机网络中协议的RFC号。
     
     </summary>
     
