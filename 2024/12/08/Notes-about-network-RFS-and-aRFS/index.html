@@ -307,15 +307,11 @@
 <p><strong>aRFS允许网卡在选择队列时，直接将数据包放入应用程序所在CPU对应的队列</strong>。</p>
 <ol>
 <li>维护规则: 内核自动维护socket五元组、socket应用程序所在的CPU和CPU对应的接收队列的映射关系<ul>
-<li>socket五元组 -&gt; CPU</li>
-<li>CPU -&gt; RX queue</li>
+<li>socket五元组 -&gt; CPU(从流到 CPU 的映射关系，记录在 rps_dev_flow 表中)</li>
+<li>CPU -&gt; RX queue(CPU 和硬件队列的关系，通过 <code>/proc/irq/&lt;irq_num&gt;/smp_affinity</code> 进行配置)</li>
 </ul>
 </li>
-<li>下发规则: 内核根据上述映射关系，在用户态接收数据时，将五元组与CPU对应的规则下发到网卡 <ul>
-<li>从流到 CPU 的映射关系，记录在 rps_dev_flow 表中</li>
-<li>CPU 和硬件队列的关系，通过 <code>/proc/irq/&lt;irq_num&gt;/smp_affinity</code> 进行配置</li>
-</ul>
-</li>
+<li>下发规则: 内核根据上述映射关系，在用户态接收数据时，将五元组与CPU对应的规则下发到网卡 </li>
 <li>匹配规则: 网卡接收到的所有报文会根据aRFS规则进行匹配并转发到相应的接收队列</li>
 </ol>
 <p><img src="/images/2024/12/004.png" alt></p>
