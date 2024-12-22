@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about FUSE filesystem">
+
+
+
+
+  <meta name="keywords" content="文件系统, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2024/12/21/Notes-about-FUSE-filesystem/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about FUSE filesystem - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about FUSE filesystem
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2024-12-21
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/文件系统/">文件系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#tutorial"><span class="toc-text">tutorial</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Making-a-call-into-a-FUSE-file-system"><span class="toc-text">Making a call into a FUSE file system</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#simple-fuse-example"><span class="toc-text">simple fuse example</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#辅助资料"><span class="toc-text">辅助资料</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#理论基础"><span class="toc-text">理论基础</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#辅助资料-1"><span class="toc-text">辅助资料</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Manual"><span class="toc-text">Manual</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2024/12/005.png" alt><a id="more"></a></p>
+<h2 id="tutorial"><a href="#tutorial" class="headerlink" title="tutorial"></a>tutorial</h2><p><img src="/images/2024/12/007.png" alt></p>
+<p>very nice tutorial: <a href="https://maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/" target="_blank" rel="noopener">Writing a Simple Filesystem Using FUSE in C</a></p>
+<h3 id="Making-a-call-into-a-FUSE-file-system"><a href="#Making-a-call-into-a-FUSE-file-system" class="headerlink" title="Making a call into a FUSE file system"></a>Making a call into a FUSE file system</h3><p><img src="/images/2024/12/006.gif" alt></p>
+<ol>
+<li>A program, such as ls, mkdir makes a call to a file system routine. For example, open(“/test/fuse/file1.txt”). This call gets sent to the kernel.</li>
+<li>If this file is in a FUSE volume, the kernel passes it on to the FUSE kernel module, which then passes it on to the implementation of that file system.</li>
+<li>The implementation of open then refers to the actual data structures that represent the file system and returns a file handle. It is open’s job to take a concrete view of data (bits stored on a hard drive) and present an abstract view (a hierarchically organized file system).</li>
+<li>The kernel returns the result of the open function to the program that originally made the call.</li>
+</ol>
+<p>Cited From <a href="https://www.cs.cmu.edu/~fp/courses/15213-s07/lectures/15-filesys/index.html" target="_blank" rel="noopener">File Systems and FUSE</a>.</p>
+<h3 id="simple-fuse-example"><a href="#simple-fuse-example" class="headerlink" title="simple fuse example"></a>simple fuse example</h3><ul>
+<li><a href="https://github.com/JulesWang/helloworld-fuse/tree/master" target="_blank" rel="noopener">helloworld-fuse</a></li>
+<li><a href="https://github.com/libfuse/libfuse/blob/master/example/hello.c" target="_blank" rel="noopener">libfuse/example/hello.c</a></li>
+</ul>
+<h3 id="辅助资料"><a href="#辅助资料" class="headerlink" title="辅助资料"></a>辅助资料</h3><ul>
+<li><a href="https://www.cs.hmc.edu/~geoff/classes/hmc.cs135.201109/homework/fuse/fuse_doc.html" target="_blank" rel="noopener">CS135 FUSE Documentation</a></li>
+<li><a href="https://www.cs.nmsu.edu/~pfeiffer/fuse-tutorial/" target="_blank" rel="noopener">Writing a FUSE Filesystem: a Tutorial</a></li>
+<li><a href="https://github.com/osxfuse/fuse/blob/master/doc/how-fuse-works" target="_blank" rel="noopener">How Fuse-1.3 Works</a></li>
+<li><a href="https://www.bilibili.com/video/BV1NS4y1L7Me/" target="_blank" rel="noopener">linux内核开发第38讲：linux基于fuse实现自定义文件系统整体架构</a></li>
+</ul>
+<h2 id="理论基础"><a href="#理论基础" class="headerlink" title="理论基础"></a>理论基础</h2><p>FAST’17 paper: <a href="https://www.usenix.org/system/files/conference/fast17/fast17-vangoor.pdf" target="_blank" rel="noopener">To FUSE or Not to FUSE: Performance of User-Space File Systems</a>，<a href="https://www.usenix.org/sites/default/files/conference/protected-files/fast17_slides_vangoor.pdf" target="_blank" rel="noopener">slides</a>也非常硬核!</p>
+<h3 id="辅助资料-1"><a href="#辅助资料-1" class="headerlink" title="辅助资料"></a>辅助资料</h3><ul>
+<li><a href="https://georgesims21.github.io/fuse/" target="_blank" rel="noopener">George’s Blog FUSE</a></li>
+<li><a href="https://www.bilibili.com/video/BV1r24y157gm/" target="_blank" rel="noopener">FUSE 文件系统浅析 - 张老师</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/143256077" target="_blank" rel="noopener">用户态文件系统 - FUSE</a></li>
+<li><a href="https://www.kernel.org/doc/html/next/filesystems/fuse.html" target="_blank" rel="noopener">kernel doc fuse</a></li>
+</ul>
+<h2 id="Manual"><a href="#Manual" class="headerlink" title="Manual"></a>Manual</h2><ul>
+<li><a href="https://man7.org/linux/man-pages/man4/fuse.4.html" target="_blank" rel="noopener">fuse(4)</a></li>
+<li><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/fuse.h" target="_blank" rel="noopener">include/uapi/linux/fuse.h</a></li>
+</ul>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/文件系统/">文件系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2024/12/21/Notes-about-Linux-Transmit-Packet-Steering-XPS-technology/">
+        <span class="next-text nav-default">Notes about Linux Transmit Packet Steering(XPS) technology</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2024
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2024/12/21/Notes-about-FUSE-filesystem/';
+        this.page.identifier = '2024/12/21/Notes-about-FUSE-filesystem/';
+        this.page.title = 'Notes about FUSE filesystem';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
