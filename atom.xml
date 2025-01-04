@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-01-04T06:38:01.401Z</updated>
+  <updated>2025-01-04T12:49:24.608Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Memory Scrubbing</title>
+    <link href="http://liujunming.github.io/2025/01/04/Notes-about-Memory-Scrubbing/"/>
+    <id>http://liujunming.github.io/2025/01/04/Notes-about-Memory-Scrubbing/</id>
+    <published>2025-01-04T11:38:43.000Z</published>
+    <updated>2025-01-04T12:49:24.608Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Memory Scrubbing相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>Memory scrubbing refers to the process of correcting or ‘scrubbing’ erroneously flipped bits in memory as a result of transient faults such as those caused by physical phenomena. Scrubbing is considered a RAS feature.</p><h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>Memory scrubbing将错误纠正后回写，可以防止内存条上的单bit错误逐渐累积形成多bit不可纠正错误。</p><h2 id="When"><a href="#When" class="headerlink" title="When"></a>When</h2><ul><li>Patrol scrubbing proactively searches the system memory(由硬件而非软件来做), repairing correctable errors. It prevents accumulation of single-bit errors.</li><li>Demand scrubbing is the ability to write corrected data back to the memory once a correctable error is detected on a read transaction.</li></ul><h2 id="How"><a href="#How" class="headerlink" title="How"></a>How</h2><p><strong>Patrol Scrubbing consists in reading memory, checking it against ECC for errors, and overwriting with the corrected memory words when an error is discovered</strong>. </p><p>Patrol scrubbing is done using a hardware engine, on either the platform or on the memory device, which generates requests to memory addresses on the memory device. The engine generates memory requests at a predefined frequency. Given enough time, it will eventually access every memory address. The frequency in which patrol scrub generates requests produces no noticeable impact on the memory device’s quality of service.</p><p>By generating read requests to memory addresses, the patrol scrubber allows the hardware an opportunity to run ECC on a memory address and correct any correctable errors before they can become uncorrectable errors. <u>Optionally, if an uncorrectable error is discovered, the patrol scrubber can trigger a hardware interrupt and notify the software layer of its memory address</u>.</p><hr><p>参考资料:</p><ol><li><a href="https://en.wikichip.org/wiki/memory_scrubbing" target="_blank" rel="noopener">https://en.wikichip.org/wiki/memory_scrubbing</a></li><li><a href="https://community.intel.com/t5/Server-Products/Uncorrectable-Memory-Error-amp-Patrol-Scrub/m-p/545123" target="_blank" rel="noopener">Uncorrectable Memory Error &amp; Patrol Scrub</a></li><li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/pmem-RAS.html" target="_blank" rel="noopener">Reliability, Availability, and Serviceability (RAS)</a></li><li><a href="https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/05_ACPI_Software_Programming_Model/ACPI_Software_Programming_Model.html" target="_blank" rel="noopener">ACPI Software Programming Model</a></li><li><a href="https://info.support.huawei.com/compute/docs/zh-cn/kunpeng-knowledge/typical-scenarios-1/zh-cn_topic_0000001108627660.html" target="_blank" rel="noopener">Demand Scrubbing/Patrol Scrubbing（内存巡检）</a></li><li><a href="https://www.cnblogs.com/xyjk1002-rejuvenation/p/16479297.html" target="_blank" rel="noopener">内存错误和服务器内存RAS功能-DELL篇-1</a></li><li><a href="https://superuser.com/questions/372422/can-linux-scrub-memory" target="_blank" rel="noopener">Can Linux scrub memory?</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Memory Scrubbing相关notes。
+    
+    </summary>
+    
+      <category term="RAS" scheme="http://liujunming.github.io/categories/RAS/"/>
+    
+    
+      <category term="RAS" scheme="http://liujunming.github.io/tags/RAS/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about SDM MCA</title>
@@ -439,28 +461,6 @@
     
     
       <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about RDMA UMR(User-Mode Memory Registration)</title>
-    <link href="http://liujunming.github.io/2024/10/13/Notes-about-RDMA-User-Mode-Memory-Registration-UMR/"/>
-    <id>http://liujunming.github.io/2024/10/13/Notes-about-RDMA-User-Mode-Memory-Registration-UMR/</id>
-    <published>2024-10-13T10:49:06.000Z</published>
-    <updated>2024-10-13T11:31:02.495Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下RDMA UMR(User-Mode Memory Registration)机制相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>User-Mode Memory Registration (UMR) supports the creation of memory keys for non-contiguous memory regions. This includes the concatenation(连接) of arbitrary contiguous regions of memory, as well as regions with regular structure.</p><h2 id="Examples"><a href="#Examples" class="headerlink" title="Examples"></a>Examples</h2><p>Three examples of non-contiguous regions of memory that are used to <strong>form new contiguous regions of memory</strong> are described below.</p><h3 id="将多块非连续的MR拼接成一个VA连续的MR"><a href="#将多块非连续的MR拼接成一个VA连续的MR" class="headerlink" title="将多块非连续的MR拼接成一个VA连续的MR"></a>将多块非连续的MR拼接成一个VA连续的MR</h3><p><img src="/images/2024/10/001.jpg" alt></p><p>如上图所示，我们之前创建了3个常规的MR：MR1(green), MR2(purple), MR3(red)，现在我们想从这三个MR中各抽取一部分拼接起来形成一个新的连续的MR：第一块是MR1(v0-v1)部分，第二块是MR2(v2-v3)部分，第三块是MR3(v4-v5)部分。这个新的MR有一个新的base VA地址，长度是3个小块的长度之和。这样虽然内部是不连续的，但在外部访问者看来这个MR是连续的。</p><h3 id="将一个MR内有规律非连续的块拼接成一个连续的MR"><a href="#将一个MR内有规律非连续的块拼接成一个连续的MR" class="headerlink" title="将一个MR内有规律非连续的块拼接成一个连续的MR"></a>将一个MR内有规律非连续的块拼接成一个连续的MR</h3><p><img src="/images/2024/10/002.jpg" alt></p><p>如上图所示，当我们做一个矩阵的转置时，需要把一列的元素拼成新的行，这个行就成了新的连续的MR。</p><h3 id="将多个MR拼接成新的相互交织的连续MR"><a href="#将多个MR拼接成新的相互交织的连续MR" class="headerlink" title="将多个MR拼接成新的相互交织的连续MR"></a>将多个MR拼接成新的相互交织的连续MR</h3><p><img src="/images/2024/10/003.jpg" alt></p><p>如上图所示，2个老矩阵的列相互交织形成新的列，这是一个新的VA连续的MR，它有自己新的base address和length。</p><h2 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h2><p>UMR会创建新的memory keys、VA(Virtual Address)地址和MTT entries；在MTT entry中，保证新的VA地址指向目标PA(Physical Address)即可。</p><hr><p>参考资料:</p><ol><li><a href="https://docs.nvidia.com/rdma-aware-networks-programming-user-manual-1-7.pdf" target="_blank" rel="noopener">RDMA Aware Networks Programming User Manual</a></li><li><a href="https://zhuanlan.zhihu.com/p/567720023" target="_blank" rel="noopener">RDMA 高级</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下RDMA UMR(User-Mode Memory Registration)机制相关notes。
-    
-    </summary>
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/categories/RDMA/"/>
-    
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
     
   </entry>
   
