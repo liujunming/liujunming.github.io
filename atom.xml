@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-01-04T13:26:49.114Z</updated>
+  <updated>2025-01-05T04:26:17.211Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about DRAM components</title>
+    <link href="http://liujunming.github.io/2025/01/05/DRAM-components/"/>
+    <id>http://liujunming.github.io/2025/01/05/DRAM-components/</id>
+    <published>2025-01-05T00:52:40.000Z</published>
+    <updated>2025-01-05T04:26:17.211Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下DRAM components相关notes。<br><img src="/images/2025/01/018.png" alt><br><a id="more"></a><br>In modern cloud servers, a CPU(socket) has several memory controllers. Each controller communicates with DIMMs through high-speed memory channels. Usually, a memory channel is shared by several DIMM slots. A DIMM has several ranks, and each is composed of sevaral DRAM chips. For typical DDR4 DIMMs, a rank is composed of 16 chips for data bits and 2 additional chips for ECC bits. <strong>A chip consists of multiple banks, which enables the access parallesim</strong>. A DRAM bank is structured as a two-dimensional cell array indexed by rows and columns. At the micro-level, a cell can store multiple bits of data, and the number of data bits stored in a cell is called the data width of a chip, which is usually denoted as x4, x8 or x16,etc.</p><ul><li>socket</li><li>memory controller</li><li>channel</li><li>DIMM(Dual In-Line Memory Module)</li><li>rank</li><li>chip</li><li>bank</li><li>cell (row, column)</li></ul><hr><p>参考资料:</p><ol><li>Predicting DRAM-Caused Node Unavailability in Hyper-Scale Clouds(DSN’22)</li><li><a href="https://info.support.huawei.com/compute/docs/zh-cn/kunpeng-knowledge/typical-scenarios-1/zh-cn_topic_0000001137649751.html" target="_blank" rel="noopener">内存结构</a></li><li><a href="https://info.support.huawei.com/compute/docs/zh-cn/kunpeng-knowledge/typical-scenarios-1/zh-cn_topic_0000001090907934.html" target="_blank" rel="noopener">内存基本概念</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下DRAM components相关notes。&lt;br&gt;&lt;img src=&quot;/images/2025/01/018.png&quot; alt&gt;&lt;br&gt;
+    
+    </summary>
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Memory Scrubbing</title>
@@ -439,28 +461,6 @@
     
     
       <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Intel架构下TLB shutdown使用pause指令</title>
-    <link href="http://liujunming.github.io/2024/10/19/Intel%E6%9E%B6%E6%9E%84%E4%B8%8BTLB-shutdown%E4%BD%BF%E7%94%A8pause%E6%8C%87%E4%BB%A4/"/>
-    <id>http://liujunming.github.io/2024/10/19/Intel架构下TLB-shutdown使用pause指令/</id>
-    <published>2024-10-19T00:12:05.000Z</published>
-    <updated>2024-10-19T01:46:59.135Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Intel架构下TLB shutdown使用pause指令的相关notes。<a id="more"></a><br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">smp_call_function_many_cond</span><span class="params">(<span class="keyword">const</span> struct cpumask *mask,</span></span></span><br><span class="line"><span class="function"><span class="params"><span class="keyword">smp_call_func_t</span> func, <span class="keyword">void</span> *info,</span></span></span><br><span class="line"><span class="function"><span class="params"><span class="keyword">unsigned</span> <span class="keyword">int</span> scf_flags,</span></span></span><br><span class="line"><span class="function"><span class="params"><span class="keyword">smp_cond_func_t</span> cond_func)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line"><span class="keyword">if</span> (run_remote &amp;&amp; wait) &#123;</span><br><span class="line">                <span class="comment">// 按顺序等各个cpu修改csd的flag，不然死等</span></span><br><span class="line">for_each_cpu(cpu, cfd-&gt;cpumask) &#123;</span><br><span class="line"><span class="keyword">call_single_data_t</span> *csd;</span><br><span class="line"></span><br><span class="line">csd = per_cpu_ptr(cfd-&gt;csd, cpu);</span><br><span class="line">csd_lock_wait(csd);</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p><code>csd_lock_wait</code>会调用到pause命令<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">csd_lock_wait</span><br><span class="line">└── smp_cond_load_relaxed</span><br><span class="line">    └── cpu_relax</span><br><span class="line">        └── asm volatile(&quot;rep; nop&quot;)</span><br></pre></td></tr></table></figure></p><p><code>rep;nop</code>的机器码是f3 90，其实就是pause指令的机器码，相当于pause的一个”别名”。</p><p><img src="/images/2024/10/004.png" alt></p><p><img src="/images/2024/10/005.png" alt></p><p><img src="/images/2024/10/006.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://cloud.tencent.com/developer/article/1179606" target="_blank" rel="noopener">x86的cpu_relax解析</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Intel架构下TLB shutdown使用pause指令的相关notes。
-    
-    </summary>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
-    
-    
-      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
     
   </entry>
   
