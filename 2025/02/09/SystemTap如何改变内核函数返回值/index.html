@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="SystemTap如何改变内核函数返回值">
+
+
+
+
+  <meta name="keywords" content="Kernel, 工具, debug, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/02/09/SystemTap如何改变内核函数返回值/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> SystemTap如何改变内核函数返回值 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          SystemTap如何改变内核函数返回值
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-02-09
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/debug/">debug</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#SystemTap-概述"><span class="toc-text">SystemTap 概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#创建SystemTap-脚本"><span class="toc-text">创建SystemTap 脚本</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#运行-SystemTap-脚本"><span class="toc-text">运行 SystemTap 脚本</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#验证脚本效果"><span class="toc-text">验证脚本效果</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p><strong>利用SystemTap，判断内核函数的参数后，才更改返回值?</strong> <a id="more"></a></p>
+<p><img src="/images/2025/02/002.png" alt></p>
+<p>接下来将展示下<a href="https://chatgpt.com/" target="_blank" rel="noopener">chatgpt</a>给出的答案(笔者也没有运行，不保证正确性)。</p>
+<p><img src="/images/2025/02/001.png" alt></p>
+<h2 id="SystemTap-概述"><a href="#SystemTap-概述" class="headerlink" title="SystemTap 概述"></a>SystemTap 概述</h2><p>SystemTap 是一个动态追踪工具，可以用来监控内核和用户空间程序的行为。你可以通过编写脚本来插桩内核函数，并分析函数参数、返回值等信息。</p>
+<p>在这个教程中，我们将演示如何创建一个 SystemTap 脚本，挂钩内核函数、检查参数，并在满足特定条件时修改函数的返回值。</p>
+<h2 id="创建SystemTap-脚本"><a href="#创建SystemTap-脚本" class="headerlink" title="创建SystemTap 脚本"></a>创建SystemTap 脚本</h2><p>我们以<code>sys_open</code>系统调用为例。<code>sys_open</code>用于打开文件，它接受两个主要参数：路径和打开标志。我们将判断路径是否是<code>/etc/passwd</code>，如果是，则修改返回值（模拟无法打开该文件）。</p>
+<p>创建一个新的 SystemTap 脚本文件，比如<code>check_open.stp</code>，并编辑该文件，在文件中输入以下内容:</p>
+<figure class="highlight stp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">probe syscall.open &#123;</span><br><span class="line">    <span class="comment">// 获取传入的路径参数</span></span><br><span class="line">    filename = user_string($filename)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 打印文件路径</span></span><br><span class="line">    printf(<span class="string">"Trying to open: %s\n"</span>, filename)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断路径是否为 /etc/passwd</span></span><br><span class="line">    if (filename == <span class="string">"/etc/passwd"</span>) &#123;</span><br><span class="line">        <span class="comment">// 如果是 /etc/passwd，则返回 -EACCES，表示访问被拒绝</span></span><br><span class="line">        printf(<span class="string">"Blocking access to /etc/passwd\n"</span>)</span><br><span class="line">        return -EACCES</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>probe syscall.open</code>：我们使用 <code>syscall.open</code> 来挂钩 <code>sys_open</code> 系统调用。这将允许我们监视所有尝试打开文件的操作。</li>
+<li><code>user_string($filename)</code>：该函数提取文件路径参数。我们使用 <code>user_string()</code> 来获取用户空间传入的字符串。</li>
+<li><code>if (filename == &quot;/etc/passwd&quot;)</code>：这里检查传入的文件路径是否为 <code>/etc/passwd</code>。</li>
+<li><code>return -EACCES</code>：如果路径是 <code>/etc/passwd</code>，我们通过 <code>return</code> 语句修改返回值，返回 <code>-EACCES</code>，表示访问被拒绝。</li>
+</ul>
+<h2 id="运行-SystemTap-脚本"><a href="#运行-SystemTap-脚本" class="headerlink" title="运行 SystemTap 脚本"></a>运行 SystemTap 脚本</h2><p>在创建了脚本后，需要使用 <code>stap</code> 命令来运行脚本。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo stap check_open.stp</span><br></pre></td></tr></table></figure>
+<p>这将会启动脚本并开始跟踪 <code>sys_open</code> 调用。如果你尝试打开 <code>/etc/passwd</code>，脚本会修改返回值，导致文件无法打开。</p>
+<h2 id="验证脚本效果"><a href="#验证脚本效果" class="headerlink" title="验证脚本效果"></a>验证脚本效果</h2><p>你可以验证脚本的效果，看看它是否按预期工作：</p>
+<p>尝试打开 <code>/etc/passwd</code> 文件，例如使用 <code>cat</code> 命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/passwd</span><br></pre></td></tr></table></figure></p>
+<p>由于脚本的作用，<code>cat</code> 命令应该失败，并返回错误信息，如 <code>Permission denied</code>。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
+<li>创建脚本：使用<code>probe</code>挂钩内核函数，获取相关参数。</li>
+<li>条件判断：通过<code>if</code>语句判断参数值，执行相应的操作。</li>
+<li>修改返回值：使用<code>return</code>修改函数的返回值。</li>
+<li>运行脚本：使用<code>sudo stap</code>命令来执行脚本并进行监控。</li>
+</ol>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://lrita.github.io/images/posts/systemtap/SystemTap-II.pdf" target="_blank" rel="noopener">SystemTap Tutorial Part-II</a></li>
+<li><a href="https://www.opensourceforu.com/2010/10/systemtap-tutorial-part-2/" target="_blank" rel="noopener">SystemTap Tutorial, Part-2</a></li>
+<li><a href="https://sourceware.org/systemtap/tutorial.pdf" target="_blank" rel="noopener">Systemtap tutorial</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/工具/">工具</a>
+            
+              <a href="/tags/debug/">debug</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/01/05/Notes-about-eMCA-Gen2/">
+        <span class="next-text nav-default">Notes about eMCA</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/02/09/SystemTap如何改变内核函数返回值/';
+        this.page.identifier = '2025/02/09/SystemTap如何改变内核函数返回值/';
+        this.page.title = 'SystemTap如何改变内核函数返回值';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

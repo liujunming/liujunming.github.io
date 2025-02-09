@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-01-05T08:28:01.365Z</updated>
+  <updated>2025-02-09T12:29:55.906Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>SystemTap如何改变内核函数返回值</title>
+    <link href="http://liujunming.github.io/2025/02/09/SystemTap%E5%A6%82%E4%BD%95%E6%94%B9%E5%8F%98%E5%86%85%E6%A0%B8%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC/"/>
+    <id>http://liujunming.github.io/2025/02/09/SystemTap如何改变内核函数返回值/</id>
+    <published>2025-02-09T11:41:30.000Z</published>
+    <updated>2025-02-09T12:29:55.906Z</updated>
+    
+    <content type="html"><![CDATA[<p><strong>利用SystemTap，判断内核函数的参数后，才更改返回值?</strong> <a id="more"></a></p><p><img src="/images/2025/02/002.png" alt></p><p>接下来将展示下<a href="https://chatgpt.com/" target="_blank" rel="noopener">chatgpt</a>给出的答案(笔者也没有运行，不保证正确性)。</p><p><img src="/images/2025/02/001.png" alt></p><h2 id="SystemTap-概述"><a href="#SystemTap-概述" class="headerlink" title="SystemTap 概述"></a>SystemTap 概述</h2><p>SystemTap 是一个动态追踪工具，可以用来监控内核和用户空间程序的行为。你可以通过编写脚本来插桩内核函数，并分析函数参数、返回值等信息。</p><p>在这个教程中，我们将演示如何创建一个 SystemTap 脚本，挂钩内核函数、检查参数，并在满足特定条件时修改函数的返回值。</p><h2 id="创建SystemTap-脚本"><a href="#创建SystemTap-脚本" class="headerlink" title="创建SystemTap 脚本"></a>创建SystemTap 脚本</h2><p>我们以<code>sys_open</code>系统调用为例。<code>sys_open</code>用于打开文件，它接受两个主要参数：路径和打开标志。我们将判断路径是否是<code>/etc/passwd</code>，如果是，则修改返回值（模拟无法打开该文件）。</p><p>创建一个新的 SystemTap 脚本文件，比如<code>check_open.stp</code>，并编辑该文件，在文件中输入以下内容:</p><figure class="highlight stp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">probe syscall.open &#123;</span><br><span class="line">    <span class="comment">// 获取传入的路径参数</span></span><br><span class="line">    filename = user_string($filename)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 打印文件路径</span></span><br><span class="line">    printf(<span class="string">"Trying to open: %s\n"</span>, filename)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断路径是否为 /etc/passwd</span></span><br><span class="line">    if (filename == <span class="string">"/etc/passwd"</span>) &#123;</span><br><span class="line">        <span class="comment">// 如果是 /etc/passwd，则返回 -EACCES，表示访问被拒绝</span></span><br><span class="line">        printf(<span class="string">"Blocking access to /etc/passwd\n"</span>)</span><br><span class="line">        return -EACCES</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><ul><li><code>probe syscall.open</code>：我们使用 <code>syscall.open</code> 来挂钩 <code>sys_open</code> 系统调用。这将允许我们监视所有尝试打开文件的操作。</li><li><code>user_string($filename)</code>：该函数提取文件路径参数。我们使用 <code>user_string()</code> 来获取用户空间传入的字符串。</li><li><code>if (filename == &quot;/etc/passwd&quot;)</code>：这里检查传入的文件路径是否为 <code>/etc/passwd</code>。</li><li><code>return -EACCES</code>：如果路径是 <code>/etc/passwd</code>，我们通过 <code>return</code> 语句修改返回值，返回 <code>-EACCES</code>，表示访问被拒绝。</li></ul><h2 id="运行-SystemTap-脚本"><a href="#运行-SystemTap-脚本" class="headerlink" title="运行 SystemTap 脚本"></a>运行 SystemTap 脚本</h2><p>在创建了脚本后，需要使用 <code>stap</code> 命令来运行脚本。</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo stap check_open.stp</span><br></pre></td></tr></table></figure><p>这将会启动脚本并开始跟踪 <code>sys_open</code> 调用。如果你尝试打开 <code>/etc/passwd</code>，脚本会修改返回值，导致文件无法打开。</p><h2 id="验证脚本效果"><a href="#验证脚本效果" class="headerlink" title="验证脚本效果"></a>验证脚本效果</h2><p>你可以验证脚本的效果，看看它是否按预期工作：</p><p>尝试打开 <code>/etc/passwd</code> 文件，例如使用 <code>cat</code> 命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/passwd</span><br></pre></td></tr></table></figure></p><p>由于脚本的作用，<code>cat</code> 命令应该失败，并返回错误信息，如 <code>Permission denied</code>。</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol><li>创建脚本：使用<code>probe</code>挂钩内核函数，获取相关参数。</li><li>条件判断：通过<code>if</code>语句判断参数值，执行相应的操作。</li><li>修改返回值：使用<code>return</code>修改函数的返回值。</li><li>运行脚本：使用<code>sudo stap</code>命令来执行脚本并进行监控。</li></ol><hr><p>参考资料:</p><ol><li><a href="https://lrita.github.io/images/posts/systemtap/SystemTap-II.pdf" target="_blank" rel="noopener">SystemTap Tutorial Part-II</a></li><li><a href="https://www.opensourceforu.com/2010/10/systemtap-tutorial-part-2/" target="_blank" rel="noopener">SystemTap Tutorial, Part-2</a></li><li><a href="https://sourceware.org/systemtap/tutorial.pdf" target="_blank" rel="noopener">Systemtap tutorial</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;strong&gt;利用SystemTap，判断内核函数的参数后，才更改返回值?&lt;/strong&gt;
+    
+    </summary>
+    
+      <category term="debug" scheme="http://liujunming.github.io/categories/debug/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
+    
+      <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about eMCA</title>
@@ -432,28 +458,6 @@
     <summary type="html">
     
       &lt;p&gt;本文将mark下RDMA ODP(On-Demand-Paging) feature相关notes。
-    
-    </summary>
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/categories/RDMA/"/>
-    
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about RDMA Device Memory</title>
-    <link href="http://liujunming.github.io/2024/10/20/Notes-about-RDMA-Device-Memory/"/>
-    <id>http://liujunming.github.io/2024/10/20/Notes-about-RDMA-Device-Memory/</id>
-    <published>2024-10-20T00:29:55.000Z</published>
-    <updated>2024-10-20T08:16:54.452Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下RDMA Device Memory相关notes。<a id="more"></a></p><h3 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h3><p>Device Memory is a verbs API that allows using on-chip memory, located on the device, as a data buffer for send/receive and RDMA operations. The device memory can be mapped and accessed directly by user and kernel applications, and can be allocated in various sizes, registered as memory regions with local and remote access keys for performing the send/ receive and RDMA operations. Using the device memory to store packets for transmission can significantly reduce transmission latency compared to the host memory.</p><p><img src="/images/2024/10/014.jpg" alt></p><h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p><img src="/images/2024/10/015.jpg" alt></p><p>staging buffer: 暂存缓冲区</p><h3 id="Concepts"><a href="#Concepts" class="headerlink" title="Concepts"></a>Concepts</h3><p><img src="/images/2024/10/016.jpg" alt></p><h3 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h3><p>可以类比于NVMe的<a href="/2024/06/30/深入理解NVMe-CMB机制/">CMB</a>，RDMA Device Memory以mmio的形式expose给host，目的是让RDMA直接使用Device Memory，无需DMA到host的内存，减少了PCIe TLP的交互。</p><h3 id="相关paper"><a href="#相关paper" class="headerlink" title="相关paper"></a>相关paper</h3><p>Sherman(SIGMOD’22) is the first RDMA-based system that leverages on-chip memory of commodity RDMA NICs.</p><hr><p>参考资料:</p><ol><li><a href="https://docs.nvidia.com/networking/display/rdmacore50/device+memory" target="_blank" rel="noopener">Device Memory</a></li><li><a href="https://www.openfabrics.org/images/2018workshop/presentations/304_LLiss_OnDeviceMemory.pdf" target="_blank" rel="noopener">On-device memory usage for RDMA transactions</a></li><li><a href="http://lastweek.io/notes/source_code/rdma/" target="_blank" rel="noopener">On DPDK and RDMA Related Software</a></li><li><a href="https://www.man7.org/linux/man-pages/man3/ibv_alloc_dm.3.html" target="_blank" rel="noopener">ibv_alloc_dm(3)</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下RDMA Device Memory相关notes。
     
     </summary>
     
