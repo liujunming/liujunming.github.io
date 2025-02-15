@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-02-09T12:29:55.906Z</updated>
+  <updated>2025-02-15T03:50:51.251Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about linux /proc/kcore</title>
+    <link href="http://liujunming.github.io/2025/02/15/Notes-about-linux-proc-kcore/"/>
+    <id>http://liujunming.github.io/2025/02/15/Notes-about-linux-proc-kcore/</id>
+    <published>2025-02-15T02:18:25.000Z</published>
+    <updated>2025-02-15T03:50:51.251Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下linux中<code>/proc/kcore</code>相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p><code>/proc/kcore</code> is a file in the virtual /proc filesystem of a Linux machine. It is created by the kernel in <a href="https://elixir.bootlin.com/linux/v5.0/source/fs/proc/kcore.c" target="_blank" rel="noopener">fs/proc/kcore.c</a> and <strong>allows read access to all the kernels virtual memory space from userland</strong>.</p><p>Internally it has the format of an ELF core dump file (ELF Type 4/ET_CORE). That means it has the same format as a core file from a crashed process; but instead of capturing the (static) state of a single process at the moment of the crash, <strong>it provides a real time view into the state of the whole system</strong>.</p><h2 id="How"><a href="#How" class="headerlink" title="How"></a>How</h2><ul><li>The ELF header (<code>Elf64_Ehdr</code>): It’s at the start of every ELF file. We need two pieces of information from it: the location and number of entries of the program header table.</li><li>The Program headers (<code>Elf64_Phdr</code>): An ELF file contains an array of program header structures. There are various subtypes of program headers, but we care only about the ones marked as <code>PT_LOAD</code>. <u>Each of these headers describe a loadable segment - a part of the file that is loaded into memory</u>. In <code>/proc/kcore</code>, <strong>they describe where in the file each portion of the system memory can be found.</strong></li></ul><p>On x86-64 systems, Linux maintains a complete one-to-one map of all physical memory in the kernels virtual address space. So by reading the right ranges of kernel virtual memory, one can get a complete copy of the content of the physical memory of that system.</p><p><img src="/images/2025/02/003.png" alt></p><p>每个<code>PT_LOAD</code> header用来记录一段 memory region，并描述了这段 memory region对应的文件offset、内核虚拟地址和长度。</p><h2 id="步骤"><a href="#步骤" class="headerlink" title="步骤"></a>步骤</h2><ol><li>使用<code>open</code>系统调用打开<code>/proc/kcore</code>文件</li><li>遍历ELF文件中的程序头表(Program Header Table)，找到包含目标内核虚拟地址的段(每个段描述了内核虚拟地址到文件offset的映射关系)</li><li>根据计算出的文件offset，使用<code>lseek</code>定位到目标位置，使用<code>read</code>读取目标地址的内容</li></ol><hr><p>参考资料:</p><ol><li><a href="https://schlafwandler.github.io/posts/dumping-/proc/kcore/" target="_blank" rel="noopener">Dumping /proc/kcore in 2019</a></li><li><a href="https://blog.csdn.net/weixin_45030965/article/details/124863905" target="_blank" rel="noopener">Linux /proc/kcore详解（一）</a></li><li><a href="https://blog.csdn.net/weixin_45030965/article/details/125164642" target="_blank" rel="noopener">Linux /proc/kcore详解（二）</a></li><li><a href="https://superuser.com/questions/669462/will-applications-running-in-root-mode-be-able-to-overwrite-oss-or-other-progra" target="_blank" rel="noopener">Will applications running in root mode be able to overwrite OS’s or other program’s memory section?</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下linux中&lt;code&gt;/proc/kcore&lt;/code&gt;相关notes。
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>SystemTap如何改变内核函数返回值</title>
@@ -443,28 +465,6 @@
     
     
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about RDMA ODP feature</title>
-    <link href="http://liujunming.github.io/2024/10/20/Notes-about-RDMA-ODP-feature/"/>
-    <id>http://liujunming.github.io/2024/10/20/Notes-about-RDMA-ODP-feature/</id>
-    <published>2024-10-20T08:27:30.000Z</published>
-    <updated>2024-10-20T11:42:27.410Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下RDMA ODP(On-Demand-Paging) feature相关notes。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>On-Demand-Paging (ODP) is a technique to alleviate much of the shortcomings of memory registration. Applications no longer need to pin down the underlying physical pages of the address space, and track the validity of the mappings. Rather, the HCA requests the latest translations from the OS when pages are not present, and the OS invalidates translations which are no longer valid due to either non-present pages or mapping changes.</p><p><img src="/images/2024/10/017.jpg" alt></p><h2 id="Synchronizing-between-CPU-and-RNIC-page-tables"><a href="#Synchronizing-between-CPU-and-RNIC-page-tables" class="headerlink" title="Synchronizing between CPU and RNIC page tables"></a>Synchronizing between CPU and RNIC page tables</h2><p><img src="/images/2024/10/018.jpg" alt></p><h3 id="Faulting"><a href="#Faulting" class="headerlink" title="Faulting"></a>Faulting</h3><p>When an RDMA request accesses data on invalid virtual pages, (1a) the RNIC stalls the QP and raises an RNIC page fault interrupt. (1b) The driver requests the OS kernel for virtual-to-physical mappings via <code>hmm_range_fault</code>. The OS kernel triggers CPU page faults on these virtual pages and fills the CPU page table if necessary. (1c) The driver updates the mappings on the RNIC page table and (1d) resumes the QP.</p><h3 id="Invalidation"><a href="#Invalidation" class="headerlink" title="Invalidation"></a>Invalidation</h3><p>When the OS kernel tries to unmap virtual pages in scenarios like swapping out or page migration, (2a)it notifies the RNIC driver to invalidate virtual pages via <code>mmu_interval_notifier</code>. (2b) The RNIC driver erases the virtual-to-physical mapping from the RNIC page table. (2c) The driver notifies the kernel that the physical pages are no longer used by the RNIC. Then, the OS kernel modifies the CPU page table and reuses the physical pages.</p><p>ODP MR(Memory Region) relies on faulting and invalidation flows to synchronize CPU and RNIC page tables. </p><h3 id="Advising"><a href="#Advising" class="headerlink" title="Advising"></a>Advising</h3><p>An application can proactively request the RNIC driver to populate a range in the RNIC page table. The RNIC driver completes advising by steps (3a) – (3b), which are identical to steps (1b) – (1c).</p><h2 id="Related-code"><a href="#Related-code" class="headerlink" title="Related code"></a>Related code</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> ib_odp_general_cap_bits &#123;</span><br><span class="line">IB_ODP_SUPPORT= <span class="number">1</span> &lt;&lt; <span class="number">0</span>,</span><br><span class="line">IB_ODP_SUPPORT_IMPLICIT = <span class="number">1</span> &lt;&lt; <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">enum</span> ib_odp_transport_cap_bits &#123;</span><br><span class="line">IB_ODP_SUPPORT_SEND= <span class="number">1</span> &lt;&lt; <span class="number">0</span>,</span><br><span class="line">IB_ODP_SUPPORT_RECV= <span class="number">1</span> &lt;&lt; <span class="number">1</span>,</span><br><span class="line">IB_ODP_SUPPORT_WRITE= <span class="number">1</span> &lt;&lt; <span class="number">2</span>,</span><br><span class="line">IB_ODP_SUPPORT_READ= <span class="number">1</span> &lt;&lt; <span class="number">3</span>,</span><br><span class="line">IB_ODP_SUPPORT_ATOMIC= <span class="number">1</span> &lt;&lt; <span class="number">4</span>,</span><br><span class="line">IB_ODP_SUPPORT_SRQ_RECV= <span class="number">1</span> &lt;&lt; <span class="number">5</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://docs.nvidia.com/networking/display/mlnxofedv461000/optimized+memory+access" target="_blank" rel="noopener">Optimized Memory Access</a></li><li>TeRM: Extending RDMA-Attached Memory with SSD(FAST’24)</li><li><a href="https://dlsvr04.asus.com.cn/pub/ASUS/mb/accessory/PEM-FDR/Manual/Mellanox_OFED_Linux_User_Manual_v2_3-1_0_1.pdf" target="_blank" rel="noopener">Mellanox OFED for Linux User Manual</a></li><li><a href="https://lore.kernel.org/linux-rdma/1418310266-9584-1-git-send-email-haggaie@mellanox.com/" target="_blank" rel="noopener">[PATCH v3 00/17] On demand paging</a></li><li><a href="https://lore.kernel.org/linux-rdma/cover.1699503619.git.matsuda-daisuke@fujitsu.com/" target="_blank" rel="noopener">[PATCH for-next v7 0/7] On-Demand Paging on SoftRoCE</a></li><li><a href="https://cloud.tencent.com/developer/article/2428026" target="_blank" rel="noopener">RDMA - ODP按需分页设计原理-优点-源码浅析</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下RDMA ODP(On-Demand-Paging) feature相关notes。
-    
-    </summary>
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/categories/RDMA/"/>
-    
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
     
   </entry>
   
