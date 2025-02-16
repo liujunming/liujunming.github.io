@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-02-15T11:45:04.155Z</updated>
+  <updated>2025-02-16T03:30:29.868Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about vCPU MPState</title>
+    <link href="http://liujunming.github.io/2025/02/16/Notes-about-vCPU-MPState/"/>
+    <id>http://liujunming.github.io/2025/02/16/Notes-about-vCPU-MPState/</id>
+    <published>2025-02-16T03:20:47.000Z</published>
+    <updated>2025-02-16T03:30:29.868Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下vCPU MPState(MultiProcessing State)的相关notes。<a id="more"></a></p><p>在热迁移时，qemu会执行<code>kvm_get_mp_state</code>函数:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">kvm_get_mp_state</span><span class="params">(X86CPU *cpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    CPUState *cs = CPU(cpu);</span><br><span class="line">    CPUX86State *env = &amp;cpu-&gt;env;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">kvm_mp_state</span> <span class="title">mp_state</span>;</span></span><br><span class="line">    <span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">    ret = kvm_vcpu_ioctl(cs, KVM_GET_MP_STATE, &amp;mp_state);</span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> ret;</span><br><span class="line">    &#125;</span><br><span class="line">    env-&gt;mp_state = mp_state.mp_state;</span><br><span class="line">    <span class="keyword">if</span> (kvm_irqchip_in_kernel()) &#123;</span><br><span class="line">        cs-&gt;halted = (mp_state.mp_state == KVM_MP_STATE_HALTED);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><p>此时<code>KVM_GET_MP_STATE</code>就是关键线索，搜索<a href="https://www.kernel.org/doc/Documentation/virt/kvm/api.txt" target="_blank" rel="noopener">kvm api Documentation</a>即可找到最终的答案。 </p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">4.38 KVM_GET_MP_STATE</span><br><span class="line"></span><br><span class="line">Capability: KVM_CAP_MP_STATE</span><br><span class="line">Architectures: x86, s390, arm, arm64</span><br><span class="line">Type: vcpu ioctl</span><br><span class="line">Parameters: struct kvm_mp_state (out)</span><br><span class="line">Returns: 0 on success; -1 on error</span><br><span class="line"></span><br><span class="line">struct kvm_mp_state &#123;</span><br><span class="line">__u32 mp_state;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">Returns the vcpu&apos;s current &quot;multiprocessing state&quot; (though also valid on</span><br><span class="line">uniprocessor guests).</span><br><span class="line"></span><br><span class="line">Possible values are:</span><br><span class="line"></span><br><span class="line"> - KVM_MP_STATE_RUNNABLE:        the vcpu is currently running [x86,arm/arm64]</span><br><span class="line"> - KVM_MP_STATE_UNINITIALIZED:   the vcpu is an application processor (AP)</span><br><span class="line">                                 which has not yet received an INIT signal [x86]</span><br><span class="line"> - KVM_MP_STATE_INIT_RECEIVED:   the vcpu has received an INIT signal, and is</span><br><span class="line">                                 now ready for a SIPI [x86]</span><br><span class="line"> - KVM_MP_STATE_HALTED:          the vcpu has executed a HLT instruction and</span><br><span class="line">                                 is waiting for an interrupt [x86]</span><br><span class="line"> - KVM_MP_STATE_SIPI_RECEIVED:   the vcpu has just received a SIPI (vector</span><br><span class="line">                                 accessible via KVM_GET_VCPU_EVENTS) [x86]</span><br><span class="line"> - KVM_MP_STATE_STOPPED:         the vcpu is stopped [s390,arm/arm64]</span><br><span class="line"> - KVM_MP_STATE_CHECK_STOP:      the vcpu is in a special error state [s390]</span><br><span class="line"> - KVM_MP_STATE_OPERATING:       the vcpu is operating (running or halted)</span><br><span class="line">                                 [s390]</span><br><span class="line"> - KVM_MP_STATE_LOAD:            the vcpu is in a special load/startup state</span><br><span class="line">                                 [s390]</span><br><span class="line"></span><br><span class="line">On x86, this ioctl is only useful after KVM_CREATE_IRQCHIP. Without an</span><br><span class="line">in-kernel irqchip, the multiprocessing state must be maintained by userspace on</span><br><span class="line">these architectures.</span><br><span class="line"></span><br><span class="line">For arm/arm64:</span><br><span class="line"></span><br><span class="line">The only states that are valid are KVM_MP_STATE_STOPPED and</span><br><span class="line">KVM_MP_STATE_RUNNABLE which reflect if the vcpu is paused or not.</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://crosvm.dev/doc/hypervisor/enum.MPState.html" target="_blank" rel="noopener">Enum hypervisor::MPState</a></li><li><a href="https://www.kernel.org/doc/Documentation/virt/kvm/api.txt" target="_blank" rel="noopener">The Definitive KVM (Kernel-based Virtual Machine) API Documentation</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下vCPU MPState(MultiProcessing State)的相关notes。
+    
+    </summary>
+    
+      <category term="QEMU&amp;&amp;KVM" scheme="http://liujunming.github.io/categories/QEMU-KVM/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="QEMU&amp;&amp;KVM" scheme="http://liujunming.github.io/tags/QEMU-KVM/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Content-Addressable Memory (CAM)</title>
@@ -443,28 +467,6 @@
     
     
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about RDMA Direct WQE与Inline data机制</title>
-    <link href="http://liujunming.github.io/2024/11/03/Notes-about-RDMA-Inline-data%E6%9C%BA%E5%88%B6/"/>
-    <id>http://liujunming.github.io/2024/11/03/Notes-about-RDMA-Inline-data机制/</id>
-    <published>2024-11-03T03:27:55.000Z</published>
-    <updated>2024-11-03T09:20:09.475Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下RDMA Direct WQE与Inline data机制，主要内容转载自<a href="https://zhuanlan.zhihu.com/p/567720023" target="_blank" rel="noopener">知乎:RDMA 高级</a>。<a id="more"></a></p><h2 id="Normal-flow"><a href="#Normal-flow" class="headerlink" title="Normal flow"></a>Normal flow</h2><p>以发包为例:<br><img src="/images/2024/11/001.jpg" alt></p><ol><li>填充要发送的数据</li><li>填充WQE描述符</li><li>敲doorbell通知硬件有数据要发送</li><li>硬件通过DMA读取WQE</li><li>硬件通过DMA读取要发送的数据</li></ol><h2 id="Direct-WQE"><a href="#Direct-WQE" class="headerlink" title="Direct WQE"></a>Direct WQE</h2><p>以发包为例:<br><img src="/images/2024/11/002.jpg" alt><br>与Normal flow相比，Direct WQE先将WQE写入MMIO bar中，再写doorbell通知硬件有数据要发送。这样RNIC就无需通过DMA来读取WQE了。</p><p>需要将MMIO页以write combining方式映射，这里的MMIO页属于<a href="/2024/10/20/Notes-about-RDMA-Device-Memory/">RDMA Device Memory</a>。</p><p><img src="/images/2024/11/003.png" alt></p><h2 id="Inline-Send"><a href="#Inline-Send" class="headerlink" title="Inline-Send"></a>Inline-Send</h2><p><img src="/images/2024/11/004.jpg" alt><br><code>ibv_post_send</code>时带上<code>IBV_SEND_INLINE</code>标识，如果要发送的数据小于128字节则填WQE时会将这部分数据直接append在WQE的后面。这样硬件DMA WQE时就顺便将data也读出来了，这样就省去了单独DMA data的操作。</p><h2 id="Inline-Receive"><a href="#Inline-Receive" class="headerlink" title="Inline-Receive"></a>Inline-Receive</h2><p><img src="/images/2024/11/005.png" alt><br>与发送类似，如果接收的是一个小数据，则没有必要将其放入RQ的receive buffer中，而是可以直接将其放入CQE中。这可以省去硬件将数据DMA至RQ SGE list的过程。使用<code>ibv_exp_create_qp</code>创建QP时指定<code>max_inl_recv</code>即可开启此功能。</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Direct WQE与Inline data机制的目标都是减少RDMA数据面上的PCIe TLP交互次数。</p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/567720023" target="_blank" rel="noopener">RDMA 高级</a></li><li><a href="https://docs.nvidia.com/networking/display/mlnxofedv461000/optimized+memory+access#src-12013520_OptimizedMemoryAccess-Inline-Receive" target="_blank" rel="noopener">Inline-Receive</a></li><li><a href="https://lore.kernel.org/all/1622194379-59868-5-git-send-email-liweihang@huawei.com/" target="_blank" rel="noopener">[rdma-core,4/4] libhns: Add support for direct wqe</a></li><li>Design Guidelines for High Performance RDMA Systems(ATC’16)</li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下RDMA Direct WQE与Inline data机制，主要内容转载自&lt;a href=&quot;https://zhuanlan.zhihu.com/p/567720023&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;知乎:RDMA 高级&lt;/a&gt;。
-    
-    </summary>
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/categories/RDMA/"/>
-    
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
     
   </entry>
   
