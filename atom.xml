@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-02-22T13:10:03.280Z</updated>
+  <updated>2025-02-23T02:20:18.357Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,50 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about FPGA concepts</title>
+    <link href="http://liujunming.github.io/2025/02/23/Notes-about-FPGA-concepts/"/>
+    <id>http://liujunming.github.io/2025/02/23/Notes-about-FPGA-concepts/</id>
+    <published>2025-02-23T01:41:23.000Z</published>
+    <updated>2025-02-23T02:20:18.357Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下FPGA基本概念的相关notes。<a id="more"></a> </p><p>Field Programmable Gate Arrays (FPGAs) are “a sea” of logic, arithmetic, and memory elements, which users can configure to implement custom compute circuits. FPGA compute capacity is determined by the <em>area</em> available for the circuits.</p><h2 id="FPGA-development"><a href="#FPGA-development" class="headerlink" title="FPGA development"></a>FPGA development</h2><p>FPGAs can be seen as “software defined” hardware. The software definition, <em>a design</em>, is implemented using register transfer languages (RTL) such as Verilog. Additionally, designers can use high-level synthesis (HLS) tools to generate RTL, e.g., from a restricted version of C++. However, HLS C++ programs are different from CPU programs, and must follow certain rules, including explicit exposure of fine-grain pipeline- and task- parallelism to achieve high performance. Implementation tools then compile the design into an FPGA <em>image</em> targeting specific hardware.</p><p>Finally, users can load the image onto an FPGA (slow, up to a few seconds), entirely replacing the previous design. Some FPGAs support <em>partial reconfiguration</em> to replace only a subset of the entire FPGA, a much faster process (milliseconds), which unfortunately incurs significant area overheads.</p><h2 id="FPGA-sharing"><a href="#FPGA-sharing" class="headerlink" title="FPGA sharing"></a>FPGA sharing</h2><p>There are three ways to share an FPGA: space partitioning, coarse-grain, and fine-grain time sharing.</p><h3 id="space-partitioning"><a href="#space-partitioning" class="headerlink" title="space partitioning"></a>space partitioning</h3><p>Space partitioning divides FPGA resources into disjoint sets used by different AFUs(Accelerator Functional Units). If shared I/O interfaces (memory, PCIe bus) are securely isolated and multiplexed, this method enables low-overhead FPGA sharing among mutually distrustful AFUs but requires larger FPGAs to fit them all.</p><p><img src="/images/2025/02/008.png" alt></p><h3 id="Coarse-grain-time-sharing"><a href="#Coarse-grain-time-sharing" class="headerlink" title="Coarse-grain time sharing"></a>Coarse-grain time sharing</h3><p>Coarse-grain time sharing dynamically switches AFUs via full or partial reconfiguration. It incurs high switching latency.</p><p><img src="/images/2025/02/009.png" alt></p><h3 id="Fine-grain-time-sharing"><a href="#Fine-grain-time-sharing" class="headerlink" title="Fine-grain time sharing"></a>Fine-grain time sharing</h3><p>Fine-grain time sharing allows multiple CPU applications to use the same AFU. <u>The AFU implements the context switch internally, in hardware</u>. Packet processing applications such as <a href="https://www.usenix.org/conference/nsdi18/presentation/firestone" target="_blank" rel="noopener">AccelNet</a> use this approach to process each packet in the context of its associated flow. Such AFUs oversee switching between the contexts(此类AFU负责管理不同上下文之间的切换); therefore this type of sharing requires AFUs to be <em>trusted</em> to ensure fair use and state isolation between their users.</p><p><img src="/images/2025/02/010.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.usenix.org/conference/atc19/presentation/eran" target="_blank" rel="noopener">NICA: An Infrastructure for Inline Acceleration of Network Applications</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下FPGA基本概念的相关notes。
+    
+    </summary>
+    
+      <category term="Accelerator" scheme="http://liujunming.github.io/categories/Accelerator/"/>
+    
+    
+      <category term="Accelerator" scheme="http://liujunming.github.io/tags/Accelerator/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Notes about F-NIC(FPGA-based SmartNIC)</title>
+    <link href="http://liujunming.github.io/2025/02/22/Notes-about-F-NIC-FPGA-based-SmartNIC-architecture/"/>
+    <id>http://liujunming.github.io/2025/02/22/Notes-about-F-NIC-FPGA-based-SmartNIC-architecture/</id>
+    <published>2025-02-22T13:40:52.000Z</published>
+    <updated>2025-02-23T01:54:08.692Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下F-NIC(FPGA-based SmartNIC)相关notes。<a id="more"></a> </p><p>We describe bump-in-the-wire(是一种网络技术概念，指在网络通信链路中透明插入的设备或系统，用于增强特定功能而不改变终端设备的配置或通信协议) F-NICs, focusing on Mellanox Innova.</p><p><img src="/images/2025/02/007.png" alt></p><h2 id="Bump-in-the-wire"><a href="#Bump-in-the-wire" class="headerlink" title="Bump-in-the-wire"></a>Bump-in-the-wire</h2><p>A typical F-NIC (Figure 1) combines a commodity network ASIC (e.g., ConnectX-4 Lx NIC) with an FPGA and local DRAM. The FPGA is located <em>between</em> the ASIC and the network port, interposing on all Ethernet traffic in and out of the NIC. The FPGA and the ASIC communicate directly via an internal bus (e.g., 40 Gbps Ethernet), and a PCIe bus connects the ASIC to the host.</p><p>The bump-in-the-wire design reuses the existing data and control planes between the CPU and the NIC ASIC, with its QoS management, and virtualization support (SR-IOV), mature DMA engines, and software stack.</p><h2 id="F-NIC-programming"><a href="#F-NIC-programming" class="headerlink" title="F-NIC programming"></a>F-NIC programming</h2><p>The development of an F-NIC accelerated application involves both hardware logic on FPGA and associated software on the CPU. F-NIC vendors provide a lightweight <em>shell IP</em>: a set of low-level hardware interfaces for basic operations, including link-layer packet exchange with the network and the host, onboard DRAM access, and control register access. However, the vendor SDK leaves it to customers to implement higher level features such as FPGA network stack processing or virtualization support.</p><hr><p>参考资料:</p><ol><li><a href="https://www.usenix.org/system/files/atc19-eran.pdf" target="_blank" rel="noopener">NICA: An Infrastructure for Inline Acceleration of Network Applications</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下F-NIC(FPGA-based SmartNIC)相关notes。
+    
+    </summary>
+    
+      <category term="Accelerator" scheme="http://liujunming.github.io/categories/Accelerator/"/>
+    
+    
+      <category term="Accelerator" scheme="http://liujunming.github.io/tags/Accelerator/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PFC(Priority-based Flow Control)</title>
@@ -421,52 +465,6 @@
     
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about AMD IOMMU IRTCache机制</title>
-    <link href="http://liujunming.github.io/2024/11/10/Notes-about-AMD-IOMMU-IRTCache/"/>
-    <id>http://liujunming.github.io/2024/11/10/Notes-about-AMD-IOMMU-IRTCache/</id>
-    <published>2024-11-10T10:52:35.000Z</published>
-    <updated>2024-11-10T11:52:37.336Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下AMD IOMMU IRTCache机制的相关notes。<a id="more"></a></p><h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p>在没有IRTCache机制之前，设备的MSI data到IRTE(Interrupt Remapping Table Entry)的映射，需要硬件从内存中读取Interrupt Remapping Table来获取IRTE。<br><img src="/images/2024/11/009.png" alt></p><p>在引入IRTCache机制之后，IOMMU硬件中就会缓存设备MSI data到IRTE的映射了,这样就可以避免IOMMU硬件从内存中读取IRTE。</p><h3 id="How"><a href="#How" class="headerlink" title="How"></a>How</h3><p>For IOMMU AVIC, the IOMMU driver needs to keep track of vcpu scheduling changes, and updates interrupt remapping table entry (IRTE) accordingly. The IRTE is normally cached by the hardware, which requires the IOMMU driver to issue IOMMU IRT invalidation command and wait for completion everytime it updates the table.</p><p>Enabling IOMMU AVIC on a large scale system with lots of vcpus and VFIO pass-through devices running interrupt-intensive workload, it could result in high IRT invalidation rate. In such case, the overhead from IRT invalidation could outweigh the benefit of IRTE caching.</p><p>Therefore, introduce a new AMD IOMMU driver option “amd_iommu=irtcachedis” to allow disabling IRTE caching, and avoid the need for IRTE invalidation.</p><p><img src="/images/2024/11/008.png" alt></p><p><img src="/images/2024/11/010.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://lore.kernel.org/lkml/20230530141137.14376-1-suravee.suthikulpanit@amd.com/" target="_blank" rel="noopener">[PATCH v3 0/5] iommu/amd: AVIC Interrupt Remapping Improvements</a></li><li>AMD I/O Virtualization Technology (IOMMU) Specification, 48882</li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下AMD IOMMU IRTCache机制的相关notes。
-    
-    </summary>
-    
-      <category term="IOMMU" scheme="http://liujunming.github.io/categories/IOMMU/"/>
-    
-    
-      <category term="AMD" scheme="http://liujunming.github.io/tags/AMD/"/>
-    
-      <category term="IOMMU" scheme="http://liujunming.github.io/tags/IOMMU/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about PCIe flow control机制</title>
-    <link href="http://liujunming.github.io/2024/11/10/Notes-about-PCIe-credit%E6%9C%BA%E5%88%B6/"/>
-    <id>http://liujunming.github.io/2024/11/10/Notes-about-PCIe-credit机制/</id>
-    <published>2024-11-10T02:16:57.000Z</published>
-    <updated>2024-11-10T07:12:32.928Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下PCIe flow control机制的相关notes。<a id="more"></a></p><p>The receiver of each port reports the size of its Flow Control buffers <strong>in units called credits</strong>.<br>在一条链路的两端设备分别向对方通知其自己可以使用的缓冲区大小或数量。这里通知的空间大小就是信用（credit）。</p><p><img src="/images/2024/11/007.png" alt></p><p>A定期的告诉B，我这里还有地方，来吧，来吧~。B因此知道A是有空余空间接收的。同样，B也是采用同样的方式告知A。流控信用会定期在两者间发送，这叫做更新流控信用（Update FC）。</p><p>The data link layer has a Flow Control (FC) mechanism, which makes sure that a TLP is transmitted only when the link partner has enough buffer space to accept it.</p><p>The Flow Control mechanism uses a credit‐based mechanism that allows the transmitting port to be aware of buffer space available at the receiving port. As part of its initialization, each receiver reports the size of its buffers to the transmitter on the other end of the Link, and then <strong>during run‐time it regularly updates the number of credits available using Flow Control DLLPs</strong>. Technically, of course, DLLPs are overhead because they don’t convey any data payload, but they are kept small to minimize their impact on performance.</p><hr><p>参考资料:</p><ol><li>PCI Express Technology(Mike Jackson, Ravi Budruk)</li><li><a href="https://xillybus.com/tutorials/pci-express-tlp-pcie-primer-tutorial-guide-2" target="_blank" rel="noopener">Down to the TLP: How PCI express devices talk (Part II)</a></li><li><a href="https://www.slideshare.net/slideshow/pciexpressbasicsbackgroundpdf/252660914#38" target="_blank" rel="noopener">PCI Express Basics Background</a></li><li><a href="https://mp.weixin.qq.com/s/WkRTqLOpqynHtOiaaOTplw" target="_blank" rel="noopener">Credit timeout &amp; Completion timeout</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下PCIe flow control机制的相关notes。
-    
-    </summary>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
