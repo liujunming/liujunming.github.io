@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-04-06T06:50:23.818Z</updated>
+  <updated>2025-04-12T11:49:39.574Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -17,11 +17,35 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Notes about linux KPTI</title>
+    <link href="http://liujunming.github.io/2025/04/12/Notes-about-linux-KPTI/"/>
+    <id>http://liujunming.github.io/2025/04/12/Notes-about-linux-KPTI/</id>
+    <published>2025-04-12T11:43:46.000Z</published>
+    <updated>2025-04-12T11:49:39.574Z</updated>
+    
+    <content type="html"><![CDATA[<p><img src="/images/2025/04/006.png" alt><a id="more"></a> </p><p>KPTI (kernel page table isolation) is proposed to defend against the Meltdown attack. This patch separates user space and kernel space page tables entirely, as shown in the following figure. The one used by kernel is the same as before, while the one used by application contains a copy of user space and a small set of kernel space mapping with only trampoline code to enter the kernel. Since the data of kernel are no longer mapped in the user space, a malicious application cannot directly de-reference kernel’s data address, and thus cannot issue Meltdown attack.</p><p><img src="/images/2025/04/007.png" alt></p><hr><p>参考资料:</p><ol><li>EPTI: Efficient Defense against Meltdown Attack for Unpatched VMs(ATC’18)</li><li><a href="https://www.wikiwand.com/en/articles/Kernel_page-table_isolation" target="_blank" rel="noopener">https://www.wikiwand.com/en/articles/Kernel_page-table_isolation</a></li><li><a href="https://blog.csdn.net/pwl999/article/details/112686914" target="_blank" rel="noopener">Linux mem 2.3 内核页表隔离 (KPTI) 详解</a></li><li><a href="https://www.kernel.org/doc/html/next/x86/pti.html" target="_blank" rel="noopener">Page Table Isolation (PTI)</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;img src=&quot;/images/2025/04/006.png&quot; alt&gt;
+    
+    </summary>
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
+    
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Notes about Intel CET</title>
     <link href="http://liujunming.github.io/2025/04/06/Notes-about-Intel-CET/"/>
     <id>http://liujunming.github.io/2025/04/06/Notes-about-Intel-CET/</id>
     <published>2025-04-05T22:27:12.000Z</published>
-    <updated>2025-04-06T06:50:23.818Z</updated>
+    <updated>2025-04-12T11:49:09.830Z</updated>
     
     <content type="html"><![CDATA[<p>本文将mark下Intel CET(Control-flow Enforcement Technology)的相关notes，主要内容转载自<a href="https://mp.weixin.qq.com/s/zs7G5yucR5iANSiS4M1I3A" target="_blank" rel="noopener">Intel CET 安全防御机制深度解析</a>。<a id="more"></a> </p><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>CET（Control-flow Enforcement Technology）机制是 Intel提出<strong>基于硬件的</strong>⽤于缓解 <strong>ROP/JOP/COP</strong>的新技术。特别强调下，他是基于硬件⽀持的解决⽅案。从Intel的Tigerlake (11th gen)，Alderlake (12th gen)/Sapphire-Rapid起，粗颗粒度地旨在预防前向（ call/jmp ）和后向（ ret ）控制流指令劫持来御防ROP的攻击。因此针对防御对象不同，CET技术又分为CET-SS用于针对ROP的ret指令和CET-IBT用于针对JOP/COP的jmp/call指令。</p><h2 id="CET为何而生"><a href="#CET为何而生" class="headerlink" title="CET为何而生"></a>CET为何而生</h2><p>说到防御者CET，就不得不提他的进攻者ROP了。什么是ROP? 来看⼀个例⼦，假设程序中正常执行如下代码⽚段，注意此时其中不含<code>ret</code>或<code>call</code>指令。</p><p><img src="/images/2025/04/001.jpg" alt></p><p>但是，如果稍加偏移⼀下解释代码的地址时，就会导致出现完全不⼀样的指令，如下图所示：</p><p><img src="/images/2025/04/002.jpg" alt></p><p>如果按照红框中的顺序解释这些指令的时候，那么将会产⽣⾮代码预期的结果，会出现原代码中未出现过的 ret 指令以及 call 指令，这些指令序列被称为 <strong>gadget</strong> 。通过仔细构造这些由ret指令终⽌的指令集，攻击者可以执⾏原程序中⾮预期的任意恶意代码，这种新产生ret攻击被称为 ROP 攻击，同理还有COP/JOP（call/jmp）攻击。</p><p>为了防御这种此类ROP攻击，Intel在硬件机制上推出了CET缓解机制，针对不同的攻击行为分为CET-SS(影子栈)和CET-IBT(间接跳转跟踪)。</p><h2 id="CP异常"><a href="#CP异常" class="headerlink" title="#CP异常"></a>#CP异常</h2><p>CET-SS和CET-IBT 在实现机制上属于CPU内部异常。当执行启动CET发现执行执行流中没有endbr64或函数返回ret和影子栈中shandow stack保存的ret不一致时，CPU内部出发异常，这里CET占用的中断向量21号，触发#CP并归为陷阱执行中断处理程序<code>exc_control_protection()</code>，对CET-SS CET-IBT分情况进行报错。CET-IBT -&gt; “traps: Missing ENDBR: xxx”， CET-SS-&gt; #CP(control protect)。</p><h2 id="CET-SS（Shadow-Stack）"><a href="#CET-SS（Shadow-Stack）" class="headerlink" title="CET-SS（Shadow Stack）"></a>CET-SS（Shadow Stack）</h2><p>Intel 提出了⼀种基于硬件的 CET 解决⽅案，其中之⼀的 shadow stack 机制⽤于缓解 ROP 攻击。ROP 依赖于 ret 指令，其中要执⾏的后续指令地址从堆栈中获得。因此 ROP 攻击的前提是攻击者能够在堆栈中构造数据。那么再来看 shadow stack 机制是怎么⼯作的。</p><p>CET 使操作系统能够创建⼀个 shadow stack （影⼦栈）。正常情况下，当执⾏ call 指令时，会将 call 指令后⼀条指令地址压栈。当启⽤了 shadow stack 后，会同时在普通数据栈和 shadow stack 中压⼊返回地址，随后在执⾏ ret 返回时，会将 shadow stack 中的返回地址和普通数据栈中的返回地址做对⽐，如匹配，则正常执⾏，如不匹配，则触发#CP(Controlflow Protection) 异常。如下图所示：</p><p><img src="/images/2025/04/004.png" alt></p><h2 id="CET-IBT-Indirect-Branch-Tracking"><a href="#CET-IBT-Indirect-Branch-Tracking" class="headerlink" title="CET-IBT(Indirect Branch Tracking)"></a>CET-IBT(Indirect Branch Tracking)</h2><p>JOP/COP 攻击⼿法与 ROP 类似，只不过是把 ROP 中以 ret 指令做跳板的关键点替换成了 call/jmp 指令。这种不需要 ret 指令的攻击场景下，前⾯所说的 shadow stack 机制就失效了。这种情况下， CET 的第⼆种机制 IBT(Indirect Branch Tracking) 就应运⽽⽣了。</p><p>IBT(Indirect Branch Tracking),间接跳转跟踪”希望能防止攻击者让间接跳转（例如，通过指针变量进行的函数调用）进入一个不应该走到的地方。</p><p>IBT 是为了防御面向跳转编程的（jump-oriented programming）；工作原理是试图确保每个 indirect branch 的目标确实都是适合作为跳转目标的。IBT 的方法有很多，每一种都有自己的优势和劣势。例如，内核在 5.13 开发周期中支持了编译器实现的 IBT 机制。在这种模式下，编译器通过一个 “jump table, 跳转表” 来完成每一个间接跳转，不仅确保目标是要供间接跳转使用的，而且要确保被调用函数的原型与调用者所期望的一致。这种方法是很有效的，但要增加很多编译、运行时的开销。</p><p>CET-IBT方法相当简单，但优点是得到了硬件的支持，因此速度更快.如果 IBT 被启用，那么 CPU 将确保每个间接跳转都落在一条特殊指令（endbr32 或 endbr64）上，该指令执行时跟 no-op 效果一致。如果发现意外，那么处理器将引发一次 control-protection（#CP）exception。</p><p><img src="/images/2025/04/005.png" alt></p><hr><p>参考资料:</p><ol><li>deepseek[介绍下Intel CET技术]</li><li><a href="https://mp.weixin.qq.com/s/zs7G5yucR5iANSiS4M1I3A" target="_blank" rel="noopener">Intel CET 安全防御机制深度解析</a></li><li><a href="https://www.usenix.org/system/files/atc24-chen-xiangdong.pdf" target="_blank" rel="noopener">Limitations and Opportunities of Modern Hardware Isolation Mechanisms</a></li><li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/technical-look-control-flow-enforcement-technology.html?wapkw=cet" target="_blank" rel="noopener">A Technical Look at Intel’s Control-flow Enforcement Technology</a></li><li><a href="https://i.blackhat.com/asia-19/Thu-March-28/bh-asia-Sun-How-to-Survive-the-Hardware-Assisted-Control-Flow-Integrity-Enforcement.pdf" target="_blank" rel="noopener">How to Survive the Hardware-assisted Controlflow Integrity Enforcement</a></li><li><a href="https://dl.acm.org/doi/pdf/10.1145/3548606.3559344" target="_blank" rel="noopener">CETIS: Retrofitting Intel CET for Generic and Efficient Intra-process Memory Isolation</a></li><li><a href="https://lpc.events/event/2/contributions/147/attachments/72/83/CET-LPC-2018.pdf" target="_blank" rel="noopener">Control-flow Enforcement Technology</a></li></ol>]]></content>
     
@@ -439,28 +463,6 @@
     <summary type="html">
     
       &lt;p&gt;本文将mark下network的RFS(Receive Flow Steering)和aRFS(Accelerated Receive Flow Steering)相关notes。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Linux Receive Packet Steering(RPS) technology</title>
-    <link href="http://liujunming.github.io/2024/12/01/Notes-about-Linux-Receive-Packet-Steering-RPS-technology/"/>
-    <id>http://liujunming.github.io/2024/12/01/Notes-about-Linux-Receive-Packet-Steering-RPS-technology/</id>
-    <published>2024-11-30T16:56:52.000Z</published>
-    <updated>2024-12-01T08:59:55.237Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Linux RPS(Receive Packet Steering)相关notes。<a id="more"></a></p><h3 id="Prerequisite"><a href="#Prerequisite" class="headerlink" title="Prerequisite"></a>Prerequisite</h3><p><a href="/2024/05/05/Notes-about-RSS-Receive-Side-Scaling/">RSS(Receive Side Scaling)</a></p><h3 id="What"><a href="#What" class="headerlink" title="What"></a>What</h3><p>Receive Packet Steering (RPS) is logically a software implementation of RSS.</p><h3 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h3><p>RPS has some advantages over RSS: </p><ol><li>it can be used with any NIC</li><li>software filters can easily be added to hash over new protocols</li><li>it does not increase hardware device interrupt rate (although it does IPIs)</li></ol><p>在没有RSS功能的网卡中，RPS还是有价值的。</p><h3 id="How"><a href="#How" class="headerlink" title="How"></a>How</h3><p><img src="/images/2024/12/001.png" alt></p><p>RPS其实就是一个<strong>软件对CPU负载重分发</strong>的机制。其使能的作用点在CPU开始处理软中断，即下面的地方：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">netif_rx_internal</span><br><span class="line">netif_receive_skb_internal</span><br></pre></td></tr></table></figure></p><p><img src="/images/2024/12/002.png" alt></p><p>Whereas RSS selects the queue and hence CPU that will run the hardware interrupt handler, RPS selects the CPU to perform protocol processing above the interrupt handler. This is accomplished by placing the packet on the desired CPU backlog queue and waking up the CPU for processing.(RSS选择队列，从而选择了运行硬件中断处理程序的CPU；而RPS在中断处理程序之上选择CPU执行协议处理。这是通过将数据包放置在所需的CPU积压队列中并唤醒CPU进行处理来实现的。)</p><hr><p>参考资料:</p><ol><li><a href="https://blog.csdn.net/dog250/article/details/80025959" target="_blank" rel="noopener">Linux RPS/RFS 实现原理浅析</a></li><li><a href="https://www.kernel.org/doc/Documentation/networking/scaling.txt" target="_blank" rel="noopener">Scaling in the Linux Networking Stack</a></li><li><a href="https://zhuanlan.zhihu.com/p/148756667" target="_blank" rel="noopener">Linux网络栈的性能缩放</a></li><li><a href="https://garycplin.blogspot.com/2017/06/linux-network-scaling-receives-packets.html" target="_blank" rel="noopener">Linux Network Scaling: Receiving Packets</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Linux RPS(Receive Packet Steering)相关notes。
     
     </summary>
     
