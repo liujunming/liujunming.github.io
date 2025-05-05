@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-05-05T08:54:38.950Z</updated>
+  <updated>2025-05-05T13:42:08.467Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Linux bonded interface</title>
+    <link href="http://liujunming.github.io/2025/05/05/Notes-about-Linux-bonded-interface/"/>
+    <id>http://liujunming.github.io/2025/05/05/Notes-about-Linux-bonded-interface/</id>
+    <published>2025-05-05T13:36:19.000Z</published>
+    <updated>2025-05-05T13:42:08.467Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Linux bonded interface的相关notes。<a id="more"></a></p><p>The Linux bonding driver provides a method for aggregating multiple network interfaces into a single logical “bonded” interface. The behavior of the bonded interface depends on the mode; generally speaking, modes provide either hot standby or load balancing services.</p><p><img src="/images/2025/05/005.png" alt></p><p>Use a bonded interface when you want to increase your link speed or do a failover on your server.</p><p>Here’s how to create a bonded interface:<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ip link add bond1 type bond miimon 100 mode active-backup</span><br><span class="line">ip link set eth0 master bond1</span><br><span class="line">ip link set eth1 master bond1</span><br></pre></td></tr></table></figure></p><p>This creates a bonded interface named <code>bond1</code> with mode active-backup. For other modes, please see the <a href="https://www.kernel.org/doc/Documentation/networking/bonding.txt" target="_blank" rel="noopener">kernel documentation</a>.</p><p>The Linux bonding driver provides a mechanism for enslaving multiple network interfaces into a single, logical “bonded” interface with the same MAC address.Behavior of the bonded interfaces depends on modes.For instance, the bonding driver has the ability to detect link failure and reroute network traffic around a failed link in a manner transparent to the application, which is active-backup mode. It also has the ability to aggregate network traffic in all working links to achieve higher throughput, which is referred to as trunking.</p><hr><p>参考资料:</p><ol><li><a href="https://developers.redhat.com/blog/2018/10/22/introduction-to-linux-interfaces-for-virtual-networking#bonded_interface" target="_blank" rel="noopener">Bonded interface</a></li><li><a href="https://www.kernel.org/doc/Documentation/networking/bonding.txt" target="_blank" rel="noopener">Documentation/networking/bonding.txt</a></li><li><a href="https://www.kernel.org/doc/ols/2008/ols2008v2-pages-261-267.pdf" target="_blank" rel="noopener">Live Migration with Pass-through Device for Linux VM</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Linux bonded interface的相关notes。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Intel TLB Topology</title>
@@ -56,9 +78,9 @@
       <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
     
     
-      <category term="RAS" scheme="http://liujunming.github.io/tags/RAS/"/>
-    
       <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
+    
+      <category term="RAS" scheme="http://liujunming.github.io/tags/RAS/"/>
     
   </entry>
   
@@ -450,28 +472,6 @@
     
     
       <category term="AMD" scheme="http://liujunming.github.io/tags/AMD/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about FUSE filesystem</title>
-    <link href="http://liujunming.github.io/2024/12/21/Notes-about-FUSE-filesystem/"/>
-    <id>http://liujunming.github.io/2024/12/21/Notes-about-FUSE-filesystem/</id>
-    <published>2024-12-21T11:07:07.000Z</published>
-    <updated>2025-01-12T12:30:54.361Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2024/12/005.png" alt><a id="more"></a></p><h2 id="tutorial"><a href="#tutorial" class="headerlink" title="tutorial"></a>tutorial</h2><p><img src="/images/2024/12/007.png" alt></p><p>very nice tutorial: <a href="https://maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/" target="_blank" rel="noopener">Writing a Simple Filesystem Using FUSE in C</a></p><h3 id="Making-a-call-into-a-FUSE-file-system"><a href="#Making-a-call-into-a-FUSE-file-system" class="headerlink" title="Making a call into a FUSE file system"></a>Making a call into a FUSE file system</h3><p><img src="/images/2024/12/006.gif" alt></p><ol><li>A program, such as ls, mkdir makes a call to a file system routine. For example, open(“/test/fuse/file1.txt”). This call gets sent to the kernel.</li><li>If this file is in a FUSE volume, the kernel passes it on to the FUSE kernel module, which then passes it on to the implementation of that file system.</li><li>The implementation of open then refers to the actual data structures that represent the file system and returns a file handle. It is open’s job to take a concrete view of data (bits stored on a hard drive) and present an abstract view (a hierarchically organized file system).</li><li>The kernel returns the result of the open function to the program that originally made the call.</li></ol><p>Cited From <a href="https://www.cs.cmu.edu/~fp/courses/15213-s07/lectures/15-filesys/index.html" target="_blank" rel="noopener">File Systems and FUSE</a>.</p><h3 id="simple-fuse-example"><a href="#simple-fuse-example" class="headerlink" title="simple fuse example"></a>simple fuse example</h3><ul><li><a href="https://github.com/JulesWang/helloworld-fuse/tree/master" target="_blank" rel="noopener">helloworld-fuse</a></li><li><a href="https://github.com/libfuse/libfuse/blob/master/example/hello.c" target="_blank" rel="noopener">libfuse/example/hello.c</a></li></ul><h3 id="辅助资料"><a href="#辅助资料" class="headerlink" title="辅助资料"></a>辅助资料</h3><ul><li><a href="https://www.cs.hmc.edu/~geoff/classes/hmc.cs135.201109/homework/fuse/fuse_doc.html" target="_blank" rel="noopener">CS135 FUSE Documentation</a></li><li><a href="https://www.cs.nmsu.edu/~pfeiffer/fuse-tutorial/" target="_blank" rel="noopener">Writing a FUSE Filesystem: a Tutorial</a></li><li><a href="https://github.com/osxfuse/fuse/blob/master/doc/how-fuse-works" target="_blank" rel="noopener">How Fuse-1.3 Works</a></li><li><a href="https://www.bilibili.com/video/BV1NS4y1L7Me/" target="_blank" rel="noopener">linux内核开发第38讲：linux基于fuse实现自定义文件系统整体架构</a></li></ul><h2 id="理论基础"><a href="#理论基础" class="headerlink" title="理论基础"></a>理论基础</h2><p>FAST’17 paper: <a href="https://www.usenix.org/system/files/conference/fast17/fast17-vangoor.pdf" target="_blank" rel="noopener">To FUSE or Not to FUSE: Performance of User-Space File Systems</a>，<a href="https://www.usenix.org/sites/default/files/conference/protected-files/fast17_slides_vangoor.pdf" target="_blank" rel="noopener">slides</a>也非常硬核!</p><h3 id="辅助资料-1"><a href="#辅助资料-1" class="headerlink" title="辅助资料"></a>辅助资料</h3><ul><li><a href="https://georgesims21.github.io/fuse/" target="_blank" rel="noopener">George’s Blog FUSE</a></li><li><a href="https://www.bilibili.com/video/BV1r24y157gm/" target="_blank" rel="noopener">FUSE 文件系统浅析 - 张老师</a></li><li><a href="https://zhuanlan.zhihu.com/p/143256077" target="_blank" rel="noopener">用户态文件系统 - FUSE</a></li><li><a href="https://www.kernel.org/doc/html/next/filesystems/fuse.html" target="_blank" rel="noopener">kernel doc fuse</a></li><li><a href="https://zhuanlan.zhihu.com/p/17059519212" target="_blank" rel="noopener">FUSE读写流程梳理</a></li></ul><h2 id="Manual"><a href="#Manual" class="headerlink" title="Manual"></a>Manual</h2><ul><li><a href="https://man7.org/linux/man-pages/man4/fuse.4.html" target="_blank" rel="noopener">fuse(4)</a></li><li><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/fuse.h" target="_blank" rel="noopener">include/uapi/linux/fuse.h</a></li></ul>]]></content>
-    
-    <summary type="html">
-    
-      &lt;h2 id=&quot;Overview&quot;&gt;&lt;a href=&quot;#Overview&quot; class=&quot;headerlink&quot; title=&quot;Overview&quot;&gt;&lt;/a&gt;Overview&lt;/h2&gt;&lt;p&gt;&lt;img src=&quot;/images/2024/12/005.png&quot; alt&gt;
-    
-    </summary>
-    
-      <category term="文件系统" scheme="http://liujunming.github.io/categories/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-      <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
