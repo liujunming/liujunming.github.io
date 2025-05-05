@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-04-26T13:49:12.206Z</updated>
+  <updated>2025-05-05T08:54:38.950Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Intel TLB Topology</title>
+    <link href="http://liujunming.github.io/2025/05/05/Notes-about-Intel-TLB-Topology/"/>
+    <id>http://liujunming.github.io/2025/05/05/Notes-about-Intel-TLB-Topology/</id>
+    <published>2025-05-05T08:15:14.000Z</published>
+    <updated>2025-05-05T08:54:38.950Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Intel TLB Topology的相关notes。<a id="more"></a></p><h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p><img src="/images/2025/05/001.png" alt></p><p><img src="/images/2025/05/002.png" alt></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/05/003.png" alt></p><h2 id="L1-TLBs"><a href="#L1-TLBs" class="headerlink" title="L1 TLBs"></a>L1 TLBs</h2><p>Modern processors implement a group of split L1 TLBs for instructions and data, separated by page size.</p><ul><li>Separate I and D TLBs</li><li>Separate L1 TLBs for Different Page Sizes</li></ul><h2 id="L2-TLBs"><a href="#L2-TLBs" class="headerlink" title="L2 TLBs"></a>L2 TLBs</h2><ul><li>Multiple page size support</li><li>Inclusive, mostly-inclusive, or exclusive designs</li></ul><h2 id="SDM"><a href="#SDM" class="headerlink" title="SDM"></a>SDM</h2><p><img src="/images/2025/05/004.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.usenix.org/system/files/sec22_slides-tatar.pdf" target="_blank" rel="noopener">TLB;DR: Enhancing TLB-based Attacks with TLB Desynchronized Reverse Engineering</a></li><li><a href="https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-lipp.pdf" target="_blank" rel="noopener">Meltdown: Reading Kernel Memory from User Space</a></li><li><a href="http://www.cs.yale.edu/homes/abhishek/abhishek-appendix-l.pdf" target="_blank" rel="noopener">Appendix L: Advanced Concepts on Address Translation</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Intel TLB Topology的相关notes。
+    
+    </summary>
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+  </entry>
   
   <entry>
     <title>硬盘SMART技术</title>
@@ -450,28 +472,6 @@
     
     
       <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Linux Transmit Packet Steering(XPS) technology</title>
-    <link href="http://liujunming.github.io/2024/12/21/Notes-about-Linux-Transmit-Packet-Steering-XPS-technology/"/>
-    <id>http://liujunming.github.io/2024/12/21/Notes-about-Linux-Transmit-Packet-Steering-XPS-technology/</id>
-    <published>2024-12-21T00:07:27.000Z</published>
-    <updated>2024-12-21T05:01:50.936Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Linux XPS(Transmit Packet Steering)相关notes。<a id="more"></a></p><h2 id="1-Overview"><a href="#1-Overview" class="headerlink" title="1. Overview"></a>1. Overview</h2><blockquote><p>The Linux network stack maps each core C to a different Tx queue Q, such that Q’s memory is allocated from C’s node. Additionally, memory allocations of packets transmitted via Q are likewise fulfilled using the same node. Cores can then transmit simultaneously through their individual queues in an uncoordinated, NU(D)MA-friendly manner while avoiding synchronization overheads. When a thread T that executes on C issues a system call to open a socket file descriptor S, the network stack associates Q with S, saving Q’s identifier in the socket data structure. After that, whenever T transmits through S, the network stack checks that T still runs on C. If it does not, the network stack updates S to point to the queue of T ’s new core. (The actual modification happens after Q is drained from any outstanding packets that originated from S, to avoid out-of-order transmissions.)</p></blockquote><h2 id="2-Optimization"><a href="#2-Optimization" class="headerlink" title="2. Optimization"></a>2. Optimization</h2><h3 id="2-1-reduce-contention"><a href="#2-1-reduce-contention" class="headerlink" title="2.1 reduce contention"></a>2.1 reduce contention</h3><p>contention on the device queue lock is significantly reduced since fewer CPUs contend for the same queue(contention can be eliminated completely if each CPU has its own transmit queue).</p><h3 id="2-2-reduce-cache-miss-rate-on-transmit-completion"><a href="#2-2-reduce-cache-miss-rate-on-transmit-completion" class="headerlink" title="2.2 reduce cache miss rate on transmit completion"></a>2.2 reduce cache miss rate on transmit completion</h3><p>cache miss rate on transmit completion is reduced, in particular for data cache lines that hold the <code>sk_buff</code> structures.</p><p>网卡发完包后，会给CPU发送中断；接着linux内核协议栈就会调用<code>kfree_skb</code>，此时就会访问到<code>sk_buff</code> structures。如果发送数据包的core与调用<code>kfree_skb</code>的core一样，那么<code>sk_buff</code> structures的cache miss rate就会降低。</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kfree_skb</span><br><span class="line">└── kfree_skb_reason</span><br><span class="line">    └── skb_unref</span><br><span class="line">        └── skb-&gt;users</span><br></pre></td></tr></table></figure><h3 id="2-3-DMA-Buffer-NUMA-Affinity"><a href="#2-3-DMA-Buffer-NUMA-Affinity" class="headerlink" title="2.3 DMA Buffer NUMA Affinity"></a>2.3 DMA Buffer NUMA Affinity</h3><p>网卡发包时，DMA本node的内存即可，无需跨numa node，可以提升DMA的性能。详情可以参考<a href="/2024/11/17/%E8%BD%AC%E8%BD%BD-Linux-NUMA-Optimization-1/#3-2-1-DMA-Buffer-NUMA-Affinity">DMA Buffer NUMA Affinity</a>。</p><hr><p>参考资料:</p><ol><li>IOctopus: Outsmarting Nonuniform DMA(ASPLOS’20)</li><li><a href="https://www.kernel.org/doc/Documentation/networking/scaling.txt" target="_blank" rel="noopener">Scaling in the Linux Networking Stack</a></li><li><a href="https://zhuanlan.zhihu.com/p/148756667" target="_blank" rel="noopener">Linux网络栈的性能缩放</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Linux XPS(Transmit Packet Steering)相关notes。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
   </entry>
   
