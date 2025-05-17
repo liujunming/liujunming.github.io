@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about PGO && HW-PGO">
+
+
+
+
+  <meta name="keywords" content="计算机系统, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/05/17/Notes-about-HW-PGO/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about PGO && HW-PGO - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about PGO && HW-PGO
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-05-17
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机系统/">计算机系统</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PGO-的工作原理"><span class="toc-text">PGO 的工作原理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#插桩阶段（Instrumentation）"><span class="toc-text">插桩阶段（Instrumentation）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#数据收集阶段（Profiling）"><span class="toc-text">数据收集阶段（Profiling）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#优化阶段（Optimization）"><span class="toc-text">优化阶段（Optimization）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PGO-的优势"><span class="toc-text">PGO 的优势</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PGO-的局限性"><span class="toc-text">PGO 的局限性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PGO-的应用场景"><span class="toc-text">PGO 的应用场景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#与传统优化的对比"><span class="toc-text">与传统优化的对比</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#硬件辅助PGO（如Intel-HW-PGO）"><span class="toc-text">硬件辅助PGO（如Intel HW-PGO）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下PGO(Profile-Guided Optimization)和HW-PGO(Hardware Profile-Guided Optimization)的相关notes。<a id="more"></a></p>
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>Profile Guided Optimization (PGO) 是一种编译器优化技术，通过收集程序实际运行时的性能数据（Profile），指导编译器生成更高效的代码。其核心思想是“用实际运行行为指导优化”，相比传统的静态分析优化，PGO 能显著提升程序性能并减少代码体积。</p>
+<h2 id="PGO-的工作原理"><a href="#PGO-的工作原理" class="headerlink" title="PGO 的工作原理"></a>PGO 的工作原理</h2><p>PGO 的实现通常分为三个阶段：</p>
+<h3 id="插桩阶段（Instrumentation）"><a href="#插桩阶段（Instrumentation）" class="headerlink" title="插桩阶段（Instrumentation）"></a>插桩阶段（Instrumentation）</h3><p>编译器在代码中插入统计探针（Probes），生成带有数据采集功能的“插桩版本”程序。例如：</p>
+<ul>
+<li>统计函数调用频率</li>
+<li>记录分支（if/else）的执行路径</li>
+<li>跟踪循环迭代次数</li>
+<li>监控热点代码区域（Hot Code）</li>
+</ul>
+<h3 id="数据收集阶段（Profiling）"><a href="#数据收集阶段（Profiling）" class="headerlink" title="数据收集阶段（Profiling）"></a>数据收集阶段（Profiling）</h3><p>运行插桩后的程序，模拟真实场景（如高负载、典型输入数据），生成运行时性能数据文件（如 <code>.profraw</code> 或 <code>.gcda</code> 文件）。</p>
+<h3 id="优化阶段（Optimization）"><a href="#优化阶段（Optimization）" class="headerlink" title="优化阶段（Optimization）"></a>优化阶段（Optimization）</h3><p>编译器基于收集到的 Profile 数据重新编译代码，针对性优化：</p>
+<ul>
+<li>代码布局优化：将高频执行的代码段集中存放，提升指令缓存命中率。</li>
+<li>分支预测优化：根据分支实际执行概率，优化条件判断顺序（如将高概率分支前置）。</li>
+<li>函数内联（Inlining）：对高频调用的小函数进行内联，减少调用开销。</li>
+<li>死代码消除：移除从未执行过的代码路径。</li>
+<li>寄存器分配优化：优先为热点代码分配寄存器。</li>
+</ul>
+<h2 id="PGO-的优势"><a href="#PGO-的优势" class="headerlink" title="PGO 的优势"></a>PGO 的优势</h2><ol>
+<li><p>性能提升<br>通过精准优化热点代码，典型场景下性能提升可达 10%-30%，尤其在分支密集或缓存敏感的代码中效果显著。<br>示例：<br>一个循环若实际运行中迭代次数固定，PGO 可将其展开为确定次数的指令，避免动态判断开销。</p>
+</li>
+<li><p>代码体积减少<br>移除未使用的代码路径，减小可执行文件大小。</p>
+</li>
+<li><p>优化更精准<br>静态优化可能因缺乏运行时信息而保守决策，PGO 则依赖真实数据，避免“过度优化”或“优化错误路径”。</p>
+</li>
+</ol>
+<h2 id="PGO-的局限性"><a href="#PGO-的局限性" class="headerlink" title="PGO 的局限性"></a>PGO 的局限性</h2><ol>
+<li><p>额外步骤与时间成本<br>需经历插桩、运行测试、二次编译，增加开发流程复杂度。</p>
+</li>
+<li><p>依赖场景代表性<br>若测试数据（Profile）不能覆盖真实场景，可能导致优化方向错误。<br>示例：<br>若测试时未触发某个分支，优化后可能错误删除该路径代码。</p>
+</li>
+<li><p>动态负载适应能力有限<br>对运行时行为变化剧烈的程序（如实时系统），静态 Profile 可能无法适应动态变化。</p>
+</li>
+</ol>
+<h2 id="PGO-的应用场景"><a href="#PGO-的应用场景" class="headerlink" title="PGO 的应用场景"></a>PGO 的应用场景</h2><ul>
+<li>高性能计算（HPC）：优化科学计算中的核心算法循环。</li>
+<li>游戏引擎：提升渲染管线和物理模拟的性能。</li>
+<li>数据库系统：加速查询执行计划的热点操作。</li>
+<li>编译器自身优化：如 LLVM、GCC 使用 PGO 优化自身编译速度。</li>
+</ul>
+<h2 id="与传统优化的对比"><a href="#与传统优化的对比" class="headerlink" title="与传统优化的对比"></a>与传统优化的对比</h2><p><img src="/images/2025/05/008.png" alt></p>
+<h2 id="硬件辅助PGO（如Intel-HW-PGO）"><a href="#硬件辅助PGO（如Intel-HW-PGO）" class="headerlink" title="硬件辅助PGO（如Intel HW-PGO）"></a>硬件辅助PGO（如Intel HW-PGO）</h2><p>传统 PGO 依赖软件插桩，而 硬件辅助 PGO 通过处理器内置的性能监控单元（PMU）直接采集硬件事件（如缓存未命中、分支预测失败），无需插桩即可生成更精细的 Profile。优势包括：</p>
+<ul>
+<li>更低开销：硬件级数据采集不影响程序性能。</li>
+<li>更细粒度：可监控底层硬件行为（如指令级并行度）。</li>
+</ul>
+<p><img src="/images/2025/05/009.png" alt><br>这些技术允许在硬件（HW）中以更低的开销采集样本（可能一次性采集多个），并提供其他优势，例如减少采样偏移（Reduced-Skid）、精确分布（Precise Distribution）以及数据地址追踪（Data Address）。</p>
+<p><img src="/images/2025/05/010.png" alt></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>PGO 通过”用数据驱动优化”，在关键场景中显著提升程序效率，尤其适合性能敏感型应用。硬件辅助 PGO 进一步降低了数据采集成本，代表了编译器与硬件协同优化的未来趋势。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li>deepseek</li>
+<li><a href="https://llvm.org/devmtg/2024-04/slides/TechnicalTalks/Xiao-EnablingHW-BasedPGO.pdf" target="_blank" rel="noopener">Enabling HW-based PGO for both Windows and Linux</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/计算机系统/">计算机系统</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/05/11/Notes-about-IBGDA-InfiniBand-GPUDirect-Async/">
+        <span class="next-text nav-default">Notes about IBGDA(InfiniBand GPUDirect Async)</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/05/17/Notes-about-HW-PGO/';
+        this.page.identifier = '2025/05/17/Notes-about-HW-PGO/';
+        this.page.title = 'Notes about PGO && HW-PGO';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
