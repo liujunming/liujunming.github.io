@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-05-15T00:27:56.854Z</updated>
+  <updated>2025-05-18T02:22:58.342Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about NVMe dataset management</title>
+    <link href="http://liujunming.github.io/2025/05/18/Notes-about-NVMe-dataset-management/"/>
+    <id>http://liujunming.github.io/2025/05/18/Notes-about-NVMe-dataset-management/</id>
+    <published>2025-05-18T01:52:35.000Z</published>
+    <updated>2025-05-18T02:22:58.342Z</updated>
+    
+    <content type="html"><![CDATA[<p>NVMe dataset management就是driver给controller的hints(接下来的访问模式)，为此controller可以做些优化。<a id="more"></a></p><p><img src="/images/2025/05/012.png" alt></p><p><img src="/images/2025/05/013.png" alt></p><p>上图中的potion替换为portion</p><p><img src="/images/2025/05/011.png" alt></p><blockquote><p>The Dataset Management command is used by the host to indicate attributes for ranges of logical blocks. This includes attributes like frequency that data is read or written, access size, and other information that may be used to optimize performance and reliability. This command is advisory; a compliant controller may choose to take no action based on information provided.</p></blockquote><hr><p>参考资料:</p><ol><li><a href="https://files.futurememorystorage.com/proceedings/2013/20130812_PreConfD_Marks.pdf" target="_blank" rel="noopener">An NVM Express Tutorial</a></li><li>NVMe spec</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;NVMe dataset management就是driver给controller的hints(接下来的访问模式)，为此controller可以做些优化。
+    
+    </summary>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
+    
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PGO &amp;&amp; HW-PGO</title>
@@ -452,28 +474,6 @@
     
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Memory Scrubbing</title>
-    <link href="http://liujunming.github.io/2025/01/04/Notes-about-Memory-Scrubbing/"/>
-    <id>http://liujunming.github.io/2025/01/04/Notes-about-Memory-Scrubbing/</id>
-    <published>2025-01-04T11:38:43.000Z</published>
-    <updated>2025-01-04T13:26:49.114Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Memory Scrubbing相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>Memory scrubbing refers to the process of correcting or ‘scrubbing’ erroneously flipped bits in memory as a result of transient faults such as those caused by physical phenomena. Scrubbing is considered a RAS feature.</p><h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>Memory scrubbing将错误纠正后回写，可以防止内存条上的单bit错误逐渐累积形成多bit不可纠正错误。These actions provide software with early visibility for possible preventive measures such as page off-lining based on the rate of error corrections.</p><h2 id="When"><a href="#When" class="headerlink" title="When"></a>When</h2><ul><li>Patrol scrubbing proactively searches the system memory(由硬件而非软件来做), repairing correctable errors. It prevents accumulation of single-bit errors.</li><li>Demand scrubbing is the ability to write corrected data back to the memory once a correctable error is detected on a read transaction.</li></ul><h2 id="How"><a href="#How" class="headerlink" title="How"></a>How</h2><p><strong>Patrol Scrubbing consists in reading memory, checking it against ECC for errors, and overwriting with the corrected memory words when an error is discovered</strong>. </p><p>Patrol scrubbing is done using a hardware engine, on either the platform or on the memory device, which generates requests to memory addresses on the memory device. The engine generates memory requests at a predefined frequency. Given enough time, it will eventually access every memory address. The frequency in which patrol scrub generates requests produces no noticeable impact on the memory device’s quality of service.</p><p>By generating read requests to memory addresses, the patrol scrubber allows the hardware an opportunity to run ECC on a memory address and correct any correctable errors before they can become uncorrectable errors. <u>Optionally, if an uncorrectable error is discovered, the patrol scrubber can trigger a hardware interrupt and notify the software layer of its memory address</u>.</p><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/www/us/en/quality/reliability-availability-serviceability-xeon-paper.html" target="_blank" rel="noopener">4th Gen Intel® Xeon® Scalable Processors: Reliability, Availability, and Serviceability (RAS) Technical Paper</a></li><li><a href="https://en.wikichip.org/wiki/memory_scrubbing" target="_blank" rel="noopener">https://en.wikichip.org/wiki/memory_scrubbing</a></li><li><a href="https://community.intel.com/t5/Server-Products/Uncorrectable-Memory-Error-amp-Patrol-Scrub/m-p/545123" target="_blank" rel="noopener">Uncorrectable Memory Error &amp; Patrol Scrub</a></li><li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/pmem-RAS.html" target="_blank" rel="noopener">Reliability, Availability, and Serviceability (RAS)</a></li><li><a href="https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/05_ACPI_Software_Programming_Model/ACPI_Software_Programming_Model.html" target="_blank" rel="noopener">ACPI Software Programming Model</a></li><li><a href="https://info.support.huawei.com/compute/docs/zh-cn/kunpeng-knowledge/typical-scenarios-1/zh-cn_topic_0000001108627660.html" target="_blank" rel="noopener">Demand Scrubbing/Patrol Scrubbing（内存巡检）</a></li><li><a href="https://www.cnblogs.com/xyjk1002-rejuvenation/p/16479297.html" target="_blank" rel="noopener">内存错误和服务器内存RAS功能-DELL篇-1</a></li><li><a href="https://superuser.com/questions/372422/can-linux-scrub-memory" target="_blank" rel="noopener">Can Linux scrub memory?</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Memory Scrubbing相关notes。
-    
-    </summary>
-    
-      <category term="RAS" scheme="http://liujunming.github.io/categories/RAS/"/>
-    
-    
-      <category term="RAS" scheme="http://liujunming.github.io/tags/RAS/"/>
     
   </entry>
   
