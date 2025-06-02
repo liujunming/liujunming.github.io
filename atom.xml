@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-06-01T07:57:29.074Z</updated>
+  <updated>2025-06-02T05:23:30.037Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about NVMe reservation机制</title>
+    <link href="http://liujunming.github.io/2025/06/02/Notes-about-NVMe-reservation%E6%9C%BA%E5%88%B6/"/>
+    <id>http://liujunming.github.io/2025/06/02/Notes-about-NVMe-reservation机制/</id>
+    <published>2025-06-02T00:31:40.000Z</published>
+    <updated>2025-06-02T05:23:30.037Z</updated>
+    
+    <content type="html"><![CDATA[<p>对于NVMe共享盘，是通过NVMe reservation机制来实现的。可以将NVMe reservation机制类比于读写锁。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/06/003.png" alt></p><p>reservation的意义在于，提供一个机制，避免多个host访问一个共享的namespace出现冲突。reservation操作的对象是namespace，而不是ssd。</p><p>reservation是<u>管理共享者的访问权限</u>；用户可以用共享，但是不用reservation，reservation是一个可选项。</p><blockquote><p>Multi-Attach enabled io2 volumes support NVMe reservations, which is a set of industry-standard storage fencing protocols. These protocols enable you to create and manage reservations that control and coordinate access from multiple instances to a shared volume. Reservations are used by shared storage applications to ensure data consistency.</p></blockquote><p><a href="https://docs.aws.amazon.com/ebs/latest/userguide/nvme-reservations.html" target="_blank" rel="noopener">https://docs.aws.amazon.com/ebs/latest/userguide/nvme-reservations.html</a></p><h2 id="How-to-identify-reservation-capability"><a href="#How-to-identify-reservation-capability" class="headerlink" title="How to identify reservation capability"></a>How to identify reservation capability</h2><p><img src="/images/2025/06/001.png" alt></p><p><img src="/images/2025/06/002.png" alt></p><h2 id="Reservation-Register"><a href="#Reservation-Register" class="headerlink" title="Reservation Register"></a>Reservation Register</h2><p>The Reservation Register command is used to <u>register</u>, <u>unregister</u>, or <u>replace</u> a reservation key.</p><h2 id="Reservation-Report"><a href="#Reservation-Report" class="headerlink" title="Reservation Report"></a>Reservation Report</h2><p>The Reservation Report command returns a Reservation Status data structure to memory that describes the registration and reservation status of a namespace.</p><h2 id="Reservation-Acquire"><a href="#Reservation-Acquire" class="headerlink" title="Reservation Acquire"></a>Reservation Acquire</h2><p>The Reservation Acquire command is used to acquire a reservation on a namespace, preempt a reservation held on a namespace, and abort a reservation held on a namespace.</p><p>要想获得对Namespace的全部访问权限，Host需要下发Reservation Acquire命令.</p><p>一个Namespace同时只能接收一个Reservation，在Host A已经占用namespace时，如果Host B发送Reservation Acquire命令，该命令会被SSD abort。</p><p><img src="/images/2025/06/007.png" alt></p><p><img src="/images/2025/06/008.png" alt></p><p>在NVMe里，有3类角色：</p><ul><li>Reservation Holder – 当前获得namespace使用权Host</li><li>Registrant – 所有获得Reservation Key的Host</li><li>Non-Registrant – 其他Host</li></ul><p>Reservation Holder，有6种Reservation模式:</p><ul><li>Write Exclusive — 除了Reservation Holder，其他Host都不能写该Namespace</li><li>Exclusive Access — 除了Reservation Holder，其他Host都不能访问该Namespace</li><li>Write Exclusive – Registrant Only — 除了Reservation Holder和一个Registrant，其他Host都不能写该Namespace</li><li>Exclusive Access – Registrant Only –除了Reservation Holder和一个Registrant，其他Host都不能访问该Namespace</li><li>Write Exclusive – All Registrant Only –除了Reservation Holder和Registrants，其他Host不能访问该Namespace</li><li>Exclusive Access – All Registrant Only –除了Reservation Holder和Registrants，其他Host不能访问该Namespace</li></ul><p>在Host A是Reservation Holder的情况下，Host B也有方式把namespace的使用权夺过来，具体方式是下发Reservation Acquire命令, 把Reservation Acquire Action字段设置为001b，同时在Current Reservation Key字段设置正确的Key。只要当前Host A的reservation type不是”Write Exclusive – All Registrants”或者“Exclusive Access – All Registrants”, SSD就会注销Host A，释放其使用权，并将Host B设置为新的Reservation Holder。</p><h2 id="Reservation-Release"><a href="#Reservation-Release" class="headerlink" title="Reservation Release"></a>Reservation Release</h2><p>The Reservation Release command is used to release or clear a reservation held on a namespace.</p><p>Host A即使被Host B抢走了Namespace的使用权，但是只要保持了Registrant身份，仍然可以下发Reservation Release命令，将Reservation Release Action字段设置为001，同时在Current Reservation Key字段设置正确的Key，就可以将所有注册为该Namespace registrant的Host全部注销掉。</p><h2 id="Reservation-Notification"><a href="#Reservation-Notification" class="headerlink" title="Reservation Notification"></a>Reservation Notification</h2><p><img src="/images/2025/06/004.png" alt></p><p>在registration preempted, reservation released, and reservation preempted这三种情况下，如果没有禁止掉Reservation Notification的话，设备就会基于Admin queue的AER(Async Event Request)发送Reservation Notification，告诉driver发生了registration preempted, reservation released, or reservation preempted事件。</p><p>Reservation Notification AER的相关描述:<br><img src="/images/2025/06/005.png" alt></p><p><img src="/images/2025/06/006.png" alt></p><hr><p>参考资料:</p><ol><li>NVMe spec 1.4</li><li><a href="https://www.cnblogs.com/FireLife-Cheng/p/16248247.html" target="_blank" rel="noopener">NVM Feature— Reservation(NVME 学习笔记五)</a></li><li><a href="http://www.ssdfans.com/?p=97147" target="_blank" rel="noopener">蛋蛋读剩的NVMe之一：NVMe Reservation</a></li><li><a href="https://help.aliyun.com/zh/ecs/user-guide/enable-multi-attach" target="_blank" rel="noopener">通过多重挂载功能将单块云盘挂载至多台ECS实例</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;对于NVMe共享盘，是通过NVMe reservation机制来实现的。可以将NVMe reservation机制类比于读写锁。
+    
+    </summary>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
+    
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+  </entry>
   
   <entry>
     <title>深入理解virtio packed virtqueue机制</title>
@@ -448,32 +470,6 @@
     
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>SystemTap如何改变内核函数返回值</title>
-    <link href="http://liujunming.github.io/2025/02/09/SystemTap%E5%A6%82%E4%BD%95%E6%94%B9%E5%8F%98%E5%86%85%E6%A0%B8%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC/"/>
-    <id>http://liujunming.github.io/2025/02/09/SystemTap如何改变内核函数返回值/</id>
-    <published>2025-02-09T11:41:30.000Z</published>
-    <updated>2025-02-09T12:29:55.906Z</updated>
-    
-    <content type="html"><![CDATA[<p><strong>利用SystemTap，判断内核函数的参数后，才更改返回值?</strong> <a id="more"></a></p><p><img src="/images/2025/02/002.png" alt></p><p>接下来将展示下<a href="https://chatgpt.com/" target="_blank" rel="noopener">chatgpt</a>给出的答案(笔者也没有运行，不保证正确性)。</p><p><img src="/images/2025/02/001.png" alt></p><h2 id="SystemTap-概述"><a href="#SystemTap-概述" class="headerlink" title="SystemTap 概述"></a>SystemTap 概述</h2><p>SystemTap 是一个动态追踪工具，可以用来监控内核和用户空间程序的行为。你可以通过编写脚本来插桩内核函数，并分析函数参数、返回值等信息。</p><p>在这个教程中，我们将演示如何创建一个 SystemTap 脚本，挂钩内核函数、检查参数，并在满足特定条件时修改函数的返回值。</p><h2 id="创建SystemTap-脚本"><a href="#创建SystemTap-脚本" class="headerlink" title="创建SystemTap 脚本"></a>创建SystemTap 脚本</h2><p>我们以<code>sys_open</code>系统调用为例。<code>sys_open</code>用于打开文件，它接受两个主要参数：路径和打开标志。我们将判断路径是否是<code>/etc/passwd</code>，如果是，则修改返回值（模拟无法打开该文件）。</p><p>创建一个新的 SystemTap 脚本文件，比如<code>check_open.stp</code>，并编辑该文件，在文件中输入以下内容:</p><figure class="highlight stp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">probe syscall.open &#123;</span><br><span class="line">    <span class="comment">// 获取传入的路径参数</span></span><br><span class="line">    filename = user_string($filename)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 打印文件路径</span></span><br><span class="line">    printf(<span class="string">"Trying to open: %s\n"</span>, filename)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断路径是否为 /etc/passwd</span></span><br><span class="line">    if (filename == <span class="string">"/etc/passwd"</span>) &#123;</span><br><span class="line">        <span class="comment">// 如果是 /etc/passwd，则返回 -EACCES，表示访问被拒绝</span></span><br><span class="line">        printf(<span class="string">"Blocking access to /etc/passwd\n"</span>)</span><br><span class="line">        return -EACCES</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><ul><li><code>probe syscall.open</code>：我们使用 <code>syscall.open</code> 来挂钩 <code>sys_open</code> 系统调用。这将允许我们监视所有尝试打开文件的操作。</li><li><code>user_string($filename)</code>：该函数提取文件路径参数。我们使用 <code>user_string()</code> 来获取用户空间传入的字符串。</li><li><code>if (filename == &quot;/etc/passwd&quot;)</code>：这里检查传入的文件路径是否为 <code>/etc/passwd</code>。</li><li><code>return -EACCES</code>：如果路径是 <code>/etc/passwd</code>，我们通过 <code>return</code> 语句修改返回值，返回 <code>-EACCES</code>，表示访问被拒绝。</li></ul><h2 id="运行-SystemTap-脚本"><a href="#运行-SystemTap-脚本" class="headerlink" title="运行 SystemTap 脚本"></a>运行 SystemTap 脚本</h2><p>在创建了脚本后，需要使用 <code>stap</code> 命令来运行脚本。</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo stap check_open.stp</span><br></pre></td></tr></table></figure><p>这将会启动脚本并开始跟踪 <code>sys_open</code> 调用。如果你尝试打开 <code>/etc/passwd</code>，脚本会修改返回值，导致文件无法打开。</p><h2 id="验证脚本效果"><a href="#验证脚本效果" class="headerlink" title="验证脚本效果"></a>验证脚本效果</h2><p>你可以验证脚本的效果，看看它是否按预期工作：</p><p>尝试打开 <code>/etc/passwd</code> 文件，例如使用 <code>cat</code> 命令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/passwd</span><br></pre></td></tr></table></figure></p><p>由于脚本的作用，<code>cat</code> 命令应该失败，并返回错误信息，如 <code>Permission denied</code>。</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol><li>创建脚本：使用<code>probe</code>挂钩内核函数，获取相关参数。</li><li>条件判断：通过<code>if</code>语句判断参数值，执行相应的操作。</li><li>修改返回值：使用<code>return</code>修改函数的返回值。</li><li>运行脚本：使用<code>sudo stap</code>命令来执行脚本并进行监控。</li></ol><hr><p>参考资料:</p><ol><li><a href="https://lrita.github.io/images/posts/systemtap/SystemTap-II.pdf" target="_blank" rel="noopener">SystemTap Tutorial Part-II</a></li><li><a href="https://www.opensourceforu.com/2010/10/systemtap-tutorial-part-2/" target="_blank" rel="noopener">SystemTap Tutorial, Part-2</a></li><li><a href="https://sourceware.org/systemtap/tutorial.pdf" target="_blank" rel="noopener">Systemtap tutorial</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;strong&gt;利用SystemTap，判断内核函数的参数后，才更改返回值?&lt;/strong&gt;
-    
-    </summary>
-    
-      <category term="debug" scheme="http://liujunming.github.io/categories/debug/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-      <category term="工具" scheme="http://liujunming.github.io/tags/%E5%B7%A5%E5%85%B7/"/>
-    
-      <category term="debug" scheme="http://liujunming.github.io/tags/debug/"/>
     
   </entry>
   

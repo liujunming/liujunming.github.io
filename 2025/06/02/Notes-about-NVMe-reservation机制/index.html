@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about NVMe reservation机制">
+
+
+
+
+  <meta name="keywords" content="NVMe, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/06/02/Notes-about-NVMe-reservation机制/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about NVMe reservation机制 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about NVMe reservation机制
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-06-02
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/NVMe/">NVMe</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#How-to-identify-reservation-capability"><span class="toc-text">How to identify reservation capability</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Reservation-Register"><span class="toc-text">Reservation Register</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Reservation-Report"><span class="toc-text">Reservation Report</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Reservation-Acquire"><span class="toc-text">Reservation Acquire</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Reservation-Release"><span class="toc-text">Reservation Release</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Reservation-Notification"><span class="toc-text">Reservation Notification</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>对于NVMe共享盘，是通过NVMe reservation机制来实现的。可以将NVMe reservation机制类比于读写锁。<a id="more"></a></p>
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/06/003.png" alt></p>
+<p>reservation的意义在于，提供一个机制，避免多个host访问一个共享的namespace出现冲突。reservation操作的对象是namespace，而不是ssd。</p>
+<p>reservation是<u>管理共享者的访问权限</u>；用户可以用共享，但是不用reservation，reservation是一个可选项。</p>
+<blockquote>
+<p>Multi-Attach enabled io2 volumes support NVMe reservations, which is a set of industry-standard storage fencing protocols. These protocols enable you to create and manage reservations that control and coordinate access from multiple instances to a shared volume. Reservations are used by shared storage applications to ensure data consistency.</p>
+</blockquote>
+<p><a href="https://docs.aws.amazon.com/ebs/latest/userguide/nvme-reservations.html" target="_blank" rel="noopener">https://docs.aws.amazon.com/ebs/latest/userguide/nvme-reservations.html</a></p>
+<h2 id="How-to-identify-reservation-capability"><a href="#How-to-identify-reservation-capability" class="headerlink" title="How to identify reservation capability"></a>How to identify reservation capability</h2><p><img src="/images/2025/06/001.png" alt></p>
+<p><img src="/images/2025/06/002.png" alt></p>
+<h2 id="Reservation-Register"><a href="#Reservation-Register" class="headerlink" title="Reservation Register"></a>Reservation Register</h2><p>The Reservation Register command is used to <u>register</u>, <u>unregister</u>, or <u>replace</u> a reservation key.</p>
+<h2 id="Reservation-Report"><a href="#Reservation-Report" class="headerlink" title="Reservation Report"></a>Reservation Report</h2><p>The Reservation Report command returns a Reservation Status data structure to memory that describes the registration and reservation status of a namespace.</p>
+<h2 id="Reservation-Acquire"><a href="#Reservation-Acquire" class="headerlink" title="Reservation Acquire"></a>Reservation Acquire</h2><p>The Reservation Acquire command is used to acquire a reservation on a namespace, preempt a reservation held on a namespace, and abort a reservation held on a namespace.</p>
+<p>要想获得对Namespace的全部访问权限，Host需要下发Reservation Acquire命令.</p>
+<p>一个Namespace同时只能接收一个Reservation，在Host A已经占用namespace时，如果Host B发送Reservation Acquire命令，该命令会被SSD abort。</p>
+<p><img src="/images/2025/06/007.png" alt></p>
+<p><img src="/images/2025/06/008.png" alt></p>
+<p>在NVMe里，有3类角色：</p>
+<ul>
+<li>Reservation Holder – 当前获得namespace使用权Host</li>
+<li>Registrant – 所有获得Reservation Key的Host</li>
+<li>Non-Registrant – 其他Host</li>
+</ul>
+<p>Reservation Holder，有6种Reservation模式:</p>
+<ul>
+<li>Write Exclusive — 除了Reservation Holder，其他Host都不能写该Namespace</li>
+<li>Exclusive Access — 除了Reservation Holder，其他Host都不能访问该Namespace</li>
+<li>Write Exclusive – Registrant Only — 除了Reservation Holder和一个Registrant，其他Host都不能写该Namespace</li>
+<li>Exclusive Access – Registrant Only –除了Reservation Holder和一个Registrant，其他Host都不能访问该Namespace</li>
+<li>Write Exclusive – All Registrant Only –除了Reservation Holder和Registrants，其他Host不能访问该Namespace</li>
+<li>Exclusive Access – All Registrant Only –除了Reservation Holder和Registrants，其他Host不能访问该Namespace</li>
+</ul>
+<p>在Host A是Reservation Holder的情况下，Host B也有方式把namespace的使用权夺过来，具体方式是下发Reservation Acquire命令, 把Reservation Acquire Action字段设置为001b，同时在Current Reservation Key字段设置正确的Key。只要当前Host A的reservation type不是”Write Exclusive – All Registrants”或者“Exclusive Access – All Registrants”, SSD就会注销Host A，释放其使用权，并将Host B设置为新的Reservation Holder。</p>
+<h2 id="Reservation-Release"><a href="#Reservation-Release" class="headerlink" title="Reservation Release"></a>Reservation Release</h2><p>The Reservation Release command is used to release or clear a reservation held on a namespace.</p>
+<p>Host A即使被Host B抢走了Namespace的使用权，但是只要保持了Registrant身份，仍然可以下发Reservation Release命令，将Reservation Release Action字段设置为001，同时在Current Reservation Key字段设置正确的Key，就可以将所有注册为该Namespace registrant的Host全部注销掉。</p>
+<h2 id="Reservation-Notification"><a href="#Reservation-Notification" class="headerlink" title="Reservation Notification"></a>Reservation Notification</h2><p><img src="/images/2025/06/004.png" alt></p>
+<p>在registration preempted, reservation released, and reservation preempted这三种情况下，如果没有禁止掉Reservation Notification的话，设备就会基于Admin queue的AER(Async Event Request)发送Reservation Notification，告诉driver发生了registration preempted, reservation released, or reservation preempted事件。</p>
+<p>Reservation Notification AER的相关描述:<br><img src="/images/2025/06/005.png" alt></p>
+<p><img src="/images/2025/06/006.png" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li>NVMe spec 1.4</li>
+<li><a href="https://www.cnblogs.com/FireLife-Cheng/p/16248247.html" target="_blank" rel="noopener">NVM Feature— Reservation(NVME 学习笔记五)</a></li>
+<li><a href="http://www.ssdfans.com/?p=97147" target="_blank" rel="noopener">蛋蛋读剩的NVMe之一：NVMe Reservation</a></li>
+<li><a href="https://help.aliyun.com/zh/ecs/user-guide/enable-multi-attach" target="_blank" rel="noopener">通过多重挂载功能将单块云盘挂载至多台ECS实例</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/NVMe/">NVMe</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/06/01/深入理解virtio-packed-virtqueue机制/">
+        <span class="next-text nav-default">深入理解virtio packed virtqueue机制</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/06/02/Notes-about-NVMe-reservation机制/';
+        this.page.identifier = '2025/06/02/Notes-about-NVMe-reservation机制/';
+        this.page.title = 'Notes about NVMe reservation机制';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
