@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-06-02T05:23:30.037Z</updated>
+  <updated>2025-06-07T10:43:23.305Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about PIPT,VIVT and VIPT</title>
+    <link href="http://liujunming.github.io/2025/06/07/Notes-about-PIPT-VIPT-and-VIVT/"/>
+    <id>http://liujunming.github.io/2025/06/07/Notes-about-PIPT-VIPT-and-VIVT/</id>
+    <published>2025-06-07T09:08:24.000Z</published>
+    <updated>2025-06-07T10:43:23.305Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Cache缓存设计策略中的PIPT(Physically-Indexed, Physically-Tagged)、VIVT(Virtually-Indexed, Virtually-Tagged)和VIPT(Virtually-Indexed, Physically-Tagged)的相关notes。<a id="more"></a></p><h2 id="Basic-knowledge"><a href="#Basic-knowledge" class="headerlink" title="Basic knowledge"></a>Basic knowledge</h2><p>Cache 本质就是一个硬件 hash 表（Tag RAM + DATA RAM），一般来说 Cache 的大小指的是DATA RAM 的大小，并不包括 Tag RAM 的物理空间。如下图所示，以一个 32 位内存地址为例，其中 [0, 4] 属于 Offset 字段，[5, 12] 属于 Index 字段，[13, 31] 属于 Tag 字段。</p><p><img src="/images/2025/06/009.png" alt></p><h2 id="PIPT"><a href="#PIPT" class="headerlink" title="PIPT"></a>PIPT</h2><p><img src="/images/2025/06/010.png" alt></p><h3 id="工作流程"><a href="#工作流程" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>MMU (内存管理单元) 将 VA 翻译成物理地址 (PA)（通过查询 TLB 或页表）</li><li>使用 PA 的一部分索引缓存</li><li>使用 PA 的剩余部分作为标签，与索引找到的缓存行中的标签进行比较</li><li>如果标签匹配且有效位为真，则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><p>速度慢，缓存查找必须等待MMU完成虚拟地址到物理地址的转换后才能开始，这增加了访问latency。</p><h2 id="VIVT"><a href="#VIVT" class="headerlink" title="VIVT"></a>VIVT</h2><h3 id="工作流程-1"><a href="#工作流程-1" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>同时：<ul><li>使用 VA 的一部分直接索引缓存，使用 VA 的剩余部分作为标签，与索引找到的缓存行中的标签进行比较</li><li>MMU 将 VA 翻译成物理地址 (PA)</li></ul></li><li>如果标签匹配、有效位为真，并且 MMU 转换成功（地址有效），则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><h3 id="缺点-1"><a href="#缺点-1" class="headerlink" title="缺点"></a>缺点</h3><ul><li>歧义问题： 不同的物理地址（不同的数据）可能具有相同的虚拟地址索引和标签部分（如果映射不同）。这会导致一个缓存行错误地对应多个物理地址的数据。</li><li>同名问题： 同一个物理地址（同一份数据）被映射到不同的虚拟地址时，会在缓存中产生多个副本（不同虚拟标签）。修改一个副本不会自动更新另一个副本，导致数据不一致。</li><li>需要操作系统干预： 内核在切换进程上下文或修改页表映射时，必须清空（flush）整个或部分缓存以避免歧义和同名问题，开销巨大。</li></ul><h2 id="VIPT"><a href="#VIPT" class="headerlink" title="VIPT"></a>VIPT</h2><p><img src="/images/2025/06/012.png" alt></p><p><img src="/images/2025/06/011.png" alt></p><h3 id="工作流程-2"><a href="#工作流程-2" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)。</li><li>同时：<ul><li>使用 VA 的一部分直接索引缓存</li><li>MMU (通过 TLB) 将 VA 翻译成物理地址 (PA)</li></ul></li><li>使用 PA 的（相应）部分作为标签，与步骤2中索引找到的缓存行中的标签进行比较</li><li>如果标签匹配且有效位为真，则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><hr><p>参考资料:</p><ol><li><a href="https://www.youtube.com/watch?v=3sX5obQCHNA" target="_blank" rel="noopener">Virtual Memory: 13 TLBs and Caches</a></li><li><a href="https://mp.weixin.qq.com/s/cUShsE0FWGnQWWQn8B4W_Q" target="_blank" rel="noopener">GPU TLB 与 MIG 切分：真的完全物理隔离吗？</a></li><li><a href="https://courses.physics.illinois.edu/ece411/fa2022/slides/lect08_l.pptx" target="_blank" rel="noopener">Caches: Policies and Interactions with VM</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Cache缓存设计策略中的PIPT(Physically-Indexed, Physically-Tagged)、VIVT(Virtually-Indexed, Virtually-Tagged)和VIPT(Virtually-Indexed, Physically-Tagged)的相关notes。
+    
+    </summary>
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NVMe reservation机制</title>
@@ -448,28 +470,6 @@
     
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about linux /proc/kcore</title>
-    <link href="http://liujunming.github.io/2025/02/15/Notes-about-linux-proc-kcore/"/>
-    <id>http://liujunming.github.io/2025/02/15/Notes-about-linux-proc-kcore/</id>
-    <published>2025-02-15T02:18:25.000Z</published>
-    <updated>2025-02-15T03:50:51.251Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下linux中<code>/proc/kcore</code>相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p><code>/proc/kcore</code> is a file in the virtual /proc filesystem of a Linux machine. It is created by the kernel in <a href="https://elixir.bootlin.com/linux/v5.0/source/fs/proc/kcore.c" target="_blank" rel="noopener">fs/proc/kcore.c</a> and <strong>allows read access to all the kernels virtual memory space from userland</strong>.</p><p>Internally it has the format of an ELF core dump file (ELF Type 4/ET_CORE). That means it has the same format as a core file from a crashed process; but instead of capturing the (static) state of a single process at the moment of the crash, <strong>it provides a real time view into the state of the whole system</strong>.</p><h2 id="How"><a href="#How" class="headerlink" title="How"></a>How</h2><ul><li>The ELF header (<code>Elf64_Ehdr</code>): It’s at the start of every ELF file. We need two pieces of information from it: the location and number of entries of the program header table.</li><li>The Program headers (<code>Elf64_Phdr</code>): An ELF file contains an array of program header structures. There are various subtypes of program headers, but we care only about the ones marked as <code>PT_LOAD</code>. <u>Each of these headers describe a loadable segment - a part of the file that is loaded into memory</u>. In <code>/proc/kcore</code>, <strong>they describe where in the file each portion of the system memory can be found.</strong></li></ul><p>On x86-64 systems, Linux maintains a complete one-to-one map of all physical memory in the kernels virtual address space. So by reading the right ranges of kernel virtual memory, one can get a complete copy of the content of the physical memory of that system.</p><p><img src="/images/2025/02/003.png" alt></p><p>每个<code>PT_LOAD</code> header用来记录一段 memory region，并描述了这段 memory region对应的文件offset、内核虚拟地址和长度。</p><h2 id="步骤"><a href="#步骤" class="headerlink" title="步骤"></a>步骤</h2><ol><li>使用<code>open</code>系统调用打开<code>/proc/kcore</code>文件</li><li>遍历ELF文件中的程序头表(Program Header Table)，找到包含目标内核虚拟地址的段(每个段描述了内核虚拟地址到文件offset的映射关系)</li><li>根据计算出的文件offset，使用<code>lseek</code>定位到目标位置，使用<code>read</code>读取目标地址的内容</li></ol><hr><p>参考资料:</p><ol><li><a href="https://schlafwandler.github.io/posts/dumping-/proc/kcore/" target="_blank" rel="noopener">Dumping /proc/kcore in 2019</a></li><li><a href="https://blog.csdn.net/weixin_45030965/article/details/124863905" target="_blank" rel="noopener">Linux /proc/kcore详解（一）</a></li><li><a href="https://blog.csdn.net/weixin_45030965/article/details/125164642" target="_blank" rel="noopener">Linux /proc/kcore详解（二）</a></li><li><a href="https://superuser.com/questions/669462/will-applications-running-in-root-mode-be-able-to-overwrite-oss-or-other-progra" target="_blank" rel="noopener">Will applications running in root mode be able to overwrite OS’s or other program’s memory section?</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下linux中&lt;code&gt;/proc/kcore&lt;/code&gt;相关notes。
-    
-    </summary>
-    
-      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
-    
-    
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
     
   </entry>
   
