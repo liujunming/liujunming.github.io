@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-06-07T10:43:23.305Z</updated>
+  <updated>2025-06-08T02:29:39.524Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -17,13 +17,37 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Notes about GPU vs NPU</title>
+    <link href="http://liujunming.github.io/2025/06/08/Notes-about-GPU-vs-NPU/"/>
+    <id>http://liujunming.github.io/2025/06/08/Notes-about-GPU-vs-NPU/</id>
+    <published>2025-06-08T01:50:07.000Z</published>
+    <updated>2025-06-08T02:29:39.524Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下GPU vs NPU(Neural Processing Unit)的相关notes，建议先看下科普视频<a href="https://www.bilibili.com/video/BV1mFQgY5EfM/" target="_blank" rel="noopener">比GPU更快！NPU是如何实现AI加速的？</a>。<a id="more"></a></p><h2 id="GPU-vs-NPU"><a href="#GPU-vs-NPU" class="headerlink" title="GPU vs NPU"></a>GPU vs NPU</h2><p>NPU内部的基本单元还是乘加器，只是改变了数据的流动方式，不再需要运回缓存，从而提高了运算效率。</p><p>NPUs are specialized hardware accelerators that excel at performing neural network computations efficiently. In contrast to general-purpose processors, NPUs are specifically optimized to meet the unique requirements of neural networks. They offer capabilities such as massive parallelism, high-speed data processing and matrix computation. These features are essential for handling intensive computations involved in deep learning algorithms.</p><p>To meet these requirements, NPU adopts several special hardware structures. <strong>One key unit for the modern NPU is the matrix calculation unit (MCU)</strong> like tube, systolic array, etc. With these matrix units, <u>NPU can execute the matrix calculation like multiplication and convolution within one operation</u>. Some NPUs also have other dedicated units for some specialized operations like sparse matrix calculation, activation function, etc.</p><p>Besides the matrix unit, <strong>NPUs often adopt a near data computing (NDC) architecture to minimize data retrieval overhead</strong>. For example, weights in neural networks are pre-stored in the SRAM/scratchpad near the matrix unit, allowing for quick access during computations. This reduces latency and energy consumption by eliminating the need to retrieve weights from main memory for each task. <strong>NDC optimizes data flow and improves computational efficiency by minimizing memory access bottlenecks</strong>.</p><p>Furthermore, <u>NPUs also leverage multi-core architectures with a Network-on-Chip (NoC) network to further parallelize data computation</u>. <strong>The NoC network allows for direct data transfer among NPU cores without the need for additional memory load/store instructions</strong>.</p><h2 id="CUDA-Cores-vs-Tensor-Cores"><a href="#CUDA-Cores-vs-Tensor-Cores" class="headerlink" title="CUDA Cores vs Tensor Cores"></a>CUDA Cores vs Tensor Cores</h2><p>A100/H100等GPU，不仅仅有通用的CUDA Cores，还集成了NPU中的Cores。</p><p><u>CUDA cores</u> are responsible for <strong>general-purpose</strong> processing tasks in GPUs, which handle a wide range of instructions including integer operations, floating-point operations, load/store operations, etc. CUDA cores execute scalar (or vector) instructions operating on individual (or vector) data elements. </p><p><u>Tensor cores</u> are <strong>specialized hardware</strong> designed for accelerating matrix multiplication. Tensor cores have 16.0×/14.8× higher FLOPS than CUDA cores on A100/H100 GPUs. Besides, Tensor cores work at a coarse-grained granularity, e.g. performing a matrix multiplication between two FP16 matrices of shape 16 × 16 and 16 × 8 with a single <em>mma</em> (matrix multiply and accumulate) instruction.</p><hr><p>参考资料:</p><ol><li><a href="https://ipads.se.sjtu.edu.cn/_media/publications/feng-isca24.pdf" target="_blank" rel="noopener">sNPU: Trusted Execution Environments on Integrated NPUs</a></li><li><a href="https://www.usenix.org/system/files/atc24-xia.pdf" target="_blank" rel="noopener">Quant-LLM: Accelerating the Serving of Large Language Models via FP6-Centric Algorithm-System Co-Design on Modern GPUs</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下GPU vs NPU(Neural Processing Unit)的相关notes，建议先看下科普视频&lt;a href=&quot;https://www.bilibili.com/video/BV1mFQgY5EfM/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;比GPU更快！NPU是如何实现AI加速的？&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="AI Infra" scheme="http://liujunming.github.io/categories/AI-Infra/"/>
+    
+    
+      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
+    
+      <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Notes about PIPT,VIVT and VIPT</title>
     <link href="http://liujunming.github.io/2025/06/07/Notes-about-PIPT-VIPT-and-VIVT/"/>
     <id>http://liujunming.github.io/2025/06/07/Notes-about-PIPT-VIPT-and-VIVT/</id>
     <published>2025-06-07T09:08:24.000Z</published>
-    <updated>2025-06-07T10:43:23.305Z</updated>
+    <updated>2025-06-08T01:44:25.222Z</updated>
     
-    <content type="html"><![CDATA[<p>本文将mark下Cache缓存设计策略中的PIPT(Physically-Indexed, Physically-Tagged)、VIVT(Virtually-Indexed, Virtually-Tagged)和VIPT(Virtually-Indexed, Physically-Tagged)的相关notes。<a id="more"></a></p><h2 id="Basic-knowledge"><a href="#Basic-knowledge" class="headerlink" title="Basic knowledge"></a>Basic knowledge</h2><p>Cache 本质就是一个硬件 hash 表（Tag RAM + DATA RAM），一般来说 Cache 的大小指的是DATA RAM 的大小，并不包括 Tag RAM 的物理空间。如下图所示，以一个 32 位内存地址为例，其中 [0, 4] 属于 Offset 字段，[5, 12] 属于 Index 字段，[13, 31] 属于 Tag 字段。</p><p><img src="/images/2025/06/009.png" alt></p><h2 id="PIPT"><a href="#PIPT" class="headerlink" title="PIPT"></a>PIPT</h2><p><img src="/images/2025/06/010.png" alt></p><h3 id="工作流程"><a href="#工作流程" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>MMU (内存管理单元) 将 VA 翻译成物理地址 (PA)（通过查询 TLB 或页表）</li><li>使用 PA 的一部分索引缓存</li><li>使用 PA 的剩余部分作为标签，与索引找到的缓存行中的标签进行比较</li><li>如果标签匹配且有效位为真，则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><p>速度慢，缓存查找必须等待MMU完成虚拟地址到物理地址的转换后才能开始，这增加了访问latency。</p><h2 id="VIVT"><a href="#VIVT" class="headerlink" title="VIVT"></a>VIVT</h2><h3 id="工作流程-1"><a href="#工作流程-1" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>同时：<ul><li>使用 VA 的一部分直接索引缓存，使用 VA 的剩余部分作为标签，与索引找到的缓存行中的标签进行比较</li><li>MMU 将 VA 翻译成物理地址 (PA)</li></ul></li><li>如果标签匹配、有效位为真，并且 MMU 转换成功（地址有效），则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><h3 id="缺点-1"><a href="#缺点-1" class="headerlink" title="缺点"></a>缺点</h3><ul><li>歧义问题： 不同的物理地址（不同的数据）可能具有相同的虚拟地址索引和标签部分（如果映射不同）。这会导致一个缓存行错误地对应多个物理地址的数据。</li><li>同名问题： 同一个物理地址（同一份数据）被映射到不同的虚拟地址时，会在缓存中产生多个副本（不同虚拟标签）。修改一个副本不会自动更新另一个副本，导致数据不一致。</li><li>需要操作系统干预： 内核在切换进程上下文或修改页表映射时，必须清空（flush）整个或部分缓存以避免歧义和同名问题，开销巨大。</li></ul><h2 id="VIPT"><a href="#VIPT" class="headerlink" title="VIPT"></a>VIPT</h2><p><img src="/images/2025/06/012.png" alt></p><p><img src="/images/2025/06/011.png" alt></p><h3 id="工作流程-2"><a href="#工作流程-2" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)。</li><li>同时：<ul><li>使用 VA 的一部分直接索引缓存</li><li>MMU (通过 TLB) 将 VA 翻译成物理地址 (PA)</li></ul></li><li>使用 PA 的（相应）部分作为标签，与步骤2中索引找到的缓存行中的标签进行比较</li><li>如果标签匹配且有效位为真，则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><hr><p>参考资料:</p><ol><li><a href="https://www.youtube.com/watch?v=3sX5obQCHNA" target="_blank" rel="noopener">Virtual Memory: 13 TLBs and Caches</a></li><li><a href="https://mp.weixin.qq.com/s/cUShsE0FWGnQWWQn8B4W_Q" target="_blank" rel="noopener">GPU TLB 与 MIG 切分：真的完全物理隔离吗？</a></li><li><a href="https://courses.physics.illinois.edu/ece411/fa2022/slides/lect08_l.pptx" target="_blank" rel="noopener">Caches: Policies and Interactions with VM</a></li></ol>]]></content>
+    <content type="html"><![CDATA[<p>本文将mark下Cache缓存设计策略中的PIPT(Physically-Indexed, Physically-Tagged)、VIVT(Virtually-Indexed, Virtually-Tagged)和VIPT(Virtually-Indexed, Physically-Tagged)的相关notes。<a id="more"></a></p><h2 id="Basic-knowledge"><a href="#Basic-knowledge" class="headerlink" title="Basic knowledge"></a>Basic knowledge</h2><p>Cache 本质就是一个硬件 hash 表（Tag RAM + DATA RAM），一般来说 Cache 的大小指的是DATA RAM 的大小，并不包括 Tag RAM 的物理空间。如下图所示，以一个 32 位内存地址为例，其中 [0, 4] 属于 Offset 字段，[5, 12] 属于 Index 字段，[13, 31] 属于 Tag 字段。</p><p><img src="/images/2025/06/009.png" alt></p><h2 id="PIPT"><a href="#PIPT" class="headerlink" title="PIPT"></a>PIPT</h2><p><img src="/images/2025/06/010.png" alt></p><h3 id="工作流程"><a href="#工作流程" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>MMU (内存管理单元) 将 VA 翻译成物理地址 (PA)（通过查询 TLB 或页表）</li><li>使用 PA 的一部分索引缓存</li><li>使用 PA 的剩余部分作为标签，与索引找到的缓存行中的标签进行比较</li><li>如果标签匹配且有效位为真，则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><p>速度慢，缓存查找必须等待MMU完成虚拟地址到物理地址的转换后才能开始，这增加了访问latency。</p><h2 id="VIVT"><a href="#VIVT" class="headerlink" title="VIVT"></a>VIVT</h2><h3 id="工作流程-1"><a href="#工作流程-1" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>同时：<ul><li>使用 VA 的一部分直接索引缓存，使用 VA 的剩余部分作为标签，与索引找到的缓存行中的标签进行比较</li><li>MMU 将 VA 翻译成物理地址 (PA)</li></ul></li><li>如果标签匹配、有效位为真，并且 MMU 转换成功（地址有效），则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><h3 id="缺点-1"><a href="#缺点-1" class="headerlink" title="缺点"></a>缺点</h3><ul><li>歧义问题： 不同的物理地址（不同的数据）可能具有相同的虚拟地址索引和标签部分（如果映射不同）。这会导致一个缓存行错误地对应多个物理地址的数据。</li><li>同名问题： 同一个物理地址（同一份数据）被映射到不同的虚拟地址时，会在缓存中产生多个副本（不同虚拟标签）。修改一个副本不会自动更新另一个副本，导致数据不一致。</li><li>需要操作系统干预： 内核在切换进程上下文或修改页表映射时，必须清空（flush）整个或部分缓存以避免歧义和同名问题，开销巨大。</li></ul><h2 id="VIPT"><a href="#VIPT" class="headerlink" title="VIPT"></a>VIPT</h2><p><img src="/images/2025/06/012.png" alt></p><p><img src="/images/2025/06/011.png" alt></p><h3 id="工作流程-2"><a href="#工作流程-2" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>同时：<ul><li>使用 VA 的一部分直接索引缓存</li><li>MMU (通过 TLB) 将 VA 翻译成物理地址 (PA)</li></ul></li><li>使用 PA 的（相应）部分作为标签，与步骤2中索引找到的缓存行中的标签进行比较</li><li>如果标签匹配且有效位为真，则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><hr><p>参考资料:</p><ol><li><a href="https://www.youtube.com/watch?v=3sX5obQCHNA" target="_blank" rel="noopener">Virtual Memory: 13 TLBs and Caches</a></li><li><a href="https://mp.weixin.qq.com/s/cUShsE0FWGnQWWQn8B4W_Q" target="_blank" rel="noopener">GPU TLB 与 MIG 切分：真的完全物理隔离吗？</a></li><li><a href="https://courses.physics.illinois.edu/ece411/fa2022/slides/lect08_l.pptx" target="_blank" rel="noopener">Caches: Policies and Interactions with VM</a></li></ol>]]></content>
     
     <summary type="html">
     
@@ -448,28 +472,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="QEMU&amp;&amp;KVM" scheme="http://liujunming.github.io/tags/QEMU-KVM/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Content-Addressable Memory (CAM)</title>
-    <link href="http://liujunming.github.io/2025/02/15/Notes-about-Content-addressable-memory-CAM/"/>
-    <id>http://liujunming.github.io/2025/02/15/Notes-about-Content-addressable-memory-CAM/</id>
-    <published>2025-02-15T10:50:28.000Z</published>
-    <updated>2025-02-15T11:45:04.155Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Content-Addressable Memory(CAM)相关notes，整理下来自deepseek的回答。<a id="more"></a> </p><p>CAM是一种特殊类型的存储器，其核心特点是<strong>通过内容直接检索数据</strong>，而非传统存储器（如RAM）通过地址访问数据的方式。</p><h2 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h2><p>传统存储器（如RAM）：输入地址，返回该地址存储的数据；CAM：输入待查找的数据（关键词），返回该数据所在的地址或关联的其他数据。</p><p>工作流程如下所示:</p><ol><li>用户提供待匹配的<strong>关键词</strong>（Search Key）。</li><li>CAM在存储的所有条目中<strong>并行比较</strong>关键词。</li><li>返回匹配条目的地址或关联数据（如优先级最高的匹配结果）。</li></ol><h2 id="CAM的类型"><a href="#CAM的类型" class="headerlink" title="CAM的类型"></a>CAM的类型</h2><ul><li><p>二元CAM（Binary CAM, BCAM）：</p><ul><li>仅支持精确匹配（0或1）</li><li>应用场景：精确查找，如MAC地址表</li></ul></li><li><p>三元CAM（Ternary CAM, TCAM）：</p><ul><li>支持0、1和<strong>“无关”（Don’t Care）</strong>三种状态（通常用掩码表示）</li><li>可实现<strong>部分匹配</strong>，适用于需要通配符的场景</li><li>典型应用：IP路由中的<strong>最长前缀匹配</strong>（Longest Prefix Match）</li></ul></li></ul><h2 id="核心优势"><a href="#核心优势" class="headerlink" title="核心优势"></a>核心优势</h2><ul><li>高速并行搜索：所有存储条目同时比较，搜索时间复杂度为<strong>O(1)</strong>，远快于软件算法（如哈希表、树结构）</li><li>硬件级效率：无需遍历数据或处理冲突，适合实时性要求高的场景</li></ul><h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><p>网络设备：</p><ul><li>路由器/交换机：快速查找路由表、MAC地址表</li><li>防火墙：基于规则的实时流量过滤</li></ul><h2 id="缺点与挑战"><a href="#缺点与挑战" class="headerlink" title="缺点与挑战"></a>缺点与挑战</h2><ul><li>高功耗：并行比较所有条目导致大量晶体管同时切换，功耗显著高于传统存储器</li><li>高成本：每个存储单元需集成比较电路，芯片面积增大</li><li>容量限制：受限于功耗和成本，CAM通常用于小规模高速缓存场景</li></ul><h2 id="TCAM的“无关”位示例"><a href="#TCAM的“无关”位示例" class="headerlink" title="TCAM的“无关”位示例"></a>TCAM的“无关”位示例</h2><p>在IP路由中，TCAM允许将子网掩码未覆盖的位设为“无关”，例如：IP地址：<code>192.168.1.0/24</code>（二进制：<code>11000000.10101000.00000001.********</code>），TCAM条目：<code>11000000 10101000 00000001 XXXXXXXX</code>（<code>X</code>表示“无关”位），搜索时，只需匹配前24位，后8位忽略，实现高效的最长前缀匹配。</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>CAM通过硬件并行性实现了极速数据检索，是网络设备和高速缓存的核心组件，但其功耗和成本限制了大规模应用。</p><hr><p>参考资料:</p><ol><li><a href="https://www.xilinx.com/products/intellectual-property/ef-di-cam.html" target="_blank" rel="noopener">xilinx Content Addressable Memory (CAM)</a></li><li><a href="https://ieeexplore.ieee.org/document/7159147" target="_blank" rel="noopener">Emerging Trends in Design and Applications of Memory-Based Computing and Content-Addressable Memories</a></li><li><a href="https://arxiv.org/pdf/1804.02330" target="_blank" rel="noopener">An Efficient I/O Architecture for RAM-based Content-Addressable Memory on FPGA</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Content-Addressable Memory(CAM)相关notes，整理下来自deepseek的回答。
-    
-    </summary>
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
