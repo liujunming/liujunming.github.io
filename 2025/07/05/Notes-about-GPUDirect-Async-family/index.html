@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about GPUDirect Async family">
+
+
+
+
+  <meta name="keywords" content="GPU, AI Infra, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/07/05/Notes-about-GPUDirect-Async-family/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about GPUDirect Async family - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about GPUDirect Async family
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-07-05
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/AI-Infra/">AI Infra</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Prerequisite"><span class="toc-text">Prerequisite</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GPUDirect-Async-Kernel-Initiated-Network"><span class="toc-text">GPUDirect Async Kernel-Initiated Network</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Motivation"><span class="toc-text">Motivation</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GPUDirect-Async-Kernel-Initiated-Storage"><span class="toc-text">GPUDirect Async Kernel Initiated Storage</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#BaM架构"><span class="toc-text">BaM架构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#与传统GDS对比"><span class="toc-text">与传统GDS对比</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#BaM与NVIDIA-GDS的性能对比"><span class="toc-text">BaM与NVIDIA GDS的性能对比</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结-1"><span class="toc-text">总结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结-2"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下GPUDirect Async family技术的相关notes。<a id="more"></a></p>
+<h2 id="Prerequisite"><a href="#Prerequisite" class="headerlink" title="Prerequisite"></a>Prerequisite</h2><ul>
+<li><a href="/2022/04/02/Introduction-to-GPUDirect-RDMA/">GPUDirect RDMA</a></li>
+<li><a href="/2023/05/01/Notes-about-GPU-Direct-Storage/">GPU Direct Storage</a></li>
+<li><a href="/2025/05/11/Notes-about-IBGDA-InfiniBand-GPUDirect-Async/">IBGDA</a></li>
+</ul>
+<h2 id="GPUDirect-Async-Kernel-Initiated-Network"><a href="#GPUDirect-Async-Kernel-Initiated-Network" class="headerlink" title="GPUDirect Async Kernel-Initiated Network"></a>GPUDirect Async Kernel-Initiated Network</h2><h3 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h3><p>为了让GPU和网卡并行起来，CPU仍然扮演了厚重的调度角色，而且GPU空转时间比较长。</p>
+<p><img src="/images/2025/07/004.png" alt></p>
+<p>能否把控制面也offload一部分？于是乎GPUDirect Async Kernel-Initiated Network概念被提了出来。</p>
+<p>GPUDirect Async Kernel-Initiated Network整体的逻辑如下:<br><img src="/images/2025/07/005.png" alt></p>
+<p>GPUDirect Async Kernel-Initiated Network消除了CPU在通信控制路径中的作用。</p>
+<h3 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h3><p>The following is an example diagram of a CPU-centric approach:<br><img src="/images/2025/07/006.webp" alt></p>
+<p>The following is an example diagram of a GPU-centric approach:<br><img src="/images/2025/07/007.webp" alt></p>
+<p>在此处，网卡既可以是RDMA网卡，也可以是Ethernet网卡。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><img src="/images/2025/07/008.png" alt></p>
+<ol>
+<li>对于GDR，GPUDirect Async Kernel-Initiated Network可以offload critical控制路径到GPU中(也就是<a href="/2025/05/11/Notes-about-IBGDA-InfiniBand-GPUDirect-Async/">IBGDA</a>)</li>
+<li>对于GPU与Ethernet网卡的p2p，GPUDirect Async Kernel-Initiated Network可以offload critical控制路径到GPU中</li>
+</ol>
+<h2 id="GPUDirect-Async-Kernel-Initiated-Storage"><a href="#GPUDirect-Async-Kernel-Initiated-Storage" class="headerlink" title="GPUDirect Async Kernel Initiated Storage"></a>GPUDirect Async Kernel Initiated Storage</h2><p><a href="https://mp.weixin.qq.com/s/l0PxXtDV8trFyi87Ucerww" target="_blank" rel="noopener">BaM</a>是首个以加速器为中心的方法，使GPU能够按需访问存储在内存或存储设备中的数据，而无需依赖CPU来发起或触发这些访问。</p>
+<h3 id="BaM架构"><a href="#BaM架构" class="headerlink" title="BaM架构"></a>BaM架构</h3><p>BaM的<strong>设计目标</strong>是为GPU线程提供高效的存储访问抽象，以便其能够按需、细粒度且高吞吐量地访问存储设备，同时提升存储访问性能。为此，如下图所示，BaM在GPU内存中配置了专门的存储I/O队列和缓冲区，并借助GPU的内存映射功能，将存储DB reg映射到GPU地址空间。</p>
+<p><img src="/images/2025/07/003.webp" alt></p>
+<h3 id="与传统GDS对比"><a href="#与传统GDS对比" class="headerlink" title="与传统GDS对比"></a>与传统GDS对比</h3><p><img src="/images/2025/07/001.webp" alt></p>
+<p>与传统的存储数据访问模式（GDS）相比，BaM带来了显著的变革，使GPU线程能够直接访问存储，从而实现了细粒度的计算与I/O重叠。这一设计理念带来了多方面的优势。</p>
+<ul>
+<li>首先，减少CPU-GPU同步开销，以及GPU内核的启动频率，从而消除了每次数据访问时CPU的启动和调度需求。</li>
+<li>其次，降低I/O放大开销，由于CPU调度通常以大块数据任务为单位，而非GPU实际所需的随机数据，BaM中GPU线程仅在需要时才获取，因此有效避免了IO放大问题。</li>
+<li>最后，简化编程并隐藏延迟，过去，为了处理不同规模的数据，开发人员可能需要计算应用层面的复杂数据分块和分割策略；而Bam允许程序员通过数组抽象自然地访问数据，并<u>利用GPU线程在大规模数据集上的并行性来隐藏存储访问延迟</u>，从而简化了编程逻辑。</li>
+</ul>
+<h3 id="BaM与NVIDIA-GDS的性能对比"><a href="#BaM与NVIDIA-GDS的性能对比" class="headerlink" title="BaM与NVIDIA GDS的性能对比"></a>BaM与NVIDIA GDS的性能对比</h3><p><img src="/images/2025/07/002.webp" alt></p>
+<p>BaM与NVIDIA GDS的性能对比显示：当访问粒度小于32KB时，受传统 CPU 软件栈开销限制，GDS无法使PCIe接口饱和。相比之下，BaM 即使在4KB的I/O粒度下也能使接口饱和（约25GBps）。</p>
+<h3 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h3><p>对于GDS，GPUDirect Async Kernel-Initiated Storage可以offload critical控制路径到GPU中</p>
+<h2 id="总结-2"><a href="#总结-2" class="headerlink" title="总结"></a>总结</h2><p>GPU正朝着更高自主性和异步性的趋势发展。GPUDirect Async技术族在将数据从内存或存储直接移动到GPU内存时，可加速控制路径。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://downloads.openfabrics.org/ofv/ofv_presentation_GPU.pdf" target="_blank" rel="noopener">OFVWG:GPUDirect and PeerDirect</a></li>
+<li><a href="https://docs.nvidia.com/doca/sdk/doca+gpunetio/index.html" target="_blank" rel="noopener">DOCA GPUNetIO</a></li>
+<li><a href="https://joyxu.github.io/2022/06/06/gpu-direct/" target="_blank" rel="noopener">gpu-direct</a></li>
+<li><a href="http://blog.chinaunix.net/uid-28541347-id-5886592.html" target="_blank" rel="noopener">GPU Direct相关技术和原理</a></li>
+<li>GPU-Initiated On-Demand High-Throughput Storage Access in the BaM System Architecture(ASPLOS’23)</li>
+<li><a href="http://nvidia.zhidx.com/index.php?m=content&amp;c=index&amp;a=show&amp;catid=6&amp;id=3190" target="_blank" rel="noopener">使用 NVIDIA DOCA GPUNetIO 实现实时网络处理功能</a></li>
+<li><a href="https://github.com/NVIDIA/nccl/issues/1380" target="_blank" rel="noopener">Does NCCL support DOCA GPUNetIO?</a></li>
+<li><a href="https://www.sciencedirect.com/science/article/abs/pii/S0743731517303386" target="_blank" rel="noopener">GPUDirect Async: Exploring GPU synchronous communication techniques for InfiniBand clusters</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/430101220" target="_blank" rel="noopener">【研究综述】浅谈GPU通信和PCIe P2P DMA</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/GPU/">GPU</a>
+            
+              <a href="/tags/AI-Infra/">AI Infra</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/06/08/Notes-about-GPU-vs-NPU/">
+        <span class="next-text nav-default">Notes about GPU vs NPU</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/07/05/Notes-about-GPUDirect-Async-family/';
+        this.page.identifier = '2025/07/05/Notes-about-GPUDirect-Async-family/';
+        this.page.title = 'Notes about GPUDirect Async family';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
