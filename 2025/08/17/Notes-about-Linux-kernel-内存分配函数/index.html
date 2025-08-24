@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about Linux kernel 内存分配函数">
+
+
+
+
+  <meta name="keywords" content="内存管理, Kernel, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/08/17/Notes-about-Linux-kernel-内存分配函数/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about Linux kernel 内存分配函数 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about Linux kernel 内存分配函数
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-08-17
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/内存管理/">内存管理</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#内核函数"><span class="toc-text">内核函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#kmalloc系列"><span class="toc-text">kmalloc系列</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#vmalloc系列"><span class="toc-text">vmalloc系列</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#kvzalloc系列"><span class="toc-text">kvzalloc系列</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#物理地址获取"><span class="toc-text">物理地址获取</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下Linux kernel内存分配函数的相关notes。<a id="more"></a></p>
+<h2 id="内核函数"><a href="#内核函数" class="headerlink" title="内核函数"></a>内核函数</h2><h3 id="kmalloc系列"><a href="#kmalloc系列" class="headerlink" title="kmalloc系列"></a>kmalloc系列</h3><p>kmalloc() 申请的内存位于物理内存映射区域，而且在物理上也是连续的，它们与真实的物理地址只有一个固定的偏移，因而存在较简单的转换关系。</p>
+<ul>
+<li>kmalloc</li>
+<li>kzalloc</li>
+<li>kcalloc</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * kzalloc - allocate memory. The memory is set to zero.</span></span><br><span class="line"><span class="comment"> * @size: how many bytes of memory are required.</span></span><br><span class="line"><span class="comment"> * @flags: the type of memory to allocate (see kmalloc).</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> *<span class="title">kzalloc</span><span class="params">(<span class="keyword">size_t</span> size, <span class="keyword">gfp_t</span> flags)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> kmalloc(size, flags | __GFP_ZERO);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * kcalloc - allocate memory for an array. The memory is set to zero.</span></span><br><span class="line"><span class="comment"> * @n: number of elements.</span></span><br><span class="line"><span class="comment"> * @size: element size.</span></span><br><span class="line"><span class="comment"> * @flags: the type of memory to allocate (see kmalloc).</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> *<span class="title">kcalloc</span><span class="params">(<span class="keyword">size_t</span> n, <span class="keyword">size_t</span> size, <span class="keyword">gfp_t</span> flags)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> kmalloc_array(n, size, flags | __GFP_ZERO);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="vmalloc系列"><a href="#vmalloc系列" class="headerlink" title="vmalloc系列"></a>vmalloc系列</h3><p>物理地址不连续：通过映射非连续的物理页帧实现。<br>虚拟地址连续：虚拟地址空间是连续的。<br>逐页映射: 用 <code>alloc_page()</code> 从伙伴系统获取多个不连续的物理页帧。 修改内核页表，将这些物理页映射到连续的虚拟地址空间（<code>VMALLOC_START</code> ~ <code>VMALLOC_END</code>）。</p>
+<ul>
+<li>vmalloc</li>
+<li>vzalloc</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *	vmalloc  -  allocate virtually contiguous memory</span></span><br><span class="line"><span class="comment"> *	@size:		allocation size</span></span><br><span class="line"><span class="comment"> *	Allocate enough pages to cover @size from the page level</span></span><br><span class="line"><span class="comment"> *	allocator and map them into contiguous kernel virtual space.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *	For tight control over page level allocator and protection flags</span></span><br><span class="line"><span class="comment"> *	use __vmalloc() instead.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">vmalloc</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> size)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> __vmalloc_node_flags(size, NUMA_NO_NODE,</span><br><span class="line">				    GFP_KERNEL);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *	vzalloc - allocate virtually contiguous memory with zero fill</span></span><br><span class="line"><span class="comment"> *	@size:	allocation size</span></span><br><span class="line"><span class="comment"> *	Allocate enough pages to cover @size from the page level</span></span><br><span class="line"><span class="comment"> *	allocator and map them into contiguous kernel virtual space.</span></span><br><span class="line"><span class="comment"> *	The memory allocated is set to zero.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *	For tight control over page level allocator and protection flags</span></span><br><span class="line"><span class="comment"> *	use __vmalloc() instead.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">vzalloc</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> size)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> __vmalloc_node_flags(size, NUMA_NO_NODE,</span><br><span class="line">				GFP_KERNEL | __GFP_ZERO);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="kvzalloc系列"><a href="#kvzalloc系列" class="headerlink" title="kvzalloc系列"></a>kvzalloc系列</h3><ul>
+<li>kvzalloc</li>
+<li>kvcalloc</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> *<span class="title">kvzalloc</span><span class="params">(<span class="keyword">size_t</span> size, <span class="keyword">gfp_t</span> flags)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> kvmalloc(size, flags | __GFP_ZERO);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> *<span class="title">kvmalloc</span><span class="params">(<span class="keyword">size_t</span> size, <span class="keyword">gfp_t</span> flags)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> kvmalloc_node(size, flags, NUMA_NO_NODE);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * kvmalloc_node - attempt to allocate physically contiguous memory, but upon</span></span><br><span class="line"><span class="comment"> * failure, fall back to non-contiguous (vmalloc) allocation.</span></span><br><span class="line"><span class="comment"> * @size: size of the request.</span></span><br><span class="line"><span class="comment"> * @flags: gfp mask for the allocation - must be compatible (superset) with GFP_KERNEL.</span></span><br><span class="line"><span class="comment"> * @node: numa node to allocate from</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Uses kmalloc to get the memory but if the allocation fails then falls back</span></span><br><span class="line"><span class="comment"> * to the vmalloc allocator. Use kvfree for freeing the memory.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Reclaim modifiers - __GFP_NORETRY and __GFP_NOFAIL are not supported.</span></span><br><span class="line"><span class="comment"> * __GFP_RETRY_MAYFAIL is supported, and it should be used only if kmalloc is</span></span><br><span class="line"><span class="comment"> * preferable to the vmalloc fallback, due to visible performance drawbacks.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Please note that any use of gfp flags outside of GFP_KERNEL is careful to not</span></span><br><span class="line"><span class="comment"> * fall back to vmalloc.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">kvmalloc_node</span><span class="params">(<span class="keyword">size_t</span> size, <span class="keyword">gfp_t</span> flags, <span class="keyword">int</span> node)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">gfp_t</span> kmalloc_flags = flags;</span><br><span class="line">	<span class="keyword">void</span> *ret;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * vmalloc uses GFP_KERNEL for some internal allocations (e.g page tables)</span></span><br><span class="line"><span class="comment">	 * so the given set of flags has to be compatible.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> ((flags &amp; GFP_KERNEL) != GFP_KERNEL)</span><br><span class="line">		<span class="keyword">return</span> kmalloc_node(size, flags, node);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * We want to attempt a large physically contiguous block first because</span></span><br><span class="line"><span class="comment">	 * it is less likely to fragment multiple larger blocks and therefore</span></span><br><span class="line"><span class="comment">	 * contribute to a long term fragmentation less than vmalloc fallback.</span></span><br><span class="line"><span class="comment">	 * However make sure that larger requests are not too disruptive - no</span></span><br><span class="line"><span class="comment">	 * OOM killer and no allocation failure warnings as we have a fallback.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (size &gt; PAGE_SIZE) &#123;</span><br><span class="line">		kmalloc_flags |= __GFP_NOWARN;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!(kmalloc_flags &amp; __GFP_RETRY_MAYFAIL))</span><br><span class="line">			kmalloc_flags |= __GFP_NORETRY;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ret = kmalloc_node(size, kmalloc_flags, node);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * It doesn't really make sense to fallback to vmalloc for sub page</span></span><br><span class="line"><span class="comment">	 * requests</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (ret || size &lt;= PAGE_SIZE)</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> __vmalloc_node_flags_caller(size, node, flags,</span><br><span class="line">			__builtin_return_address(<span class="number">0</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="物理地址获取"><a href="#物理地址获取" class="headerlink" title="物理地址获取"></a>物理地址获取</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> phys_addr_t <span class="title">kvm_kaddr_to_phys</span><span class="params">(<span class="keyword">void</span> *kaddr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (!is_vmalloc_addr(kaddr)) &#123;</span><br><span class="line">		<span class="keyword">return</span> __pa(kaddr);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> page_to_phys(vmalloc_to_page(kaddr)) +</span><br><span class="line">		       offset_in_page(kaddr);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Note that the virtual address may come from different kernel memory zones, including the <code>vmalloc region</code> or the <code>direct memory region</code>. Checking whether the a virtual address belongs to the vmalloc region by invoking the <code>is_vmalloc_addr</code> function. If so, the <code>vmalloc_to_page</code> function is used to get the corresponding physical page structure; otherwise, the <code>virt_to_page</code> function is used to obtain the right page.</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://elixir.bootlin.com/linux/v4.19/" target="_blank" rel="noopener">https://elixir.bootlin.com/linux/v4.19/</a></li>
+<li><a href="https://stackoverflow.com/questions/5153173/what-are-differences-between-kmalloc-kcalloc-vmalloc-and-kzalloc" target="_blank" rel="noopener">what are differences between kmalloc() kcalloc() vmalloc() and kzalloc()?</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/470783392" target="_blank" rel="noopener">带你看懂Linux内核空间内存申请函数kmalloc.、kzalloc、 vmalloc的区别（一篇就够了）</a></li>
+<li><a href="https://blog.csdn.net/sinat_37817094/article/details/149230334" target="_blank" rel="noopener">傻傻分不清楚 kmalloc、vmalloc和malloc之间有什么区别以及实现上的差异</a></li>
+<li><a href="https://www.usenix.org/system/files/atc19-hu.pdf" target="_blank" rel="noopener">QZFS: QAT Accelerated Compression in File System for Application Agnostic and Cost Efficient Data Storage</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/内存管理/">内存管理</a>
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/07/05/Notes-about-GPUDirect-Async-family/">
+        <span class="next-text nav-default">Notes about GPUDirect Async family</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/08/17/Notes-about-Linux-kernel-内存分配函数/';
+        this.page.identifier = '2025/08/17/Notes-about-Linux-kernel-内存分配函数/';
+        this.page.title = 'Notes about Linux kernel 内存分配函数';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
