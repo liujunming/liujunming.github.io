@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-08-24T12:26:57.280Z</updated>
+  <updated>2025-09-07T01:31:56.528Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about ARM pointer authentication</title>
+    <link href="http://liujunming.github.io/2025/09/07/Notes-about-ARM-pointer-authentication/"/>
+    <id>http://liujunming.github.io/2025/09/07/Notes-about-ARM-pointer-authentication/</id>
+    <published>2025-09-07T00:21:35.000Z</published>
+    <updated>2025-09-07T01:31:56.528Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下ARM pointer authentication的相关notes。<a id="more"></a></p><h2 id="核心目的"><a href="#核心目的" class="headerlink" title="核心目的"></a>核心目的</h2><p>Pointer Authentication(PA)的核心目的是验证指针(如返回地址、函数指针等)是否被恶意篡改。它通过为指针添加加密认证码(PAC, Pointer Authentication Code)并在使用前验证其有效性来实现。</p><p><img src="/images/2025/09/001.png" alt></p><h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><ol><li>生成PAC(签名)：<ul><li>使用一个密钥(CPU寄存器存储)、指针的虚拟地址和额外的上下文信息(如堆栈指针)，通过加密算法(ARM选择的是QARMA算法)为指针生成一个短小的PAC</li><li>PAC被存储在指针值中未使用的最高位中。因为64位架构中，虚拟地址通常不会全部使用(如48位)，高位空间是空闲的</li></ul></li><li>验证与恢复(验证)：<ul><li>在使用指针前(如函数返回前)，CPU会执行验证指令(如<code>AUT*</code>)</li><li>系统会使用相同的密钥和上下文重新计算PAC，并与指针中存储的PAC进行比较</li><li>如果匹配，则移除PAC，恢复原始指针，程序正常执行</li><li>如果不匹配，则指针会被置为一个非法值，使用时通常会触发一个异常(如段错误)，从而阻止攻击</li></ul></li></ol><h2 id="Pointer-Authentication-in-ARMv8-3-A"><a href="#Pointer-Authentication-in-ARMv8-3-A" class="headerlink" title="Pointer Authentication in ARMv8.3-A"></a>Pointer Authentication in ARMv8.3-A</h2><p><img src="/images/2025/09/003.png" alt></p><p><img src="/images/2025/09/004.png" alt></p><p>PA is intended for checking the integrity of pointers with minimal size and performance impact. It is available when the processor executes in 64-bit ARM state(AArch64). PA adds instructions for creating and authenticating pointer authentication codes (PACs). The PAC is a tweakable message authentication code (MAC) calculated over the pointer value and a 64-bit modifier as the tweak. Different combinations of key and modifier pairs allow domain separation among different classes of authenticated pointers. This prevents authenticated pointer values from being arbitrarily interchangeable with one another.</p><p>PA provides five different keys for PAC generation: two for code pointers, two for data pointers, and one for generic use. The keys are stored in hardware registers configured to be accessible only from a higher privilege level: e.g., the kernel maintains the keys for a user space process, generating keys for each process at process <code>exec</code>. The keys remain constant throughout the process lifetime, whereas the modifier is given in an instruction-specific register operand on each PAC creation and authentication (i.e., MAC verification). Thus it can be used to describe the run-time context in which the pointer is created and used. The modifier value is not necessarily confidential but ideally such that it 1) precisely describes the context of use in which the pointer is valid, and 2) cannot be influenced by the attacker</p><h2 id="Example-PA-based-return-address-signing"><a href="#Example-PA-based-return-address-signing" class="headerlink" title="Example: PA-based return address signing"></a>Example: PA-based return address signing</h2><p><img src="/images/2025/09/002.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.usenix.org/conference/usenixsecurity19/presentation/liljestrand" target="_blank" rel="noopener">PAC it up: Towards Pointer Integrity using ARM Pointer Authentication</a></li><li>deepseek prompt:简要介绍下arm Pointer Authentication</li><li><a href="https://learn.arm.com/learning-paths/servers-and-cloud-computing/pac/pac/" target="_blank" rel="noopener">Pointer Authentication on Arm</a></li><li><a href="https://lwn.net/Articles/718888/" target="_blank" rel="noopener">https://lwn.net/Articles/718888/</a></li><li><a href="https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/pointer-auth-v7.pdf" target="_blank" rel="noopener">Pointer Authentication on ARMv8.3: Design and Analysis of the New Software Security Instructions</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下ARM pointer authentication的相关notes。
+    
+    </summary>
+    
+      <category term="ARM" scheme="http://liujunming.github.io/categories/ARM/"/>
+    
+    
+      <category term="ARM" scheme="http://liujunming.github.io/tags/ARM/"/>
+    
+      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Linux kernel 内存分配函数</title>
@@ -445,28 +469,6 @@
     <summary type="html">
     
       &lt;p&gt;本文将mark下FPGA基本概念的相关notes。
-    
-    </summary>
-    
-      <category term="Accelerator" scheme="http://liujunming.github.io/categories/Accelerator/"/>
-    
-    
-      <category term="Accelerator" scheme="http://liujunming.github.io/tags/Accelerator/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about F-NIC(FPGA-based SmartNIC)</title>
-    <link href="http://liujunming.github.io/2025/02/22/Notes-about-F-NIC-FPGA-based-SmartNIC-architecture/"/>
-    <id>http://liujunming.github.io/2025/02/22/Notes-about-F-NIC-FPGA-based-SmartNIC-architecture/</id>
-    <published>2025-02-22T13:40:52.000Z</published>
-    <updated>2025-02-23T01:54:08.692Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下F-NIC(FPGA-based SmartNIC)相关notes。<a id="more"></a> </p><p>We describe bump-in-the-wire(是一种网络技术概念，指在网络通信链路中透明插入的设备或系统，用于增强特定功能而不改变终端设备的配置或通信协议) F-NICs, focusing on Mellanox Innova.</p><p><img src="/images/2025/02/007.png" alt></p><h2 id="Bump-in-the-wire"><a href="#Bump-in-the-wire" class="headerlink" title="Bump-in-the-wire"></a>Bump-in-the-wire</h2><p>A typical F-NIC (Figure 1) combines a commodity network ASIC (e.g., ConnectX-4 Lx NIC) with an FPGA and local DRAM. The FPGA is located <em>between</em> the ASIC and the network port, interposing on all Ethernet traffic in and out of the NIC. The FPGA and the ASIC communicate directly via an internal bus (e.g., 40 Gbps Ethernet), and a PCIe bus connects the ASIC to the host.</p><p>The bump-in-the-wire design reuses the existing data and control planes between the CPU and the NIC ASIC, with its QoS management, and virtualization support (SR-IOV), mature DMA engines, and software stack.</p><h2 id="F-NIC-programming"><a href="#F-NIC-programming" class="headerlink" title="F-NIC programming"></a>F-NIC programming</h2><p>The development of an F-NIC accelerated application involves both hardware logic on FPGA and associated software on the CPU. F-NIC vendors provide a lightweight <em>shell IP</em>: a set of low-level hardware interfaces for basic operations, including link-layer packet exchange with the network and the host, onboard DRAM access, and control register access. However, the vendor SDK leaves it to customers to implement higher level features such as FPGA network stack processing or virtualization support.</p><hr><p>参考资料:</p><ol><li><a href="https://www.usenix.org/system/files/atc19-eran.pdf" target="_blank" rel="noopener">NICA: An Infrastructure for Inline Acceleration of Network Applications</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下F-NIC(FPGA-based SmartNIC)相关notes。
     
     </summary>
     
