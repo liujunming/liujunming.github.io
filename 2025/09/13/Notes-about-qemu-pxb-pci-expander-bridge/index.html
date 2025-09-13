@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about qemu pxb(pci expander bridge)">
+
+
+
+
+  <meta name="keywords" content="QEMU, PCI&PCIe, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/09/13/Notes-about-qemu-pxb-pci-expander-bridge/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about qemu pxb(pci expander bridge) - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about qemu pxb(pci expander bridge)
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-09-13
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/PCI-PCIe/">PCI&PCIe</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PCI-Root-Bus"><span class="toc-text">PCI Root Bus</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PCIe-Root-Complex"><span class="toc-text">PCIe Root Complex</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下qemu pxb(pci expander bridge)的相关notes。<a id="more"></a></p>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>PXB is a “light-weight” host bridge whose purpose is to enable the main host bridge to support multiple PCI root buses.</p>
+<p>As oposed to PCI-2-PCI bridge’s secondary bus, PXB’s bus is a primary bus and can be associated with a NUMA node(different from the main host bridge) allowing the guest OS to recognize the proximity of a pass-through device to other resources as RAM and CPUs.</p>
+<p>The PXB is composed from:</p>
+<ul>
+<li>A primary PCI bus (can be associated with a NUMA node)<br>Acts like a normal pci bus and from the functionality point<br>of view is an “expansion” of the bus behind the<br>main host bridge.</li>
+<li>A pci-2-pci bridge behind the primary PCI bus where the actual<br>devices will be attached.</li>
+<li>A host-bridge PCI device<br>Situated on the bus behind the main host bridge, allows<br>the BIOS to configure the bus number and IO/mem resources.<br>It does not have its own config/data register for configuration<br>cycles, this being handled by the main host bridge.</li>
+</ul>
+<ul>
+<li>A host-bridge sysbus to comply with QEMU current design.</li>
+</ul>
+<h2 id="PCI-Root-Bus"><a href="#PCI-Root-Bus" class="headerlink" title="PCI Root Bus"></a>PCI Root Bus</h2><p>This section demonstrates how to create extra PCI root buses through the “light-weight” PXB (PCI Expander Bridge) host bridge. It is “pxb” in QEMU command line. It is implemented only for i440fx and can be placed only on bus 0.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -machine pc,accel=kvm -vnc :8 -smp 4 -m 4096M \</span><br><span class="line">-net nic -net user,hostfwd=tcp::5028-:22 \</span><br><span class="line">-hda ol8.qcow2 -serial stdio \</span><br><span class="line">-device pxb,id=bridge1,bus=pci.0,bus_nr=3 \</span><br><span class="line">-device virtio-scsi-pci,bus=bridge1,addr=0x3 \</span><br><span class="line">-device pxb,id=bridge2,bus=pci.0,bus_nr=8 \</span><br><span class="line">-device virtio-scsi-pci,bus=bridge2,addr=0x3 \</span><br><span class="line">-device virtio-scsi-pci,bus=bridge2,addr=0x4</span><br></pre></td></tr></table></figure></p>
+<p>The above QEMU command line creates two extra PCI root buses. The first root bus (04:00.0) has one virtio-scsi-pci HBA (04:03.0), and the second root bus (09:00.0) has two virtio-scsi-pci HBAs (09:03.0 and 09:04.0).<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[root@vm ~]# lspci</span><br><span class="line">00:00.0 Host bridge: Intel Corporation 440FX - 82441FX PMC [Natoma] (rev 02)</span><br><span class="line">00:01.0 ISA bridge: Intel Corporation 82371SB PIIX3 ISA [Natoma/Triton II]</span><br><span class="line">00:01.1 IDE interface: Intel Corporation 82371SB PIIX3 IDE [Natoma/Triton II]</span><br><span class="line">00:01.3 Bridge: Intel Corporation 82371AB/EB/MB PIIX4 ACPI (rev 03)</span><br><span class="line">00:02.0 VGA compatible controller: Device 1234:1111 (rev 02)</span><br><span class="line">00:03.0 Ethernet controller: Intel Corporation 82540EM Gigabit Ethernet Controller (rev 03)</span><br><span class="line">00:04.0 Host bridge: Red Hat, Inc. QEMU PCI Expander bridge</span><br><span class="line">00:05.0 Host bridge: Red Hat, Inc. QEMU PCI Expander bridge</span><br><span class="line">03:00.0 PCI bridge: Red Hat, Inc. QEMU PCI-PCI bridge</span><br><span class="line">04:03.0 SCSI storage controller: Red Hat, Inc. Virtio SCSI</span><br><span class="line">08:00.0 PCI bridge: Red Hat, Inc. QEMU PCI-PCI bridge</span><br><span class="line">09:03.0 SCSI storage controller: Red Hat, Inc. Virtio SCSI</span><br><span class="line">09:04.0 SCSI storage controller: Red Hat, Inc. Virtio SCSI</span><br></pre></td></tr></table></figure></p>
+<p>The below <code>lspci</code> output and figure depict the PCI bus topology for this example.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[root@vm ~]# lspci -t</span><br><span class="line">-+-[0000:08]---00.0-[09]--+-03.0</span><br><span class="line"> |                        \-04.0</span><br><span class="line"> +-[0000:03]---00.0-[04]----03.0</span><br><span class="line"> \-[0000:00]-+-00.0</span><br><span class="line">             +-01.0</span><br><span class="line">             +-01.1</span><br><span class="line">             +-01.3</span><br><span class="line">             +-02.0</span><br><span class="line">             +-03.0</span><br><span class="line">             +-04.0</span><br><span class="line">             \-05.0</span><br></pre></td></tr></table></figure>
+<p><img src="/images/2025/09/005.avif" alt></p>
+<h2 id="PCIe-Root-Complex"><a href="#PCIe-Root-Complex" class="headerlink" title="PCIe Root Complex"></a>PCIe Root Complex</h2><p>This section demonstrates how to create extra PCIe root buses through extra Root Complexes. According to QEMU source code, PCIe features are supported only by ‘q35’ machine type on x86 architecture and the ‘virt’ machine type on AArch64. The root complex is created by using “pxb-pcie” on the QEMU command line.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -machine q35,accel=kvm -vnc :8 -smp 4 -m 4096M \</span><br><span class="line">-net nic -net user,hostfwd=tcp::5028-:22 \</span><br><span class="line">-hda ol8.qcow2 -serial stdio \</span><br><span class="line">-device pxb-pcie,id=pcie.1,bus_nr=2,bus=pcie.0 \</span><br><span class="line">-device ioh3420,id=pcie_port1,bus=pcie.1,chassis=1 \</span><br><span class="line">-device virtio-scsi-pci,bus=pcie_port1 \</span><br><span class="line">-device ioh3420,id=pcie_port2,bus=pcie.1,chassis=2 \</span><br><span class="line">-device virtio-scsi-pci,bus=pcie_port2 \</span><br><span class="line">-device pxb-pcie,id=pcie.2,bus_nr=8,bus=pcie.0 \</span><br><span class="line">-device ioh3420,id=pcie_port3,bus=pcie.2,chassis=3 \</span><br><span class="line">-device virtio-scsi-pci,bus=pcie_port3</span><br></pre></td></tr></table></figure></p>
+<p>The above QEMU command line creates two extra PCIe root complexes. The first root complex has one virtio-scsi-pci HBA (09:00.0), and the second has two virtio-scsi-pci HBAs (03:00.0 and 04:00.0).<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[root@vm ~]# lspci</span><br><span class="line">00:00.0 Host bridge: Intel Corporation 82G33/G31/P35/P31 Express DRAM Controller</span><br><span class="line">00:01.0 VGA compatible controller: Device 1234:1111 (rev 02)</span><br><span class="line">00:02.0 Ethernet controller: Intel Corporation 82574L Gigabit Network Connection</span><br><span class="line">00:03.0 Host bridge: Red Hat, Inc. QEMU PCIe Expander bridge</span><br><span class="line">00:04.0 Host bridge: Red Hat, Inc. QEMU PCIe Expander bridge</span><br><span class="line">00:1f.0 ISA bridge: Intel Corporation 82801IB (ICH9) LPC Interface Controller (rev 02)</span><br><span class="line">00:1f.2 SATA controller: Intel Corporation 82801IR/IO/IH (ICH9R/DO/DH) 6 port SATA Controller [AHCI mode] (rev 02)</span><br><span class="line">00:1f.3 SMBus: Intel Corporation 82801I (ICH9 Family) SMBus Controller (rev 02)</span><br><span class="line">02:00.0 PCI bridge: Intel Corporation 7500/5520/5500/X58 I/O Hub PCI Express Root Port 0 (rev 02)</span><br><span class="line">02:01.0 PCI bridge: Intel Corporation 7500/5520/5500/X58 I/O Hub PCI Express Root Port 0 (rev 02)</span><br><span class="line">03:00.0 SCSI storage controller: Red Hat, Inc. Virtio SCSI (rev 01)</span><br><span class="line">04:00.0 SCSI storage controller: Red Hat, Inc. Virtio SCSI (rev 01)</span><br><span class="line">08:00.0 PCI bridge: Intel Corporation 7500/5520/5500/X58 I/O Hub PCI Express Root Port 0 (rev 02)</span><br><span class="line">09:00.0 SCSI storage controller: Red Hat, Inc. Virtio SCSI (rev 01)</span><br></pre></td></tr></table></figure></p>
+<p>The below <code>lspci</code> output and figure depict the PCIe topology for this example.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[root@vm ~]# lspci -t</span><br><span class="line">-+-[0000:08]---00.0-[09]----00.0</span><br><span class="line"> +-[0000:02]-+-00.0-[03]----00.0</span><br><span class="line"> |           \-01.0-[04]----00.0</span><br><span class="line"> \-[0000:00]-+-00.0</span><br><span class="line">             +-01.0</span><br><span class="line">             +-02.0</span><br><span class="line">             +-03.0</span><br><span class="line">             +-04.0</span><br><span class="line">             +-1f.0</span><br><span class="line">             +-1f.2</span><br><span class="line">             \-1f.3</span><br></pre></td></tr></table></figure></p>
+<p><img src="/images/2025/09/006.avif" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://github.com/qemu/qemu/blob/master/docs/pci_expander_bridge.txt" target="_blank" rel="noopener">qemu/docs/pci_expander_bridge.txt</a></li>
+<li><a href="https://blogs.oracle.com/linux/post/a-study-of-the-linux-kernel-pci-subsystem-with-qemu" target="_blank" rel="noopener">A study of the Linux kernel PCI subsystem with QEMU</a></li>
+<li><a href="https://mail.coreboot.org/archives/list/seabios@seabios.org/message/7QA3NUQ7PMU445BWS6FGI54CFWED66GM/" target="_blank" rel="noopener">[PATCH RFC V2 12/17] hw/pci: introduce PCI Expander Bridge (PXB)</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/QEMU/">QEMU</a>
+            
+              <a href="/tags/PCI-PCIe/">PCI&PCIe</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/09/07/Notes-about-ARM-pointer-authentication/">
+        <span class="next-text nav-default">Notes about ARM pointer authentication</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/09/13/Notes-about-qemu-pxb-pci-expander-bridge/';
+        this.page.identifier = '2025/09/13/Notes-about-qemu-pxb-pci-expander-bridge/';
+        this.page.title = 'Notes about qemu pxb(pci expander bridge)';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
