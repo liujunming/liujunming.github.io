@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-09-13T11:40:19.492Z</updated>
+  <updated>2025-09-14T12:35:31.177Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about PMU(Performance Monitoring Unit)</title>
+    <link href="http://liujunming.github.io/2025/09/14/Notes-about-PMU-Performance-Monitoring-Unit/"/>
+    <id>http://liujunming.github.io/2025/09/14/Notes-about-PMU-Performance-Monitoring-Unit/</id>
+    <published>2025-09-14T10:48:56.000Z</published>
+    <updated>2025-09-14T12:35:31.177Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下PMU(Performance Monitoring Unit)的相关notes，内容源于DSN’12 paper，时效性可能不太准确。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>There are generally two working modes of PMUs: interrupt-based mode and precision mode. In the first mode, a counter will automatically increase and generate an interrupt when it has reached a predefined threshold (i.e., event-based sampling) or predefined time has elapsed (i.e., time-based sampling). This is the basic performance counter mode, which supports most types of events, but lacks precise instruction pointer information, resulting in that the reported IP (instruction pointer) is up to tens of instructions away from the instruction causing the event, due to the out-of-order execution in modern processors. For example, according to AMD’s manual, the reported IP may be up to 72 instructions away from the actual IP causing the event.</p><p>To improve the precision and flexibility of PMUs,most commodity processors also support a precise mode of performance monitoring, including the Precise Event-Based Sampling (PEBS), Branch Trace Store (BTS),Last Branch Record (LBR) and Event Filtering (EF). Currently, most existing commodity processors support parts of the features mentioned above.</p><h2 id="Precise-Performance-Counter"><a href="#Precise-Performance-Counter" class="headerlink" title="Precise Performance Counter"></a>Precise Performance Counter</h2><p>In PEBS, the samples of performance counters are written into a preregistered memory region. When the memory region is nearly full, an interrupt is generated to trigger the handler. By batching the samples and processing them together, this mechanism improves the performance of monitoring significantly. Meanwhile, thanks to the <em>atomic-freeze</em> feature, the IP addresses recorded in traces are exactly the ones causing the event.<br><img src="/images/2025/09/008.png" alt></p><h2 id="Branch-Trace-Store"><a href="#Branch-Trace-Store" class="headerlink" title="Branch Trace Store"></a>Branch Trace Store</h2><p>Intel’s BTS mechanism provides the capability of capturing all control transfer events and saving the events in a memory-resident BTS buffer. The events include all types of jump, call, return, interrupt and exception. The recorded information includes the addresses of branch source and target. Thus, it enables the monitoring of the whole control flow of an application. Similar as PEBS, the branch trace is also recorded in a pre-registered memory region, which makes the batching processing possible.</p><h2 id="Last-Branch-Record"><a href="#Last-Branch-Record" class="headerlink" title="Last Branch Record"></a>Last Branch Record</h2><p>LBR in Intel Core and Core i7, records the most recent branches into a register stack. This mechanism records similar data as in BTS. It records the source address and target address of each branch, thus provides the ability to trace the control flow of a program as well. However, due to the small size of the register stack (e.g., Intel Core has 4 pairs, Core i7 has 16 pairs), previous samples may be overwritten by upcoming samples during monitoring.</p><p><img src="/images/2025/09/007.png" alt></p><p>可以把 LBR 想象成一个容量很小的高速暂存器，只记录最近发生的几次分支，但查看速度极快，几乎不影响当前工作。而 BTS 则像一个庞大的流水账本，忠实记录下所有的分支，但往账本上写字的过程本身会消耗一些精力。</p><h2 id="Event-Filtering"><a href="#Event-Filtering" class="headerlink" title="Event Filtering"></a>Event Filtering</h2><p>The Event Filtering mechanism provides additional constraints to record events. It is used to filter events not concerned with. For example, latency constraints can be applied in Itanium2’s cache related events, which only count on high latency cache misses. Further, constraints such as “do not capture conditional branches”, “do not capture near return branches” are generally available on recent processors, which support LBR such as Intel Core i7. However, this mechanism is currently only available in LBR, control transfers recorded in BTS lack this type of filtering support.</p><h2 id="Conditional-Counting"><a href="#Conditional-Counting" class="headerlink" title="Conditional Counting"></a>Conditional Counting</h2><p>To separate user-level events from kernel-level ones, PMUs also support conditional event counting: they only increment counter while the processor is running at a specific privilege level (e.g. user, kernel or both). Further, to isolate possible interferences in performance counters among multiple processes/threads, operating systems are usually enhanced by saving and restoring performance counters during context switches.</p><hr><p>参考资料:</p><ol><li><a href="https://ipads.se.sjtu.edu.cn/_media/publications/cfimon-dsn12.pdf" target="_blank" rel="noopener">CFIMon: Detecting Violation of Control Flow Integrity using Performance Counters</a></li><li><a href="https://llvm.org/devmtg/2024-04/slides/TechnicalTalks/Xiao-EnablingHW-BasedPGO.pdf" target="_blank" rel="noopener">Enabling HW-based PGO</a></li><li>deepssek prompt: pmu的pebs与lbr，如何理解</li><li>deepssek prompt: Intel Branch Trace Store与Last Branch Record的区别</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下PMU(Performance Monitoring Unit)的相关notes，内容源于DSN’12 paper，时效性可能不太准确。
+    
+    </summary>
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about qemu pxb(pci expander bridge)</title>
@@ -452,30 +474,6 @@
     
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about ARM MTE technology</title>
-    <link href="http://liujunming.github.io/2025/03/29/Notes-about-ARM-MTE-Memory-Tagging-Extension-technology/"/>
-    <id>http://liujunming.github.io/2025/03/29/Notes-about-ARM-MTE-Memory-Tagging-Extension-technology/</id>
-    <published>2025-03-29T09:50:08.000Z</published>
-    <updated>2025-03-29T11:54:04.000Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下ARM MTE(Memory Tagging Extension) technology的相关notes。<a id="more"></a> </p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/03/001.jpeg" alt></p><p><img src="/images/2025/03/002.jpeg" alt></p><p><img src="/images/2025/03/003.jpeg" alt></p><p>Starting with ARMv8.3-A, ARM SoCs introduce support for memory tagging extensions (MTE) that <strong>allow partitioning the address space into 16-byte regions that are colored with one of the 16 tags</strong>. <u>The hardware maintains a table that stores the mapping between addresses and tags allowing access to the region only if the tag of the pointer (the tag is stored in the upper bits of the pointer matches the tag of the memory region)</u>.</p><h2 id="应用"><a href="#应用" class="headerlink" title="应用"></a>应用</h2><h3 id="检测内存越界与溢出"><a href="#检测内存越界与溢出" class="headerlink" title="检测内存越界与溢出"></a>检测内存越界与溢出</h3><p>内存越界与溢出是常见的内存安全问题，通常由于错误的索引或指针操作导致访问超出合法的内存范围，可能引发未定义行为、数据损坏，甚至被攻击者利用进行恶意代码执行。MTE 提供了有效的硬件级检测机制，实时防止这些问题的发生。</p><p>假设一个程序中分配了 16 字节的内存，但错误地访问了第 17 个字节：</p><p><img src="/images/2025/03/004.webp" alt></p><p>在此场景中，MTE 通过标签匹配机制发现非法访问，从而阻止越界操作的执行，避免可能的崩溃或安全漏洞。</p><h3 id="防止未初始化内存的使用"><a href="#防止未初始化内存的使用" class="headerlink" title="防止未初始化内存的使用"></a>防止未初始化内存的使用</h3><p>未初始化内存的使用是另一个常见的内存安全问题。当程序访问未初始化的内存时，可能读取到随机数据，导致逻辑错误、崩溃，或被恶意利用泄露敏感信息。MTE 可以有效防止这类问题。</p><p>以下是一个典型的未初始化内存使用的伪代码示例：</p><p><img src="/images/2025/03/005.webp" alt></p><p>在这种情况下，MTE 会阻止对未初始化内存的非法访问，避免出现数据不一致和未定义行为。</p><h3 id="内存释放后的安全保护"><a href="#内存释放后的安全保护" class="headerlink" title="内存释放后的安全保护"></a>内存释放后的安全保护</h3><p>时间局部安全性问题，即内存释放后的访问，是内存管理中的常见隐患。这种问题通常发生在指针仍然试图访问已释放的内存区域，可能导致程序崩溃或被攻击者利用进行数据篡改。MTE 通过标签机制解决了这一问题。</p><p>以下代码展示了释放后访问的典型错误：</p><p><img src="/images/2025/03/006.webp" alt></p><p>在这里，MTE 通过实时检测，阻止了非法访问已释放内存的行为，防止时间局部安全问题带来的潜在风险。</p><hr><p>参考资料:</p><ol><li><a href="https://www.usenix.org/conference/atc24/presentation/chen-xiangdong" target="_blank" rel="noopener">Limitations and Opportunities of Modern Hardware Isolation Mechanisms</a></li><li><a href="https://mp.weixin.qq.com/s/GlXhwNlf4jTs5ndRLCFZjQ" target="_blank" rel="noopener">Android Memory Tagging Extension (MTE) 的深度研究与应用</a></li><li><a href="https://mp.weixin.qq.com/s/H9Pu9i37ogyl05z7NzOStA" target="_blank" rel="noopener">Memory安全和硬件Memory Tagging技术—中篇</a></li><li><a href="https://mp.weixin.qq.com/s?__biz=MzI5MjYwMTk3OA==&amp;mid=2247484869&amp;idx=1&amp;sn=d7e4faef480a169df8ed79e66c73b58b&amp;chksm=ec7facd0db0825c64e4010f2a92e73d8db5753ce50efbf9f29ea356a7b5277b94a06c1222057&amp;scene=178&amp;cur_album_id=1638614933820997634#rd" target="_blank" rel="noopener">Memory安全和硬件Memory Tagging技术—下篇</a></li><li><a href="https://codasip.com/2023/11/02/fine-grained-memory-protection-cheri/" target="_blank" rel="noopener">Fine-grained memory protection</a></li><li><a href="https://static.linaro.org/connect/yvr18/presentations/yvr18-104.pdf" target="_blank" rel="noopener">https://static.linaro.org/connect/yvr18/presentations/yvr18-104.pdf</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下ARM MTE(Memory Tagging Extension) technology的相关notes。
-    
-    </summary>
-    
-      <category term="ARM" scheme="http://liujunming.github.io/categories/ARM/"/>
-    
-    
-      <category term="ARM" scheme="http://liujunming.github.io/tags/ARM/"/>
     
       <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
     
