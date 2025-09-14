@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-09-14T12:35:31.177Z</updated>
+  <updated>2025-09-14T13:35:05.469Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Intel Processor Trace (IPT)</title>
+    <link href="http://liujunming.github.io/2025/09/14/Notes-about-Intel-Processor-Trace-Intel-PT/"/>
+    <id>http://liujunming.github.io/2025/09/14/Notes-about-Intel-Processor-Trace-Intel-PT/</id>
+    <published>2025-09-14T12:47:52.000Z</published>
+    <updated>2025-09-14T13:35:05.469Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Intel Processor Trace (IPT)的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/09/009.png" alt></p><h2 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h2><p>Currently, there are several control flow tracing mechanisms in hardware, each representing a different set of tradeoffs (as shown in Table 1). Branch Trace Store (BTS) can capture all control transfer events (e.g., call, return and all types of jumps) to a memory-resident BTS buffer. Each record contains the addresses of source and target of the branch instruction, thus there is no need to decode it. However, BTS introduces very high overhead during tracing and is inflexible due to the lack of event filtering mechanisms. While Last Brach Record (LBR) has some support of event filtering (e.g., filtering out conditional branches), it can only record 16 or 32 most recent branch pairs (source and target) into a register stack. Though it incurs very low tracing overhead, it can hardly provide precise protection.</p><p><img src="/images/2025/09/010.png" alt></p><p>Due to the capability of dynamically tracing control flow, BTS and LBR have been exploited to defend against ROP like attacks, which, however, either incur high overhead (those using BTS) or sacrifice security due to imprecise tracing(LBR).</p><p>IPT能以比BTS低得多的性能开销（通常在 5% 左右或更低），持续、近乎无遗漏地记录程序执行的控制流。它在很多场景下正在替代 BTS。</p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>IPT is introduced in Intel Core M and 5th generation Intel Core processors. Each CPU core has its own IPT hardware that generates trace information of running programs in the form of <code>packets</code>. IPT configuration can only be done by the privileged agents (e.g., OS) using certain model-specific registers (MSRs). The traced packets are written to the pre-configured memory buffer in a compressed form to minimize the output bandwidth and reduce the tracing overhead. The software decoder can decode the traced packets based on pre-defined format, with the extra information like the program binaries, as well as some runtime data provided by the control agent, to precisely reconstruct the program flow. Thanks to the aggressive compression of traces, it can collect more control flow tracing information including control flow, execution modes, and timings than BTS, yet incurring much less tracing overhead compared to BTS. This, however, also incurs orders of magnitude slower decoding speed than tracing.</p><p><img src="/images/2025/09/011.png" alt></p><p><img src="/images/2025/09/012.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://ipads.se.sjtu.edu.cn/zh/publications/LiuHPCA17.pdf" target="_blank" rel="noopener">Transparent and Efficient CFI Enforcement with Intel Processor Trace</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Intel Processor Trace (IPT)的相关notes。
+    
+    </summary>
+    
+      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
+    
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PMU(Performance Monitoring Unit)</title>
@@ -449,31 +473,6 @@
     
     
       <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
-    
-      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Seccomp filter</title>
-    <link href="http://liujunming.github.io/2025/04/05/Notes-about-Seccomp-filter/"/>
-    <id>http://liujunming.github.io/2025/04/05/Notes-about-Seccomp-filter/</id>
-    <published>2025-04-05T06:08:11.000Z</published>
-    <updated>2025-04-05T10:55:23.507Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Seccomp(SECure COMPuting) filtering的相关notes。</p><p><u>Seccomp filtering provides a means for a process to specify a filter for incoming system calls</u>.<a id="more"></a> </p><p>以下内容源于deepseek。</p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>Seccomp filter 是 Linux 内核提供的一种安全机制，用于限制进程能够执行的系统调用（syscall），从而减少潜在的攻击面。它通过自定义过滤规则（基于 BPF 程序）动态允许或拦截系统调用，常用于沙箱、容器等需要严格隔离的场景。</p><h2 id="核心概念"><a href="#核心概念" class="headerlink" title="核心概念"></a>核心概念</h2><h3 id="Seccomp-模式"><a href="#Seccomp-模式" class="headerlink" title="Seccomp 模式"></a>Seccomp 模式</h3><ul><li>Strict Mode：仅允许<code>read</code>, <code>writ</code>e<code>,</code>exit<code>,</code>sigreturn<code>四个系统调用，其他调用会触发</code>SIGKILL`。</li><li>Filter Mode（Seccomp-BPF）：允许通过 BPF（Berkeley Packet Filter）规则自定义允许或拒绝的系统调用列表，提供更灵活的过滤。</li></ul><h3 id="BPF-规则"><a href="#BPF-规则" class="headerlink" title="BPF 规则"></a>BPF 规则</h3><ul><li>使用类汇编的指令定义过滤逻辑（例如基于系统调用号、参数值等条件）。</li><li>规则在内核中执行，确保高效和安全。</li></ul><h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><h3 id="规则设置"><a href="#规则设置" class="headerlink" title="规则设置"></a>规则设置</h3><ul><li>进程通过 <code>prctl()</code> 或 <code>seccomp()</code> 系统调用加载 BPF 规则。</li><li>规则定义哪些系统调用被允许（<code>ALLOW</code>）、记录（<code>LOG</code>）或拒绝（<code>KILL</code>/<code>ERRNO</code>）。</li></ul><h3 id="执行流程"><a href="#执行流程" class="headerlink" title="执行流程"></a>执行流程</h3><ul><li>当进程发起系统调用时，内核触发 Seccomp 过滤器。</li><li>BPF 规则对系统调用号、参数等进行检查。</li><li>根据规则决定放行、终止进程，或返回错误（如 <code>EPERM</code>）。</li></ul><h2 id="主要用途"><a href="#主要用途" class="headerlink" title="主要用途"></a>主要用途</h2><h3 id="沙箱化应用"><a href="#沙箱化应用" class="headerlink" title="沙箱化应用"></a>沙箱化应用</h3><ul><li>浏览器（如 Chrome）用 Seccomp 限制渲染进程的权限。</li><li>游戏反作弊系统防止用户态程序滥用内核功能。</li></ul><h3 id="容器安全"><a href="#容器安全" class="headerlink" title="容器安全"></a>容器安全</h3><p>Docker 和 Kubernetes 默认启用 Seccomp，限制容器内进程的系统调用（如禁止 <code>mount</code> 或 <code>reboot</code>）。</p><h3 id="特权进程降权"><a href="#特权进程降权" class="headerlink" title="特权进程降权"></a>特权进程降权</h3><p>服务启动后通过 Seccomp 丢弃不必要的系统调用权限。</p><hr><p>参考资料:</p><ol><li><a href="https://man7.org/linux/man-pages/man2/seccomp.2.html" target="_blank" rel="noopener">man seccomp</a></li><li><a href="https://www.kernel.org/doc/html/v5.0/userspace-api/seccomp_filter.html" target="_blank" rel="noopener">Seccomp BPF (SECure COMPuting with filters)</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Seccomp(SECure COMPuting) filtering的相关notes。&lt;/p&gt;
-&lt;p&gt;&lt;u&gt;Seccomp filtering provides a means for a process to specify a filter for incoming system calls&lt;/u&gt;.
-    
-    </summary>
-    
-      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
-    
-    
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
     
       <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
     
