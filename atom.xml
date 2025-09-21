@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-09-20T10:19:11.388Z</updated>
+  <updated>2025-09-21T13:27:55.592Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about CUDA Dynamic Parallelism</title>
+    <link href="http://liujunming.github.io/2025/09/21/Notes-about-CUDA-Dynamic-Parallelism/"/>
+    <id>http://liujunming.github.io/2025/09/21/Notes-about-CUDA-Dynamic-Parallelism/</id>
+    <published>2025-09-21T12:45:49.000Z</published>
+    <updated>2025-09-21T13:27:55.592Z</updated>
+    
+    <content type="html"><![CDATA[<p>CUDA Dynamic Parallelism(也简称DP，动态并行)是CUDA编程模型的一个高级特性，它允许<strong>GPU内核（Kernel）在设备端自行创建和启动新的内核</strong>，而无需CPU的干预。<a id="more"></a></p><h2 id="为什么引入Dynamic-Parallelism？"><a href="#为什么引入Dynamic-Parallelism？" class="headerlink" title="为什么引入Dynamic Parallelism？"></a>为什么引入Dynamic Parallelism？</h2><p>传统 CUDA 模型要求所有内核（Kernel）必须由 CPU 预先启动，在面对递归算法、自适应计算、不规则数据结构等场景时存在显著局限性。</p><p>CUDA Dynamic Parallelism就是来解决这个问题的。</p><h2 id="DP基本概念"><a href="#DP基本概念" class="headerlink" title="DP基本概念"></a>DP基本概念</h2><p>CUDA DP是CUDA编程模型的一个扩展，CUDA5.0引入的关键特性。允许CUDA内核直接在GPU上创建和同步新的工作（即启动新的内核），实现运行时动态任务生成与调度，从而实现更灵活的并行计算模式。</p><p>与静态并行相比，DP 的核心创新在于：</p><ol><li>任务生成的本地化：任务调度逻辑完全在 GPU 上执行，无需 CPU 介入</li><li>动态资源分配：根据运行时数据特征实时调整并行粒度</li><li>算法自然映射：支持递归、条件分支等不规则控制流的并行化</li></ol><h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><ol><li>父内核启动：整个过程仍然始于CPU。CPU启动一个普通的内核（称为父内核）</li><li>设备端启动：在父内核的执行过程中，GPU上的线程可以根据其计算得到的结果，使用标准的语法来启动一个新的子内核</li><li>设备端同步：父内核中的线程可以使用 <code>cudaDeviceSynchronize()</code> 来等待其启动的所有子内核执行完毕，然后再继续自己的工作</li><li>层次结构：子内核还可以继续启动自己的子内核，从而形成一个嵌套的、层次化的内核启动结构。CUDA确保了这种嵌套执行的正确性</li></ol><h2 id="DP核心优势"><a href="#DP核心优势" class="headerlink" title="DP核心优势"></a>DP核心优势</h2><ol><li>消除主机端瓶颈: 在传统模式中，每次内核启动需经历 “CPU 准备参数→PCIe 传输→GPU 执行” 的固定流程。DP 将任务启动逻辑迁移至设备端，避免了频繁的主机 - 设备同步。例如，在递归计算中，子内核启动延迟从 PCIe 级（微秒级）降至 GPU 内核内函数调用级（纳秒级）。</li><li>细粒度任务调度: 线程可根据局部数据特征动态决定是否启动子任务。如在自适应网格计算中，仅当网格单元误差超过阈值时才启动子内核进行细化，实现计算资源的精准分配。</li><li>支持复杂算法结构: 传统CUDA难以高效实现的递归算法（如快速傅里叶变换、光线追踪的光线分叉），可通过DP直接映射为内核层级调用，避免繁琐的迭代化改造。</li></ol><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>CUDA Dynamic Parallelism 是一项强大的技术，它通过允许GPU内核自主启动新工作，深化了GPU的独立计算能力。它主要解决了减少CPU-GPU通信瓶颈和简化复杂算法实现的问题，但随之而来的是需要开发者对开销和复杂性进行仔细权衡。在合适的场景下使用，它能带来显著的性能提升和编程便利性。</p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/teAouWA11-uJ5N3MKEyXcQ" target="_blank" rel="noopener">NVIDIA | BaM与CUDA Dynamic Parallelism的核心区别</a></li><li>deepseek prompt:简要介绍下cuda的Dynamic Parallelism技术</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;CUDA Dynamic Parallelism(也简称DP，动态并行)是CUDA编程模型的一个高级特性，它允许&lt;strong&gt;GPU内核（Kernel）在设备端自行创建和启动新的内核&lt;/strong&gt;，而无需CPU的干预。
+    
+    </summary>
+    
+      <category term="GPU" scheme="http://liujunming.github.io/categories/GPU/"/>
+    
+    
+      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
+    
+      <category term="CUDA" scheme="http://liujunming.github.io/tags/CUDA/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Intel Advanced Matrix Extensions (AMX)</title>
@@ -451,30 +475,6 @@
       <category term="RAS" scheme="http://liujunming.github.io/tags/RAS/"/>
     
       <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about linux KPTI</title>
-    <link href="http://liujunming.github.io/2025/04/12/Notes-about-linux-KPTI/"/>
-    <id>http://liujunming.github.io/2025/04/12/Notes-about-linux-KPTI/</id>
-    <published>2025-04-12T11:43:46.000Z</published>
-    <updated>2025-04-12T11:49:39.574Z</updated>
-    
-    <content type="html"><![CDATA[<p><img src="/images/2025/04/006.png" alt><a id="more"></a> </p><p>KPTI (kernel page table isolation) is proposed to defend against the Meltdown attack. This patch separates user space and kernel space page tables entirely, as shown in the following figure. The one used by kernel is the same as before, while the one used by application contains a copy of user space and a small set of kernel space mapping with only trampoline code to enter the kernel. Since the data of kernel are no longer mapped in the user space, a malicious application cannot directly de-reference kernel’s data address, and thus cannot issue Meltdown attack.</p><p><img src="/images/2025/04/007.png" alt></p><hr><p>参考资料:</p><ol><li>EPTI: Efficient Defense against Meltdown Attack for Unpatched VMs(ATC’18)</li><li><a href="https://www.wikiwand.com/en/articles/Kernel_page-table_isolation" target="_blank" rel="noopener">https://www.wikiwand.com/en/articles/Kernel_page-table_isolation</a></li><li><a href="https://blog.csdn.net/pwl999/article/details/112686914" target="_blank" rel="noopener">Linux mem 2.3 内核页表隔离 (KPTI) 详解</a></li><li><a href="https://www.kernel.org/doc/html/next/x86/pti.html" target="_blank" rel="noopener">Page Table Isolation (PTI)</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;img src=&quot;/images/2025/04/006.png&quot; alt&gt;
-    
-    </summary>
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/categories/Kernel/"/>
-    
-    
-      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
-    
-      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
     
   </entry>
   

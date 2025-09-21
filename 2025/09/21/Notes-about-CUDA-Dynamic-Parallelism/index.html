@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about CUDA Dynamic Parallelism">
+
+
+
+
+  <meta name="keywords" content="GPU, CUDA, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/09/21/Notes-about-CUDA-Dynamic-Parallelism/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about CUDA Dynamic Parallelism - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about CUDA Dynamic Parallelism
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-09-21
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/GPU/">GPU</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#为什么引入Dynamic-Parallelism？"><span class="toc-text">为什么引入Dynamic Parallelism？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DP基本概念"><span class="toc-text">DP基本概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#工作原理"><span class="toc-text">工作原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DP核心优势"><span class="toc-text">DP核心优势</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>CUDA Dynamic Parallelism(也简称DP，动态并行)是CUDA编程模型的一个高级特性，它允许<strong>GPU内核（Kernel）在设备端自行创建和启动新的内核</strong>，而无需CPU的干预。<a id="more"></a></p>
+<h2 id="为什么引入Dynamic-Parallelism？"><a href="#为什么引入Dynamic-Parallelism？" class="headerlink" title="为什么引入Dynamic Parallelism？"></a>为什么引入Dynamic Parallelism？</h2><p>传统 CUDA 模型要求所有内核（Kernel）必须由 CPU 预先启动，在面对递归算法、自适应计算、不规则数据结构等场景时存在显著局限性。</p>
+<p>CUDA Dynamic Parallelism就是来解决这个问题的。</p>
+<h2 id="DP基本概念"><a href="#DP基本概念" class="headerlink" title="DP基本概念"></a>DP基本概念</h2><p>CUDA DP是CUDA编程模型的一个扩展，CUDA5.0引入的关键特性。允许CUDA内核直接在GPU上创建和同步新的工作（即启动新的内核），实现运行时动态任务生成与调度，从而实现更灵活的并行计算模式。</p>
+<p>与静态并行相比，DP 的核心创新在于：</p>
+<ol>
+<li>任务生成的本地化：任务调度逻辑完全在 GPU 上执行，无需 CPU 介入</li>
+<li>动态资源分配：根据运行时数据特征实时调整并行粒度</li>
+<li>算法自然映射：支持递归、条件分支等不规则控制流的并行化</li>
+</ol>
+<h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><ol>
+<li>父内核启动：整个过程仍然始于CPU。CPU启动一个普通的内核（称为父内核）</li>
+<li>设备端启动：在父内核的执行过程中，GPU上的线程可以根据其计算得到的结果，使用标准的语法来启动一个新的子内核</li>
+<li>设备端同步：父内核中的线程可以使用 <code>cudaDeviceSynchronize()</code> 来等待其启动的所有子内核执行完毕，然后再继续自己的工作</li>
+<li>层次结构：子内核还可以继续启动自己的子内核，从而形成一个嵌套的、层次化的内核启动结构。CUDA确保了这种嵌套执行的正确性</li>
+</ol>
+<h2 id="DP核心优势"><a href="#DP核心优势" class="headerlink" title="DP核心优势"></a>DP核心优势</h2><ol>
+<li>消除主机端瓶颈: 在传统模式中，每次内核启动需经历 “CPU 准备参数→PCIe 传输→GPU 执行” 的固定流程。DP 将任务启动逻辑迁移至设备端，避免了频繁的主机 - 设备同步。例如，在递归计算中，子内核启动延迟从 PCIe 级（微秒级）降至 GPU 内核内函数调用级（纳秒级）。</li>
+<li>细粒度任务调度: 线程可根据局部数据特征动态决定是否启动子任务。如在自适应网格计算中，仅当网格单元误差超过阈值时才启动子内核进行细化，实现计算资源的精准分配。</li>
+<li>支持复杂算法结构: 传统CUDA难以高效实现的递归算法（如快速傅里叶变换、光线追踪的光线分叉），可通过DP直接映射为内核层级调用，避免繁琐的迭代化改造。</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>CUDA Dynamic Parallelism 是一项强大的技术，它通过允许GPU内核自主启动新工作，深化了GPU的独立计算能力。它主要解决了减少CPU-GPU通信瓶颈和简化复杂算法实现的问题，但随之而来的是需要开发者对开销和复杂性进行仔细权衡。在合适的场景下使用，它能带来显著的性能提升和编程便利性。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://mp.weixin.qq.com/s/teAouWA11-uJ5N3MKEyXcQ" target="_blank" rel="noopener">NVIDIA | BaM与CUDA Dynamic Parallelism的核心区别</a></li>
+<li>deepseek prompt:简要介绍下cuda的Dynamic Parallelism技术</li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/GPU/">GPU</a>
+            
+              <a href="/tags/CUDA/">CUDA</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/09/20/Notes-about-Intel-Advanced-Matrix-Extensions-AMX/">
+        <span class="next-text nav-default">Notes about Intel Advanced Matrix Extensions (AMX)</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/09/21/Notes-about-CUDA-Dynamic-Parallelism/';
+        this.page.identifier = '2025/09/21/Notes-about-CUDA-Dynamic-Parallelism/';
+        this.page.title = 'Notes about CUDA Dynamic Parallelism';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
