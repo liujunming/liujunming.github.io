@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-09-21T13:27:55.592Z</updated>
+  <updated>2025-10-01T13:36:03.255Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about CRIU(Checkpoint/Restore In Userspace)</title>
+    <link href="http://liujunming.github.io/2025/10/01/Notes-about-CRIU-Checkpoint-Restore-In-Userspace/"/>
+    <id>http://liujunming.github.io/2025/10/01/Notes-about-CRIU-Checkpoint-Restore-In-Userspace/</id>
+    <published>2025-10-01T01:19:54.000Z</published>
+    <updated>2025-10-01T13:36:03.255Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下CRIU(Checkpoint/Restore In Userspace)的相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>CRIU(Checkpoint/Restore In Userspace) is a Linux software. It can freeze a running container (or an individual application) and checkpoint its state to disk. The data saved can be used to restore the application and run it exactly as it was during the time of the freeze. Using this functionality, application or container live migration, snapshots, remote debugging, and <a href="https://criu.org/Usage_scenarios" target="_blank" rel="noopener">many other things</a> are now possible.</p><p><img src="/images/2025/10/001.png" alt></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>CRIU is a software framework for transparent checkpointing and restoring of Linux processes. It enables live migration, snapshots, or accelerated start-up of processes and containers. To extract the user-space application state, CRIU uses conventional debugging mechanisms, like <a href="http://man7.org/linux/man-pages/man2/ptrace.2.html" target="_blank" rel="noopener">ptrace</a>. However, to extract the state of process-specific kernel objects, CRIU depends on special Linux kernel interfaces.</p><p><img src="/images/2025/10/003.png" alt></p><p>During recovery, CRIU runs inside the target process and recreates all OS objects on behalf of the target. This way, CRIU utilises the available OS mechanisms to run most of the recovery without the need for significant kernel modifications. Finally, CRIU removes any traces of itself from the process.</p><p>CRIU can also <a href="https://lwn.net/Articles/495304/" target="_blank" rel="noopener">restore the state of TCP connections</a>, a crucial feature for live migration of distributed applications. The Linux kernel introduced a new TCP connection state, <code>TCP_REPAIR</code>, for that purpose. In this state, a user-level process can modify the send and receive message queues, get and set the message sequence numbers and timestamps, or open and close a connection without notifying the other side.</p><h2 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h2><p>CRIU checkpoint与restore时需要考虑的进程状态:</p><ul><li>All of the threads running within the process, where they are executing, their priority, and their signal handling state.</li><li>A complete memory map of the process: which mappings exist at which addresses and the protections that apply to each.</li><li>A list of the process’s open files, including the actual files that have been opened, whether each was opened for read, write, or append access, the current file position, and the file-descriptor number.</li><li>Every open network connection, who the peer is, which protocol is in use, and any in-transit data.</li><li>The configuration of the namespaces in which the process is running.</li><li>Active file notifications, terminal configurations, active timers, and no end of other details.</li></ul><h2 id="CRIU-for-RDMA-and-GPU"><a href="#CRIU-for-RDMA-and-GPU" class="headerlink" title="CRIU for RDMA and GPU"></a>CRIU for RDMA and GPU</h2><ul><li><a href="https://www.usenix.org/system/files/atc21-planeta.pdf" target="_blank" rel="noopener">MigrOS: Transparent Live-Migration Support for Containerised RDMA Applications</a></li><li><a href="https://developer.nvidia.com/blog/checkpointing-cuda-applications-with-criu/" target="_blank" rel="noopener">Checkpointing CUDA Applications with CRIU</a></li><li><a href="https://arxiv.org/pdf/2502.16631" target="_blank" rel="noopener">CRIUgpu</a></li></ul><p>更多学术paper，可以参考<a href="https://criu.org/Academic_Research" target="_blank" rel="noopener">Academic Research</a></p><h2 id="CRIB"><a href="#CRIB" class="headerlink" title="CRIB"></a>CRIB</h2><ul><li><a href="https://lwn.net/Articles/984313/" target="_blank" rel="noopener">CRIB: checkpoint/restore in BPF</a></li><li><a href="https://mp.weixin.qq.com/s/XtCebIlGOvugvP35R3pNpw" target="_blank" rel="noopener">CRIB: checkpoint/restore in BPF</a></li><li><a href="https://lpc.events/event/18/contributions/1812/" target="_blank" rel="noopener">Checkpoint/Restore In eBPF (CRIB)</a></li></ul><p>CRIB (Checkpoint/Restore In eBPF) is a proposed eBPF-based system for checkpointing and restoring process state, offering improved performance, flexibility, and extensibility over traditional Linux kernel methods like <code>procfs</code>. It consists of user-space programs, eBPF programs, and kernel functions to facilitate efficient dumping and restoring of process data directly within the kernel.</p><p><img src="/images/2025/10/002.png" alt></p><p>CRIB is an innovative approach to process checkpointing and restoring, designed to address the limitations of existing kernel mechanisms. It leverages the power of eBPF to provide a more performant, flexible, and extensible solution for managing process states. </p><hr><p>参考资料:</p><ol><li><a href="https://criu.org/Main_Page" target="_blank" rel="noopener">https://criu.org/Main_Page</a></li><li><a href="https://github.com/checkpoint-restore/criu" target="_blank" rel="noopener">source code</a></li><li><a href="https://www.usenix.org/system/files/atc21-planeta.pdf" target="_blank" rel="noopener">MigrOS: Transparent Live-Migration Support for Containerised RDMA Applications</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下CRIU(Checkpoint/Restore In Userspace)的相关notes。
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="live migration" scheme="http://liujunming.github.io/tags/live-migration/"/>
+    
+      <category term="Kernel" scheme="http://liujunming.github.io/tags/Kernel/"/>
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about CUDA Dynamic Parallelism</title>
@@ -451,30 +477,6 @@
     
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>硬盘SMART技术</title>
-    <link href="http://liujunming.github.io/2025/04/26/%E7%A1%AC%E7%9B%98SMART%E6%8A%80%E6%9C%AF/"/>
-    <id>http://liujunming.github.io/2025/04/26/硬盘SMART技术/</id>
-    <published>2025-04-26T13:28:53.000Z</published>
-    <updated>2025-05-14T23:31:21.192Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下硬盘SMART(Self-Monitoring, Analysis and Reporting Technology)技术的相关notes。<a id="more"></a></p><h2 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h2><p>硬盘的<strong>SMART</strong>技术（Self-Monitoring, Analysis, and Reporting Technology，自我监测、分析与报告技术）是一种内置于硬盘的监测系统，旨在实时监控硬盘的健康状态，并提前预警潜在的硬件故障。</p><h2 id="核心功能"><a href="#核心功能" class="headerlink" title="核心功能"></a>核心功能</h2><ul><li><p>健康监测<br>持续跟踪硬盘的物理参数（如温度、坏扇区数量、读写错误率等）。</p></li><li><p>故障预警<br>通过分析监测数据，预测硬盘可能发生的故障，并向用户发出警告。</p></li><li><p>数据保护<br>在硬盘完全失效前，为用户提供备份或更换硬盘的窗口期，降低数据丢失风险。</p></li></ul><h2 id="监测的关键参数"><a href="#监测的关键参数" class="headerlink" title="监测的关键参数"></a>监测的关键参数</h2><p>不同硬盘厂商定义的SMART属性可能略有差异，但以下是一些通用核心参数：</p><table><thead><tr><th>参数</th><th>作用</th></tr></thead><tbody><tr><td>Reallocated Sectors</td><td>记录因坏道被替换的扇区数量，值越高风险越大</td></tr><tr><td>Spin-Up Time</td><td>硬盘启动时间，异常值可能预示电机或电路问题</td></tr><tr><td>Temperature</td><td>硬盘工作温度，过高可能加速硬件老化</td></tr><tr><td>Read/Write Error Rate</td><td>读写错误次数，频繁错误可能暗示磁头或盘片问题</td></tr><tr><td>Power-On Hours</td><td>硬盘累计通电时间，寿命预估的重要指标</td></tr><tr><td>SSD Wear Leveling</td><td>(针对SSD)闪存磨损均衡状态，反映剩余寿命</td></tr></tbody></table><h2 id="局限性与注意事项"><a href="#局限性与注意事项" class="headerlink" title="局限性与注意事项"></a>局限性与注意事项</h2><ul><li><p>并非万能<br>SMART主要针对机械故障（如坏道、电机问题）和SSD的闪存磨损，但无法预测突发性电路故障或物理损坏。</p></li><li><p>误报与漏报<br>部分硬盘可能在SMART显示“健康”时突然故障，或因固件问题误报警告。</p></li></ul><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>SMART技术是硬盘健康管理的“守门人”，通过实时监控关键参数帮助用户预防数据灾难。尽管其预测能力有限，但结合定期检查和备份策略，能显著提升数据安全性。对于重要数据，建议将SMART监测纳入日常维护流程。</p><hr><p>参考资料:</p><ol><li><a href="https://www.wikiwand.com/en/articles/Self-Monitoring,_Analysis_and_Reporting_Technology" target="_blank" rel="noopener">https://www.wikiwand.com/en/articles/Self-Monitoring,_Analysis_and_Reporting_Technology</a></li><li>deepseek</li><li><a href="https://mp.weixin.qq.com/s/_atiK380D2wV94kQnfivEw" target="_blank" rel="noopener">OCP NVME SSD规范解读-8.SMART日志要求-1</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下硬盘SMART(Self-Monitoring, Analysis and Reporting Technology)技术的相关notes。
-    
-    </summary>
-    
-      <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
-    
-    
-      <category term="RAS" scheme="http://liujunming.github.io/tags/RAS/"/>
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
     
   </entry>
   

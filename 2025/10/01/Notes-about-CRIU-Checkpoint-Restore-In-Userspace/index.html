@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about CRIU(Checkpoint/Restore In Userspace)">
+
+
+
+
+  <meta name="keywords" content="live migration, Kernel, linux, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/10/01/Notes-about-CRIU-Checkpoint-Restore-In-Userspace/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about CRIU(Checkpoint/Restore In Userspace) - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about CRIU(Checkpoint/Restore In Userspace)
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-10-01
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/linux/">linux</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#What"><span class="toc-text">What</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#进程状态"><span class="toc-text">进程状态</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CRIU-for-RDMA-and-GPU"><span class="toc-text">CRIU for RDMA and GPU</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CRIB"><span class="toc-text">CRIB</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下CRIU(Checkpoint/Restore In Userspace)的相关notes。<a id="more"></a></p>
+<h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>CRIU(Checkpoint/Restore In Userspace) is a Linux software. It can freeze a running container (or an individual application) and checkpoint its state to disk. The data saved can be used to restore the application and run it exactly as it was during the time of the freeze. Using this functionality, application or container live migration, snapshots, remote debugging, and <a href="https://criu.org/Usage_scenarios" target="_blank" rel="noopener">many other things</a> are now possible.</p>
+<p><img src="/images/2025/10/001.png" alt></p>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>CRIU is a software framework for transparent checkpointing and restoring of Linux processes. It enables live migration, snapshots, or accelerated start-up of processes and containers. To extract the user-space application state, CRIU uses conventional debugging mechanisms, like <a href="http://man7.org/linux/man-pages/man2/ptrace.2.html" target="_blank" rel="noopener">ptrace</a>. However, to extract the state of process-specific kernel objects, CRIU depends on special Linux kernel interfaces.</p>
+<p><img src="/images/2025/10/003.png" alt></p>
+<p>During recovery, CRIU runs inside the target process and recreates all OS objects on behalf of the target. This way, CRIU utilises the available OS mechanisms to run most of the recovery without the need for significant kernel modifications. Finally, CRIU removes any traces of itself from the process.</p>
+<p>CRIU can also <a href="https://lwn.net/Articles/495304/" target="_blank" rel="noopener">restore the state of TCP connections</a>, a crucial feature for live migration of distributed applications. The Linux kernel introduced a new TCP connection state, <code>TCP_REPAIR</code>, for that purpose. In this state, a user-level process can modify the send and receive message queues, get and set the message sequence numbers and timestamps, or open and close a connection without notifying the other side.</p>
+<h2 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h2><p>CRIU checkpoint与restore时需要考虑的进程状态:</p>
+<ul>
+<li>All of the threads running within the process, where they are executing, their priority, and their signal handling state.</li>
+<li>A complete memory map of the process: which mappings exist at which addresses and the protections that apply to each.</li>
+<li>A list of the process’s open files, including the actual files that have been opened, whether each was opened for read, write, or append access, the current file position, and the file-descriptor number.</li>
+<li>Every open network connection, who the peer is, which protocol is in use, and any in-transit data.</li>
+<li>The configuration of the namespaces in which the process is running.</li>
+<li>Active file notifications, terminal configurations, active timers, and no end of other details.</li>
+</ul>
+<h2 id="CRIU-for-RDMA-and-GPU"><a href="#CRIU-for-RDMA-and-GPU" class="headerlink" title="CRIU for RDMA and GPU"></a>CRIU for RDMA and GPU</h2><ul>
+<li><a href="https://www.usenix.org/system/files/atc21-planeta.pdf" target="_blank" rel="noopener">MigrOS: Transparent Live-Migration Support for Containerised RDMA Applications</a></li>
+<li><a href="https://developer.nvidia.com/blog/checkpointing-cuda-applications-with-criu/" target="_blank" rel="noopener">Checkpointing CUDA Applications with CRIU</a></li>
+<li><a href="https://arxiv.org/pdf/2502.16631" target="_blank" rel="noopener">CRIUgpu</a></li>
+</ul>
+<p>更多学术paper，可以参考<a href="https://criu.org/Academic_Research" target="_blank" rel="noopener">Academic Research</a></p>
+<h2 id="CRIB"><a href="#CRIB" class="headerlink" title="CRIB"></a>CRIB</h2><ul>
+<li><a href="https://lwn.net/Articles/984313/" target="_blank" rel="noopener">CRIB: checkpoint/restore in BPF</a></li>
+<li><a href="https://mp.weixin.qq.com/s/XtCebIlGOvugvP35R3pNpw" target="_blank" rel="noopener">CRIB: checkpoint/restore in BPF</a></li>
+<li><a href="https://lpc.events/event/18/contributions/1812/" target="_blank" rel="noopener">Checkpoint/Restore In eBPF (CRIB)</a></li>
+</ul>
+<p>CRIB (Checkpoint/Restore In eBPF) is a proposed eBPF-based system for checkpointing and restoring process state, offering improved performance, flexibility, and extensibility over traditional Linux kernel methods like <code>procfs</code>. It consists of user-space programs, eBPF programs, and kernel functions to facilitate efficient dumping and restoring of process data directly within the kernel.</p>
+<p><img src="/images/2025/10/002.png" alt></p>
+<p>CRIB is an innovative approach to process checkpointing and restoring, designed to address the limitations of existing kernel mechanisms. It leverages the power of eBPF to provide a more performant, flexible, and extensible solution for managing process states. </p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://criu.org/Main_Page" target="_blank" rel="noopener">https://criu.org/Main_Page</a></li>
+<li><a href="https://github.com/checkpoint-restore/criu" target="_blank" rel="noopener">source code</a></li>
+<li><a href="https://www.usenix.org/system/files/atc21-planeta.pdf" target="_blank" rel="noopener">MigrOS: Transparent Live-Migration Support for Containerised RDMA Applications</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/live-migration/">live migration</a>
+            
+              <a href="/tags/Kernel/">Kernel</a>
+            
+              <a href="/tags/linux/">linux</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/09/21/Notes-about-CUDA-Dynamic-Parallelism/">
+        <span class="next-text nav-default">Notes about CUDA Dynamic Parallelism</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/10/01/Notes-about-CRIU-Checkpoint-Restore-In-Userspace/';
+        this.page.identifier = '2025/10/01/Notes-about-CRIU-Checkpoint-Restore-In-Userspace/';
+        this.page.title = 'Notes about CRIU(Checkpoint/Restore In Userspace)';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
