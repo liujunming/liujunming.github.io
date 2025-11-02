@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about gVisor">
+
+
+
+
+  <meta name="keywords" content="虚拟化, linux, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/11/02/Notes-about-gVisor/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about gVisor - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about gVisor
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-11-02
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/虚拟化/">虚拟化</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#What"><span class="toc-text">What</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#How-is-this-different"><span class="toc-text">How is this different?</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Machine-level-virtualization"><span class="toc-text">Machine-level virtualization</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Rule-based-execution"><span class="toc-text">Rule-based execution</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#gVisor"><span class="toc-text">gVisor</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Architecture"><span class="toc-text">Architecture</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下gVisor的相关notes。<a id="more"></a></p>
+<h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>gVisor provides a strong layer of isolation between running applications and the host operating system. It is an application kernel that implements a Linux-like interface. Unlike Linux, it is written in a memory-safe language (Go) and runs in userspace.</p>
+<h2 id="How-is-this-different"><a href="#How-is-this-different" class="headerlink" title="How is this different?"></a>How is this different?</h2><h3 id="Machine-level-virtualization"><a href="#Machine-level-virtualization" class="headerlink" title="Machine-level virtualization"></a>Machine-level virtualization</h3><p>such as KVM and Xen, exposes virtualized hardware to a guest kernel via a Virtual Machine Monitor (VMM). This virtualized hardware is generally enlightened (paravirtualized) and additional mechanisms can be used to improve the visibility between the guest and host (e.g. balloon drivers, paravirtualized spinlocks). Running containers in distinct virtual machines can provide great isolation, compatibility and performance, but for containers it often requires additional proxies and agents, and may require a larger resource footprint and slower start-up times.</p>
+<p><img src="/images/2025/11/003.png" alt></p>
+<h3 id="Rule-based-execution"><a href="#Rule-based-execution" class="headerlink" title="Rule-based execution"></a>Rule-based execution</h3><p>such as <a href="https://www.kernel.org/doc/Documentation/prctl/seccomp_filter.txt" target="_blank" rel="noopener">seccomp</a>, <a href="https://github.com/selinuxproject" target="_blank" rel="noopener">SELinux</a> and <a href="https://wiki.ubuntu.com/AppArmor" target="_blank" rel="noopener">AppArmor</a>, allows the specification of a fine-grained security policy for an application or container. These schemes typically rely on hooks implemented inside the host kernel to enforce the rules. If the surface can be made small enough, then this is an excellent way to sandbox applications and maintain native performance. However, in practice it can be extremely difficult (if not impossible) to reliably define a policy for arbitrary, previously unknown applications, making this approach challenging to apply universally.</p>
+<p><img src="/images/2025/11/004.png" alt></p>
+<h3 id="gVisor"><a href="#gVisor" class="headerlink" title="gVisor"></a>gVisor</h3><p>provides a third isolation mechanism, distinct from those above.</p>
+<p>gVisor intercepts application system calls and acts as the guest kernel, without the need for translation through virtualized hardware. gVisor may be thought of as either a merged guest kernel and VMM, or as seccomp on steroids(强化版). This architecture allows it to provide a flexible resource footprint (i.e. one based on threads and memory mappings, not fixed guest physical resources) while also lowering the fixed costs of virtualization. However, this comes at the price of reduced application compatibility and higher per-system call overhead.</p>
+<p><img src="/images/2025/11/005.png" alt></p>
+<h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p>Google gVisor is a sandboxed container runtime that uses para-virtualization to isolate containerized applications from the host system without the heavy-weight resource allocation that comes with full virtual machines. It implements a user space kernel, <code>Sentry</code>, that is written in the Go Language and runs in a restricted <a href="/2025/04/05/Notes-about-Seccomp-filter/">seccomp</a> container. </p>
+<p><img src="/images/2025/11/002.png" alt></p>
+<p>Figure 2 shows gVisor’s architecture. All syscalls made by the application are redirected into the Sentry, which implements most system call functionality itself for the 237 syscalls it supports. Sentry makes calls to 53 host syscalls to support its operations. This prevents the application from having any direct interaction with the host through syscalls. gVisor supports two methods of redirecting syscalls: <code>ptrace-mode</code> uses ptrace in the Linux kernel to forward syscalls to the sentry and <code>KVM-mode</code> uses KVM to trap syscalls before they hit the Linux kernel so they can be forwarded to the sentry. KVM-mode performs better than ptrace for many workloads and has several benefits over the ptrace platform according to the gVisor documentation.</p>
+<p>gVisor starts a Gofer process with each container that provides the Sentry with access to file system resources. Thus, a compromised Sentry cannot directly read or write any files. A writable tmpfs can be overlaid on the entire file system to provide complete isolation from the host file system. To enable sharing between the running containers and with the host, a shared file access mode may be used.</p>
+<p>gVisor has its own user-space networking stack written in Go called <code>netstack</code>. The Sentry uses netstack to handle almost all networking, including TCP connection state, control messages, and packet assembly, rather than relying on kernel code that shares much more state across containers. gVisor also provides an option to use host networking for higher performance</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://gvisor.dev/docs/" target="_blank" rel="noopener">What is gVisor?</a></li>
+<li><a href="https://pages.cs.wisc.edu/~swift/papers/vee20-isolation.pdf" target="_blank" rel="noopener">Blending Containers and Virtual Machines:A Study of Firecracker and gVisor</a></li>
+<li><a href="https://ipads.se.sjtu.edu.cn/_media/pub/members/paper.pdf" target="_blank" rel="noopener">A Hardware-Software Co-Design for Efficient Secure Containers</a></li>
+<li><a href="https://mp.weixin.qq.com/s/b8KFCv4jwdzcq4T44566HA" target="_blank" rel="noopener">Google 发布 gVisor – 容器沙箱运行时</a></li>
+<li><a href="https://www.usenix.org/system/files/hotcloud19-paper-young.pdf" target="_blank" rel="noopener">The True Cost of Containing: A gVisor Case Study</a></li>
+<li><a href="https://gvisor.dev/blog/2023/04/28/systrap-release/" target="_blank" rel="noopener">Releasing Systrap - A high-performance gVisor platform</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/虚拟化/">虚拟化</a>
+            
+              <a href="/tags/linux/">linux</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/11/01/Notes-about-Skip-List/">
+        <span class="next-text nav-default">Notes about Skip List</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/11/02/Notes-about-gVisor/';
+        this.page.identifier = '2025/11/02/Notes-about-gVisor/';
+        this.page.title = 'Notes about gVisor';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
