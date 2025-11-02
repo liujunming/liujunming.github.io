@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-11-02T07:35:40.715Z</updated>
+  <updated>2025-11-02T11:31:56.396Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about virtio-9p</title>
+    <link href="http://liujunming.github.io/2025/11/02/Notes-about-virtio-9p/"/>
+    <id>http://liujunming.github.io/2025/11/02/Notes-about-virtio-9p/</id>
+    <published>2025-11-02T09:23:44.000Z</published>
+    <updated>2025-11-02T11:31:56.396Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下virtio-9p的相关notes。<a id="more"></a></p><h2 id="什么是9P？"><a href="#什么是9P？" class="headerlink" title="什么是9P？"></a>什么是9P？</h2><p>9P(Plan 9 File System Protocol)是一种网络文件系统协议。它最初是为贝尔实验室的Plan 9 from Bell Labs分布式操作系统而设计的。</p><p>其核心思想是：<strong>“将所有资源都表示为文件”</strong>。在 Plan 9 中，不仅是磁盘上的数据，包括进程、设备、网络接口、甚至窗口系统接口，都被统一抽象为文件系统中的文件。9P 就是用来访问这些”文件”的协议。</p><h2 id="9P核心特性与设计哲学"><a href="#9P核心特性与设计哲学" class="headerlink" title="9P核心特性与设计哲学"></a>9P核心特性与设计哲学</h2><h3 id="简单与精简"><a href="#简单与精简" class="headerlink" title="简单与精简"></a>简单与精简</h3><ul><li>9P 的消息类型非常少（大约 10 种左右，如 <code>Tversion</code>, <code>Tauth</code>, <code>Tattach</code>, <code>Tclunk</code>, <code>Twalk</code>, <code>Topen</code>, <code>Tread</code>, <code>Twrite</code>, <code>Tstat</code>, <code>Twstat</code>），协议本身简洁明了。</li><li>这种简单性使得其实现轻量，开销小。</li></ul><h3 id="分层与状态性"><a href="#分层与状态性" class="headerlink" title="分层与状态性"></a>分层与状态性</h3><ul><li>9P 是一个有状态的协议。客户端首先通过 <code>Tattach</code> 消息与服务器建立一个”会话”，获取一个根文件句柄（<code>fid</code>）。</li><li>随后，客户端通过 <code>Twalk</code> 消息在这个根句柄的基础上”遍历”路径，逐步获取目标文件的句柄。</li><li>这种基于 <code>fid</code> 的交互模式，非常类似于在本地文件系统中使用文件描述符。</li></ul><h3 id="传输无关性"><a href="#传输无关性" class="headerlink" title="传输无关性"></a>传输无关性</h3><ul><li>9P 协议定义的是消息格式和语义，并不关心底层传输介质。</li><li>它可以运行在多种传输层之上，最常见的是 TCP/IP，也可以是 Unix Domain Socket，甚至是 serial port connections。</li></ul><p><strong>在虚拟化场景下，virtio-9p就是这个传输通道！</strong>而virtio-9p就是本文要介绍的内容。 </p><h2 id="virtio-9p-Architecture"><a href="#virtio-9p-Architecture" class="headerlink" title="virtio-9p Architecture"></a>virtio-9p Architecture</h2><p><img src="/images/2025/11/007.png" alt></p><p>The following figure shows the basic structure of the 9pfs implementation in QEMU.</p><p><img src="/images/2025/11/006.png" alt></p><p>The 9P transport driver is the communication channel between host system and guest system. </p><p>virtio transport driver: The 9p virtio transport driver uses e.g. a virtual PCI device and ontop the virtio protocol to transfer the 9p messages between clients (guest systems) and 9p server (host system). <a href="https://gitlab.com/qemu-project/qemu/-/blob/master/hw/9pfs/virtio-9p-device.c" target="_blank" rel="noopener">virtio-9p-device.c</a></p><hr><p>参考资料:</p><ol><li><a href="https://www.kernel.org/doc/ols/2010/ols2010-pages-109-120.pdf" target="_blank" rel="noopener">VirtFS—A virtualization aware File System pass-through</a></li><li><a href="https://wiki.qemu.org/Documentation/9p" target="_blank" rel="noopener">Documentation/9p</a></li><li>deepseek prompt:简要介绍下9P (protocol)</li><li><a href="https://www.wikiwand.com/en/articles/9P_(protocol)" target="_blank" rel="noopener">https://www.wikiwand.com/en/articles/9P_(protocol)</a></li><li><a href="https://gitlab.com/qemu-project/qemu/-/blob/master/hw/9pfs/virtio-9p-device.c" target="_blank" rel="noopener">virtio-9p-device.c</a></li><li><a href="https://www.kernel.org/doc/Documentation/filesystems/9p.txt" target="_blank" rel="noopener">v9fs: Plan 9 Resource Sharing for Linux</a></li><li><a href="https://github.com/torvalds/linux/tree/master/fs/9p" target="_blank" rel="noopener">linux/fs/9p</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下virtio-9p的相关notes。
+    
+    </summary>
+    
+      <category term="virtio" scheme="http://liujunming.github.io/categories/virtio/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="virtio" scheme="http://liujunming.github.io/tags/virtio/"/>
+    
+      <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about gVisor</title>
@@ -455,28 +481,6 @@
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
       <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about RDMA Doorbell机制</title>
-    <link href="http://liujunming.github.io/2025/05/10/Notes-about-RDMA-Doorbell-record%E6%9C%BA%E5%88%B6/"/>
-    <id>http://liujunming.github.io/2025/05/10/Notes-about-RDMA-Doorbell-record机制/</id>
-    <published>2025-05-10T08:38:23.000Z</published>
-    <updated>2025-05-11T08:50:43.501Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下RDMA Doorbell机制的相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>Doorbell是一种软件发起、硬件接收的通知机制。例如软件通过Doorbell告诉硬件：</p><ul><li>开始做某事：例如软件准备好WQE时，通知硬件开始处理</li><li>已经做完某事：例如软件读取CQE后，通知硬件”我已经取走CQE”</li></ul><h2 id="How"><a href="#How" class="headerlink" title="How"></a>How</h2><p>Doorbell有两种实现机制：</p><h3 id="Doorbell寄存器"><a href="#Doorbell寄存器" class="headerlink" title="Doorbell寄存器"></a>Doorbell寄存器</h3><p>硬件提供的寄存器，来供软件读写。</p><ul><li>优点：实现简单，只需要软件读写寄存器地址</li><li>缺点：读写寄存器行为会抢占总线；硬件需要立即响应，可能会打断硬件正在进行的工作（例如在DMA读取主机的内存），从而影响传输速率</li></ul><h3 id="Doorbell-record"><a href="#Doorbell-record" class="headerlink" title="Doorbell record"></a>Doorbell record</h3><p>使用主机的一段内存作为中介。软件和硬件都知道这段内存的地址。软件直接写这段内存，硬件在必要时读取该内存. This buffer is used in the recovery path in case the NIC drops the write to its doorbell (DB).</p><ul><li>优点：软件通知时不需要抢总线</li><li>缺点：实时性较差</li></ul><p>可以把DB理解成软件通知硬件的方式。</p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/26082845081" target="_blank" rel="noopener">浅析DeepSeek中提到的IBGDA</a></li><li><a href="https://developer.nvidia.com/blog/improving-network-performance-of-hpc-systems-using-nvidia-magnum-io-nvshmem-and-gpudirect-async/" target="_blank" rel="noopener">Improving Network Performance of HPC Systems Using NVIDIA Magnum IO NVSHMEM and GPUDirect Async</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下RDMA Doorbell机制的相关notes。
-    
-    </summary>
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/categories/RDMA/"/>
-    
     
       <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
     
