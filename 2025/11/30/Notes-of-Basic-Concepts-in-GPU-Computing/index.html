@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes of Basic Concepts in GPU Computing">
+
+
+
+
+  <meta name="keywords" content="GPU, CUDA, AI Infra, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2025/11/30/Notes-of-Basic-Concepts-in-GPU-Computing/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes of Basic Concepts in GPU Computing - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes of Basic Concepts in GPU Computing
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2025-11-30
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/GPU/">GPU</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Terms"><span class="toc-text">Terms</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CPU-vs-GPU"><span class="toc-text">CPU vs GPU</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Components"><span class="toc-text">Components</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Hardware’s-View"><span class="toc-text">Hardware’s View</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Software’s-View"><span class="toc-text">Software’s View</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GPU-Architecture"><span class="toc-text">GPU Architecture</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Warp"><span class="toc-text">Warp</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Memory-Hierarchy"><span class="toc-text">Memory Hierarchy</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将以NVIDIA GPU为例，结合CUDA，记录下GPU中的基本概念。<a id="more"></a>本文默认以Fermi architecture为例，同时内容会逐步完善！</p>
+<h2 id="Terms"><a href="#Terms" class="headerlink" title="Terms"></a>Terms</h2><ul>
+<li>SP(Streaming Processor)</li>
+<li>SM(Streaming MultiProcessor)</li>
+<li>Warp(线程束)</li>
+</ul>
+<h2 id="CPU-vs-GPU"><a href="#CPU-vs-GPU" class="headerlink" title="CPU vs GPU"></a>CPU vs GPU</h2><p><img src="/images/2025/11/014.png" alt></p>
+<p>CPU has complex core structure and pack several cores on a single chip. GPU cores are very simple in comparison, they also share data and control between each other. This allows to pack more cores on a single chip, thus achieving very high compute density.</p>
+<h2 id="Components"><a href="#Components" class="headerlink" title="Components"></a>Components</h2><p><img src="/images/2025/11/012.png" alt></p>
+<h3 id="Hardware’s-View"><a href="#Hardware’s-View" class="headerlink" title="Hardware’s View"></a>Hardware’s View</h3><ul>
+<li><p>SP(Streaming Processor):是GPU最基本的处理单元，在fermi架构开始被叫做CUDA core。</p>
+</li>
+<li><p>SM(Streaming MultiProcessor): 一个SM由多个CUDA core组成，每个SM根据GPU架构不同有不同数量的CUDA core，Pascal架构中一个SM有128个CUDA core。</p>
+</li>
+</ul>
+<h3 id="Software’s-View"><a href="#Software’s-View" class="headerlink" title="Software’s View"></a>Software’s View</h3><p><img src="/images/2025/11/013.png" alt></p>
+<ul>
+<li>thread: 一个CUDA并行程序会以许多个thread来执行</li>
+<li>block: 数个thread会组成一个block</li>
+<li>grid: 多个block则会再构成grid</li>
+</ul>
+<h2 id="GPU-Architecture"><a href="#GPU-Architecture" class="headerlink" title="GPU Architecture"></a>GPU Architecture</h2><p>The following graph shows the Fermi architecture. This GPU has 16 streaming multiprocessor (SM), which contains 32 cuda cores each. Every cuda core is an execute unit for integer and float numbers.</p>
+<p><img src="/images/2025/11/015.png" alt></p>
+<p>As shown in the following chart, every SM has 32 cuda cores, 2 Warp Scheduler and dispatch unit, a bunch of registers, 64 KB configurable shared memory and L1 cache. Cuda cores is the execute unit which has one float and one integer compute processor. The SM schedules threads in group of 32 threads called warps.  The Warp Schedulers means two warps can be issued at the same time.</p>
+<p><img src="/images/2025/11/016.png" alt></p>
+<h2 id="Warp"><a href="#Warp" class="headerlink" title="Warp"></a>Warp</h2><p>Each SM features two <em>warp schedulers</em> and two <em>instruction dispatch units</em>. When a thread block is assigned to an SM, all threads in a thread block are divided into warps. The two warp schedulers select two warps and issue one instruction from each warp to a group of 16 CUDA cores, 16 load/store units, or 4 special function units. (虽然硬件上1个warp只有16个CUDA cores，逻辑上1个warp有32个thread，可以通过硬件花费两个周期来处理完32个thread，也就是16个cuda cores执行了两个周期来运行这32个thread)<br><img src="/images/2025/11/019.png" alt></p>
+<p>Warps are the basic unit of execution in an SM. When you launch a grid of thread blocks, the thread blocks in the grid are distributed among SMs. Once a thread block is scheduled to an SM, threads in the thread block are further partitioned into warps. A warp consists of 32 consecutive threads and all threads in a warp are executed in Single Instruction Multiple Thread (SIMT) fashion; that is, all threads execute the same instruction, and each thread carries out that operation on its own private data. </p>
+<p><img src="/images/2025/11/020.png" alt></p>
+<p>The number of warps for a thread block can be determined as follows:<br><img src="/images/2025/11/021.png" alt></p>
+<ul>
+<li><p>SM 是 Warp 的物理载体<br>SM 作为 GPU 的核心计算单元，负责承载并执行 Warp。每个 SM 可同时管理多个 Warp，通过硬件调度器动态分配资源。</p>
+</li>
+<li><p>Warp 是 SM 的调度单位<br>Warp 由 32 个同步线程组成，是 SM 内指令发射的最小单元。SM 的 Warp 调度器 会从就绪的 Warp 中选择指令，分发至 CUDA Core、Tensor Core 等执行单元。</p>
+</li>
+<li><p>资源竞争与负载平衡<br>SM 的寄存器、共享内存等资源限制了可驻留的 Warp 数量。若 Warp 因内存访问延迟阻塞（约 400-800 周期），调度器会立即切换至其他就绪 Warp，避免计算单元空闲。</p>
+</li>
+<li><p>指令分发</p>
+<ul>
+<li>SM 的 Warp 调度器 从就绪的 Warp 中选择指令，分发至 Core 执行</li>
+<li>例如：一个 Warp 的 32 个线程同时执行加法指令，调度器将其分配到 32 个 CUDA Core 并行处理</li>
+</ul>
+</li>
+<li><p>资源映射</p>
+<ul>
+<li>Hopper 架构：每个 SM 子分区含 32 个 FP32 Core，可直接匹配一个 Warp 的 32 线程，单周期完成指令</li>
+<li>旧架构（如 Fermi）：16 个 FP32 Core 需两周期处理一个 Warp</li>
+</ul>
+</li>
+</ul>
+<h2 id="Memory-Hierarchy"><a href="#Memory-Hierarchy" class="headerlink" title="Memory Hierarchy"></a>Memory Hierarchy</h2><p><img src="/images/2025/11/018.webp" alt></p>
+<p>Shared memory is allocated per block. The shared memory per block is limited by the shared memory per SM.</p>
+<p><img src="/images/2025/11/017.webp" alt></p>
+<p>The fastest memory is registers just as in CPU. L1 cache and shared memory is second, which is also pretty limited in size. The SM above can have 48KB shared memory and 16KB L1 cache, or 16KB shared memory and 48KB L1 cache. L1 cache caches local and global memory, or only local memory varying among different GPU model. L2 cache caches local and global memory. Global memory acts like the ram in CPU computation, which is much slower than L1 and L2 cache.</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.cs.utexas.edu/~rossbach/cs380p/papers/cuda-programming.pdf" target="_blank" rel="noopener">PROFESSIONAL CUDA® C Programming</a></li>
+<li><a href="https://www.qianwen.com/share?shareId=3a7b3810-b745-4be5-99c9-5ba131ccffac" target="_blank" rel="noopener">千问对话</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/123170285" target="_blank" rel="noopener">理解CUDA中的thread,block,grid和warp</a></li>
+<li><a href="https://medium.com/@smallfishbigsea/basic-concepts-in-gpu-computing-3388710e9239" target="_blank" rel="noopener">Basic Concepts in GPU Computing</a></li>
+<li><a href="https://enccs.github.io/gpu-programming/2-gpu-ecosystem/" target="_blank" rel="noopener">The GPU hardware and software ecosystem</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/GPU/">GPU</a>
+            
+              <a href="/tags/CUDA/">CUDA</a>
+            
+              <a href="/tags/AI-Infra/">AI Infra</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2025/11/29/Notes-about-Intel-UMIP/">
+        <span class="next-text nav-default">Notes about Intel UMIP</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2025
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2025/11/30/Notes-of-Basic-Concepts-in-GPU-Computing/';
+        this.page.identifier = '2025/11/30/Notes-of-Basic-Concepts-in-GPU-Computing/';
+        this.page.title = 'Notes of Basic Concepts in GPU Computing';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
