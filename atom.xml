@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-11-30T14:01:27.568Z</updated>
+  <updated>2025-12-07T00:57:06.916Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about linux MTD(Memory Technology Devices)</title>
+    <link href="http://liujunming.github.io/2025/12/07/Notes-about-linux-MTD-Memory-Technology-Devices/"/>
+    <id>http://liujunming.github.io/2025/12/07/Notes-about-linux-MTD-Memory-Technology-Devices/</id>
+    <published>2025-12-07T00:21:49.000Z</published>
+    <updated>2025-12-07T00:57:06.916Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下linux MTD(Memory Technology Devices)的相关notes。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>In embedded Linux systems, raw flash memory,such as NOR and NAND flash,is accessed using the Memory Technology Device (MTD) subsystem. MTD provides low-level interfaces for reading, erasing, and writing to flash blocks.</p><h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p><img src="/images/2025/12/001.jpg" alt></p><h2 id="MTD-Layers"><a href="#MTD-Layers" class="headerlink" title="MTD Layers"></a>MTD Layers</h2><p>The MTD subsystem is organized into three main layers:</p><ul><li>Chip Drivers: Interfaces for specific NOR/NAND flash chips.</li><li>MTD Core: Common APIs and internal logic.</li><li>User-Space Interfaces: Exposes flash as character (/dev/mtdX) or block (/dev/mtdblockX) devices.</li></ul><p><img src="/images/2025/12/002.webp" alt></p><p>MTD character drivers allow us to access the flash memory as an array of bytes so that we can read and write (program) the flash.</p><p>The MTD block driver’s purpose is to present flash memory as a block device, which we can use to format and mount a filesystem.</p><hr><p>参考资料:</p><ol><li><a href="https://medium.com/@akashsainisaini37/a-beginners-guide-to-mtd-and-flash-management-in-linux-7e6c8dd15493" target="_blank" rel="noopener">A Beginner’s Guide to MTD and Flash Management in Linux</a></li><li><a href="http://kcchao.wikidot.com/mtd" target="_blank" rel="noopener">http://kcchao.wikidot.com/mtd</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下linux MTD(Memory Technology Devices)的相关notes。
+    
+    </summary>
+    
+      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
+    
+    
+      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
+    
+      <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes of Basic Concepts in GPU Computing</title>
@@ -469,28 +493,6 @@
     
     
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NVMe reservation机制</title>
-    <link href="http://liujunming.github.io/2025/06/02/Notes-about-NVMe-reservation%E6%9C%BA%E5%88%B6/"/>
-    <id>http://liujunming.github.io/2025/06/02/Notes-about-NVMe-reservation机制/</id>
-    <published>2025-06-02T00:31:40.000Z</published>
-    <updated>2025-06-02T05:23:30.037Z</updated>
-    
-    <content type="html"><![CDATA[<p>对于NVMe共享盘，是通过NVMe reservation机制来实现的。可以将NVMe reservation机制类比于读写锁。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/06/003.png" alt></p><p>reservation的意义在于，提供一个机制，避免多个host访问一个共享的namespace出现冲突。reservation操作的对象是namespace，而不是ssd。</p><p>reservation是<u>管理共享者的访问权限</u>；用户可以用共享，但是不用reservation，reservation是一个可选项。</p><blockquote><p>Multi-Attach enabled io2 volumes support NVMe reservations, which is a set of industry-standard storage fencing protocols. These protocols enable you to create and manage reservations that control and coordinate access from multiple instances to a shared volume. Reservations are used by shared storage applications to ensure data consistency.</p></blockquote><p><a href="https://docs.aws.amazon.com/ebs/latest/userguide/nvme-reservations.html" target="_blank" rel="noopener">https://docs.aws.amazon.com/ebs/latest/userguide/nvme-reservations.html</a></p><h2 id="How-to-identify-reservation-capability"><a href="#How-to-identify-reservation-capability" class="headerlink" title="How to identify reservation capability"></a>How to identify reservation capability</h2><p><img src="/images/2025/06/001.png" alt></p><p><img src="/images/2025/06/002.png" alt></p><h2 id="Reservation-Register"><a href="#Reservation-Register" class="headerlink" title="Reservation Register"></a>Reservation Register</h2><p>The Reservation Register command is used to <u>register</u>, <u>unregister</u>, or <u>replace</u> a reservation key.</p><h2 id="Reservation-Report"><a href="#Reservation-Report" class="headerlink" title="Reservation Report"></a>Reservation Report</h2><p>The Reservation Report command returns a Reservation Status data structure to memory that describes the registration and reservation status of a namespace.</p><h2 id="Reservation-Acquire"><a href="#Reservation-Acquire" class="headerlink" title="Reservation Acquire"></a>Reservation Acquire</h2><p>The Reservation Acquire command is used to acquire a reservation on a namespace, preempt a reservation held on a namespace, and abort a reservation held on a namespace.</p><p>要想获得对Namespace的全部访问权限，Host需要下发Reservation Acquire命令.</p><p>一个Namespace同时只能接收一个Reservation，在Host A已经占用namespace时，如果Host B发送Reservation Acquire命令，该命令会被SSD abort。</p><p><img src="/images/2025/06/007.png" alt></p><p><img src="/images/2025/06/008.png" alt></p><p>在NVMe里，有3类角色：</p><ul><li>Reservation Holder – 当前获得namespace使用权Host</li><li>Registrant – 所有获得Reservation Key的Host</li><li>Non-Registrant – 其他Host</li></ul><p>Reservation Holder，有6种Reservation模式:</p><ul><li>Write Exclusive — 除了Reservation Holder，其他Host都不能写该Namespace</li><li>Exclusive Access — 除了Reservation Holder，其他Host都不能访问该Namespace</li><li>Write Exclusive – Registrant Only — 除了Reservation Holder和一个Registrant，其他Host都不能写该Namespace</li><li>Exclusive Access – Registrant Only –除了Reservation Holder和一个Registrant，其他Host都不能访问该Namespace</li><li>Write Exclusive – All Registrant Only –除了Reservation Holder和Registrants，其他Host不能访问该Namespace</li><li>Exclusive Access – All Registrant Only –除了Reservation Holder和Registrants，其他Host不能访问该Namespace</li></ul><p>在Host A是Reservation Holder的情况下，Host B也有方式把namespace的使用权夺过来，具体方式是下发Reservation Acquire命令, 把Reservation Acquire Action字段设置为001b，同时在Current Reservation Key字段设置正确的Key。只要当前Host A的reservation type不是”Write Exclusive – All Registrants”或者“Exclusive Access – All Registrants”, SSD就会注销Host A，释放其使用权，并将Host B设置为新的Reservation Holder。</p><h2 id="Reservation-Release"><a href="#Reservation-Release" class="headerlink" title="Reservation Release"></a>Reservation Release</h2><p>The Reservation Release command is used to release or clear a reservation held on a namespace.</p><p>Host A即使被Host B抢走了Namespace的使用权，但是只要保持了Registrant身份，仍然可以下发Reservation Release命令，将Reservation Release Action字段设置为001，同时在Current Reservation Key字段设置正确的Key，就可以将所有注册为该Namespace registrant的Host全部注销掉。</p><h2 id="Reservation-Notification"><a href="#Reservation-Notification" class="headerlink" title="Reservation Notification"></a>Reservation Notification</h2><p><img src="/images/2025/06/004.png" alt></p><p>在registration preempted, reservation released, and reservation preempted这三种情况下，如果没有禁止掉Reservation Notification的话，设备就会基于Admin queue的AER(Async Event Request)发送Reservation Notification，告诉driver发生了registration preempted, reservation released, or reservation preempted事件。</p><p>Reservation Notification AER的相关描述:<br><img src="/images/2025/06/005.png" alt></p><p><img src="/images/2025/06/006.png" alt></p><hr><p>参考资料:</p><ol><li>NVMe spec 1.4</li><li><a href="https://www.cnblogs.com/FireLife-Cheng/p/16248247.html" target="_blank" rel="noopener">NVM Feature— Reservation(NVME 学习笔记五)</a></li><li><a href="http://www.ssdfans.com/?p=97147" target="_blank" rel="noopener">蛋蛋读剩的NVMe之一：NVMe Reservation</a></li><li><a href="https://help.aliyun.com/zh/ecs/user-guide/enable-multi-attach" target="_blank" rel="noopener">通过多重挂载功能将单块云盘挂载至多台ECS实例</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;对于NVMe共享盘，是通过NVMe reservation机制来实现的。可以将NVMe reservation机制类比于读写锁。
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
   </entry>
   
