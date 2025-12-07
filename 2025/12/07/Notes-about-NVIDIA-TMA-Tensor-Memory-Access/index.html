@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="Notes about linux MTD(Memory Technology Devices)">
+  <meta name="description" content="Notes about NVIDIA TMA(Tensor Memory Access)">
 
 
 
 
-  <meta name="keywords" content="linux, 文件系统, L">
+  <meta name="keywords" content="GPU, CUDA, AI Infra, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2025/12/07/Notes-about-linux-MTD-Memory-Technology-Devices/">
+<link rel="canonical" href="http://liujunming.github.io/2025/12/07/Notes-about-NVIDIA-TMA-Tensor-Memory-Access/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Notes about linux MTD(Memory Technology Devices) - L </title>
+    <title> Notes about NVIDIA TMA(Tensor Memory Access) - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,7 +260,7 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Notes about linux MTD(Memory Technology Devices)
+          Notes about NVIDIA TMA(Tensor Memory Access)
         
       </h1>
 
@@ -271,7 +271,7 @@
         
           <span class="post-category">
             
-              <a href="/categories/linux/">linux</a>
+              <a href="/categories/AI-Infra/">AI Infra</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Architecture"><span class="toc-text">Architecture</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MTD-Layers"><span class="toc-text">MTD Layers</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-text">Overview</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#背景"><span class="toc-text">背景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#核心原理"><span class="toc-text">核心原理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Tensor-Descriptor"><span class="toc-text">Tensor Descriptor</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Copy-by-Coordinate"><span class="toc-text">Copy by Coordinate</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#异步-amp-零线程开销"><span class="toc-text">异步 &amp; 零线程开销</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#支持高维与非规则布局"><span class="toc-text">支持高维与非规则布局</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#典型应用场景"><span class="toc-text">典型应用场景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
     </div>
   </div>
 
@@ -292,23 +292,58 @@
 
     <div class="post-content">
       
-        <p>本文将mark下linux MTD(Memory Technology Devices)的相关notes。<a id="more"></a></p>
-<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>In embedded Linux systems, raw flash memory,such as NOR and NAND flash,is accessed using the Memory Technology Device (MTD) subsystem. MTD provides low-level interfaces for reading, erasing, and writing to flash blocks.</p>
-<h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p><img src="/images/2025/12/001.jpg" alt></p>
-<h2 id="MTD-Layers"><a href="#MTD-Layers" class="headerlink" title="MTD Layers"></a>MTD Layers</h2><p>The MTD subsystem is organized into three main layers:</p>
+        <p>本文将mark下NVIDIA TMA(Tensor Memory Access)技术的相关notes。<a id="more"></a></p>
+<h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/12/003.webp" alt></p>
+<p>在GPU中，数据存储在Global Memory(一般为HBM)，计算单元(CUDA core/ Tensor core)位于SM中，数据需要搬运到SM内的Shared Memory(SMEM)中用于计算，计算后再搬回Global Memory中。</p>
+<p>SM中的线程除了负责发起计算外，还要先负责搬运数据。线程需要承担地址计算、越界处理、同步管理等一系列任务。据调查，开发者90%的时间花费在编写数据访问的代码上，10%以上的性能损耗源于内存访问开销。</p>
+<p>为了解决这一问题，英伟达在Hopper架构中引入了 Tensor Memory Accelerator(TMA)，将数据访问的复杂性从软件层(线程)剥离，交由专用硬件(TMA)处理，实现数据搬运与计算解耦。</p>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在 A100（Ampere 架构）及更早的 GPU 中，线程块（thread block）需要通过 CUDA 线程显式地从全局内存（global memory）将数据加载到共享内存（shared memory），再供给 Tensor Core 使用。这个过程存在以下问题：</p>
 <ul>
-<li>Chip Drivers: Interfaces for specific NOR/NAND flash chips.</li>
-<li>MTD Core: Common APIs and internal logic.</li>
-<li>User-Space Interfaces: Exposes flash as character (/dev/mtdX) or block (/dev/mtdblockX) devices.</li>
+<li>地址计算开销大：每个线程需手动计算多维张量（如矩阵分块）的内存地址</li>
+<li>同步复杂：需协调多个 warp 协同完成数据搬运，并使用 <code>__syncthreads()</code> 同步</li>
+<li>带宽利用率受限：非最优的访存模式可能导致内存带宽未被充分利用</li>
 </ul>
-<p><img src="/images/2025/12/002.webp" alt></p>
-<p>MTD character drivers allow us to access the flash memory as an array of bytes so that we can read and write (program) the flash.</p>
-<p>The MTD block driver’s purpose is to present flash memory as a block device, which we can use to format and mount a filesystem.</p>
+<h2 id="核心原理"><a href="#核心原理" class="headerlink" title="核心原理"></a>核心原理</h2><p>TMA 是一个<strong>独立于 CUDA 核心的硬件单元</strong>，可由软件通过<strong>异步描述符（descriptor）+ 坐标（coordinate）</strong>的方式发起高维张量的内存拷贝操作。</p>
+<h3 id="Tensor-Descriptor"><a href="#Tensor-Descriptor" class="headerlink" title="Tensor Descriptor"></a>Tensor Descriptor</h3><p>开发者首先定义一个张量描述符，包含以下信息：</p>
+<ul>
+<li>张量的形状（shape）</li>
+<li>内存布局（layout，如行主序、列主序、分块布局等）</li>
+<li>数据类型（如 FP16、BF16、INT8）</li>
+<li>起始地址（base address）</li>
+</ul>
+<p>该描述符一次性配置后，可被多次复用。</p>
+<h3 id="Copy-by-Coordinate"><a href="#Copy-by-Coordinate" class="headerlink" title="Copy by Coordinate"></a>Copy by Coordinate</h3><p>TMA 不使用传统的一维地址，而是通过逻辑坐标（如 <code>(block_row, block_col)</code>）指定要拷贝的子张量（tile）。例如：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 伪代码示意</span></span><br><span class="line">tma_load(desc, shared_mem_ptr, coord = &#123;tile_m, tile_n&#125;);</span><br></pre></td></tr></table></figure></p>
+<p>硬件根据描述符自动：</p>
+<ul>
+<li>将逻辑坐标映射为物理地址</li>
+<li>生成最优的内存访问模式（合并访问、对齐等）</li>
+<li>执行从全局内存到共享内存（或反之）的 DMA 式传输</li>
+</ul>
+<h3 id="异步-amp-零线程开销"><a href="#异步-amp-零线程开销" class="headerlink" title="异步 &amp; 零线程开销"></a>异步 &amp; 零线程开销</h3><ul>
+<li>TMA 操作由专用硬件引擎执行，不占用SM中的 CUDA 核心资源</li>
+<li>CUDA 线程只需发出TMA指令(通过<code>cp.async.bulk</code>PTX指令触发传输)，即可继续执行其他计算，实现计算与数据搬运重叠</li>
+<li>无需线程参与地址计算或数据搬移，显著降低软件开销</li>
+</ul>
+<h3 id="支持高维与非规则布局"><a href="#支持高维与非规则布局" class="headerlink" title="支持高维与非规则布局"></a>支持高维与非规则布局</h3><p>TMA 原生支持最多 5 维张量，并能处理：</p>
+<ul>
+<li>分块循环布局（swizzled/tiled layout）</li>
+<li>填充（padding）</li>
+<li>跨步（strides）</li>
+</ul>
+<p>这使其特别适合 Transformer、卷积等复杂神经网络中的内存访问模式。</p>
+<h2 id="典型应用场景"><a href="#典型应用场景" class="headerlink" title="典型应用场景"></a>典型应用场景</h2><ul>
+<li>GEMM（通用矩阵乘）：将 A、B 矩阵的分块自动加载到 shared memory，供 Tensor Core 使用</li>
+<li>Attention 机制：高效搬运 Q、K、V 的分块数据</li>
+<li>大模型推理/训练：减少数据搬运瓶颈，提升计算吞吐</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>TMA核心目标是<strong>优化张量运算中的数据搬运效率</strong>，特别是为 Tensor Core 提供高效、低开销的数据加载与存储能力。</p>
+<p>TMA的技术本质是：将“基于地址的、线程驱动的”内存访问，转变为“基于张量语义的、硬件加速的”异步数据传输。</p>
 <hr>
 <p>参考资料:</p>
 <ol>
-<li><a href="https://medium.com/@akashsainisaini37/a-beginners-guide-to-mtd-and-flash-management-in-linux-7e6c8dd15493" target="_blank" rel="noopener">A Beginner’s Guide to MTD and Flash Management in Linux</a></li>
-<li><a href="http://kcchao.wikidot.com/mtd" target="_blank" rel="noopener">http://kcchao.wikidot.com/mtd</a></li>
+<li><a href="https://mp.weixin.qq.com/s/0gkeKmRYU-fX4gWtScAjvQ" target="_blank" rel="noopener">NVIDIA TMA 全面解读</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/709750258" target="_blank" rel="noopener">[Hopper 架构特性学习笔记 Part2] Tensor Memory Access（TMA）</a></li>
+<li><a href="https://www.qianwen.com/share?shareId=2762294c-c203-4efe-b262-5e29dce5a0bb" target="_blank" rel="noopener">千问对话</a></li>
 </ol>
 
       
@@ -329,9 +364,11 @@
         
           <div class="post-tags">
             
-              <a href="/tags/linux/">linux</a>
+              <a href="/tags/GPU/">GPU</a>
             
-              <a href="/tags/文件系统/">文件系统</a>
+              <a href="/tags/CUDA/">CUDA</a>
+            
+              <a href="/tags/AI-Infra/">AI Infra</a>
             
           </div>
         
@@ -339,15 +376,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2025/12/07/Notes-about-NVIDIA-TMA-Tensor-Memory-Access/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Notes about NVIDIA TMA(Tensor Memory Access)</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2025/11/30/Notes-of-Basic-Concepts-in-GPU-Computing/">
-        <span class="next-text nav-default">Notes of Basic Concepts in GPU Computing</span>
+      <a class="next" href="/2025/12/07/Notes-about-linux-MTD-Memory-Technology-Devices/">
+        <span class="next-text nav-default">Notes about linux MTD(Memory Technology Devices)</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -460,9 +491,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2025/12/07/Notes-about-linux-MTD-Memory-Technology-Devices/';
-        this.page.identifier = '2025/12/07/Notes-about-linux-MTD-Memory-Technology-Devices/';
-        this.page.title = 'Notes about linux MTD(Memory Technology Devices)';
+        this.page.url = 'http://liujunming.github.io/2025/12/07/Notes-about-NVIDIA-TMA-Tensor-Memory-Access/';
+        this.page.identifier = '2025/12/07/Notes-about-NVIDIA-TMA-Tensor-Memory-Access/';
+        this.page.title = 'Notes about NVIDIA TMA(Tensor Memory Access)';
     };
     (function() {
     var d = document, s = d.createElement('script');

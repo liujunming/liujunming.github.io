@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-12-07T00:57:06.916Z</updated>
+  <updated>2025-12-07T08:21:45.277Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about NVIDIA TMA(Tensor Memory Access)</title>
+    <link href="http://liujunming.github.io/2025/12/07/Notes-about-NVIDIA-TMA-Tensor-Memory-Access/"/>
+    <id>http://liujunming.github.io/2025/12/07/Notes-about-NVIDIA-TMA-Tensor-Memory-Access/</id>
+    <published>2025-12-07T01:16:22.000Z</published>
+    <updated>2025-12-07T08:21:45.277Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下NVIDIA TMA(Tensor Memory Access)技术的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/12/003.webp" alt></p><p>在GPU中，数据存储在Global Memory(一般为HBM)，计算单元(CUDA core/ Tensor core)位于SM中，数据需要搬运到SM内的Shared Memory(SMEM)中用于计算，计算后再搬回Global Memory中。</p><p>SM中的线程除了负责发起计算外，还要先负责搬运数据。线程需要承担地址计算、越界处理、同步管理等一系列任务。据调查，开发者90%的时间花费在编写数据访问的代码上，10%以上的性能损耗源于内存访问开销。</p><p>为了解决这一问题，英伟达在Hopper架构中引入了 Tensor Memory Accelerator(TMA)，将数据访问的复杂性从软件层(线程)剥离，交由专用硬件(TMA)处理，实现数据搬运与计算解耦。</p><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在 A100（Ampere 架构）及更早的 GPU 中，线程块（thread block）需要通过 CUDA 线程显式地从全局内存（global memory）将数据加载到共享内存（shared memory），再供给 Tensor Core 使用。这个过程存在以下问题：</p><ul><li>地址计算开销大：每个线程需手动计算多维张量（如矩阵分块）的内存地址</li><li>同步复杂：需协调多个 warp 协同完成数据搬运，并使用 <code>__syncthreads()</code> 同步</li><li>带宽利用率受限：非最优的访存模式可能导致内存带宽未被充分利用</li></ul><h2 id="核心原理"><a href="#核心原理" class="headerlink" title="核心原理"></a>核心原理</h2><p>TMA 是一个<strong>独立于 CUDA 核心的硬件单元</strong>，可由软件通过<strong>异步描述符（descriptor）+ 坐标（coordinate）</strong>的方式发起高维张量的内存拷贝操作。</p><h3 id="Tensor-Descriptor"><a href="#Tensor-Descriptor" class="headerlink" title="Tensor Descriptor"></a>Tensor Descriptor</h3><p>开发者首先定义一个张量描述符，包含以下信息：</p><ul><li>张量的形状（shape）</li><li>内存布局（layout，如行主序、列主序、分块布局等）</li><li>数据类型（如 FP16、BF16、INT8）</li><li>起始地址（base address）</li></ul><p>该描述符一次性配置后，可被多次复用。</p><h3 id="Copy-by-Coordinate"><a href="#Copy-by-Coordinate" class="headerlink" title="Copy by Coordinate"></a>Copy by Coordinate</h3><p>TMA 不使用传统的一维地址，而是通过逻辑坐标（如 <code>(block_row, block_col)</code>）指定要拷贝的子张量（tile）。例如：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 伪代码示意</span></span><br><span class="line">tma_load(desc, shared_mem_ptr, coord = &#123;tile_m, tile_n&#125;);</span><br></pre></td></tr></table></figure></p><p>硬件根据描述符自动：</p><ul><li>将逻辑坐标映射为物理地址</li><li>生成最优的内存访问模式（合并访问、对齐等）</li><li>执行从全局内存到共享内存（或反之）的 DMA 式传输</li></ul><h3 id="异步-amp-零线程开销"><a href="#异步-amp-零线程开销" class="headerlink" title="异步 &amp; 零线程开销"></a>异步 &amp; 零线程开销</h3><ul><li>TMA 操作由专用硬件引擎执行，不占用SM中的 CUDA 核心资源</li><li>CUDA 线程只需发出TMA指令(通过<code>cp.async.bulk</code>PTX指令触发传输)，即可继续执行其他计算，实现计算与数据搬运重叠</li><li>无需线程参与地址计算或数据搬移，显著降低软件开销</li></ul><h3 id="支持高维与非规则布局"><a href="#支持高维与非规则布局" class="headerlink" title="支持高维与非规则布局"></a>支持高维与非规则布局</h3><p>TMA 原生支持最多 5 维张量，并能处理：</p><ul><li>分块循环布局（swizzled/tiled layout）</li><li>填充（padding）</li><li>跨步（strides）</li></ul><p>这使其特别适合 Transformer、卷积等复杂神经网络中的内存访问模式。</p><h2 id="典型应用场景"><a href="#典型应用场景" class="headerlink" title="典型应用场景"></a>典型应用场景</h2><ul><li>GEMM（通用矩阵乘）：将 A、B 矩阵的分块自动加载到 shared memory，供 Tensor Core 使用</li><li>Attention 机制：高效搬运 Q、K、V 的分块数据</li><li>大模型推理/训练：减少数据搬运瓶颈，提升计算吞吐</li></ul><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>TMA核心目标是<strong>优化张量运算中的数据搬运效率</strong>，特别是为 Tensor Core 提供高效、低开销的数据加载与存储能力。</p><p>TMA的技术本质是：将“基于地址的、线程驱动的”内存访问，转变为“基于张量语义的、硬件加速的”异步数据传输。</p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/0gkeKmRYU-fX4gWtScAjvQ" target="_blank" rel="noopener">NVIDIA TMA 全面解读</a></li><li><a href="https://zhuanlan.zhihu.com/p/709750258" target="_blank" rel="noopener">[Hopper 架构特性学习笔记 Part2] Tensor Memory Access（TMA）</a></li><li><a href="https://www.qianwen.com/share?shareId=2762294c-c203-4efe-b262-5e29dce5a0bb" target="_blank" rel="noopener">千问对话</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下NVIDIA TMA(Tensor Memory Access)技术的相关notes。
+    
+    </summary>
+    
+      <category term="AI Infra" scheme="http://liujunming.github.io/categories/AI-Infra/"/>
+    
+    
+      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
+    
+      <category term="CUDA" scheme="http://liujunming.github.io/tags/CUDA/"/>
+    
+      <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about linux MTD(Memory Technology Devices)</title>
@@ -471,28 +497,6 @@
       <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
     
       <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about PIPT,VIVT and VIPT</title>
-    <link href="http://liujunming.github.io/2025/06/07/Notes-about-PIPT-VIPT-and-VIVT/"/>
-    <id>http://liujunming.github.io/2025/06/07/Notes-about-PIPT-VIPT-and-VIVT/</id>
-    <published>2025-06-07T09:08:24.000Z</published>
-    <updated>2025-06-08T01:44:25.222Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Cache缓存设计策略中的PIPT(Physically-Indexed, Physically-Tagged)、VIVT(Virtually-Indexed, Virtually-Tagged)和VIPT(Virtually-Indexed, Physically-Tagged)的相关notes。<a id="more"></a></p><h2 id="Basic-knowledge"><a href="#Basic-knowledge" class="headerlink" title="Basic knowledge"></a>Basic knowledge</h2><p>Cache 本质就是一个硬件 hash 表（Tag RAM + DATA RAM），一般来说 Cache 的大小指的是DATA RAM 的大小，并不包括 Tag RAM 的物理空间。如下图所示，以一个 32 位内存地址为例，其中 [0, 4] 属于 Offset 字段，[5, 12] 属于 Index 字段，[13, 31] 属于 Tag 字段。</p><p><img src="/images/2025/06/009.png" alt></p><h2 id="PIPT"><a href="#PIPT" class="headerlink" title="PIPT"></a>PIPT</h2><p><img src="/images/2025/06/010.png" alt></p><h3 id="工作流程"><a href="#工作流程" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>MMU (内存管理单元) 将 VA 翻译成物理地址 (PA)（通过查询 TLB 或页表）</li><li>使用 PA 的一部分索引缓存</li><li>使用 PA 的剩余部分作为标签，与索引找到的缓存行中的标签进行比较</li><li>如果标签匹配且有效位为真，则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><p>速度慢，缓存查找必须等待MMU完成虚拟地址到物理地址的转换后才能开始，这增加了访问latency。</p><h2 id="VIVT"><a href="#VIVT" class="headerlink" title="VIVT"></a>VIVT</h2><h3 id="工作流程-1"><a href="#工作流程-1" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>同时：<ul><li>使用 VA 的一部分直接索引缓存，使用 VA 的剩余部分作为标签，与索引找到的缓存行中的标签进行比较</li><li>MMU 将 VA 翻译成物理地址 (PA)</li></ul></li><li>如果标签匹配、有效位为真，并且 MMU 转换成功（地址有效），则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><h3 id="缺点-1"><a href="#缺点-1" class="headerlink" title="缺点"></a>缺点</h3><ul><li>歧义问题： 不同的物理地址（不同的数据）可能具有相同的虚拟地址索引和标签部分（如果映射不同）。这会导致一个缓存行错误地对应多个物理地址的数据。</li><li>同名问题： 同一个物理地址（同一份数据）被映射到不同的虚拟地址时，会在缓存中产生多个副本（不同虚拟标签）。修改一个副本不会自动更新另一个副本，导致数据不一致。</li><li>需要操作系统干预： 内核在切换进程上下文或修改页表映射时，必须清空（flush）整个或部分缓存以避免歧义和同名问题，开销巨大。</li></ul><h2 id="VIPT"><a href="#VIPT" class="headerlink" title="VIPT"></a>VIPT</h2><p><img src="/images/2025/06/012.png" alt></p><p><img src="/images/2025/06/011.png" alt></p><h3 id="工作流程-2"><a href="#工作流程-2" class="headerlink" title="工作流程"></a>工作流程</h3><ol><li>CPU 发出虚拟地址 (VA)</li><li>同时：<ul><li>使用 VA 的一部分直接索引缓存</li><li>MMU (通过 TLB) 将 VA 翻译成物理地址 (PA)</li></ul></li><li>使用 PA 的（相应）部分作为标签，与步骤2中索引找到的缓存行中的标签进行比较</li><li>如果标签匹配且有效位为真，则缓存命中，数据返回给 CPU；否则缓存未命中</li></ol><hr><p>参考资料:</p><ol><li><a href="https://www.youtube.com/watch?v=3sX5obQCHNA" target="_blank" rel="noopener">Virtual Memory: 13 TLBs and Caches</a></li><li><a href="https://mp.weixin.qq.com/s/cUShsE0FWGnQWWQn8B4W_Q" target="_blank" rel="noopener">GPU TLB 与 MIG 切分：真的完全物理隔离吗？</a></li><li><a href="https://courses.physics.illinois.edu/ece411/fa2022/slides/lect08_l.pptx" target="_blank" rel="noopener">Caches: Policies and Interactions with VM</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Cache缓存设计策略中的PIPT(Physically-Indexed, Physically-Tagged)、VIVT(Virtually-Indexed, Virtually-Tagged)和VIPT(Virtually-Indexed, Physically-Tagged)的相关notes。
-    
-    </summary>
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
