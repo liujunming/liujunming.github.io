@@ -17,10 +17,12 @@
 
 
 
-  <meta name="description" content="liujunming's personal blog.">
+  <meta name="description" content="Notes about NVMe FDP feature">
 
 
 
+
+  <meta name="keywords" content="NVMe, L">
 
 
 
@@ -40,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/archives/page/2/">
+<link rel="canonical" href="http://liujunming.github.io/2026/01/03/Notes-about-NVMe-FDP-feature/">
 
 
 
@@ -88,11 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title>
-  
-    归档 - L
-  
-</title>
+    <title> Notes about NVMe FDP feature - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -258,241 +256,115 @@
           <div id="content" class="content">
             
   
-  
-  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about NVMe FDP feature
+        
+      </h1>
 
-  <section id="archive" class="archive">
+      <div class="post-meta">
+        <span class="post-time">
+          2026-01-03
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/NVMe/">NVMe</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
     
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Key-idea"><span class="toc-text">Key idea</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Architecture"><span class="toc-text">Architecture</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Reclaim-Unit-RU"><span class="toc-text">Reclaim Unit (RU)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Reclaim-Group-RG"><span class="toc-text">Reclaim Group (RG)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Reclaim-Unit-Handles-RUH"><span class="toc-text">Reclaim Unit Handles (RUH)</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下NVMe FDP(Flexible data placement)的相关notes。<a id="more"></a></p>
+<h2 id="Key-idea"><a href="#Key-idea" class="headerlink" title="Key idea"></a>Key idea</h2><p>通过host(上层应用)与SSD的协作，将生命周期同步的数据，在写入时就物理地聚集在一起，从而使它们能“同生共死”，极大简化数据清理过程，从根源上解决写放大问题。</p>
+<p>从<strong>数据写入的源头就开始规划，将同类数据放在一起</strong>，从而让整个块的数据能同时失效，极大减少了有效数据搬移，从根本上降低了写放大。</p>
+<h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p>The Flexible Data Placement interface provides abstractions to the host to group data on the device with a similar expected lifetime(e.g., death time). The interface introduces the following concepts to expose the SSD physical architecture.</p>
+<p><img src="/images/2026/01/003.png" alt></p>
+<h3 id="Reclaim-Unit-RU"><a href="#Reclaim-Unit-RU" class="headerlink" title="Reclaim Unit (RU)"></a>Reclaim Unit (RU)</h3><p>The NAND media is organized into a set of reclaim units where a reclaim unit consists of a set of blocks that can be written. A reclaim unit will typically consist of one or more erase blocks.</p>
+<h3 id="Reclaim-Group-RG"><a href="#Reclaim-Group-RG" class="headerlink" title="Reclaim Group (RG)"></a>Reclaim Group (RG)</h3><p>A reclaim group is a set of reclaim units.</p>
+<h3 id="Reclaim-Unit-Handles-RUH"><a href="#Reclaim-Unit-Handles-RUH" class="headerlink" title="Reclaim Unit Handles (RUH)"></a>Reclaim Unit Handles (RUH)</h3><p>A reclaim unit handle is an abstraction in the device controller similar to a pointer that allows host software to point to the reclaim units in the device. Since a reclaim unit is not directly addressable by the host, the host software uses the reclaim unit handles to logically isolate data. The device manages the mapping of reclaim unit handles to a reclaim unit and has complete control over this mapping. The number of RUHs in the device determines the number of different logical locations in the NAND where the host software can concurrently place data.</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>通过数据隔离，当一个应用的数据失效时，其对应的整个RU可以直接被擦除回收，大幅减少了垃圾回收所需搬移的数据量。理想情况下，可以将写放大系数降低至接近1。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://lwn.net/Articles/1018642/" target="_blank" rel="noopener">Flexible data placement</a></li>
+<li><a href="https://arxiv.org/pdf/2503.11665" target="_blank" rel="noopener">Towards Efficient Flash Caches with Emerging NVMe Flexible Data Placement SSDs</a></li>
+<li><a href="https://chat.deepseek.com/share/jvler80y4fjjp3k52n" target="_blank" rel="noopener">deepseek对话</a></li>
+<li><a href="https://nvmexpress.org/wp-content/uploads/FMS-2023-Flexible-Data-Placement-FDP-Overview.pdf" target="_blank" rel="noopener">Flexible Data Placement: State of the Union</a></li>
+</ol>
+
+      
+    </div>
 
     
       
-        
-        
+      
 
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
         
-          
-          <div class="collection-title">
-            <h2 class="archive-year">2025</h2>
+          <div class="post-tags">
+            
+              <a href="/tags/NVMe/">NVMe</a>
+            
           </div>
         
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            11-02
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/11/02/Notes-about-gVisor/" class="archive-post-link">
-            Notes about gVisor
-          </a>
-        </span>
-      </div>
-    
-      
         
         
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            11-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/11/01/Notes-about-Skip-List/" class="archive-post-link">
-            Notes about Skip List
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            10-01
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/10/01/Notes-about-CRIU-Checkpoint-Restore-In-Userspace/" class="archive-post-link">
-            Notes about CRIU(Checkpoint/Restore In Userspace)
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            09-21
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/09/21/Notes-about-CUDA-Dynamic-Parallelism/" class="archive-post-link">
-            Notes about CUDA Dynamic Parallelism
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            09-20
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/09/20/Notes-about-Intel-Advanced-Matrix-Extensions-AMX/" class="archive-post-link">
-            Notes about Intel Advanced Matrix Extensions (AMX)
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            09-14
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/09/14/Notes-about-Intel-Processor-Trace-Intel-PT/" class="archive-post-link">
-            Notes about Intel Processor Trace (IPT)
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            09-14
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/09/14/Notes-about-PMU-Performance-Monitoring-Unit/" class="archive-post-link">
-            Notes about PMU(Performance Monitoring Unit)
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            09-13
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/09/13/Notes-about-qemu-pxb-pci-expander-bridge/" class="archive-post-link">
-            Notes about qemu pxb(pci expander bridge)
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            09-07
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/09/07/Notes-about-ARM-pointer-authentication/" class="archive-post-link">
-            Notes about ARM pointer authentication
-          </a>
-        </span>
-      </div>
-    
-      
-        
-        
-
-        
-      
-
-      <div class="archive-post">
-        <span class="archive-post-time">
-          
-            08-17
-          
-        </span>
-        <span class="archive-post-title">
-          <a href="/2025/08/17/Notes-about-Linux-kernel-内存分配函数/" class="archive-post-link">
-            Notes about Linux kernel 内存分配函数
-          </a>
-        </span>
-      </div>
-    
-  </section>
-
-  
-  <nav class="pagination">
-    
-      <a class="prev" href="/archives/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text">上一页</span>
-      </a>
+  <nav class="post-nav">
     
     
-      <a class="next" href="/archives/page/3/">
-        <span class="next-text">下一页</span>
+      <a class="next" href="/2026/01/03/Notes-about-SSD-components/">
+        <span class="next-text nav-default">Notes about SSD basic knowledge</span>
+        <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
     
   </nav>
 
 
+      </footer>
+    
+
+  </article>
 
 
           </div>
           
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
 
         </div>
       </main>
@@ -576,6 +448,27 @@
     </div>
 
     
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2026/01/03/Notes-about-NVMe-FDP-feature/';
+        this.page.identifier = '2026/01/03/Notes-about-NVMe-FDP-feature/';
+        this.page.title = 'Notes about NVMe FDP feature';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
 
 
     
