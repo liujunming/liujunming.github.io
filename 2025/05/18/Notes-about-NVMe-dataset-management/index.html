@@ -293,11 +293,28 @@
 <blockquote>
 <p>The Dataset Management command is used by the host to indicate attributes for ranges of logical blocks. This includes attributes like frequency that data is read or written, access size, and other information that may be used to optimize performance and reliability. This command is advisory; a compliant controller may choose to take no action based on information provided.</p>
 </blockquote>
+<p>DSM命令通过其“上下文属性”为上层主机（Host）与底层存储设备（Device）之间提供了一种高效的沟通机制，使得主机能够将自身对数据的使用意图（如访问模式、延迟要求、访问频率）传递给存储设备。</p>
+<ol>
+<li><strong>主机提供“提示” (Hints)</strong>：主机不仅仅是发出简单的读写命令，而是可以提供关于数据如何被使用的“提示”。</li>
+<li><strong>设备实现智能优化</strong>：存储设备的Firmware可以利用这些来自上层的“提示”信息，执行针对性的优化操作。</li>
+<li><strong>具体的优化方向</strong>：<ul>
+<li><strong>性能提升</strong>：通过对顺序访问的预取和对低延迟数据的优先处理，来提高吞吐和降低延迟。</li>
+<li><strong>耐久度与效率提升</strong>：通过区分热数据和冷数据进行智能的数据放置（data placement），有效降低写放大（WAF），这对于SSD等闪存设备至关重要，可以延长其使用寿命并保持稳定性能。<ul>
+<li>热数据（频繁更新的数据）的生命周期很短。通过将热数据集中写入同一个物理块，可以预见块内的所有数据页都会在短时间内相继变为无效。</li>
+<li>理想的回收场景：当一个“热数据块”中的所有数据都因主机更新而变成无效数据后，控制器就可以直接擦除整个块，而无需进行任何数据迁移。这是一种零成本或近乎零成本的垃圾回收，极大地提高了效率。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
 <hr>
 <p>参考资料:</p>
 <ol>
 <li><a href="https://files.futurememorystorage.com/proceedings/2013/20130812_PreConfD_Marks.pdf" target="_blank" rel="noopener">An NVM Express Tutorial</a></li>
 <li>NVMe spec</li>
+<li><a href="https://mp.weixin.qq.com/s/zR1KKGRTbfbYDIFvDfnujg" target="_blank" rel="noopener">NVMe DSM技术优化解读</a></li>
+<li><a href="https://mp.weixin.qq.com/s/fEDm3HtYWfeWJhubZc4wEw" target="_blank" rel="noopener">NVMe 内存语义的实现与价值，为SSD提速续命</a></li>
+<li><a href="https://files.futurememorystorage.com/proceedings/2025/20250807_SSDT-302-1_Yeh.pdf" target="_blank" rel="noopener">Optimizing SSD Performance for Edge AI NVMe Dataset Management Insights</a></li>
 </ol>
 
       
@@ -427,7 +444,7 @@
      
       2016 - 
     
-    2025
+    2026
 
     <span class="heart">
       <i class="iconfont icon-heart"></i>

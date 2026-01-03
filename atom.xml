@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2025-12-07T08:21:45.277Z</updated>
+  <updated>2026-01-03T02:23:26.646Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about SSD basic knowledge</title>
+    <link href="http://liujunming.github.io/2026/01/03/Notes-about-SSD-components/"/>
+    <id>http://liujunming.github.io/2026/01/03/Notes-about-SSD-components/</id>
+    <published>2026-01-03T01:42:59.000Z</published>
+    <updated>2026-01-03T02:23:26.646Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下SSD basic knowledge。<a id="more"></a></p><h2 id="Topology"><a href="#Topology" class="headerlink" title="Topology"></a>Topology</h2><p><img src="/images/2026/01/001.png" alt></p><ul><li>Flash Controller</li><li>Channel</li><li>Chip</li><li>Die</li><li>Plane(Bank)</li><li>Block</li><li>Page</li></ul><h2 id="Basic-Operations"><a href="#Basic-Operations" class="headerlink" title="Basic Operations"></a>Basic Operations</h2><p>There are three low-level operations that a flash chip supports. The <strong>read</strong> command is used to read a page from the flash; <strong>erase</strong> and <strong>program</strong> are used in tandem to write.</p><ul><li><p><strong>Read (a page)</strong>: A client of the flash chip can read any page, simply by specifying the read command and appropriate page number to the device.</p></li><li><p><strong>Erase (a block)</strong>: Before writing to a <code>page</code> within a flash, the nature of the device requires that you first <strong>erase</strong> the entire block the page lies within. Erase, importantly, destroys the contents of the block(by setting each bit to the value 1); therefore, you must be sure that any data you care about in the block has been copied elsewhere (to memory, or perhaps to another flash block) before executing the erase. The erase command is quite expensive, taking a few milliseconds to complete. Once finished, the entire block is reset and each page is ready to be programmed.</p></li><li><p><strong>Program (a page)</strong>: Once a block has been erased, the program command can be used to write the desired contents of a page to the flash.</p></li></ul><hr><p>参考资料:</p><ol><li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/file-ssd.pdf" target="_blank" rel="noopener">Flash-based SSDs</a></li><li><a href="https://www.usenix.org/system/files/fast24_slides-jun.pdf" target="_blank" rel="noopener">We Ain’t Afraid of No File Fragmentation: Causes and Prevention of Its Performance Impact on Modern Flash SSDs</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下SSD basic knowledge。
+    
+    </summary>
+    
+      <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
+    
+    
+      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
+    
+      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NVIDIA TMA(Tensor Memory Access)</title>
@@ -464,30 +488,6 @@
     <summary type="html">
     
       &lt;p&gt;本文将mark下GPUDirect Async family技术的相关notes。
-    
-    </summary>
-    
-      <category term="AI Infra" scheme="http://liujunming.github.io/categories/AI-Infra/"/>
-    
-    
-      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
-    
-      <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about GPU vs NPU</title>
-    <link href="http://liujunming.github.io/2025/06/08/Notes-about-GPU-vs-NPU/"/>
-    <id>http://liujunming.github.io/2025/06/08/Notes-about-GPU-vs-NPU/</id>
-    <published>2025-06-08T01:50:07.000Z</published>
-    <updated>2025-06-08T02:29:39.524Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下GPU vs NPU(Neural Processing Unit)的相关notes，建议先看下科普视频<a href="https://www.bilibili.com/video/BV1mFQgY5EfM/" target="_blank" rel="noopener">比GPU更快！NPU是如何实现AI加速的？</a>。<a id="more"></a></p><h2 id="GPU-vs-NPU"><a href="#GPU-vs-NPU" class="headerlink" title="GPU vs NPU"></a>GPU vs NPU</h2><p>NPU内部的基本单元还是乘加器，只是改变了数据的流动方式，不再需要运回缓存，从而提高了运算效率。</p><p>NPUs are specialized hardware accelerators that excel at performing neural network computations efficiently. In contrast to general-purpose processors, NPUs are specifically optimized to meet the unique requirements of neural networks. They offer capabilities such as massive parallelism, high-speed data processing and matrix computation. These features are essential for handling intensive computations involved in deep learning algorithms.</p><p>To meet these requirements, NPU adopts several special hardware structures. <strong>One key unit for the modern NPU is the matrix calculation unit (MCU)</strong> like tube, systolic array, etc. With these matrix units, <u>NPU can execute the matrix calculation like multiplication and convolution within one operation</u>. Some NPUs also have other dedicated units for some specialized operations like sparse matrix calculation, activation function, etc.</p><p>Besides the matrix unit, <strong>NPUs often adopt a near data computing (NDC) architecture to minimize data retrieval overhead</strong>. For example, weights in neural networks are pre-stored in the SRAM/scratchpad near the matrix unit, allowing for quick access during computations. This reduces latency and energy consumption by eliminating the need to retrieve weights from main memory for each task. <strong>NDC optimizes data flow and improves computational efficiency by minimizing memory access bottlenecks</strong>.</p><p>Furthermore, <u>NPUs also leverage multi-core architectures with a Network-on-Chip (NoC) network to further parallelize data computation</u>. <strong>The NoC network allows for direct data transfer among NPU cores without the need for additional memory load/store instructions</strong>.</p><h2 id="CUDA-Cores-vs-Tensor-Cores"><a href="#CUDA-Cores-vs-Tensor-Cores" class="headerlink" title="CUDA Cores vs Tensor Cores"></a>CUDA Cores vs Tensor Cores</h2><p>A100/H100等GPU，不仅仅有通用的CUDA Cores，还集成了NPU中的Cores。</p><p><u>CUDA cores</u> are responsible for <strong>general-purpose</strong> processing tasks in GPUs, which handle a wide range of instructions including integer operations, floating-point operations, load/store operations, etc. CUDA cores execute scalar (or vector) instructions operating on individual (or vector) data elements. </p><p><u>Tensor cores</u> are <strong>specialized hardware</strong> designed for accelerating matrix multiplication. Tensor cores have 16.0×/14.8× higher FLOPS than CUDA cores on A100/H100 GPUs. Besides, Tensor cores work at a coarse-grained granularity, e.g. performing a matrix multiplication between two FP16 matrices of shape 16 × 16 and 16 × 8 with a single <em>mma</em> (matrix multiply and accumulate) instruction.</p><hr><p>参考资料:</p><ol><li><a href="https://ipads.se.sjtu.edu.cn/_media/publications/feng-isca24.pdf" target="_blank" rel="noopener">sNPU: Trusted Execution Environments on Integrated NPUs</a></li><li><a href="https://www.usenix.org/system/files/atc24-xia.pdf" target="_blank" rel="noopener">Quant-LLM: Accelerating the Serving of Large Language Models via FP6-Centric Algorithm-System Co-Design on Modern GPUs</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下GPU vs NPU(Neural Processing Unit)的相关notes，建议先看下科普视频&lt;a href=&quot;https://www.bilibili.com/video/BV1mFQgY5EfM/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;比GPU更快！NPU是如何实现AI加速的？&lt;/a&gt;。
     
     </summary>
     
