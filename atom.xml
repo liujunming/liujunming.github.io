@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-01-11T07:55:21.974Z</updated>
+  <updated>2026-01-11T14:00:37.997Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about NVMe 原子写功能</title>
+    <link href="http://liujunming.github.io/2026/01/11/Notes-about-NVMe-%E5%8E%9F%E5%AD%90%E5%86%99%E5%8A%9F%E8%83%BD/"/>
+    <id>http://liujunming.github.io/2026/01/11/Notes-about-NVMe-原子写功能/</id>
+    <published>2026-01-11T13:51:20.000Z</published>
+    <updated>2026-01-11T14:00:37.997Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下NVMe 原子写的相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>NVMe原子写是NVMe协议中的一项重要特性，旨在保证数据写入的一致性和完整性。其核心特点是：<strong>一个IO操作要么完整地写入，要么整个写入失败，不会出现部分写入、部分未写入的情况</strong>。</p><h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>在传统数据库操作中（如MySQL InnoDB），为保证数据一致性，通常采用Double Write机制（先写一份到共享表空间，再写入数据文件），这会导致额外的IO写入操作。NVMe原子写特性通过硬件支持，让数据库可以不使用Double Write机制，直接保证大块数据（如16KB）的原子写入。</p><h2 id="关键参数"><a href="#关键参数" class="headerlink" title="关键参数"></a>关键参数</h2><p><img src="/images/2026/01/010.png" alt></p><p>NVMe协议中定义了多个与原子写相关的参数：</p><ul><li>AWUN（Atomic Write Unit Normal）：控制器级别的原子写命令大小</li><li>AWUPF（Atomic Write Unit Power Fail）：供电异常情况下的原子写命令大小</li><li>NAWUN/NAWUPF：命名空间级别的原子写命令大小</li><li>NABSN/NABO：命名空间原子写边界大小和偏移</li></ul><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/0AzRz9j7FJd--oeu4tmjFA" target="_blank" rel="noopener">浅析nvme原子写的应用场景</a></li><li><a href="https://www.qianwen.com/share/chat/c1e86cd704f94e4889789d10d9474d5b" target="_blank" rel="noopener">千问对话</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下NVMe 原子写的相关notes。
+    
+    </summary>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
+    
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Zoned Namespace SSD</title>
@@ -473,30 +497,6 @@
       <category term="QEMU" scheme="http://liujunming.github.io/tags/QEMU/"/>
     
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about ARM pointer authentication</title>
-    <link href="http://liujunming.github.io/2025/09/07/Notes-about-ARM-pointer-authentication/"/>
-    <id>http://liujunming.github.io/2025/09/07/Notes-about-ARM-pointer-authentication/</id>
-    <published>2025-09-07T00:21:35.000Z</published>
-    <updated>2025-09-07T01:31:56.528Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下ARM pointer authentication的相关notes。<a id="more"></a></p><h2 id="核心目的"><a href="#核心目的" class="headerlink" title="核心目的"></a>核心目的</h2><p>Pointer Authentication(PA)的核心目的是验证指针(如返回地址、函数指针等)是否被恶意篡改。它通过为指针添加加密认证码(PAC, Pointer Authentication Code)并在使用前验证其有效性来实现。</p><p><img src="/images/2025/09/001.png" alt></p><h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><ol><li>生成PAC(签名)：<ul><li>使用一个密钥(CPU寄存器存储)、指针的虚拟地址和额外的上下文信息(如堆栈指针)，通过加密算法(ARM选择的是QARMA算法)为指针生成一个短小的PAC</li><li>PAC被存储在指针值中未使用的最高位中。因为64位架构中，虚拟地址通常不会全部使用(如48位)，高位空间是空闲的</li></ul></li><li>验证与恢复(验证)：<ul><li>在使用指针前(如函数返回前)，CPU会执行验证指令(如<code>AUT*</code>)</li><li>系统会使用相同的密钥和上下文重新计算PAC，并与指针中存储的PAC进行比较</li><li>如果匹配，则移除PAC，恢复原始指针，程序正常执行</li><li>如果不匹配，则指针会被置为一个非法值，使用时通常会触发一个异常(如段错误)，从而阻止攻击</li></ul></li></ol><h2 id="Pointer-Authentication-in-ARMv8-3-A"><a href="#Pointer-Authentication-in-ARMv8-3-A" class="headerlink" title="Pointer Authentication in ARMv8.3-A"></a>Pointer Authentication in ARMv8.3-A</h2><p><img src="/images/2025/09/003.png" alt></p><p><img src="/images/2025/09/004.png" alt></p><p>PA is intended for checking the integrity of pointers with minimal size and performance impact. It is available when the processor executes in 64-bit ARM state(AArch64). PA adds instructions for creating and authenticating pointer authentication codes (PACs). The PAC is a tweakable message authentication code (MAC) calculated over the pointer value and a 64-bit modifier as the tweak. Different combinations of key and modifier pairs allow domain separation among different classes of authenticated pointers. This prevents authenticated pointer values from being arbitrarily interchangeable with one another.</p><p>PA provides five different keys for PAC generation: two for code pointers, two for data pointers, and one for generic use. The keys are stored in hardware registers configured to be accessible only from a higher privilege level: e.g., the kernel maintains the keys for a user space process, generating keys for each process at process <code>exec</code>. The keys remain constant throughout the process lifetime, whereas the modifier is given in an instruction-specific register operand on each PAC creation and authentication (i.e., MAC verification). Thus it can be used to describe the run-time context in which the pointer is created and used. The modifier value is not necessarily confidential but ideally such that it 1) precisely describes the context of use in which the pointer is valid, and 2) cannot be influenced by the attacker</p><h2 id="Example-PA-based-return-address-signing"><a href="#Example-PA-based-return-address-signing" class="headerlink" title="Example: PA-based return address signing"></a>Example: PA-based return address signing</h2><p><img src="/images/2025/09/002.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.usenix.org/conference/usenixsecurity19/presentation/liljestrand" target="_blank" rel="noopener">PAC it up: Towards Pointer Integrity using ARM Pointer Authentication</a></li><li>deepseek prompt:简要介绍下arm Pointer Authentication</li><li><a href="https://learn.arm.com/learning-paths/servers-and-cloud-computing/pac/pac/" target="_blank" rel="noopener">Pointer Authentication on Arm</a></li><li><a href="https://lwn.net/Articles/718888/" target="_blank" rel="noopener">https://lwn.net/Articles/718888/</a></li><li><a href="https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/pointer-auth-v7.pdf" target="_blank" rel="noopener">Pointer Authentication on ARMv8.3: Design and Analysis of the New Software Security Instructions</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下ARM pointer authentication的相关notes。
-    
-    </summary>
-    
-      <category term="ARM" scheme="http://liujunming.github.io/categories/ARM/"/>
-    
-    
-      <category term="ARM" scheme="http://liujunming.github.io/tags/ARM/"/>
-    
-      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
     
   </entry>
   
