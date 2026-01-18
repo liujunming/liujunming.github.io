@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-01-17T14:06:29.078Z</updated>
+  <updated>2026-01-18T08:45:32.058Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about PCIe resize bar</title>
+    <link href="http://liujunming.github.io/2026/01/18/Notes-about-PCIe-resize-bar/"/>
+    <id>http://liujunming.github.io/2026/01/18/Notes-about-PCIe-resize-bar/</id>
+    <published>2026-01-18T07:45:47.000Z</published>
+    <updated>2026-01-18T08:45:32.058Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下PCIe resize bar的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>Resizable BAR support is a PCIe extension that allows resizing a PCIe device’s mappable memory/register space. An important use case are GPUs. GPUs generally declare only have 256MiB worth of BARs mapping GPU memory to maintain compatibility with 32bit operating systems. However, <strong>for performance (particularly when using PCIe P2P), it is desirable to be able to map the entirety of GPU memory, necessitating resizable BARs</strong>.</p><h2 id="Case-GPU-game"><a href="#Case-GPU-game" class="headerlink" title="Case:GPU game"></a>Case:GPU game</h2><p>When a game is running, the CPU needs access to a graphic card’s memory, and by default it can only access 256MB at a time. However, resizable BAR removes the size limitation so the CPU has access to all of a GPU’s memory, theoretically allowing for improved performance. This adjustment lets the CPU request much larger chunks of data from the GPU, which can improve performance in games that can benefit from this change.</p><p>Resizable BAR lowers the overhead involved in the transfer of game assets between the CPU and GPU, sending <strong>fewer, larger transfers</strong> instead of numerous smaller transfers, and it can also <strong>allow multiple requests to happen at the same time</strong> instead of entering a queue. As an example, if your CPU needs 1GB of data it would have to make four requests using a 256MB limitation, or just one using Resizable BAR .</p><h2 id="PCIe-Spec-details"><a href="#PCIe-Spec-details" class="headerlink" title="PCIe Spec details"></a>PCIe Spec details</h2><p>The Resizable BAR Capability structure defines a PCI Express Extended Capability, which is located in PCI Express Extended Configuration Space, that is, above the first 256 bytes, and is shown below in Figure 7-127. This structure allows devices with this capability to be identified and controlled. A Capability and a Control register is implemented for each BAR that is resizable. Since a maximum of six BARs may be implemented by any Function, the Resizable BAR Capability structure can range from 12 bytes long (for a single BAR) to 52 bytes long (for all six BARs).</p><p><img src="/images/2026/01/012.png" alt></p><h3 id="Resizable-BAR-Extended-Capability-Header"><a href="#Resizable-BAR-Extended-Capability-Header" class="headerlink" title="Resizable BAR Extended Capability Header"></a>Resizable BAR Extended Capability Header</h3><p><img src="/images/2026/01/013.png" alt></p><h3 id="Resizable-BAR-Capability-Register"><a href="#Resizable-BAR-Capability-Register" class="headerlink" title="Resizable BAR Capability Register"></a>Resizable BAR Capability Register</h3><p><img src="/images/2026/01/014.png" alt></p><h3 id="Resizable-BAR-Control-Register"><a href="#Resizable-BAR-Control-Register" class="headerlink" title="Resizable BAR Control Register"></a>Resizable BAR Control Register</h3><p><img src="/images/2026/01/015.png" alt></p><p><img src="/images/2026/01/016.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/661598227" target="_blank" rel="noopener">[PCIe] resize bar协议与实现</a></li><li><a href="https://www.corsair.com/us/en/explorer/glossary/what-is-resizable-bar/" target="_blank" rel="noopener">What is Resizable BAR?</a></li><li><a href="https://www.gigabyte.com/WebPage/785/NVIDIA_resizable_bar.html" target="_blank" rel="noopener">NVIDIA resizable bar</a></li><li><a href="https://lore.kernel.org/lkml/20211215141626.3090807-1-michal.winiarski@intel.com/T/" target="_blank" rel="noopener">PCI: VF resizable BAR</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下PCIe resize bar的相关notes。
+    
+    </summary>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NUMA balance技术</title>
@@ -473,28 +497,6 @@
       <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
       <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about PMU(Performance Monitoring Unit)</title>
-    <link href="http://liujunming.github.io/2025/09/14/Notes-about-PMU-Performance-Monitoring-Unit/"/>
-    <id>http://liujunming.github.io/2025/09/14/Notes-about-PMU-Performance-Monitoring-Unit/</id>
-    <published>2025-09-14T10:48:56.000Z</published>
-    <updated>2025-09-14T12:35:31.177Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下PMU(Performance Monitoring Unit)的相关notes，内容源于DSN’12 paper，时效性可能不太准确。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>There are generally two working modes of PMUs: interrupt-based mode and precision mode. In the first mode, a counter will automatically increase and generate an interrupt when it has reached a predefined threshold (i.e., event-based sampling) or predefined time has elapsed (i.e., time-based sampling). This is the basic performance counter mode, which supports most types of events, but lacks precise instruction pointer information, resulting in that the reported IP (instruction pointer) is up to tens of instructions away from the instruction causing the event, due to the out-of-order execution in modern processors. For example, according to AMD’s manual, the reported IP may be up to 72 instructions away from the actual IP causing the event.</p><p>To improve the precision and flexibility of PMUs,most commodity processors also support a precise mode of performance monitoring, including the Precise Event-Based Sampling (PEBS), Branch Trace Store (BTS),Last Branch Record (LBR) and Event Filtering (EF). Currently, most existing commodity processors support parts of the features mentioned above.</p><h2 id="Precise-Performance-Counter"><a href="#Precise-Performance-Counter" class="headerlink" title="Precise Performance Counter"></a>Precise Performance Counter</h2><p>In PEBS, the samples of performance counters are written into a preregistered memory region. When the memory region is nearly full, an interrupt is generated to trigger the handler. By batching the samples and processing them together, this mechanism improves the performance of monitoring significantly. Meanwhile, thanks to the <em>atomic-freeze</em> feature, the IP addresses recorded in traces are exactly the ones causing the event.<br><img src="/images/2025/09/008.png" alt></p><h2 id="Branch-Trace-Store"><a href="#Branch-Trace-Store" class="headerlink" title="Branch Trace Store"></a>Branch Trace Store</h2><p>Intel’s BTS mechanism provides the capability of capturing all control transfer events and saving the events in a memory-resident BTS buffer. The events include all types of jump, call, return, interrupt and exception. The recorded information includes the addresses of branch source and target. Thus, it enables the monitoring of the whole control flow of an application. Similar as PEBS, the branch trace is also recorded in a pre-registered memory region, which makes the batching processing possible.</p><h2 id="Last-Branch-Record"><a href="#Last-Branch-Record" class="headerlink" title="Last Branch Record"></a>Last Branch Record</h2><p>LBR in Intel Core and Core i7, records the most recent branches into a register stack. This mechanism records similar data as in BTS. It records the source address and target address of each branch, thus provides the ability to trace the control flow of a program as well. However, due to the small size of the register stack (e.g., Intel Core has 4 pairs, Core i7 has 16 pairs), previous samples may be overwritten by upcoming samples during monitoring.</p><p><img src="/images/2025/09/007.png" alt></p><p>可以把 LBR 想象成一个容量很小的高速暂存器，只记录最近发生的几次分支，但查看速度极快，几乎不影响当前工作。而 BTS 则像一个庞大的流水账本，忠实记录下所有的分支，但往账本上写字的过程本身会消耗一些精力。</p><h2 id="Event-Filtering"><a href="#Event-Filtering" class="headerlink" title="Event Filtering"></a>Event Filtering</h2><p>The Event Filtering mechanism provides additional constraints to record events. It is used to filter events not concerned with. For example, latency constraints can be applied in Itanium2’s cache related events, which only count on high latency cache misses. Further, constraints such as “do not capture conditional branches”, “do not capture near return branches” are generally available on recent processors, which support LBR such as Intel Core i7. However, this mechanism is currently only available in LBR, control transfers recorded in BTS lack this type of filtering support.</p><h2 id="Conditional-Counting"><a href="#Conditional-Counting" class="headerlink" title="Conditional Counting"></a>Conditional Counting</h2><p>To separate user-level events from kernel-level ones, PMUs also support conditional event counting: they only increment counter while the processor is running at a specific privilege level (e.g. user, kernel or both). Further, to isolate possible interferences in performance counters among multiple processes/threads, operating systems are usually enhanced by saving and restoring performance counters during context switches.</p><hr><p>参考资料:</p><ol><li><a href="https://ipads.se.sjtu.edu.cn/_media/publications/cfimon-dsn12.pdf" target="_blank" rel="noopener">CFIMon: Detecting Violation of Control Flow Integrity using Performance Counters</a></li><li><a href="https://llvm.org/devmtg/2024-04/slides/TechnicalTalks/Xiao-EnablingHW-BasedPGO.pdf" target="_blank" rel="noopener">Enabling HW-based PGO</a></li><li>deepssek prompt: pmu的pebs与lbr，如何理解</li><li>deepssek prompt: Intel Branch Trace Store与Last Branch Record的区别</li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下PMU(Performance Monitoring Unit)的相关notes，内容源于DSN’12 paper，时效性可能不太准确。
-    
-    </summary>
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
