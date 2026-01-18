@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-01-18T08:45:32.058Z</updated>
+  <updated>2026-01-18T12:15:27.916Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>深入理解NVMe Asynchronous Event Request机制</title>
+    <link href="http://liujunming.github.io/2026/01/18/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3NVMe-Asynchronous-Event-Request%E6%9C%BA%E5%88%B6/"/>
+    <id>http://liujunming.github.io/2026/01/18/深入理解NVMe-Asynchronous-Event-Request机制/</id>
+    <published>2026-01-18T11:02:44.000Z</published>
+    <updated>2026-01-18T12:15:27.916Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将深入理解NVMe Asynchronous Event Request(AER)机制。<a id="more"></a></p><p><img src="/images/2026/01/023.png" alt></p><h2 id="AER机制"><a href="#AER机制" class="headerlink" title="AER机制"></a>AER机制</h2><p><img src="/images/2026/01/019.png" alt></p><p>Asynchronous events are used to notify host software of status, error, and health information as these events occur. To enable asynchronous events to be reported by the controller, host software needs to submit one or more Asynchronous Event Request commands to the controller. The controller specifies an event to the host by completing an Asynchronous Event Request command. Host software should expect that the controller may not execute the command immediately; the command should be completed when there is an event to be reported.</p><p>The Asynchronous Event Request command is submitted by host software to enable the reporting of asynchronous events from the controller. This command has no timeout. The controller posts a completion queue entry for this command when there is an asynchronous event to report to the host.</p><p>Asynchronous events are grouped into event types. The event type is indicated in the Asynchronous Event Type field in Dword 0 of the completion queue entry for the Asynchronous Event Request command. When the controller posts a completion queue entry for an outstanding Asynchronous Event Request command and thus reports an asynchronous event, subsequent events of that event type are automatically masked by the controller until the host clears that event. An event is cleared by reading the log page associated with that event using the Get Log Page command .</p><p>The following event types are defined:</p><ul><li>Error event</li><li>SMART / Health Status event</li><li>Notice event<ul><li>Namespace Attribute Changed</li><li>Firmware Activation Starting</li><li>Telemetry Log Changed</li><li>Asymmetric Namespace Access Change</li><li>Predictable Latency Event Aggregate Log Change</li><li>LBA Status Information Alert</li><li>Endurance Group Event Aggregate Log Page Change</li></ul></li><li>NVM Command Set Specific events<ul><li>Reservation Log Page Available event</li><li>Sanitize Operation Completed event</li><li>Sanitize Operation Completed With Unexpected Deallocation event</li></ul></li><li>Vendor Specific event</li></ul><p><img src="/images/2026/01/021.png" alt><br>Log Page Identifier与Get Log Page command的联系:<br><img src="/images/2026/01/022.png" alt></p><p>Error status、SMART / Health Status、Notice与NVM Command Set Specific Status的详细信息，请参考NVMe spec。</p><h3 id="AER-sqe预埋机制"><a href="#AER-sqe预埋机制" class="headerlink" title="AER sqe预埋机制"></a>AER sqe预埋机制</h3><ol><li>因为driver不知道NVMe controller什么时候会发送AER事件，所以driver会往Admin SQ中预埋一些AER sqe(类似于网卡rx queue的收包机制)；</li><li>当NVMe controller需要往driver发送AER事件时，就会消费一个AER sqe，然后回一个AER cqe给driver。<br><img src="/images/2026/01/020.png" alt></li></ol><h2 id="Case"><a href="#Case" class="headerlink" title="Case"></a>Case</h2><h3 id="NVM-Subsystem-Hardware-Error-Event"><a href="#NVM-Subsystem-Hardware-Error-Event" class="headerlink" title="NVM Subsystem Hardware Error Event"></a>NVM Subsystem Hardware Error Event</h3><p><img src="/images/2026/01/017.png" alt></p><p><img src="/images/2026/01/018.png" alt></p><h3 id="NVMe-resize"><a href="#NVMe-resize" class="headerlink" title="NVMe resize"></a>NVMe resize</h3><p><img src="/images/2026/01/024.png" alt></p><hr><p>参考资料:</p><ol><li>NVMe 1.4 spec</li><li><a href="https://nvmexpress.org/wp-content/uploads/June-2020-NVMe%E2%84%A2-SSD-Management-Error-Reporting-and-Logging-Capabilities.pdf" target="_blank" rel="noopener">NVMe™ SSD Management, Error Reporting and Logging Capabilities</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将深入理解NVMe Asynchronous Event Request(AER)机制。
+    
+    </summary>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
+    
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PCIe resize bar</title>
@@ -464,30 +486,6 @@
     <summary type="html">
     
       &lt;p&gt;本文将mark下Intel Advanced Matrix Extensions (AMX)的相关notes。
-    
-    </summary>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Intel Processor Trace (IPT)</title>
-    <link href="http://liujunming.github.io/2025/09/14/Notes-about-Intel-Processor-Trace-Intel-PT/"/>
-    <id>http://liujunming.github.io/2025/09/14/Notes-about-Intel-Processor-Trace-Intel-PT/</id>
-    <published>2025-09-14T12:47:52.000Z</published>
-    <updated>2025-09-21T02:13:43.460Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Intel Processor Trace (IPT)的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/09/009.png" alt></p><h2 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h2><p>Currently, there are several control flow tracing mechanisms in hardware, each representing a different set of tradeoffs (as shown in Table 1). Branch Trace Store (BTS) can capture all control transfer events (e.g., call, return and all types of jumps) to a memory-resident BTS buffer. Each record contains the addresses of source and target of the branch instruction, thus there is no need to decode it. However, BTS introduces very high overhead during tracing and is inflexible due to the lack of event filtering mechanisms. While Last Brach Record (LBR) has some support of event filtering (e.g., filtering out conditional branches), it can only record 16 or 32 most recent branch pairs (source and target) into a register stack. Though it incurs very low tracing overhead, it can hardly provide precise protection.</p><p><img src="/images/2025/09/010.png" alt></p><p>Due to the capability of dynamically tracing control flow, BTS and LBR have been exploited to defend against ROP like attacks, which, however, either incur high overhead (those using BTS) or sacrifice security due to imprecise tracing(LBR).</p><p>IPT能以比BTS低得多的性能开销（通常在 5% 左右或更低），持续、近乎无遗漏地记录程序执行的控制流。它在很多场景下正在替代 BTS。</p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>IPT is introduced in Intel Core M and 5th generation Intel Core processors. Each CPU core has its own IPT hardware that generates trace information of running programs in the form of <code>packets</code>. IPT configuration can only be done by the privileged agents (e.g., OS) using certain model-specific registers (MSRs). The traced packets are written to the pre-configured memory buffer in a compressed form to minimize the output bandwidth and reduce the tracing overhead. The software decoder can decode the traced packets based on pre-defined format, with the extra information like the program binaries, as well as some runtime data provided by the control agent, to precisely reconstruct the program flow. Thanks to the aggressive compression of traces, it can collect more control flow tracing information including control flow, execution modes, and timings than BTS, yet incurring much less tracing overhead compared to BTS. This, however, also incurs orders of magnitude slower decoding speed than tracing.</p><p><img src="/images/2025/09/011.png" alt></p><p><img src="/images/2025/09/012.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://ipads.se.sjtu.edu.cn/zh/publications/LiuHPCA17.pdf" target="_blank" rel="noopener">Transparent and Efficient CFI Enforcement with Intel Processor Trace</a></li><li><a href="https://halobates.de/blog/p/406" target="_blank" rel="noopener">Intel Processor Trace resources</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Intel Processor Trace (IPT)的相关notes。
     
     </summary>
     

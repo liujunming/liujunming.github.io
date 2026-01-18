@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="深入理解NVMe Asynchronous Event Request机制">
+
+
+
+
+  <meta name="keywords" content="NVMe, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2026/01/18/深入理解NVMe-Asynchronous-Event-Request机制/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> 深入理解NVMe Asynchronous Event Request机制 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          深入理解NVMe Asynchronous Event Request机制
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2026-01-18
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/NVMe/">NVMe</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#AER机制"><span class="toc-text">AER机制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#AER-sqe预埋机制"><span class="toc-text">AER sqe预埋机制</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Case"><span class="toc-text">Case</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#NVM-Subsystem-Hardware-Error-Event"><span class="toc-text">NVM Subsystem Hardware Error Event</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#NVMe-resize"><span class="toc-text">NVMe resize</span></a></li></ol></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将深入理解NVMe Asynchronous Event Request(AER)机制。<a id="more"></a></p>
+<p><img src="/images/2026/01/023.png" alt></p>
+<h2 id="AER机制"><a href="#AER机制" class="headerlink" title="AER机制"></a>AER机制</h2><p><img src="/images/2026/01/019.png" alt></p>
+<p>Asynchronous events are used to notify host software of status, error, and health information as these events occur. To enable asynchronous events to be reported by the controller, host software needs to submit one or more Asynchronous Event Request commands to the controller. The controller specifies an event to the host by completing an Asynchronous Event Request command. Host software should expect that the controller may not execute the command immediately; the command should be completed when there is an event to be reported.</p>
+<p>The Asynchronous Event Request command is submitted by host software to enable the reporting of asynchronous events from the controller. This command has no timeout. The controller posts a completion queue entry for this command when there is an asynchronous event to report to the host.</p>
+<p>Asynchronous events are grouped into event types. The event type is indicated in the Asynchronous Event Type field in Dword 0 of the completion queue entry for the Asynchronous Event Request command. When the controller posts a completion queue entry for an outstanding Asynchronous Event Request command and thus reports an asynchronous event, subsequent events of that event type are automatically masked by the controller until the host clears that event. An event is cleared by reading the log page associated with that event using the Get Log Page command .</p>
+<p>The following event types are defined:</p>
+<ul>
+<li>Error event</li>
+<li>SMART / Health Status event</li>
+<li>Notice event<ul>
+<li>Namespace Attribute Changed</li>
+<li>Firmware Activation Starting</li>
+<li>Telemetry Log Changed</li>
+<li>Asymmetric Namespace Access Change</li>
+<li>Predictable Latency Event Aggregate Log Change</li>
+<li>LBA Status Information Alert</li>
+<li>Endurance Group Event Aggregate Log Page Change</li>
+</ul>
+</li>
+<li>NVM Command Set Specific events<ul>
+<li>Reservation Log Page Available event</li>
+<li>Sanitize Operation Completed event</li>
+<li>Sanitize Operation Completed With Unexpected Deallocation event</li>
+</ul>
+</li>
+<li>Vendor Specific event</li>
+</ul>
+<p><img src="/images/2026/01/021.png" alt><br>Log Page Identifier与Get Log Page command的联系:<br><img src="/images/2026/01/022.png" alt></p>
+<p>Error status、SMART / Health Status、Notice与NVM Command Set Specific Status的详细信息，请参考NVMe spec。</p>
+<h3 id="AER-sqe预埋机制"><a href="#AER-sqe预埋机制" class="headerlink" title="AER sqe预埋机制"></a>AER sqe预埋机制</h3><ol>
+<li>因为driver不知道NVMe controller什么时候会发送AER事件，所以driver会往Admin SQ中预埋一些AER sqe(类似于网卡rx queue的收包机制)；</li>
+<li>当NVMe controller需要往driver发送AER事件时，就会消费一个AER sqe，然后回一个AER cqe给driver。<br><img src="/images/2026/01/020.png" alt></li>
+</ol>
+<h2 id="Case"><a href="#Case" class="headerlink" title="Case"></a>Case</h2><h3 id="NVM-Subsystem-Hardware-Error-Event"><a href="#NVM-Subsystem-Hardware-Error-Event" class="headerlink" title="NVM Subsystem Hardware Error Event"></a>NVM Subsystem Hardware Error Event</h3><p><img src="/images/2026/01/017.png" alt></p>
+<p><img src="/images/2026/01/018.png" alt></p>
+<h3 id="NVMe-resize"><a href="#NVMe-resize" class="headerlink" title="NVMe resize"></a>NVMe resize</h3><p><img src="/images/2026/01/024.png" alt></p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li>NVMe 1.4 spec</li>
+<li><a href="https://nvmexpress.org/wp-content/uploads/June-2020-NVMe%E2%84%A2-SSD-Management-Error-Reporting-and-Logging-Capabilities.pdf" target="_blank" rel="noopener">NVMe™ SSD Management, Error Reporting and Logging Capabilities</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/NVMe/">NVMe</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2026/01/18/Notes-about-PCIe-resize-bar/">
+        <span class="next-text nav-default">Notes about PCIe resize bar</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2026
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2026/01/18/深入理解NVMe-Asynchronous-Event-Request机制/';
+        this.page.identifier = '2026/01/18/深入理解NVMe-Asynchronous-Event-Request机制/';
+        this.page.title = '深入理解NVMe Asynchronous Event Request机制';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
