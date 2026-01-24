@@ -17,12 +17,12 @@
 
 
 
-  <meta name="description" content="Interrupt Coalescing under NVMe">
+  <meta name="description" content="Notes about Remote Procedure Calls(RPC)">
 
 
 
 
-  <meta name="keywords" content="中断, NVMe, L">
+  <meta name="keywords" content="计算机系统, L">
 
 
 
@@ -42,7 +42,7 @@
 
 
 
-<link rel="canonical" href="http://liujunming.github.io/2024/05/19/Interrupt-Coalescing-under-NVMe/">
+<link rel="canonical" href="http://liujunming.github.io/2026/01/24/Notes-about-Remote-Procedure-Calls-RPC/">
 
 
 
@@ -90,7 +90,7 @@
   window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
 </script>
 
-    <title> Interrupt Coalescing under NVMe - L </title>
+    <title> Notes about Remote Procedure Calls(RPC) - L </title>
   </head>
 
   <body><div id="mobile-navbar" class="mobile-navbar">
@@ -260,18 +260,18 @@
     <header class="post-header">
       <h1 class="post-title">
         
-          Interrupt Coalescing under NVMe
+          Notes about Remote Procedure Calls(RPC)
         
       </h1>
 
       <div class="post-meta">
         <span class="post-time">
-          2024-05-19
+          2026-01-24
         </span>
         
           <span class="post-category">
             
-              <a href="/categories/中断/">中断</a>
+              <a href="/categories/计算机系统/">计算机系统</a>
             
           </span>
         
@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Interrupt-Coalescing"><span class="toc-text">Interrupt Coalescing</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NVMe-feature-Interrupt-Coalescing"><span class="toc-text">NVMe feature: Interrupt Coalescing</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Goal"><span class="toc-text">Goal</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Steps"><span class="toc-text">Steps</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Advantages"><span class="toc-text">Advantages</span></a></li></ol>
     </div>
   </div>
 
@@ -292,16 +292,32 @@
 
     <div class="post-content">
       
-        <h2 id="Interrupt-Coalescing"><a href="#Interrupt-Coalescing" class="headerlink" title="Interrupt Coalescing"></a>Interrupt Coalescing</h2><p>Interrupt coalescing, also known as interrupt moderation, is a technique in which events which would normally trigger a hardware interrupt are held back, either until a certain amount of work is pending, or a timeout timer triggers. Used correctly, this technique can reduce interrupt load by up to an order of magnitude, while only incurring relatively small latency penalties.<a id="more"></a></p>
-<h2 id="NVMe-feature-Interrupt-Coalescing"><a href="#NVMe-feature-Interrupt-Coalescing" class="headerlink" title="NVMe feature: Interrupt Coalescing"></a>NVMe feature: Interrupt Coalescing</h2><p><img src="/images/2024/05/016.jpg" alt></p>
-<p><img src="/images/2024/05/017.jpg" alt></p>
-<p><img src="/images/2024/05/018.jpg" alt></p>
+        <p>本文将mark下Remote Procedure Calls(RPC)的相关notes。<a id="more"></a></p>
+<h2 id="Goal"><a href="#Goal" class="headerlink" title="Goal"></a>Goal</h2><p>Provide a layer of abstraction for process-to-process communication that enables a process on one system to invoke a function, or service, on a another system without having to deal with the problems of formatting data and parsing the request.</p>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>In 1984, Birrell and Nelson devised a mechanism to allow programs to call procedures on other machines. A process on machine A can call a procedure on machine B. When it does so, the process on A is suspended and execution continues on B. When B returns, the return value is passed to A and A continues execution. This mechanism is called the Remote Procedure Call (RPC). To the programmer, it appears as if a normal procedure call is taking place. Obviously, a remote procedure call is different from a local one in the underlying implementation.</p>
+<h2 id="Steps"><a href="#Steps" class="headerlink" title="Steps"></a>Steps</h2><p><img src="/images/2026/01/027.png" alt></p>
+<ol>
+<li>The client calls a local procedure, called the <code>client stub</code>. To the client process, this appears to be the actual procedure, because it is a regular local procedure. It just does something different since the real procedure is on the server. The client stub packages the parameters to the remote procedure (this may involve converting them to a standard format) and builds one or more network messages. The packaging of arguments into a network message is called <code>marshalling</code> and requires <code>serializing</code> all the data elements into a flat array-of-bytes format.</li>
+<li>Network messages are sent by the client stub to the remote system (via a system call to the local kernel using <em>sockets</em> interfaces).</li>
+<li>Network messages are transferred by the kernel to the remote system via some protocol (either connectionless or connection-oriented).</li>
+<li>A <code>server stub</code>, sometimes called the <code>skeleton</code>, receives the messages on the server. It <code>unmarshals</code> the arguments from the messages and, if necessary, converts them from a standard network format into a machine-specific form.</li>
+<li>The server stub calls the server function (which, to the client, is the remote procedure), passing it the arguments that it received from the client.</li>
+<li>When the server function is finished, it returns to the server stub with its return values.</li>
+<li>The server stub converts the return values, if necessary, and marshals them into one or more network messages to send to the client stub.</li>
+<li>Messages get sent back across the network to the client stub.</li>
+<li>The client stub reads the messages from the local kernel.</li>
+<li>The client stub then returns the results to the client function, converting them from the network representation to a local one if necessary.</li>
+</ol>
+<h2 id="Advantages"><a href="#Advantages" class="headerlink" title="Advantages"></a>Advantages</h2><ul>
+<li>You don’t have to worry about getting a unique transport address (picking a unique port number for a socket on a machine). The server can bind to any available port and then register that port with an RPC name server. The client will contact this name server to find the the port number that corresponds to the program it needs. All this will be invisible to the programmer.</li>
+<li>The system can be independent of transport provider. The automatically-generated server stub can make itself available over every transport provider on a system, both TCP and UDP. The client can choose dynamically and no extra programming is required since the code to send and receive messages is automatically generated.</li>
+<li>Applications on the client only need to know one transport address: that of the name server that is responsible for telling the application where to connect for a given set of server functions.</li>
+<li>The function-call model can be used instead of the send/receive (read/write) interface provided by sockets. Users don’t have to deal with marshalling parameters and then parsing them out on the other side.</li>
+</ul>
 <hr>
 <p>参考资料:</p>
 <ol>
-<li><a href="https://nvmexpress.org/wp-content/uploads/NVM_Express_Revision_1.3.pdf" target="_blank" rel="noopener">NVMe 1.3 spec</a></li>
-<li><a href="https://www.usenix.org/system/files/osdi21-tai.pdf" target="_blank" rel="noopener">Optimizing Storage Performance with Calibrated Interrupts</a></li>
-<li><a href="https://www.wikiwand.com/en/Interrupt_coalescing" target="_blank" rel="noopener">wikiwand:Interrupt coalescing</a></li>
+<li><a href="https://people.cs.rutgers.edu/~pxk/classes/417/notes/rpc.html" target="_blank" rel="noopener">CS 417/Lecture Notes</a></li>
 </ol>
 
       
@@ -322,9 +338,7 @@
         
           <div class="post-tags">
             
-              <a href="/tags/中断/">中断</a>
-            
-              <a href="/tags/NVMe/">NVMe</a>
+              <a href="/tags/计算机系统/">计算机系统</a>
             
           </div>
         
@@ -332,15 +346,9 @@
         
   <nav class="post-nav">
     
-      <a class="prev" href="/2024/05/26/Interrupt-Coalescing-under-virtio-net/">
-        <i class="iconfont icon-left"></i>
-        <span class="prev-text nav-default">Interrupt Coalescing under virtio-net</span>
-        <span class="prev-text nav-mobile">上一篇</span>
-      </a>
     
-    
-      <a class="next" href="/2024/05/05/Notes-about-RSS-Receive-Side-Scaling/">
-        <span class="next-text nav-default">Notes about RSS(Receive Side Scaling)</span>
+      <a class="next" href="/2026/01/24/Notes-about-aperf-and-mperf/">
+        <span class="next-text nav-default">Notes about APERF and MPERF</span>
         <span class="prev-text nav-mobile">下一篇</span>
         <i class="iconfont icon-right"></i>
       </a>
@@ -453,9 +461,9 @@
   
   <script type="text/javascript">
     var disqus_config = function () {
-        this.page.url = 'http://liujunming.github.io/2024/05/19/Interrupt-Coalescing-under-NVMe/';
-        this.page.identifier = '2024/05/19/Interrupt-Coalescing-under-NVMe/';
-        this.page.title = 'Interrupt Coalescing under NVMe';
+        this.page.url = 'http://liujunming.github.io/2026/01/24/Notes-about-Remote-Procedure-Calls-RPC/';
+        this.page.identifier = '2026/01/24/Notes-about-Remote-Procedure-Calls-RPC/';
+        this.page.title = 'Notes about Remote Procedure Calls(RPC)';
     };
     (function() {
     var d = document, s = d.createElement('script');
