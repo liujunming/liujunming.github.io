@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about jumbo frames and Path MTU Discovery">
+
+
+
+
+  <meta name="keywords" content="计算机网络, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2026/02/07/Notes-about-jumbo-frames-and-Path-MTU-Discovery/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about jumbo frames and Path MTU Discovery - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about jumbo frames and Path MTU Discovery
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2026-02-07
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机网络/">计算机网络</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#jumbo-frames"><span class="toc-text">jumbo frames</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PMTUD"><span class="toc-text">PMTUD</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Background"><span class="toc-text">Background</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#IP层怎么做到不分片"><span class="toc-text">IP层怎么做到不分片</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#原理"><span class="toc-text">原理</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Apsara-vSwitch-AVS-Jumbo-frames-support"><span class="toc-text">Apsara vSwitch(AVS) Jumbo frames support</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下jumbo frames和Path MTU Discovery(PMTUD)的相关notes。<a id="more"></a></p>
+<h2 id="jumbo-frames"><a href="#jumbo-frames" class="headerlink" title="jumbo frames"></a>jumbo frames</h2><p>巨型帧（Jumbo Frames）是指有效负载超过IEEE 802.3标准所限制的1500字节的以太网帧。目前阿里云支持8500字节的巨型帧，即允许您发送8500字节载荷的以太网帧。</p>
+<p><img src="/images/2026/02/004.png" alt></p>
+<p>Supporting jumbo frames is crucial for <strong>enhancing bandwidth</strong> and <strong>transmission efficiency</strong>. It increases the effective payload per packet, reducing performance pressure on forwarding components.</p>
+<p>巨型帧通过增加帧的大小，每个数据包可以携带更多数据，从而减少了所需传输的数据包数量，降低了处理器的负担并提高了整体数据传输速度。在需要高吞吐量和大带宽的网络环境中，特别是在数据中心、服务器场和高速网络互联等传输大量数据的场景中，使用巨型帧有助于减少网络传输耗时和提升网络效率，充分发挥网络性能。</p>
+<h2 id="PMTUD"><a href="#PMTUD" class="headerlink" title="PMTUD"></a>PMTUD</h2><h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><p><a href="/2024/08/11/Network-Segmentation-vs-Fragmentation/">TCP分段</a>了，IP层就一定不会分片了吗?</p>
+<p>在发送端，TCP分段后，IP层就不会再分片了。但是整个传输链路中，可能还会有其他网络层设备，而这些设备的MTU可能小于发送端的MTU。此时虽然数据包在发送端已经<strong>分段</strong>过了，但是在IP层就还会再分片一次。如果链路上还有设备有<strong>更小的MTU</strong>，那么还会再分片，最后所有的分片都会在<strong>接收端</strong>处进行组装。</p>
+<p><img src="/images/2026/02/005.gif" alt></p>
+<p>因此，就算TCP分段过后，在链路上的其他节点的IP层也是有可能再分片的，而且哪怕数据被第一次IP分片过了，也是有可能被其他机器的IP层进行二次、三次、四次….分片的。</p>
+<h3 id="IP层怎么做到不分片"><a href="#IP层怎么做到不分片" class="headerlink" title="IP层怎么做到不分片"></a>IP层怎么做到不分片</h3><p>IP层在传输过程中因为<strong>各个节点间MTU</strong>可能不同，导致数据是可能被多次分片的。而且每次分片都要加上各种信息便于在接收端进行分片重组。那么IP层是否可以做到不分片？如果有办法知道整个链路上，最小的MTU是多少，并且以最小MTU长度发送数据，那么不管数据传到哪个节点，都不会发生分片。整个链路上，<strong>最小的MTU，就叫PMTU</strong>（path MTU）。有一个<strong>获得这个PMTU的方法，叫 Path MTU Discovery</strong>。</p>
+<h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><p>原理比较简单，首先我们先看下IP的数据报头。</p>
+<p><img src="/images/2026/02/006.png" alt></p>
+<p>这里有个标红的标志位<code>DF</code>（Don’t Fragment），当它置为1，意味着这个IP报文不分片。</p>
+<p>当链路上某个路由器，收到了这个报文，当IP报文长度大于路由器的MTU时，路由器会看下这个IP报文的<code>DF</code>:</p>
+<ul>
+<li>如果为0（允许分片），就会分片并把分片后的数据传到下一个路由器</li>
+<li>如果为1，就会把数据丢弃，同时返回一个ICMP包给发送端，并告诉它数据不可达，需要分片，同时带上当前机器的MTU</li>
+</ul>
+<p>理解了上面的原理后，我们再看下PMTU发现是怎么实现的:</p>
+<ul>
+<li>应用通过TCP正常发送消息，传输层TCP分段后，到网络层加上IP头，DF置为1，消息再到更底层执行发送</li>
+<li>此时链路上有台路由器由于各种原因MTU变小了</li>
+<li>IP消息到这台路由器了，路由器发现消息长度大于自己的MTU，且消息自带DF不让分片。就把消息丢弃。同时返回一个ICMP错误给发送端，同时带上自己的MTU</li>
+</ul>
+<p><img src="/images/2026/02/007.gif" alt></p>
+<ul>
+<li>发送端收到这个ICMP消息，会更新自己的MTU，同时记录到一个PMTU表中。</li>
+<li>因为TCP的可靠性，会尝试重传这个消息，同时以这个新MTU值计算出MSS进行分段，此时新的IP包就可以顺利被刚才的路由器转发。</li>
+<li>如果路径上还有更小的MTU的路由器，那上面发生的事情还会再发生一次。</li>
+</ul>
+<p><img src="/images/2026/02/008.gif" alt></p>
+<h2 id="Apsara-vSwitch-AVS-Jumbo-frames-support"><a href="#Apsara-vSwitch-AVS-Jumbo-frames-support" class="headerlink" title="Apsara vSwitch(AVS) Jumbo frames support"></a>Apsara vSwitch(AVS) Jumbo frames support</h2><p>详情参考SIGCOMM’24 paper: Triton: A Flexible Hardware Offloading Architecture for Accelerating Apsara vSwitch in Alibaba Cloud</p>
+<p><img src="/images/2026/02/009.png" alt></p>
+<p>However, supporting jumbo frames in cloud-scale data centers presents more compatibility challenges than supporting it within only a specific cluster. <u>There are a number of stock VMs and out-of-date hardware devices that do not support such a big MTU, but have the demand to communicate with VMs that use 8500 MTU</u>. To make things worse, <strong>most hardware switches do not support fragment and Path MTU Discovery(PMTUD) mechanisms</strong>. That requires AVS to negotiate MTU and ensure network connectivity for VMs.</p>
+<p>To tackle this, we introduces path MTU and new actions to AVS for ensuring network connectivity in multi-MTU scenarios. The controller attaches the path MTU when issuing routing entries to AVS, allowing awareness of the maximum acceptable MTU to the destination. Then AVS employs three new actions as RFC standards, for handling oversized packets. For a packet that is smaller than the path MTU, the AVS will forward the packet as usual. But when the packet is bigger than the path MTU, there will be two different treatments according to the standards. If the Don’t Fragment (DF) field in IP header is set to 1, the packet should be dropped and an ICMP message containing path MTU will be sent to the source VM to reduce packet length. This kind of action is complex and costs too much to generatea new packet in hardware, so we implement it in software AVS. But if the DF field is 0, the packet should be fragmented and sent out. The action is fixed and I/O related, thus is more suitable to be implemented in hardware for efficiency.</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://help.aliyun.com/zh/ecs/user-guide/jumbo-frame/" target="_blank" rel="noopener">巨型帧（Jumbo Frames）</a></li>
+<li><a href="https://www.youtube.com/watch?v=B6uEtlZJqso" target="_blank" rel="noopener">Jumbo Frames and MTU</a></li>
+<li>Triton: A Flexible Hardware Offloading Architecture forAccelerating Apsara vSwitch in Alibaba Cloud(SIGCOMM’24)</li>
+<li><a href="https://archive.nanog.org/sites/default/files/wednesday_general_steenbergen_antijumbo.pdf" target="_blank" rel="noopener">The Case Against Jumbo Frames</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1828823" target="_blank" rel="noopener">动图图解！既然IP层会分片，为什么TCP层也还要分段？</a></li>
+<li><a href="https://help.aliyun.com/zh/ecs/user-guide/pmtu-discovery" target="_blank" rel="noopener">路径MTU发现机制（PMTUD）</a></li>
+<li><a href="https://www.youtube.com/watch?v=7Op5o9_eQjo" target="_blank" rel="noopener">Path MTU Discovery PMTUD</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/计算机网络/">计算机网络</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2026/02/01/Notes-about-NVMe-Key-Value-Command-Set/">
+        <span class="next-text nav-default">Notes about NVMe Key Value Command Set</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2026
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2026/02/07/Notes-about-jumbo-frames-and-Path-MTU-Discovery/';
+        this.page.identifier = '2026/02/07/Notes-about-jumbo-frames-and-Path-MTU-Discovery/';
+        this.page.title = 'Notes about jumbo frames and Path MTU Discovery';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-02-01T12:50:24.260Z</updated>
+  <updated>2026-02-07T09:32:22.889Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about jumbo frames and Path MTU Discovery</title>
+    <link href="http://liujunming.github.io/2026/02/07/Notes-about-jumbo-frames-and-Path-MTU-Discovery/"/>
+    <id>http://liujunming.github.io/2026/02/07/Notes-about-jumbo-frames-and-Path-MTU-Discovery/</id>
+    <published>2026-02-07T08:20:40.000Z</published>
+    <updated>2026-02-07T09:32:22.889Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下jumbo frames和Path MTU Discovery(PMTUD)的相关notes。<a id="more"></a></p><h2 id="jumbo-frames"><a href="#jumbo-frames" class="headerlink" title="jumbo frames"></a>jumbo frames</h2><p>巨型帧（Jumbo Frames）是指有效负载超过IEEE 802.3标准所限制的1500字节的以太网帧。目前阿里云支持8500字节的巨型帧，即允许您发送8500字节载荷的以太网帧。</p><p><img src="/images/2026/02/004.png" alt></p><p>Supporting jumbo frames is crucial for <strong>enhancing bandwidth</strong> and <strong>transmission efficiency</strong>. It increases the effective payload per packet, reducing performance pressure on forwarding components.</p><p>巨型帧通过增加帧的大小，每个数据包可以携带更多数据，从而减少了所需传输的数据包数量，降低了处理器的负担并提高了整体数据传输速度。在需要高吞吐量和大带宽的网络环境中，特别是在数据中心、服务器场和高速网络互联等传输大量数据的场景中，使用巨型帧有助于减少网络传输耗时和提升网络效率，充分发挥网络性能。</p><h2 id="PMTUD"><a href="#PMTUD" class="headerlink" title="PMTUD"></a>PMTUD</h2><h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><p><a href="/2024/08/11/Network-Segmentation-vs-Fragmentation/">TCP分段</a>了，IP层就一定不会分片了吗?</p><p>在发送端，TCP分段后，IP层就不会再分片了。但是整个传输链路中，可能还会有其他网络层设备，而这些设备的MTU可能小于发送端的MTU。此时虽然数据包在发送端已经<strong>分段</strong>过了，但是在IP层就还会再分片一次。如果链路上还有设备有<strong>更小的MTU</strong>，那么还会再分片，最后所有的分片都会在<strong>接收端</strong>处进行组装。</p><p><img src="/images/2026/02/005.gif" alt></p><p>因此，就算TCP分段过后，在链路上的其他节点的IP层也是有可能再分片的，而且哪怕数据被第一次IP分片过了，也是有可能被其他机器的IP层进行二次、三次、四次….分片的。</p><h3 id="IP层怎么做到不分片"><a href="#IP层怎么做到不分片" class="headerlink" title="IP层怎么做到不分片"></a>IP层怎么做到不分片</h3><p>IP层在传输过程中因为<strong>各个节点间MTU</strong>可能不同，导致数据是可能被多次分片的。而且每次分片都要加上各种信息便于在接收端进行分片重组。那么IP层是否可以做到不分片？如果有办法知道整个链路上，最小的MTU是多少，并且以最小MTU长度发送数据，那么不管数据传到哪个节点，都不会发生分片。整个链路上，<strong>最小的MTU，就叫PMTU</strong>（path MTU）。有一个<strong>获得这个PMTU的方法，叫 Path MTU Discovery</strong>。</p><h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><p>原理比较简单，首先我们先看下IP的数据报头。</p><p><img src="/images/2026/02/006.png" alt></p><p>这里有个标红的标志位<code>DF</code>（Don’t Fragment），当它置为1，意味着这个IP报文不分片。</p><p>当链路上某个路由器，收到了这个报文，当IP报文长度大于路由器的MTU时，路由器会看下这个IP报文的<code>DF</code>:</p><ul><li>如果为0（允许分片），就会分片并把分片后的数据传到下一个路由器</li><li>如果为1，就会把数据丢弃，同时返回一个ICMP包给发送端，并告诉它数据不可达，需要分片，同时带上当前机器的MTU</li></ul><p>理解了上面的原理后，我们再看下PMTU发现是怎么实现的:</p><ul><li>应用通过TCP正常发送消息，传输层TCP分段后，到网络层加上IP头，DF置为1，消息再到更底层执行发送</li><li>此时链路上有台路由器由于各种原因MTU变小了</li><li>IP消息到这台路由器了，路由器发现消息长度大于自己的MTU，且消息自带DF不让分片。就把消息丢弃。同时返回一个ICMP错误给发送端，同时带上自己的MTU</li></ul><p><img src="/images/2026/02/007.gif" alt></p><ul><li>发送端收到这个ICMP消息，会更新自己的MTU，同时记录到一个PMTU表中。</li><li>因为TCP的可靠性，会尝试重传这个消息，同时以这个新MTU值计算出MSS进行分段，此时新的IP包就可以顺利被刚才的路由器转发。</li><li>如果路径上还有更小的MTU的路由器，那上面发生的事情还会再发生一次。</li></ul><p><img src="/images/2026/02/008.gif" alt></p><h2 id="Apsara-vSwitch-AVS-Jumbo-frames-support"><a href="#Apsara-vSwitch-AVS-Jumbo-frames-support" class="headerlink" title="Apsara vSwitch(AVS) Jumbo frames support"></a>Apsara vSwitch(AVS) Jumbo frames support</h2><p>详情参考SIGCOMM’24 paper: Triton: A Flexible Hardware Offloading Architecture for Accelerating Apsara vSwitch in Alibaba Cloud</p><p><img src="/images/2026/02/009.png" alt></p><p>However, supporting jumbo frames in cloud-scale data centers presents more compatibility challenges than supporting it within only a specific cluster. <u>There are a number of stock VMs and out-of-date hardware devices that do not support such a big MTU, but have the demand to communicate with VMs that use 8500 MTU</u>. To make things worse, <strong>most hardware switches do not support fragment and Path MTU Discovery(PMTUD) mechanisms</strong>. That requires AVS to negotiate MTU and ensure network connectivity for VMs.</p><p>To tackle this, we introduces path MTU and new actions to AVS for ensuring network connectivity in multi-MTU scenarios. The controller attaches the path MTU when issuing routing entries to AVS, allowing awareness of the maximum acceptable MTU to the destination. Then AVS employs three new actions as RFC standards, for handling oversized packets. For a packet that is smaller than the path MTU, the AVS will forward the packet as usual. But when the packet is bigger than the path MTU, there will be two different treatments according to the standards. If the Don’t Fragment (DF) field in IP header is set to 1, the packet should be dropped and an ICMP message containing path MTU will be sent to the source VM to reduce packet length. This kind of action is complex and costs too much to generatea new packet in hardware, so we implement it in software AVS. But if the DF field is 0, the packet should be fragmented and sent out. The action is fixed and I/O related, thus is more suitable to be implemented in hardware for efficiency.</p><hr><p>参考资料:</p><ol><li><a href="https://help.aliyun.com/zh/ecs/user-guide/jumbo-frame/" target="_blank" rel="noopener">巨型帧（Jumbo Frames）</a></li><li><a href="https://www.youtube.com/watch?v=B6uEtlZJqso" target="_blank" rel="noopener">Jumbo Frames and MTU</a></li><li>Triton: A Flexible Hardware Offloading Architecture forAccelerating Apsara vSwitch in Alibaba Cloud(SIGCOMM’24)</li><li><a href="https://archive.nanog.org/sites/default/files/wednesday_general_steenbergen_antijumbo.pdf" target="_blank" rel="noopener">The Case Against Jumbo Frames</a></li><li><a href="https://cloud.tencent.com/developer/article/1828823" target="_blank" rel="noopener">动图图解！既然IP层会分片，为什么TCP层也还要分段？</a></li><li><a href="https://help.aliyun.com/zh/ecs/user-guide/pmtu-discovery" target="_blank" rel="noopener">路径MTU发现机制（PMTUD）</a></li><li><a href="https://www.youtube.com/watch?v=7Op5o9_eQjo" target="_blank" rel="noopener">Path MTU Discovery PMTUD</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下jumbo frames和Path MTU Discovery(PMTUD)的相关notes。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NVMe Key Value Command Set</title>
@@ -465,28 +487,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Skip List</title>
-    <link href="http://liujunming.github.io/2025/11/01/Notes-about-Skip-List/"/>
-    <id>http://liujunming.github.io/2025/11/01/Notes-about-Skip-List/</id>
-    <published>2025-11-01T14:40:28.000Z</published>
-    <updated>2025-11-01T14:56:43.624Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Skip List的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>可以看下视频<a href="https://www.youtube.com/watch?v=ol-FaNLXlR0" target="_blank" rel="noopener">Skip List Explained</a>。</p><h2 id="核心思想"><a href="#核心思想" class="headerlink" title="核心思想"></a>核心思想</h2><p>跳跃表的核心思想非常直观：<strong>为有序的链表增加多级“索引”</strong>，来加速查找过程。它是对“二分查找”思想的一种链表实现。</p><h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>对于一个有序链表，查找一个元素只能从头到尾遍历，时间复杂度是 O(n)，效率很低。我们希望能像数组的二分查找一样，实现 O(log n) 的查找效率，但链表不支持随机访问。</p><p>跳跃表通过“空间换时间”的策略，完美地解决了这个问题。</p><h2 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h2><p>跳跃表由多层链表组成:</p><ol><li>最底层（第0层）：是一个包含所有元素的有序单链表</li><li>第1层：是底层链表的一个“索引”子集，它只包含底层中的部分节点，节点密度更低</li><li>第2层：是第1层索引的索引，节点更稀疏</li><li>以此类推… 直到最顶层</li></ol><p>每一层都是一个有序的链表，高层链表是低层链表的“快速通道”。</p><p><img src="/images/2025/11/001.png" alt></p><hr><p>参考资料:</p><ol><li>deepseek prompt:简要介绍下跳跃表这个数据结构</li><li><a href="https://www.youtube.com/watch?v=ol-FaNLXlR0" target="_blank" rel="noopener">Skip List Explained</a></li><li><a href="https://www.cs.cmu.edu/~ckingsf/bioinfo-lectures/skiplists.pdf" target="_blank" rel="noopener">Skip Lists CMSC 420</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Skip List的相关notes。
-    
-    </summary>
-    
-      <category term="数据结构" scheme="http://liujunming.github.io/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
-    
-    
-      <category term="数据结构" scheme="http://liujunming.github.io/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
     
   </entry>
   
