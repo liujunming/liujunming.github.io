@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-02-11T14:18:47.517Z</updated>
+  <updated>2026-02-23T12:27:57.752Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about VXLAN</title>
+    <link href="http://liujunming.github.io/2026/02/23/Notes-about-VXLAN/"/>
+    <id>http://liujunming.github.io/2026/02/23/Notes-about-VXLAN/</id>
+    <published>2026-02-23T10:23:04.000Z</published>
+    <updated>2026-02-23T12:27:57.752Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下VXLAN(Virtual Extensible LAN)的相关notes。<a id="more"></a></p><h2 id="Prerequisite"><a href="#Prerequisite" class="headerlink" title="Prerequisite"></a>Prerequisite</h2><p><a href="/2019/09/02/introduction-to-vlan/">VLAN</a></p><h2 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h2><h3 id="虚拟机规模受限制"><a href="#虚拟机规模受限制" class="headerlink" title="虚拟机规模受限制"></a>虚拟机规模受限制</h3><p>一台物理服务器上可能运行几十甚至上百台虚拟机，但接入交换机的 MAC 地址表容量有限，无法支撑海量虚拟机的 MAC 学习需求。</p><h3 id="网络隔离能力弱"><a href="#网络隔离能力弱" class="headerlink" title="网络隔离能力弱"></a>网络隔离能力弱</h3><p>传统 VLAN 只有 12个比特位，最多支持 4096 个隔离域。对于大型云平台而言，租户数量可能远超这个数字，VLAN不够用了。</p><h3 id="虚拟机迁移范围受限"><a href="#虚拟机迁移范围受限" class="headerlink" title="虚拟机迁移范围受限"></a>虚拟机迁移范围受限</h3><p>虚拟机迁移通常要求目标主机在同一个二层广播域内，这就限制了迁移只能在一个较小的物理范围内进行，无法实现跨机房、跨数据中心的灵活迁移。</p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>VXLAN是主流的overlay技术，通过“<strong>MAC in UDP</strong>”的封装方式，将二层以太网帧封装在 UDP 报文中，通过三层 IP 网络进行传输。</p><p>这样一来再也不怕虚机“乱跑”了：</p><p>虚拟机的 MAC 地址只在 VXLAN 边缘设备（VTEP）之间可见，中间网络设备无需学习，解决了 MAC 表瓶颈。</p><p>使用 24 位的VNI（VXLAN Network Identifier），支持多达 1600万个隔离段。</p><p>只要IP可达，虚拟机就可以跨任意三层网络迁移，构建了一个“虚拟大二层”。</p><h2 id="核心组件"><a href="#核心组件" class="headerlink" title="核心组件"></a>核心组件</h2><h3 id="VTEP"><a href="#VTEP" class="headerlink" title="VTEP"></a>VTEP</h3><p>A VTEP(VXLAN tunnel endpoint) is an edge device on a VXLAN network and the start or end point of a VXLAN tunnel. The source VTEP encapsulates the original data frames sent by the source server into VXLAN packets and transmits them to the destination VTEP on the IP network. The destination VTEP then decapsulates the VXLAN packets into the original data frames and forwards the frames to the destination server.</p><h3 id="VNI"><a href="#VNI" class="headerlink" title="VNI"></a>VNI</h3><p>A VNI(VXLAN Network Identifier) is a user identifier similar to a VLAN ID. A VNI identifies a tenant. VMs with different VNIs cannot communicate at Layer 2.</p><h3 id="VXLAN-Gateway"><a href="#VXLAN-Gateway" class="headerlink" title="VXLAN Gateway"></a>VXLAN Gateway</h3><p>Similar to in VLANs, hosts with different VNIs or those on VXLAN and non-VXLAN networks should be unable to directly communicate with each other. To meet these communication requirements, VXLAN introduces VXLAN gateways. </p><h2 id="packet"><a href="#packet" class="headerlink" title="packet"></a>packet</h2><p><img src="/images/2026/02/016.png" alt></p><p>VXLAN packet format (outer IPv4 header used as an example)<br>As shown in the preceding figure, a VXLAN tunnel endpoint (VTEP) encapsulates the following headers into the original Ethernet frame (original L2 frame) sent by a VM:</p><ul><li>VXLAN header<br>A VXLAN header (8 bytes) contains a 24-bit VNI field, which is used to define different tenants on the VXLAN network. It also contains a VXLAN Flags field (8 bits, set to 00001000) and two reserved fields (24 bits and 8 bits, respectively).</li><li>UDP header<br>The VXLAN header and the original Ethernet frame are used as UDP data. In the UDP header, the destination port number (VXLAN Port) is fixed at 4789, and the source port number (UDP Src. Port) is calculated using a hash algorithm based on the original Ethernet frame.</li><li>Outer IP header<br>In the outer IP header, the source IP address (Outer Src. IP) is the IP address of the VTEP connected to the source VM, and the destination IP address (Outer Dst. IP) is the IP address of the VTEP connected to the destination VM.</li><li>Outer MAC header<br>The outer MAC header is also called the outer Ethernet header. In this header, the source MAC address (Src. MAC Addr.) is the MAC address of the VTEP connected to the source VM, and the destination MAC address (Dst. MAC Addr.) is the MAC address of the next hop along the path to the destination VTEP.</li></ul><p><img src="/images/2026/02/018.png" alt></p><p>So basically the underlay is the actual physical topology doing the routing. While the overlay is the virtual network interconnecting the end devices between which overlay protocol is configured. </p><p>If we look at the packet itself, this is how it looks in overlay (the blue portion - the original frame) vs underlay (the red+blue - the encapsulated frame):<br><img src="/images/2026/02/017.png" alt></p><h2 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h2><p><img src="/images/2026/02/015.png" alt></p><p>如图所示：VM A发出数据包给VTEP后，VTEP-1 收到这个包，查表发现 VM B 在远端的 VTEP-2 下面，便开始封装vxlan包。VTEP-2 收到这个 IP 包，发现目的端口是 4789，知道这是个 VXLAN 包后剥离外层 MAC、IP、UDP、VXLAN 头，取出里面的原始以太网报文送给VM B，VM B 收到的就是一个标准的以太网报文，完全感知不到经历了复制的“包装”。</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>VXLAN 不仅是技术的演进，更是云时代网络架构的必然选择。它通过封装与隧道技术，在 IP 网络上构建出灵活、可扩展、多租户隔离的虚拟二层网络，真正实现了“<strong>网络随业务而动</strong>”。</p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/FbOYV3Q9bPb-Gp68SQlykw" target="_blank" rel="noopener">一文搞懂VXLAN：云计算背后的网络“黑科技”</a></li><li><a href="https://networklessons.com/cisco/ccnp-encor-350-401/introduction-to-virtual-extensible-lan-vxlan" target="_blank" rel="noopener">Introduction to Virtual Extensible LAN (VXLAN)</a></li><li><a href="https://community.cisco.com/t5/data-center-switches/understanding-underlay-and-overlay-networks/td-p/4295870" target="_blank" rel="noopener">Understanding Underlay and Overlay networks</a></li><li><a href="https://info.support.huawei.com/info-finder/encyclopedia/en/VXLAN.html" target="_blank" rel="noopener">What Is VXLAN?</a></li><li><a href="https://www.youtube.com/watch?v=F1Vq8YwxCXU" target="_blank" rel="noopener">Vxlan explained in simple terms | Cisco CCNA 200-301</a></li><li><a href="https://www.youtube.com/watch?v=YNqKDI_bnPM&amp;list=PLDQaRcbiSnqFe6pyaSy-Hwj8XRFPgZ5h8" target="_blank" rel="noopener">VxLAN | Part 1 - How VxLAN Works</a></li><li><a href="https://www.rfc-editor.org/rfc/pdfrfc/rfc7348.txt.pdf" target="_blank" rel="noopener">rfc7348</a></li><li><a href="https://mp.weixin.qq.com/s/bLhhBtc2HUhPCJ_g-e_kLw" target="_blank" rel="noopener">VXLAN原理介绍以及Linux和OvS的实现分析</a></li><li><a href="https://mp.weixin.qq.com/s/vjOqBGm8SykePlSNsnptvg" target="_blank" rel="noopener">Linux 网络虚拟化隧道技术 VxLAN 全面了解</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下VXLAN(Virtual Extensible LAN)的相关notes。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NVMe over Fabrics P2P</title>
@@ -35,9 +59,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
       <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
     
@@ -468,30 +492,6 @@
     
     
       <category term="ACPI" scheme="http://liujunming.github.io/tags/ACPI/"/>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Intel Advanced Performance Extensions(APX)</title>
-    <link href="http://liujunming.github.io/2025/11/15/Notes-about-Intel-Advanced-Performance-Extensions-APX/"/>
-    <id>http://liujunming.github.io/2025/11/15/Notes-about-Intel-Advanced-Performance-Extensions-APX/</id>
-    <published>2025-11-15T01:27:49.000Z</published>
-    <updated>2025-11-15T02:38:53.771Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Intel Advanced Performance Extensions(APX)的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>Intel Advanced Performance Extensions (Intel APX) <strong>expands the Intel 64 instruction set architecture with access to more registers and adds various new features that improve general-purpose performance</strong>. The extensions are designed to provide efficient performance gains across a variety of workloads without significantly increasing silicon area or power consumption of the core.</p><p>Intel APX doubles the number of general-purpose registers (GPRs) from 16 to 32. This allows the compiler to keep more values in registers. As a result, code compiled with Intel APX contains 10% fewer loads and more than 20% fewer stores than the same code compiled for an Intel® 64 baseline. Register accesses are not only faster, but they also consume significantly less dynamic power than complex load and store operations.</p><h2 id="Changes"><a href="#Changes" class="headerlink" title="Changes"></a>Changes</h2><ul><li>Doubles the number of general purpose registers from 16 to 32</li><li>New three operand instructions (e.g. adding ability to subtract register1 from register2, and place the result in register3)</li><li>New instructions to PUSH/POP two general purpose registers at once</li></ul><h2 id="XSAVE-enabled"><a href="#XSAVE-enabled" class="headerlink" title="XSAVE-enabled"></a>XSAVE-enabled</h2><h3 id="New-Register-State"><a href="#New-Register-State" class="headerlink" title="New Register State"></a>New Register State</h3><p>APX register state is managed by the XSAVE instruction set, with its state component number assigned to 19, following XTILEDATA.</p><h3 id="XSAVE-Buffer-Offset"><a href="#XSAVE-Buffer-Offset" class="headerlink" title="XSAVE Buffer Offset"></a>XSAVE Buffer Offset</h3><ul><li>In the compacted format used (for the in-kernel buffer), the APX state will appear at a later position in the buffer.</li><li>In the non-compacted format (used for signal, ptrace, and KVM ABIs), APX is assigned a lower offset, occupying the space previously reserved for the deprecated MPX state.</li></ul><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/advanced-performance-extensions-apx.html" target="_blank" rel="noopener">https://www.intel.com/content/www/us/en/developer/articles/technical/advanced-performance-extensions-apx.html</a></li><li><a href="https://mp.weixin.qq.com/s/yZ6iVIDJ7718XGi9sBGdeA" target="_blank" rel="noopener">Introducing Intel® Advanced Performance Extensions (Intel® APX)</a></li><li><a href="https://lore.kernel.org/kvm/20251110180131.28264-1-chang.seok.bae@intel.com/" target="_blank" rel="noopener">[PATCH RFC v1 00/20] KVM: x86: Support APX feature for guests</a></li><li><a href="https://lore.kernel.org/lkml/20250227184502.10288-1-chang.seok.bae@intel.com/T/#m44e1ec0c544417adddac2b87451a8c3e9d1bf322" target="_blank" rel="noopener">[PATCH RFC v1 00/11] x86: Support Intel Advanced Performance Extensions</a></li><li><a href="https://thechipletter.substack.com/p/intel-apx" target="_blank" rel="noopener">Intel APX</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Intel Advanced Performance Extensions(APX)的相关notes。
-    
-    </summary>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
     
       <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
     
