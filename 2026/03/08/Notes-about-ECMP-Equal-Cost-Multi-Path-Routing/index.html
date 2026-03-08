@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about ECMP(Equal-Cost Multi-Path Routing) and packet spraying">
+
+
+
+
+  <meta name="keywords" content="计算机网络, Load Balance, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2026/03/08/Notes-about-ECMP-Equal-Cost-Multi-Path-Routing/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about ECMP(Equal-Cost Multi-Path Routing) and packet spraying - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about ECMP(Equal-Cost Multi-Path Routing) and packet spraying
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2026-03-08
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/计算机网络/">计算机网络</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#ECMP"><span class="toc-text">ECMP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ECMP’s-Dilemma-in-AI-Workloads"><span class="toc-text">ECMP’s Dilemma in AI Workloads</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#packet-spraying"><span class="toc-text">packet spraying</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下计算机网络中ECMP(Equal-Cost Multi-Path Routing)和packet spraying的相关notes。<a id="more"></a></p>
+<h2 id="ECMP"><a href="#ECMP" class="headerlink" title="ECMP"></a>ECMP</h2><p>在路由协议中，如果下一跳有多个路径可以选择，并且多个路径的 cost metric 相等，那么路由器就会根据包的 header，计算一个 hash 值，然后根据这个 hash 值对这个 flow 选择一条固定的路径，作为下一跳。</p>
+<p><img src="/images/2026/03/006.png" alt></p>
+<p><img src="/images/2026/03/007.png" alt></p>
+<p>ECMP是一个基于流的负载均衡策略，当路由器发现同一目的地址出现多个最优路径时，会更新路由表，为此目的地址添加多条规则，对应于多个下一跳。可同时利用这些路径转发数据，增加带宽。ECMP算法被多种路由协议支持，例如： OSPF、ISIS、EIGRP、BGP等。</p>
+<p>对于未开启ECMP的网络来说，无法充分利用路径资源。例如下图所示：</p>
+<p><img src="/images/2026/03/008.png" alt></p>
+<p>假设从<code>S0</code>到Server的路径为S0-S1-S2-S4（即图中橘色路径），那么即便存在另一条等价路径（即图中蓝色路径），路由器仍然会每次选择第一条橘色路径转发数据。除非此条路径发生拥塞，才会重新选择路径。</p>
+<p>当开启ECMP功能时，便可同时利用两条路径，进行基于流的负载均衡。例如<code>主机A</code>到Server的数据流选择橘色路径，<code>主机B</code>到Server的数据流选择蓝色路径。</p>
+<p>ECMP的路径选择策略有多种方法：</p>
+<ul>
+<li>哈希： 例如根据源IP地址的哈希为流选择路径</li>
+<li>轮询： 各个流在多条路径之间轮询传输</li>
+<li>基于路径权重： 根据路径的权重分配流，权重大的路径分配的流数量更多</li>
+</ul>
+<h2 id="ECMP’s-Dilemma-in-AI-Workloads"><a href="#ECMP’s-Dilemma-in-AI-Workloads" class="headerlink" title="ECMP’s Dilemma in AI Workloads"></a>ECMP’s Dilemma in AI Workloads</h2><p>Datacenters often utilize Clos networks as their underlying fabric, which provides multiple equal-cost paths between any source and destination. To distribute traffic across these paths,ECMP is the most widely used load balancing(LB) mechanism, which determines the path of a flow by hashing the 5-tuple in the packet header. ECMP works well for traditional workloads, where there are millions of flows that ensure a relatively even distribution of traffic. However, unlike traditional datacenter workloads, AI training workloads exhibit traffic patterns that are fundamentally mismatched with ECMP’s design:</p>
+<ol>
+<li>Small number of flows: In AI training job, each node establishes very few connections, as communication is only required with a limited set of peers.</li>
+<li>Large flow sizes: The flow sizes typically range from several MBs to hundreds of MBs.</li>
+<li>Bursty traffic: AI training is an inherently synchronized process, where most nodes enter the communication phase almost simultaneously. This synchronization results in a bursty traffic pattern, with large volumes of data being exchanged in a short period of time.</li>
+</ol>
+<p>These flow characteristics (i.e., few in number, large in size) result in a high ECMP collision rate, as the small number of flows can’t be evenly distributed across available paths, leading to severe performance degradation in AI training workloads.</p>
+<h2 id="packet-spraying"><a href="#packet-spraying" class="headerlink" title="packet spraying"></a>packet spraying</h2><p>Packet spraying is a high-performance network load-balancing technique that distributes individual packets of a data flow across multiple available network paths rather than relying on a single path. By utilizing all paths, it achieves high link utilization and reduces tail latency, particularly beneficial for data center AI/ML workloads and bursty traffic.</p>
+<p>Key details about packet spraying:</p>
+<ul>
+<li>Benefits: It provides high throughput, mitigates congestion, and is effective for short-lived, latency-sensitive traffic.</li>
+<li>Techniques:<ul>
+<li>Random Packet Spraying (RPS): Randomly assigns packets to paths to balance load.</li>
+<li>Deterministic Packet Spraying: Uses a counter to distribute packets to ensure even path distribution.</li>
+<li>Adaptive Packet Spraying (APS): Dynamically steers packets away from congested paths based on real-time feedback.</li>
+</ul>
+</li>
+<li>Challenges: The main drawback is potential out-of-order packet delivery, which can trigger unnecessary retransmissions.</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>ECMP是flow粒度的Load Balance技术</li>
+<li>packet spraying是packet粒度的Load Balance技术，粒度更细，但是会来带来out-of-order packet delivery问题</li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li>Unlocking ECMP Programmability for Precise Traffic Control(NSDI’25)</li>
+<li><a href="https://www.kawabangga.com/posts/6732" target="_blank" rel="noopener">数据中心网络高可用技术：ECMP</a></li>
+<li><a href="https://ivanzz1001.github.io/records/post/network/2018/08/01/network-ecmp" target="_blank" rel="noopener">ECMP网络的介绍(转)</a></li>
+<li><a href="https://www.youtube.com/watch?v=KICp-9yXOT0" target="_blank" rel="noopener">Equal-Cost Multi-Path Routing (ECMP)</a></li>
+<li>Enabling Packet Spraying over Commodity RNICs with In-Network Support(APNET’25)</li>
+<li>On the Impact of Packet Spraying in Data Center Networks(Infocom’13)</li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/计算机网络/">计算机网络</a>
+            
+              <a href="/tags/Load-Balance/">Load Balance</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2026/03/07/Notes-about-NVMe-HMB-Host-Memory-Buffer/">
+        <span class="next-text nav-default">Notes about NVMe HMB(Host Memory Buffer)</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2026
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2026/03/08/Notes-about-ECMP-Equal-Cost-Multi-Path-Routing/';
+        this.page.identifier = '2026/03/08/Notes-about-ECMP-Equal-Cost-Multi-Path-Routing/';
+        this.page.title = 'Notes about ECMP(Equal-Cost Multi-Path Routing) and packet spraying';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

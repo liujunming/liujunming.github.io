@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-03-07T23:47:18.678Z</updated>
+  <updated>2026-03-08T08:50:43.176Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about ECMP(Equal-Cost Multi-Path Routing) and packet spraying</title>
+    <link href="http://liujunming.github.io/2026/03/08/Notes-about-ECMP-Equal-Cost-Multi-Path-Routing/"/>
+    <id>http://liujunming.github.io/2026/03/08/Notes-about-ECMP-Equal-Cost-Multi-Path-Routing/</id>
+    <published>2026-03-08T06:38:28.000Z</published>
+    <updated>2026-03-08T08:50:43.176Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下计算机网络中ECMP(Equal-Cost Multi-Path Routing)和packet spraying的相关notes。<a id="more"></a></p><h2 id="ECMP"><a href="#ECMP" class="headerlink" title="ECMP"></a>ECMP</h2><p>在路由协议中，如果下一跳有多个路径可以选择，并且多个路径的 cost metric 相等，那么路由器就会根据包的 header，计算一个 hash 值，然后根据这个 hash 值对这个 flow 选择一条固定的路径，作为下一跳。</p><p><img src="/images/2026/03/006.png" alt></p><p><img src="/images/2026/03/007.png" alt></p><p>ECMP是一个基于流的负载均衡策略，当路由器发现同一目的地址出现多个最优路径时，会更新路由表，为此目的地址添加多条规则，对应于多个下一跳。可同时利用这些路径转发数据，增加带宽。ECMP算法被多种路由协议支持，例如： OSPF、ISIS、EIGRP、BGP等。</p><p>对于未开启ECMP的网络来说，无法充分利用路径资源。例如下图所示：</p><p><img src="/images/2026/03/008.png" alt></p><p>假设从<code>S0</code>到Server的路径为S0-S1-S2-S4（即图中橘色路径），那么即便存在另一条等价路径（即图中蓝色路径），路由器仍然会每次选择第一条橘色路径转发数据。除非此条路径发生拥塞，才会重新选择路径。</p><p>当开启ECMP功能时，便可同时利用两条路径，进行基于流的负载均衡。例如<code>主机A</code>到Server的数据流选择橘色路径，<code>主机B</code>到Server的数据流选择蓝色路径。</p><p>ECMP的路径选择策略有多种方法：</p><ul><li>哈希： 例如根据源IP地址的哈希为流选择路径</li><li>轮询： 各个流在多条路径之间轮询传输</li><li>基于路径权重： 根据路径的权重分配流，权重大的路径分配的流数量更多</li></ul><h2 id="ECMP’s-Dilemma-in-AI-Workloads"><a href="#ECMP’s-Dilemma-in-AI-Workloads" class="headerlink" title="ECMP’s Dilemma in AI Workloads"></a>ECMP’s Dilemma in AI Workloads</h2><p>Datacenters often utilize Clos networks as their underlying fabric, which provides multiple equal-cost paths between any source and destination. To distribute traffic across these paths,ECMP is the most widely used load balancing(LB) mechanism, which determines the path of a flow by hashing the 5-tuple in the packet header. ECMP works well for traditional workloads, where there are millions of flows that ensure a relatively even distribution of traffic. However, unlike traditional datacenter workloads, AI training workloads exhibit traffic patterns that are fundamentally mismatched with ECMP’s design:</p><ol><li>Small number of flows: In AI training job, each node establishes very few connections, as communication is only required with a limited set of peers.</li><li>Large flow sizes: The flow sizes typically range from several MBs to hundreds of MBs.</li><li>Bursty traffic: AI training is an inherently synchronized process, where most nodes enter the communication phase almost simultaneously. This synchronization results in a bursty traffic pattern, with large volumes of data being exchanged in a short period of time.</li></ol><p>These flow characteristics (i.e., few in number, large in size) result in a high ECMP collision rate, as the small number of flows can’t be evenly distributed across available paths, leading to severe performance degradation in AI training workloads.</p><h2 id="packet-spraying"><a href="#packet-spraying" class="headerlink" title="packet spraying"></a>packet spraying</h2><p>Packet spraying is a high-performance network load-balancing technique that distributes individual packets of a data flow across multiple available network paths rather than relying on a single path. By utilizing all paths, it achieves high link utilization and reduces tail latency, particularly beneficial for data center AI/ML workloads and bursty traffic.</p><p>Key details about packet spraying:</p><ul><li>Benefits: It provides high throughput, mitigates congestion, and is effective for short-lived, latency-sensitive traffic.</li><li>Techniques:<ul><li>Random Packet Spraying (RPS): Randomly assigns packets to paths to balance load.</li><li>Deterministic Packet Spraying: Uses a counter to distribute packets to ensure even path distribution.</li><li>Adaptive Packet Spraying (APS): Dynamically steers packets away from congested paths based on real-time feedback.</li></ul></li><li>Challenges: The main drawback is potential out-of-order packet delivery, which can trigger unnecessary retransmissions.</li></ul><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul><li>ECMP是flow粒度的Load Balance技术</li><li>packet spraying是packet粒度的Load Balance技术，粒度更细，但是会来带来out-of-order packet delivery问题</li></ul><hr><p>参考资料:</p><ol><li>Unlocking ECMP Programmability for Precise Traffic Control(NSDI’25)</li><li><a href="https://www.kawabangga.com/posts/6732" target="_blank" rel="noopener">数据中心网络高可用技术：ECMP</a></li><li><a href="https://ivanzz1001.github.io/records/post/network/2018/08/01/network-ecmp" target="_blank" rel="noopener">ECMP网络的介绍(转)</a></li><li><a href="https://www.youtube.com/watch?v=KICp-9yXOT0" target="_blank" rel="noopener">Equal-Cost Multi-Path Routing (ECMP)</a></li><li>Enabling Packet Spraying over Commodity RNICs with In-Network Support(APNET’25)</li><li>On the Impact of Packet Spraying in Data Center Networks(Infocom’13)</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下计算机网络中ECMP(Equal-Cost Multi-Path Routing)和packet spraying的相关notes。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+      <category term="Load Balance" scheme="http://liujunming.github.io/tags/Load-Balance/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about NVMe HMB(Host Memory Buffer)</title>
@@ -466,30 +490,6 @@
       <category term="CUDA" scheme="http://liujunming.github.io/tags/CUDA/"/>
     
       <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Intel UMIP</title>
-    <link href="http://liujunming.github.io/2025/11/29/Notes-about-Intel-UMIP/"/>
-    <id>http://liujunming.github.io/2025/11/29/Notes-about-Intel-UMIP/</id>
-    <published>2025-11-29T08:56:16.000Z</published>
-    <updated>2025-11-29T10:20:31.916Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Intel UMIP(User-Mode Instruction Prevention)的相关notes。<a id="more"></a></p><h2 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h2><p><img src="/images/2025/11/010.png" alt></p><p><code>SIDT</code>指令用于读取IDTR的内容到内存，常用于虚拟机检测和安全分析，且可在用户态执行。</p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/11/011.png" alt></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>User-Mode Instruction Prevention (UMIP) is a <strong>security feature</strong> present in new Intel Processors. If enabled, it prevents the execution of certain instructions if the Current Privilege Level (CPL) is greater than 0. If these instructions were executed while in CPL &gt; 0, user space applications could have access to system-wide settings such as the global and local descriptor tables, the task register and the interrupt descriptor table.</p><p>These are the instructions covered by UMIP:</p><ul><li>SGDT - Store Global Descriptor Table</li><li>SIDT - Store Interrupt Descriptor Table</li><li>SLDT - Store Local Descriptor Table</li><li>SMSW - Store Machine Status Word</li><li>STR - Store Task Register</li></ul><p>这五条指令都是 “S开头 + 描述符/状态寄存器名”，作用是 “Store（存储）系统寄存器到内存/寄存器”，且全部可在用户态执行，是窥探系统底层状态的“后门窗口”。</p><h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>UMIP则可以防止用户态执行上述命令，堵住了用户态窥探系统底层状态的“后门窗口”。</p><hr><p>参考资料:</p><ol><li>Intel SDM</li><li><a href="https://lwn.net/Articles/705877/" target="_blank" rel="noopener">x86: enable User-Mode Instruction Prevention</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Intel UMIP(User-Mode Instruction Prevention)的相关notes。
-    
-    </summary>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
-    
-    
-      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
-    
-      <category term="Security" scheme="http://liujunming.github.io/tags/Security/"/>
     
   </entry>
   
