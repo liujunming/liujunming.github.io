@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Bubblewrap vs Docker">
+
+
+
+
+  <meta name="keywords" content="sandbox, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2026/03/22/Notes-about-Bubblewrap/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Bubblewrap vs Docker - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Bubblewrap vs Docker
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2026-03-22
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/sandbox/">sandbox</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Why-Bubblewrap-Beats-Docker"><span class="toc-text">Why Bubblewrap Beats Docker</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Key-Differences"><span class="toc-text">Key Differences</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#When-to-Use-Which"><span class="toc-text">When to Use Which?</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>Bubblewrap is a minimal, low-level sandboxing tool, while Docker is a comprehensive platform for building, distributing, and running application containers. The key difference is their purpose: Bubblewrap provides simple, direct process isolation, whereas Docker offers a complete ecosystem for application bundling and deployment. <a id="more"></a></p>
+<h2 id="Why-Bubblewrap-Beats-Docker"><a href="#Why-Bubblewrap-Beats-Docker" class="headerlink" title="Why Bubblewrap Beats Docker"></a>Why Bubblewrap Beats Docker</h2><p>This beats Docker for quick workflows. Docker requires a running daemon and lots of configuration files. Bubblewrap lets you execute your app directly—no daemon, no stale containers cluttering your system.<br>这比 Docker 更适合快速工作流。Docker 需要运行一个守护进程，还要准备一大堆配置文件。而 Bubblewrap 让你可以直接运行应用程序——没有守护进程，也不会有残留的容器把系统搞得乱七八糟。</p>
+<p>If you’re experienced enough to worry about Docker misconfigurations, Bubblewrap gives you more control when you need it. You just run a command. No YAML files or debugging background services.<br>如果你经验足够丰富，会担心 Docker 配置不当带来的问题，那么 Bubblewrap 能在你需要的时候给你更强的控制力。你只需要执行一条命令就行，无需编写 YAML 文件，也不用去排查后台服务的故障。</p>
+<h2 id="Key-Differences"><a href="#Key-Differences" class="headerlink" title="Key Differences"></a>Key Differences</h2><table>
+<thead>
+<tr>
+<th style="text-align:left">Feature</th>
+<th style="text-align:center">Bubblewrap</th>
+<th style="text-align:right">Docker</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Primary Use</td>
+<td style="text-align:center">Sandboxing single commands/processes, desktop app isolation (via Flatpak)</td>
+<td style="text-align:right">Packaging and deploying entire applications and their dependencies</td>
+</tr>
+<tr>
+<td style="text-align:left">Complexity</td>
+<td style="text-align:center">Minimal and lightweight; a single command-line utility (<code>bwrap</code>)</td>
+<td style="text-align:right">Complex ecosystem with images, layers, storage drivers, and a daemon</td>
+</tr>
+<tr>
+<td style="text-align:left">Daemon</td>
+<td style="text-align:center">No daemon required; runs as an unprivileged process (using user namespaces)</td>
+<td style="text-align:right">Typically requires a running daemon (though rootless Podman offers a daemonless alternative)</td>
+</tr>
+<tr>
+<td style="text-align:left">Images</td>
+<td style="text-align:center">No concept of container images; uses host binaries and requires explicit directory mapping</td>
+<td style="text-align:right">Relies on images and Dockerfiles to bundle the required software and environment</td>
+</tr>
+<tr>
+<td style="text-align:left">Control Level</td>
+<td style="text-align:center">Lower-level control over Linux namespaces (mount, network, PID, etc.) and Seccomp filters</td>
+<td style="text-align:right">Higher-level abstraction; automates much of the underlying container setup</td>
+</tr>
+</tbody>
+</table>
+<h2 id="When-to-Use-Which"><a href="#When-to-Use-Which" class="headerlink" title="When to Use Which?"></a>When to Use Which?</h2><p>Use Bubblewrap when:</p>
+<ul>
+<li>You need to run a single, untrusted command in an existing shell session with limited file system or network access (e.g., running untrusted code from an AI agent).</li>
+<li>You want a lightweight security sandbox without the overhead of building full container images or running a daemon.</li>
+<li>You are developing or using desktop applications (it is a core component of Flatpak for sandboxing applications).</li>
+</ul>
+<p>Use Docker when:</p>
+<ul>
+<li>You need to package an application and all its dependencies into a consistent, portable unit for deployment across different environments (development, staging, production).</li>
+<li>You require an ecosystem for managing container lifecycles, orchestration (e.g., Kubernetes integration), and large-scale application delivery.</li>
+<li>You are building microservices or other server-side applications that need a repeatable build process. </li>
+</ul>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://patrickmccanna.net/a-better-way-to-limit-claude-code-and-other-coding-agents-access-to-secrets/" target="_blank" rel="noopener">A better way to limit Claude Code (and other coding agents!) access to Secrets</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/sandbox/">sandbox</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2026/03/08/Notes-about-ECMP-Equal-Cost-Multi-Path-Routing/">
+        <span class="next-text nav-default">Notes about ECMP and packet spraying</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2026
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2026/03/22/Notes-about-Bubblewrap/';
+        this.page.identifier = '2026/03/22/Notes-about-Bubblewrap/';
+        this.page.title = 'Bubblewrap vs Docker';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
