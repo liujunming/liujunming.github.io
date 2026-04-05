@@ -301,16 +301,15 @@
 <p>通过将一段pin住的物理内存，同时映射到CPU和GPU的虚拟地址空间来实现。这样一来，GPU内核就能像访问自己的显存一样，直接读写这块主机内存，省去了显式的<code>cudaMemcpy</code>操作。</p>
 <h2 id="Advantages"><a href="#Advantages" class="headerlink" title="Advantages"></a>Advantages</h2><p>GPU threads can directly access zero-copy memory. There are several advantages to using zero-copy memory in CUDA kernels, such as:</p>
 <ul>
-<li>Leveraging host memory when there is insuffi cient device memory</li>
+<li>Leveraging host memory when there is insufficient device memory</li>
 <li>Avoiding explicit data transfer between the host and device</li>
 <li>Improving PCIe transfer rates</li>
 </ul>
 <h2 id="劣势与挑战"><a href="#劣势与挑战" class="headerlink" title="劣势与挑战"></a>劣势与挑战</h2><ul>
 <li>带宽瓶颈: 访问速度受限于PCIe总线带宽。对频繁访问的数据，效率远低于本地显存。</li>
 <li>高延迟: 每次访问都需经过PCIe总线，延迟比本地显存高几个数量级。</li>
-<li>非合并访问影响大: GPU对零拷贝内存的非合并访问将产生大量小的PCIe事务，严重降低性能。应尽量确保GPU对它的访问是合并的（即连续的线程访问连续的内存地址）。</li>
 </ul>
-<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p><strong>分配并映射新的锁页内存</strong><br>这种方式直接分配并映射一块全新的主机锁页内存，是最常见的方法。</p>
+<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p><strong>分配并映射新的pinned内存</strong><br>这种方式直接分配并映射一块全新的host pinned内存，是最常见的方法。</p>
 <ul>
 <li>核心API: <code>cudaHostAlloc</code></li>
 <li>关键步骤:<ul>
