@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-03-22T12:46:45.303Z</updated>
+  <updated>2026-04-05T13:16:59.233Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about CUDA Zero-Copy Memory</title>
+    <link href="http://liujunming.github.io/2026/04/05/Notes-about-CUDA-Zero-MemCopy/"/>
+    <id>http://liujunming.github.io/2026/04/05/Notes-about-CUDA-Zero-MemCopy/</id>
+    <published>2026-04-05T08:24:56.000Z</published>
+    <updated>2026-04-05T13:16:59.233Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下CUDA Zero-Copy Memory的相关notes。<a id="more"></a></p><h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><ul><li>pin住host的dram内存</li><li>host CPU mmu建立VA到pinned memory的映射</li><li>GPU mmu建立VA到pinned memory的映射</li></ul><p>通过将一段pin住的物理内存，同时映射到CPU和GPU的虚拟地址空间来实现。这样一来，GPU内核就能像访问自己的显存一样，直接读写这块主机内存，省去了显式的<code>cudaMemcpy</code>操作。</p><h2 id="Advantages"><a href="#Advantages" class="headerlink" title="Advantages"></a>Advantages</h2><p>GPU threads can directly access zero-copy memory. There are several advantages to using zero-copy memory in CUDA kernels, such as:</p><ul><li>Leveraging host memory when there is insuffi cient device memory</li><li>Avoiding explicit data transfer between the host and device</li><li>Improving PCIe transfer rates</li></ul><h2 id="劣势与挑战"><a href="#劣势与挑战" class="headerlink" title="劣势与挑战"></a>劣势与挑战</h2><ul><li>带宽瓶颈: 访问速度受限于PCIe总线带宽。对频繁访问的数据，效率远低于本地显存。</li><li>高延迟: 每次访问都需经过PCIe总线，延迟比本地显存高几个数量级。</li><li>非合并访问影响大: GPU对零拷贝内存的非合并访问将产生大量小的PCIe事务，严重降低性能。应尽量确保GPU对它的访问是合并的（即连续的线程访问连续的内存地址）。</li></ul><h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p><strong>分配并映射新的锁页内存</strong><br>这种方式直接分配并映射一块全新的主机锁页内存，是最常见的方法。</p><ul><li>核心API: <code>cudaHostAlloc</code></li><li>关键步骤:<ul><li>分配：使用 <code>cudaHostAlloc</code> 并指定 <code>cudaHostAllocMapped</code> 标志。</li><li>获取设备指针：通过 <code>cudaHostGetDevicePointer</code> 获取该内存对应的GPU侧有效指针。</li><li>在核函数中使用：将设备指针传入核函数。</li></ul></li></ul><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;cuda_runtime.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// GPU 核函数：直接对主机上的锁页内存进行操作</span></span><br><span class="line">__<span class="function">global__ <span class="keyword">void</span> <span class="title">vector_add_kernel</span><span class="params">(<span class="keyword">float</span> *a, <span class="keyword">float</span> *b, <span class="keyword">float</span> *c, <span class="keyword">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> idx = blockIdx.x * blockDim.x + threadIdx.x;</span><br><span class="line">    <span class="keyword">if</span> (idx &lt; n) &#123;</span><br><span class="line">        <span class="comment">// 直接访问主机上的锁页内存，如同访问显存</span></span><br><span class="line">        c[idx] = a[idx] + b[idx];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n = <span class="number">1024</span>;</span><br><span class="line">    <span class="keyword">size_t</span> size = n * <span class="keyword">sizeof</span>(<span class="keyword">float</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1. 在主机上分配并映射锁页内存</span></span><br><span class="line">    <span class="keyword">float</span> *h_a, *h_b, *h_c;</span><br><span class="line">    cudaHostAlloc((<span class="keyword">void</span> **)&amp;h_a, size, cudaHostAllocMapped);</span><br><span class="line">    cudaHostAlloc((<span class="keyword">void</span> **)&amp;h_b, size, cudaHostAllocMapped);</span><br><span class="line">    cudaHostAlloc((<span class="keyword">void</span> **)&amp;h_c, size, cudaHostAllocMapped);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 在主机端初始化数据</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; n; ++i) &#123;</span><br><span class="line">        h_a[i] = <span class="number">1.0f</span>;</span><br><span class="line">        h_b[i] = <span class="number">2.0f</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 获取该主机内存对应的GPU设备指针</span></span><br><span class="line">    <span class="keyword">float</span> *d_a, *d_b, *d_c;</span><br><span class="line">    cudaHostGetDevicePointer((<span class="keyword">void</span> **)&amp;d_a, (<span class="keyword">void</span> *)h_a, <span class="number">0</span>);</span><br><span class="line">    cudaHostGetDevicePointer((<span class="keyword">void</span> **)&amp;d_b, (<span class="keyword">void</span> *)h_b, <span class="number">0</span>);</span><br><span class="line">    cudaHostGetDevicePointer((<span class="keyword">void</span> **)&amp;d_c, (<span class="keyword">void</span> *)h_c, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4. 配置核函数并启动</span></span><br><span class="line">    <span class="keyword">int</span> threadsPerBlock = <span class="number">256</span>;</span><br><span class="line">    <span class="keyword">int</span> blocksPerGrid = (n + threadsPerBlock - <span class="number">1</span>) / threadsPerBlock;</span><br><span class="line">    vector_add_kernel&lt;&lt;&lt;blocksPerGrid, threadsPerBlock&gt;&gt;&gt;(d_a, d_b, d_c, n);</span><br><span class="line">    cudaDeviceSynchronize();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 5. 检查结果，此时结果已直接写入主机的 h_c 中</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; n; ++i) &#123;</span><br><span class="line">        <span class="keyword">if</span> (h_c[i] != <span class="number">3.0f</span>) &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">"Error: h_c[%d] = %f\n"</span>, i, h_c[i]);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Test passed!\n"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 6. 清理资源</span></span><br><span class="line">    cudaFreeHost(h_a);</span><br><span class="line">    cudaFreeHost(h_b);</span><br><span class="line">    cudaFreeHost(h_c);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><hr><p>参考资料:</p><ol><li><a href="https://github.com/NVIDIA/cuda-samples/tree/master/Samples/0_Introduction#simplezerocopy" target="_blank" rel="noopener">cuda-samples</a></li><li><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/understanding-memory.html#page-locked-host-memory" target="_blank" rel="noopener">Page-Locked Host Memory</a></li><li>Professional CUDA C Programming</li><li><a href="https://chat.deepseek.com/share/ran9srj0hi8t35xmsw" target="_blank" rel="noopener">https://chat.deepseek.com/share/ran9srj0hi8t35xmsw</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下CUDA Zero-Copy Memory的相关notes。
+    
+    </summary>
+    
+      <category term="GPU" scheme="http://liujunming.github.io/categories/GPU/"/>
+    
+    
+      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
+    
+      <category term="CUDA" scheme="http://liujunming.github.io/tags/CUDA/"/>
+    
+  </entry>
   
   <entry>
     <title>Bubblewrap vs Docker</title>
@@ -462,30 +486,6 @@
       <category term="CUDA" scheme="http://liujunming.github.io/tags/CUDA/"/>
     
       <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about linux MTD(Memory Technology Devices)</title>
-    <link href="http://liujunming.github.io/2025/12/07/Notes-about-linux-MTD-Memory-Technology-Devices/"/>
-    <id>http://liujunming.github.io/2025/12/07/Notes-about-linux-MTD-Memory-Technology-Devices/</id>
-    <published>2025-12-07T00:21:49.000Z</published>
-    <updated>2025-12-07T00:57:06.916Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下linux MTD(Memory Technology Devices)的相关notes。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>In embedded Linux systems, raw flash memory,such as NOR and NAND flash,is accessed using the Memory Technology Device (MTD) subsystem. MTD provides low-level interfaces for reading, erasing, and writing to flash blocks.</p><h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p><img src="/images/2025/12/001.jpg" alt></p><h2 id="MTD-Layers"><a href="#MTD-Layers" class="headerlink" title="MTD Layers"></a>MTD Layers</h2><p>The MTD subsystem is organized into three main layers:</p><ul><li>Chip Drivers: Interfaces for specific NOR/NAND flash chips.</li><li>MTD Core: Common APIs and internal logic.</li><li>User-Space Interfaces: Exposes flash as character (/dev/mtdX) or block (/dev/mtdblockX) devices.</li></ul><p><img src="/images/2025/12/002.webp" alt></p><p>MTD character drivers allow us to access the flash memory as an array of bytes so that we can read and write (program) the flash.</p><p>The MTD block driver’s purpose is to present flash memory as a block device, which we can use to format and mount a filesystem.</p><hr><p>参考资料:</p><ol><li><a href="https://medium.com/@akashsainisaini37/a-beginners-guide-to-mtd-and-flash-management-in-linux-7e6c8dd15493" target="_blank" rel="noopener">A Beginner’s Guide to MTD and Flash Management in Linux</a></li><li><a href="http://kcchao.wikidot.com/mtd" target="_blank" rel="noopener">http://kcchao.wikidot.com/mtd</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下linux MTD(Memory Technology Devices)的相关notes。
-    
-    </summary>
-    
-      <category term="linux" scheme="http://liujunming.github.io/categories/linux/"/>
-    
-    
-      <category term="linux" scheme="http://liujunming.github.io/tags/linux/"/>
-    
-      <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   

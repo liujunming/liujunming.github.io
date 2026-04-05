@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about CUDA Zero-Copy Memory">
+
+
+
+
+  <meta name="keywords" content="GPU, CUDA, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2026/04/05/Notes-about-CUDA-Zero-MemCopy/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about CUDA Zero-Copy Memory - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about CUDA Zero-Copy Memory
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2026-04-05
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/GPU/">GPU</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#原理"><span class="toc-text">原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Advantages"><span class="toc-text">Advantages</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#劣势与挑战"><span class="toc-text">劣势与挑战</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实践"><span class="toc-text">实践</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下CUDA Zero-Copy Memory的相关notes。<a id="more"></a></p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><ul>
+<li>pin住host的dram内存</li>
+<li>host CPU mmu建立VA到pinned memory的映射</li>
+<li>GPU mmu建立VA到pinned memory的映射</li>
+</ul>
+<p>通过将一段pin住的物理内存，同时映射到CPU和GPU的虚拟地址空间来实现。这样一来，GPU内核就能像访问自己的显存一样，直接读写这块主机内存，省去了显式的<code>cudaMemcpy</code>操作。</p>
+<h2 id="Advantages"><a href="#Advantages" class="headerlink" title="Advantages"></a>Advantages</h2><p>GPU threads can directly access zero-copy memory. There are several advantages to using zero-copy memory in CUDA kernels, such as:</p>
+<ul>
+<li>Leveraging host memory when there is insuffi cient device memory</li>
+<li>Avoiding explicit data transfer between the host and device</li>
+<li>Improving PCIe transfer rates</li>
+</ul>
+<h2 id="劣势与挑战"><a href="#劣势与挑战" class="headerlink" title="劣势与挑战"></a>劣势与挑战</h2><ul>
+<li>带宽瓶颈: 访问速度受限于PCIe总线带宽。对频繁访问的数据，效率远低于本地显存。</li>
+<li>高延迟: 每次访问都需经过PCIe总线，延迟比本地显存高几个数量级。</li>
+<li>非合并访问影响大: GPU对零拷贝内存的非合并访问将产生大量小的PCIe事务，严重降低性能。应尽量确保GPU对它的访问是合并的（即连续的线程访问连续的内存地址）。</li>
+</ul>
+<h2 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h2><p><strong>分配并映射新的锁页内存</strong><br>这种方式直接分配并映射一块全新的主机锁页内存，是最常见的方法。</p>
+<ul>
+<li>核心API: <code>cudaHostAlloc</code></li>
+<li>关键步骤:<ul>
+<li>分配：使用 <code>cudaHostAlloc</code> 并指定 <code>cudaHostAllocMapped</code> 标志。</li>
+<li>获取设备指针：通过 <code>cudaHostGetDevicePointer</code> 获取该内存对应的GPU侧有效指针。</li>
+<li>在核函数中使用：将设备指针传入核函数。</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;cuda_runtime.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// GPU 核函数：直接对主机上的锁页内存进行操作</span></span><br><span class="line">__<span class="function">global__ <span class="keyword">void</span> <span class="title">vector_add_kernel</span><span class="params">(<span class="keyword">float</span> *a, <span class="keyword">float</span> *b, <span class="keyword">float</span> *c, <span class="keyword">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> idx = blockIdx.x * blockDim.x + threadIdx.x;</span><br><span class="line">    <span class="keyword">if</span> (idx &lt; n) &#123;</span><br><span class="line">        <span class="comment">// 直接访问主机上的锁页内存，如同访问显存</span></span><br><span class="line">        c[idx] = a[idx] + b[idx];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n = <span class="number">1024</span>;</span><br><span class="line">    <span class="keyword">size_t</span> size = n * <span class="keyword">sizeof</span>(<span class="keyword">float</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1. 在主机上分配并映射锁页内存</span></span><br><span class="line">    <span class="keyword">float</span> *h_a, *h_b, *h_c;</span><br><span class="line">    cudaHostAlloc((<span class="keyword">void</span> **)&amp;h_a, size, cudaHostAllocMapped);</span><br><span class="line">    cudaHostAlloc((<span class="keyword">void</span> **)&amp;h_b, size, cudaHostAllocMapped);</span><br><span class="line">    cudaHostAlloc((<span class="keyword">void</span> **)&amp;h_c, size, cudaHostAllocMapped);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 在主机端初始化数据</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; n; ++i) &#123;</span><br><span class="line">        h_a[i] = <span class="number">1.0f</span>;</span><br><span class="line">        h_b[i] = <span class="number">2.0f</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 获取该主机内存对应的GPU设备指针</span></span><br><span class="line">    <span class="keyword">float</span> *d_a, *d_b, *d_c;</span><br><span class="line">    cudaHostGetDevicePointer((<span class="keyword">void</span> **)&amp;d_a, (<span class="keyword">void</span> *)h_a, <span class="number">0</span>);</span><br><span class="line">    cudaHostGetDevicePointer((<span class="keyword">void</span> **)&amp;d_b, (<span class="keyword">void</span> *)h_b, <span class="number">0</span>);</span><br><span class="line">    cudaHostGetDevicePointer((<span class="keyword">void</span> **)&amp;d_c, (<span class="keyword">void</span> *)h_c, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4. 配置核函数并启动</span></span><br><span class="line">    <span class="keyword">int</span> threadsPerBlock = <span class="number">256</span>;</span><br><span class="line">    <span class="keyword">int</span> blocksPerGrid = (n + threadsPerBlock - <span class="number">1</span>) / threadsPerBlock;</span><br><span class="line">    vector_add_kernel&lt;&lt;&lt;blocksPerGrid, threadsPerBlock&gt;&gt;&gt;(d_a, d_b, d_c, n);</span><br><span class="line">    cudaDeviceSynchronize();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 5. 检查结果，此时结果已直接写入主机的 h_c 中</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; n; ++i) &#123;</span><br><span class="line">        <span class="keyword">if</span> (h_c[i] != <span class="number">3.0f</span>) &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">"Error: h_c[%d] = %f\n"</span>, i, h_c[i]);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Test passed!\n"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 6. 清理资源</span></span><br><span class="line">    cudaFreeHost(h_a);</span><br><span class="line">    cudaFreeHost(h_b);</span><br><span class="line">    cudaFreeHost(h_c);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://github.com/NVIDIA/cuda-samples/tree/master/Samples/0_Introduction#simplezerocopy" target="_blank" rel="noopener">cuda-samples</a></li>
+<li><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/understanding-memory.html#page-locked-host-memory" target="_blank" rel="noopener">Page-Locked Host Memory</a></li>
+<li>Professional CUDA C Programming</li>
+<li><a href="https://chat.deepseek.com/share/ran9srj0hi8t35xmsw" target="_blank" rel="noopener">https://chat.deepseek.com/share/ran9srj0hi8t35xmsw</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/GPU/">GPU</a>
+            
+              <a href="/tags/CUDA/">CUDA</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2026/03/22/Notes-about-Bubblewrap/">
+        <span class="next-text nav-default">Bubblewrap vs Docker</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2026
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2026/04/05/Notes-about-CUDA-Zero-MemCopy/';
+        this.page.identifier = '2026/04/05/Notes-about-CUDA-Zero-MemCopy/';
+        this.page.title = 'Notes about CUDA Zero-Copy Memory';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>
