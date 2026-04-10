@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-04-05T23:47:11.346Z</updated>
+  <updated>2026-04-10T15:00:19.749Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,50 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Memory Mirroring</title>
+    <link href="http://liujunming.github.io/2026/04/11/Notes-about-Address-Range-Partial-Memory-Mirroring/"/>
+    <id>http://liujunming.github.io/2026/04/11/Notes-about-Address-Range-Partial-Memory-Mirroring/</id>
+    <published>2026-04-11T03:49:10.000Z</published>
+    <updated>2026-04-10T15:00:19.749Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Memory Mirroring相关notes。<a id="more"></a></p><h2 id="Memory-Mirroring"><a href="#Memory-Mirroring" class="headerlink" title="Memory Mirroring"></a>Memory Mirroring</h2><p>The Intel Xeon processor family-based platform offers a RAS (Reliability Availability Serviceability) feature called <strong>Memory Mirroring</strong>. This feature allows users to configure the memory in a highly reliable mode such that system uptime can be maintained—even when a memory component is affected by an uncorrectable fault. When enabled, a trade-off between memory capacity and reliability is required. For example, <u>user-accessible memory may be reduced to half of the total available memory</u>.</p><h2 id="Address-Range-Partial-Memory-Mirroring"><a href="#Address-Range-Partial-Memory-Mirroring" class="headerlink" title="Address Range Partial Memory Mirroring"></a>Address Range Partial Memory Mirroring</h2><p>The Intel Xeon processor E7 v3 product family-based platform introduces a new layer of support for partial memory mirroring called Address Range Mirroring. When Address Range Mirroring is used, the platform allows an OS to specify a subset of total available memory for mirroring (and also to optionally specify whether to mirror the range 0–4 GB). This capability allows a user to make an appropriate trade-off between non-mirrored memory range and mirrored memory range, thus optimizing total available memory while keeping highly reliable memory range available for mission-critical workloads and/or kernel space.</p><p>Legacy memory mirroring is transparent to the OS; however, address range mirroring requires a firmware-OS interface for a user to specify the desired subset of memory to mirror. To fully utilize Address Range Mirroring:</p><ul><li>Present partial or total mirrored memory on the platform to the OS.</li><li>Provide the OS a method to request the amount of mirrored memory that takes effect on subsequent boots.</li></ul><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol><li>Legacy Memory Mirroring是将所有内存都做mirror，因而available memory会减半</li><li>Address Range Partial Memory Mirroring是选择部分内存做mirror</li></ol><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/address-range-partial-memory-mirroring.html" target="_blank" rel="noopener">Address Range Partial Memory Mirroring</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Memory Mirroring相关notes。
+    
+    </summary>
+    
+      <category term="RAS" scheme="http://liujunming.github.io/categories/RAS/"/>
+    
+    
+      <category term="RAS" scheme="http://liujunming.github.io/tags/RAS/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Notes about RDMA MPT and MTT</title>
+    <link href="http://liujunming.github.io/2026/04/11/Notes-about-RDMA-MPT-and-MTT/"/>
+    <id>http://liujunming.github.io/2026/04/11/Notes-about-RDMA-MPT-and-MTT/</id>
+    <published>2026-04-11T00:58:21.000Z</published>
+    <updated>2026-04-10T14:39:16.787Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark RDMA的MPT(Memory Protection Table) and MTT(Memory Translation Table)相关notes。<a id="more"></a></p><h2 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h2><p><img src="/images/2026/04/001.png" alt></p><p><img src="/images/2026/04/002.png" alt></p><p>每一次内存访问都会指定一个mkey和一个VA地址，mkey来自WQE或报文里的LKEY/RKEY，它是一个32bits的地址空间标识，包含index和key两部分。MTT地址翻译过程如下：</p><ol><li>使用mkey.index索引mkey context table(MPT)得到mkey context。</li><li>Key检查：对比mkey.key和mkey context里的key是否一致。</li><li>PD检查：对比发起内存访问的QP里的PD和mkey context里的PD是否一致。</li><li>地址范围检查：mkey context对应了一个MR，里面包含address和length两个字段用于指明MR的范围，这里需要检查当前正在进行的内存访问是否在这个MR范围内。</li><li>访问权限检查：根据mkey context内的local/remote read/write/atomic权限检查当前操作是否合法。</li><li>当上面的检查通过时，就可以使用mtt pointer了，它是MTT表的基地址。</li><li>访问MTT表需要一个索引MTT index=当前访问地址accessing VA - mkey_context.va得到，其中mkey_context.va是MR的起始地址。另外需要考虑PA所指向的page大小，当page为4K时，上面的MTT index还要右移12位。</li><li>用上面的index索引MTT表就能得到一个MTT entry，它里面包含一个PA地址，即page number页号。如果page为4KB则最终的PA = (page number &lt;&lt; 12) + (accessing VA &amp; 0xfff)。</li></ol><p>上述步骤均由RDMA硬件完成。</p><h2 id="MTT-entry"><a href="#MTT-entry" class="headerlink" title="MTT entry"></a>MTT entry</h2><p>MTT entry的细节可以<a href="https://network.nvidia.com/files/doc-2020/ethernet-adapters-programming-manual.pdf" target="_blank" rel="noopener">Mellanox Adapters Programmer’s Reference Manual (PRM)</a>:</p><p><img src="/images/2026/04/003.png" alt></p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul><li>MTT:用于记录本地内存的物理地址映射，以便远端节点可以直接访问这些内存区域。</li><li>MPT:用于定义哪些本地内存区域可以被远端节点访问，以及它们的访问权限（如读/写）。每当有新的 RDMA 操作请求到来时，RDMA硬件会检查 MPT，以确定是否允许此次访问。</li><li>MTT 和 MPT 是 RDMA 技术中不可或缺的组成部分，前者负责将虚拟地址转换为物理地址，后者则提供内存访问的安全性和隔离性。两者共同作用，确保了 RDMA 操作既高效又安全。</li></ul><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/567720023" target="_blank" rel="noopener">RDMA 高级</a></li><li><a href="https://network.nvidia.com/files/doc-2020/ethernet-adapters-programming-manual.pdf" target="_blank" rel="noopener">Mellanox Adapters Programmer’s Reference Manual (PRM)</a></li><li><a href="https://mp.weixin.qq.com/s/w2wBzx1nkR6S6Cb68PkaEw" target="_blank" rel="noopener">从阿里云eRDMA看如何解决RDMA在数据中心大规模使用问题</a></li><li><a href="https://mp.weixin.qq.com/s/fdYYkc8hAarrsvclyU2LUQ" target="_blank" rel="noopener">【RDMA MPT &amp;&amp; MTT简介】</a></li><li><a href="https://www.ctyun.cn/developer/article/491807389945925" target="_blank" rel="noopener">自研RDMA的地址翻译表的实现技术</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark RDMA的MPT(Memory Protection Table) and MTT(Memory Translation Table)相关notes。
+    
+    </summary>
+    
+      <category term="RDMA" scheme="http://liujunming.github.io/categories/RDMA/"/>
+    
+    
+      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about CUDA Zero-Copy Memory</title>
@@ -173,9 +217,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
       <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
     
@@ -436,56 +480,6 @@
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
       <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about SSD basic knowledge</title>
-    <link href="http://liujunming.github.io/2026/01/03/Notes-about-SSD-components/"/>
-    <id>http://liujunming.github.io/2026/01/03/Notes-about-SSD-components/</id>
-    <published>2026-01-03T01:42:59.000Z</published>
-    <updated>2026-01-03T02:23:26.646Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下SSD basic knowledge。<a id="more"></a></p><h2 id="Topology"><a href="#Topology" class="headerlink" title="Topology"></a>Topology</h2><p><img src="/images/2026/01/001.png" alt></p><ul><li>Flash Controller</li><li>Channel</li><li>Chip</li><li>Die</li><li>Plane(Bank)</li><li>Block</li><li>Page</li></ul><h2 id="Basic-Operations"><a href="#Basic-Operations" class="headerlink" title="Basic Operations"></a>Basic Operations</h2><p>There are three low-level operations that a flash chip supports. The <strong>read</strong> command is used to read a page from the flash; <strong>erase</strong> and <strong>program</strong> are used in tandem to write.</p><ul><li><p><strong>Read (a page)</strong>: A client of the flash chip can read any page, simply by specifying the read command and appropriate page number to the device.</p></li><li><p><strong>Erase (a block)</strong>: Before writing to a <code>page</code> within a flash, the nature of the device requires that you first <strong>erase</strong> the entire block the page lies within. Erase, importantly, destroys the contents of the block(by setting each bit to the value 1); therefore, you must be sure that any data you care about in the block has been copied elsewhere (to memory, or perhaps to another flash block) before executing the erase. The erase command is quite expensive, taking a few milliseconds to complete. Once finished, the entire block is reset and each page is ready to be programmed.</p></li><li><p><strong>Program (a page)</strong>: Once a block has been erased, the program command can be used to write the desired contents of a page to the flash.</p></li></ul><hr><p>参考资料:</p><ol><li><a href="https://pages.cs.wisc.edu/~remzi/OSTEP/file-ssd.pdf" target="_blank" rel="noopener">Flash-based SSDs</a></li><li><a href="https://www.usenix.org/system/files/fast24_slides-jun.pdf" target="_blank" rel="noopener">We Ain’t Afraid of No File Fragmentation: Causes and Prevention of Its Performance Impact on Modern Flash SSDs</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下SSD basic knowledge。
-    
-    </summary>
-    
-      <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
-    
-    
-      <category term="体系结构" scheme="http://liujunming.github.io/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/"/>
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NVIDIA TMA(Tensor Memory Access)</title>
-    <link href="http://liujunming.github.io/2025/12/07/Notes-about-NVIDIA-TMA-Tensor-Memory-Access/"/>
-    <id>http://liujunming.github.io/2025/12/07/Notes-about-NVIDIA-TMA-Tensor-Memory-Access/</id>
-    <published>2025-12-07T01:16:22.000Z</published>
-    <updated>2025-12-07T08:21:45.277Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下NVIDIA TMA(Tensor Memory Access)技术的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2025/12/003.webp" alt></p><p>在GPU中，数据存储在Global Memory(一般为HBM)，计算单元(CUDA core/ Tensor core)位于SM中，数据需要搬运到SM内的Shared Memory(SMEM)中用于计算，计算后再搬回Global Memory中。</p><p>SM中的线程除了负责发起计算外，还要先负责搬运数据。线程需要承担地址计算、越界处理、同步管理等一系列任务。据调查，开发者90%的时间花费在编写数据访问的代码上，10%以上的性能损耗源于内存访问开销。</p><p>为了解决这一问题，英伟达在Hopper架构中引入了 Tensor Memory Accelerator(TMA)，将数据访问的复杂性从软件层(线程)剥离，交由专用硬件(TMA)处理，实现数据搬运与计算解耦。</p><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在 A100（Ampere 架构）及更早的 GPU 中，线程块（thread block）需要通过 CUDA 线程显式地从全局内存（global memory）将数据加载到共享内存（shared memory），再供给 Tensor Core 使用。这个过程存在以下问题：</p><ul><li>地址计算开销大：每个线程需手动计算多维张量（如矩阵分块）的内存地址</li><li>同步复杂：需协调多个 warp 协同完成数据搬运，并使用 <code>__syncthreads()</code> 同步</li><li>带宽利用率受限：非最优的访存模式可能导致内存带宽未被充分利用</li></ul><h2 id="核心原理"><a href="#核心原理" class="headerlink" title="核心原理"></a>核心原理</h2><p>TMA 是一个<strong>独立于 CUDA 核心的硬件单元</strong>，可由软件通过<strong>异步描述符（descriptor）+ 坐标（coordinate）</strong>的方式发起高维张量的内存拷贝操作。</p><h3 id="Tensor-Descriptor"><a href="#Tensor-Descriptor" class="headerlink" title="Tensor Descriptor"></a>Tensor Descriptor</h3><p>开发者首先定义一个张量描述符，包含以下信息：</p><ul><li>张量的形状（shape）</li><li>内存布局（layout，如行主序、列主序、分块布局等）</li><li>数据类型（如 FP16、BF16、INT8）</li><li>起始地址（base address）</li></ul><p>该描述符一次性配置后，可被多次复用。</p><h3 id="Copy-by-Coordinate"><a href="#Copy-by-Coordinate" class="headerlink" title="Copy by Coordinate"></a>Copy by Coordinate</h3><p>TMA 不使用传统的一维地址，而是通过逻辑坐标（如 <code>(block_row, block_col)</code>）指定要拷贝的子张量（tile）。例如：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 伪代码示意</span></span><br><span class="line">tma_load(desc, shared_mem_ptr, coord = &#123;tile_m, tile_n&#125;);</span><br></pre></td></tr></table></figure></p><p>硬件根据描述符自动：</p><ul><li>将逻辑坐标映射为物理地址</li><li>生成最优的内存访问模式（合并访问、对齐等）</li><li>执行从全局内存到共享内存（或反之）的 DMA 式传输</li></ul><h3 id="异步-amp-零线程开销"><a href="#异步-amp-零线程开销" class="headerlink" title="异步 &amp; 零线程开销"></a>异步 &amp; 零线程开销</h3><ul><li>TMA 操作由专用硬件引擎执行，不占用SM中的 CUDA 核心资源</li><li>CUDA 线程只需发出TMA指令(通过<code>cp.async.bulk</code>PTX指令触发传输)，即可继续执行其他计算，实现计算与数据搬运重叠</li><li>无需线程参与地址计算或数据搬移，显著降低软件开销</li></ul><h3 id="支持高维与非规则布局"><a href="#支持高维与非规则布局" class="headerlink" title="支持高维与非规则布局"></a>支持高维与非规则布局</h3><p>TMA 原生支持最多 5 维张量，并能处理：</p><ul><li>分块循环布局（swizzled/tiled layout）</li><li>填充（padding）</li><li>跨步（strides）</li></ul><p>这使其特别适合 Transformer、卷积等复杂神经网络中的内存访问模式。</p><h2 id="典型应用场景"><a href="#典型应用场景" class="headerlink" title="典型应用场景"></a>典型应用场景</h2><ul><li>GEMM（通用矩阵乘）：将 A、B 矩阵的分块自动加载到 shared memory，供 Tensor Core 使用</li><li>Attention 机制：高效搬运 Q、K、V 的分块数据</li><li>大模型推理/训练：减少数据搬运瓶颈，提升计算吞吐</li></ul><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>TMA核心目标是<strong>优化张量运算中的数据搬运效率</strong>，特别是为 Tensor Core 提供高效、低开销的数据加载与存储能力。</p><p>TMA的技术本质是：将“基于地址的、线程驱动的”内存访问，转变为“基于张量语义的、硬件加速的”异步数据传输。</p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/0gkeKmRYU-fX4gWtScAjvQ" target="_blank" rel="noopener">NVIDIA TMA 全面解读</a></li><li><a href="https://zhuanlan.zhihu.com/p/709750258" target="_blank" rel="noopener">[Hopper 架构特性学习笔记 Part2] Tensor Memory Access（TMA）</a></li><li><a href="https://www.qianwen.com/share?shareId=2762294c-c203-4efe-b262-5e29dce5a0bb" target="_blank" rel="noopener">千问对话</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下NVIDIA TMA(Tensor Memory Access)技术的相关notes。
-    
-    </summary>
-    
-      <category term="AI Infra" scheme="http://liujunming.github.io/categories/AI-Infra/"/>
-    
-    
-      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
-    
-      <category term="CUDA" scheme="http://liujunming.github.io/tags/CUDA/"/>
-    
-      <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
     
   </entry>
   
