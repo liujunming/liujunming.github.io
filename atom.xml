@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-04-10T15:00:19.749Z</updated>
+  <updated>2026-04-11T08:46:45.880Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>LLM KV Cache文章汇总</title>
+    <link href="http://liujunming.github.io/2026/04/12/LLM-KV-Cache%E6%96%87%E7%AB%A0%E6%B1%87%E6%80%BB/"/>
+    <id>http://liujunming.github.io/2026/04/12/LLM-KV-Cache文章汇总/</id>
+    <published>2026-04-12T08:33:41.000Z</published>
+    <updated>2026-04-11T08:46:45.880Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将持续收集LLM KV Cache相关的文章。<a id="more"></a></p><ul><li><a href="https://developer.aliyun.com/article/1713501" target="_blank" rel="noopener">当我们谈论 AI 推理的 KV Cache，我们在说什么？</a></li><li><a href="https://mp.weixin.qq.com/s/lE5TX3V7qdvYJIECrdsxAw" target="_blank" rel="noopener">阿里云提出基于CXL的KV缓存管理内存架构Beluga</a></li></ul>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将持续收集LLM KV Cache相关的文章。
+    
+    </summary>
+    
+      <category term="AI Infra" scheme="http://liujunming.github.io/categories/AI-Infra/"/>
+    
+    
+      <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Memory Mirroring</title>
@@ -43,9 +65,9 @@
     <link href="http://liujunming.github.io/2026/04/11/Notes-about-RDMA-MPT-and-MTT/"/>
     <id>http://liujunming.github.io/2026/04/11/Notes-about-RDMA-MPT-and-MTT/</id>
     <published>2026-04-11T00:58:21.000Z</published>
-    <updated>2026-04-10T14:39:16.787Z</updated>
+    <updated>2026-04-11T12:00:11.148Z</updated>
     
-    <content type="html"><![CDATA[<p>本文将mark RDMA的MPT(Memory Protection Table) and MTT(Memory Translation Table)相关notes。<a id="more"></a></p><h2 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h2><p><img src="/images/2026/04/001.png" alt></p><p><img src="/images/2026/04/002.png" alt></p><p>每一次内存访问都会指定一个mkey和一个VA地址，mkey来自WQE或报文里的LKEY/RKEY，它是一个32bits的地址空间标识，包含index和key两部分。MTT地址翻译过程如下：</p><ol><li>使用mkey.index索引mkey context table(MPT)得到mkey context。</li><li>Key检查：对比mkey.key和mkey context里的key是否一致。</li><li>PD检查：对比发起内存访问的QP里的PD和mkey context里的PD是否一致。</li><li>地址范围检查：mkey context对应了一个MR，里面包含address和length两个字段用于指明MR的范围，这里需要检查当前正在进行的内存访问是否在这个MR范围内。</li><li>访问权限检查：根据mkey context内的local/remote read/write/atomic权限检查当前操作是否合法。</li><li>当上面的检查通过时，就可以使用mtt pointer了，它是MTT表的基地址。</li><li>访问MTT表需要一个索引MTT index=当前访问地址accessing VA - mkey_context.va得到，其中mkey_context.va是MR的起始地址。另外需要考虑PA所指向的page大小，当page为4K时，上面的MTT index还要右移12位。</li><li>用上面的index索引MTT表就能得到一个MTT entry，它里面包含一个PA地址，即page number页号。如果page为4KB则最终的PA = (page number &lt;&lt; 12) + (accessing VA &amp; 0xfff)。</li></ol><p>上述步骤均由RDMA硬件完成。</p><h2 id="MTT-entry"><a href="#MTT-entry" class="headerlink" title="MTT entry"></a>MTT entry</h2><p>MTT entry的细节可以<a href="https://network.nvidia.com/files/doc-2020/ethernet-adapters-programming-manual.pdf" target="_blank" rel="noopener">Mellanox Adapters Programmer’s Reference Manual (PRM)</a>:</p><p><img src="/images/2026/04/003.png" alt></p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul><li>MTT:用于记录本地内存的物理地址映射，以便远端节点可以直接访问这些内存区域。</li><li>MPT:用于定义哪些本地内存区域可以被远端节点访问，以及它们的访问权限（如读/写）。每当有新的 RDMA 操作请求到来时，RDMA硬件会检查 MPT，以确定是否允许此次访问。</li><li>MTT 和 MPT 是 RDMA 技术中不可或缺的组成部分，前者负责将虚拟地址转换为物理地址，后者则提供内存访问的安全性和隔离性。两者共同作用，确保了 RDMA 操作既高效又安全。</li></ul><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/567720023" target="_blank" rel="noopener">RDMA 高级</a></li><li><a href="https://network.nvidia.com/files/doc-2020/ethernet-adapters-programming-manual.pdf" target="_blank" rel="noopener">Mellanox Adapters Programmer’s Reference Manual (PRM)</a></li><li><a href="https://mp.weixin.qq.com/s/w2wBzx1nkR6S6Cb68PkaEw" target="_blank" rel="noopener">从阿里云eRDMA看如何解决RDMA在数据中心大规模使用问题</a></li><li><a href="https://mp.weixin.qq.com/s/fdYYkc8hAarrsvclyU2LUQ" target="_blank" rel="noopener">【RDMA MPT &amp;&amp; MTT简介】</a></li><li><a href="https://www.ctyun.cn/developer/article/491807389945925" target="_blank" rel="noopener">自研RDMA的地址翻译表的实现技术</a></li></ol>]]></content>
+    <content type="html"><![CDATA[<p>本文将mark RDMA的MPT(Memory Protection Table) and MTT(Memory Translation Table)相关notes。<a id="more"></a></p><h2 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h2><p><img src="/images/2026/04/001.png" alt></p><p><img src="/images/2026/04/002.png" alt></p><p>每一次内存访问都会指定一个mkey和一个VA地址，mkey来自WQE或报文里的LKEY/RKEY，它是一个32bits的地址空间标识，包含index和key两部分。MTT地址翻译过程如下：</p><ol><li>使用mkey.index索引mkey context table(MPT)得到mkey context。</li><li>Key检查：对比mkey.key和mkey context里的key是否一致。</li><li>PD检查：对比发起内存访问的QP里的PD和mkey context里的PD是否一致。</li><li>地址范围检查：mkey context对应了一个MR，里面包含address和length两个字段用于指明MR的范围，这里需要检查当前正在进行的内存访问是否在这个MR范围内。</li><li>访问权限检查：根据mkey context内的local/remote read/write/atomic权限检查当前操作是否合法。</li><li>当上面的检查通过时，就可以使用mtt pointer了，它是MTT表的基地址。</li><li>访问MTT表需要一个索引MTT index=当前访问地址accessing VA - mkey_context.va得到，其中mkey_context.va是MR的起始地址。另外需要考虑PA所指向的page大小，当page为4K时，上面的MTT index还要右移12位。</li><li>用上面的index索引MTT表就能得到一个MTT entry，它里面包含一个PA地址，即page number页号。如果page为4KB则最终的PA = (page number &lt;&lt; 12) + (accessing VA &amp; 0xfff)。</li></ol><p>上述步骤均由RDMA硬件完成。</p><h2 id="MTT-entry"><a href="#MTT-entry" class="headerlink" title="MTT entry"></a>MTT entry</h2><p>MTT entry的细节可以<a href="https://network.nvidia.com/files/doc-2020/ethernet-adapters-programming-manual.pdf" target="_blank" rel="noopener">Mellanox Adapters Programmer’s Reference Manual (PRM)</a>:</p><p><img src="/images/2026/04/003.png" alt></p><h2 id="State-Machine"><a href="#State-Machine" class="headerlink" title="State Machine"></a>State Machine</h2><p><img src="/images/2026/04/004.png" alt></p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul><li>MTT:用于记录本地内存的物理地址映射，以便远端节点可以直接访问这些内存区域。</li><li>MPT:用于定义哪些本地内存区域可以被远端节点访问，以及它们的访问权限（如读/写）。每当有新的 RDMA 操作请求到来时，RDMA硬件会检查 MPT，以确定是否允许此次访问。</li><li>MTT 和 MPT 是 RDMA 技术中不可或缺的组成部分，前者负责将虚拟地址转换为物理地址，后者则提供内存访问的安全性和隔离性。两者共同作用，确保了 RDMA 操作既高效又安全。</li></ul><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/567720023" target="_blank" rel="noopener">RDMA 高级</a></li><li><a href="https://network.nvidia.com/files/doc-2020/ethernet-adapters-programming-manual.pdf" target="_blank" rel="noopener">Mellanox Adapters Programmer’s Reference Manual (PRM)</a></li><li><a href="https://mp.weixin.qq.com/s/crz1PG0sLnQDVn03pokV1Q" target="_blank" rel="noopener">RDMA 关键技术研究：Memory Region</a></li><li><a href="https://mp.weixin.qq.com/s/w2wBzx1nkR6S6Cb68PkaEw" target="_blank" rel="noopener">从阿里云eRDMA看如何解决RDMA在数据中心大规模使用问题</a></li><li><a href="https://mp.weixin.qq.com/s/fdYYkc8hAarrsvclyU2LUQ" target="_blank" rel="noopener">【RDMA MPT &amp;&amp; MTT简介】</a></li><li><a href="https://www.ctyun.cn/developer/article/491807389945925" target="_blank" rel="noopener">自研RDMA的地址翻译表的实现技术</a></li></ol>]]></content>
     
     <summary type="html">
     
@@ -451,30 +473,6 @@
     </summary>
     
       <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
-    
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NVMe FDP feature</title>
-    <link href="http://liujunming.github.io/2026/01/03/Notes-about-NVMe-FDP-feature/"/>
-    <id>http://liujunming.github.io/2026/01/03/Notes-about-NVMe-FDP-feature/</id>
-    <published>2026-01-03T05:27:08.000Z</published>
-    <updated>2026-01-03T10:06:10.691Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下NVMe FDP(Flexible data placement)的相关notes。<a id="more"></a></p><h2 id="Key-idea"><a href="#Key-idea" class="headerlink" title="Key idea"></a>Key idea</h2><p>通过host(上层应用)与SSD的协作，将生命周期同步的数据，在写入时就物理地聚集在一起，从而使它们能“同生共死”，极大简化数据清理过程，从根源上解决写放大问题。</p><p>从<strong>数据写入的源头就开始规划，将同类数据放在一起</strong>，从而让整个块的数据能同时失效，极大减少了有效数据搬移，从根本上降低了写放大。</p><h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p>The Flexible Data Placement interface provides abstractions to the host to group data on the device with a similar expected lifetime(e.g., death time). The interface introduces the following concepts to expose the SSD physical architecture.</p><p><img src="/images/2026/01/003.png" alt></p><h3 id="Reclaim-Unit-RU"><a href="#Reclaim-Unit-RU" class="headerlink" title="Reclaim Unit (RU)"></a>Reclaim Unit (RU)</h3><p>The NAND media is organized into a set of reclaim units where a reclaim unit consists of a set of blocks that can be written. A reclaim unit will typically consist of one or more erase blocks.</p><h3 id="Reclaim-Group-RG"><a href="#Reclaim-Group-RG" class="headerlink" title="Reclaim Group (RG)"></a>Reclaim Group (RG)</h3><p>A reclaim group is a set of reclaim units.</p><h3 id="Reclaim-Unit-Handles-RUH"><a href="#Reclaim-Unit-Handles-RUH" class="headerlink" title="Reclaim Unit Handles (RUH)"></a>Reclaim Unit Handles (RUH)</h3><p>A reclaim unit handle is an abstraction in the device controller similar to a pointer that allows host software to point to the reclaim units in the device. Since a reclaim unit is not directly addressable by the host, the host software uses the reclaim unit handles to logically isolate data. The device manages the mapping of reclaim unit handles to a reclaim unit and has complete control over this mapping. The number of RUHs in the device determines the number of different logical locations in the NAND where the host software can concurrently place data.</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>通过数据隔离，当一个应用的数据失效时，其对应的整个RU可以直接被擦除回收，大幅减少了垃圾回收所需搬移的数据量。理想情况下，可以将写放大系数降低至接近1。</p><hr><p>参考资料:</p><ol><li><a href="https://lwn.net/Articles/1018642/" target="_blank" rel="noopener">Flexible data placement</a></li><li><a href="https://arxiv.org/pdf/2503.11665" target="_blank" rel="noopener">Towards Efficient Flash Caches with Emerging NVMe Flexible Data Placement SSDs</a></li><li><a href="https://chat.deepseek.com/share/jvler80y4fjjp3k52n" target="_blank" rel="noopener">deepseek对话</a></li><li><a href="https://nvmexpress.org/wp-content/uploads/FMS-2023-Flexible-Data-Placement-FDP-Overview.pdf" target="_blank" rel="noopener">Flexible Data Placement: State of the Union</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下NVMe FDP(Flexible data placement)的相关notes。
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
