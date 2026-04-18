@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+<meta name="theme-color" content="#f8f5ec">
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+
+  <meta name="description" content="Notes about IB交换机中的SHARP技术">
+
+
+
+
+  <meta name="keywords" content="AI Infra, RDMA, L">
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="L">
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2.10.1">
+
+
+
+<link rel="canonical" href="http://liujunming.github.io/2026/04/18/Notes-about-IB交换机中的SHARP技术/">
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css">
+
+
+
+
+  <link rel="stylesheet" type="text/css" href="/lib/nprogress/nprogress.min.css">
+
+
+
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=2.10.1">
+
+
+
+  
+
+
+
+  <script id="baidu_push">
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null},"toc":true,"fancybox":true,"pjax":true};
+</script>
+
+    <title> Notes about IB交换机中的SHARP技术 - L </title>
+  </head>
+
+  <body><div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+      <a href="/">
+        <li class="mobile-menu-item">
+          
+          
+            首页
+          
+        </li>
+      </a>
+    
+      <a href="/archives/">
+        <li class="mobile-menu-item">
+          
+          
+            归档
+          
+        </li>
+      </a>
+    
+      <a href="/categories">
+        <li class="mobile-menu-item">
+          
+          
+            分类
+          
+        </li>
+      </a>
+    
+      <a href="/tags">
+        <li class="mobile-menu-item">
+          
+          
+            标签
+          
+        </li>
+      </a>
+    
+      <a href="/links">
+        <li class="mobile-menu-item">
+          
+          
+            Links
+          
+        </li>
+      </a>
+    
+      <a href="/books">
+        <li class="mobile-menu-item">
+          
+          
+            Books
+          
+        </li>
+      </a>
+    
+      <a href="/course">
+        <li class="mobile-menu-item">
+          
+          
+            Course
+          
+        </li>
+      </a>
+    
+  </ul>
+</nav>
+
+    <div class="container" id="mobile-panel">
+      <header id="header" class="header"><div class="logo-wrapper">
+  <a href="/." class="logo">L</a>
+</div>
+
+<nav class="site-navbar">
+  
+    <ul id="menu" class="menu">
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/">
+            
+            
+              首页
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/archives/">
+            
+            
+              归档
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/categories">
+            
+            
+              分类
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/tags">
+            
+            
+              标签
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/links">
+            
+            
+              Links
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/books">
+            
+            
+              Books
+            
+          </a>
+        </li>
+      
+        <li class="menu-item">
+          <a class="menu-item-link" href="/course">
+            
+            
+              Course
+            
+          </a>
+        </li>
+      
+    </ul>
+  
+</nav>
+
+      </header>
+
+      <main id="main" class="main">
+        <div class="content-wrapper">
+          <div id="content" class="content">
+            
+  
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">
+        
+          Notes about IB交换机中的SHARP技术
+        
+      </h1>
+
+      <div class="post-meta">
+        <span class="post-time">
+          2026-04-18
+        </span>
+        
+          <span class="post-category">
+            
+              <a href="/categories/AI-Infra/">AI Infra</a>
+            
+          </span>
+        
+        
+      </div>
+    </header>
+
+    
+    
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#In-Network-Computing"><span class="toc-text">In-Network Computing</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SHARP的介绍"><span class="toc-text">SHARP的介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AllReduce"><span class="toc-text">AllReduce</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#工作原理"><span class="toc-text">工作原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SHARP-vs-GPUDirect-RDMA"><span class="toc-text">SHARP vs. GPUDirect RDMA</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
+
+
+    <div class="post-content">
+      
+        <p>本文将mark下IB交换机中SHARP(Scalable Hierarchical Aggregation and Reduction Protocol)技术的相关notes。<a id="more"></a></p>
+<h2 id="In-Network-Computing"><a href="#In-Network-Computing" class="headerlink" title="In-Network Computing"></a>In-Network Computing</h2><p>在网计算(In-Network Computing)，可以简单理解为：让网络在传输数据的过程中，顺便完成一部分原本属于主机的计算任务。这里的“计算”通常不是通用计算，而是聚合、归约、统计、筛选，以及某些固定模式的算术或逻辑操作。</p>
+<p><img src="/images/2026/04/008.png" alt></p>
+<p>在 AI 和 HPC 场景中，最有价值的一类在网计算，就是对集合通信中的归约操作进行卸载。因为归约是最常见、最频繁、也最容易在规模扩展后成为瓶颈的环节；如果交换机能够在数据流经时，先把多个节点发来的数据做一轮聚合，那么继续向上传输的数据量就会变少，最终回到端点的也不再是大量原始中间值，而是更接近结果的数据。</p>
+<p>这会同时带来几个好处：</p>
+<ol>
+<li>降低端点参与归约的负担</li>
+<li>减少网络中传输的中间数据</li>
+<li>缩短集合通信完成时间</li>
+<li>提高系统扩展效率</li>
+</ol>
+<p>而 SHARP，就是这种思想在高性能网络中的代表性实现。</p>
+<h2 id="SHARP的介绍"><a href="#SHARP的介绍" class="headerlink" title="SHARP的介绍"></a>SHARP的介绍</h2><p>传统模式下，交换机只负责收包、转发、出包；即使是 AllReduce 这类高度结构化的操作，交换机本身也并不真正“理解”归约，因此大量中间数据仍需要在端点之间来回流动，归约主要还是由主机侧完成。</p>
+<p>SHARP(Scalable Hierarchical Aggregation and Reduction Protocol)是 NVIDIA 的一种<strong>in-network computing</strong>技术，<u>用来把 AllReduce、Reduce、Broadcast 等集合通信操作从 CPU/GPU 卸载到 InfiniBand 交换网络中执行</u>。</p>
+<h2 id="AllReduce"><a href="#AllReduce" class="headerlink" title="AllReduce"></a>AllReduce</h2><p>现代AI训练（如大语言模型）和科学计算严重依赖于<strong>集合通信</strong>，尤其是 <strong>AllReduce</strong> 操作（用于同步梯度、参数等）。AllReduce的通信开销常常成为训练瓶颈。</p>
+<ol>
+<li>传统AllReduce（无SHARP）</li>
+</ol>
+<ul>
+<li>数据在GPU间多次传输。</li>
+<li>最终聚合计算由某个GPU的CUDA核心完成。</li>
+<li>占用宝贵的GPU计算资源（尽管是轻量计算）。</li>
+<li>产生大量网络流量，消耗带宽，增加延迟。</li>
+</ul>
+<ol start="2">
+<li>使用SHARP的AllReduce</li>
+</ol>
+<ul>
+<li>计算卸载： 聚合计算（如求和）由交换机内部的专用硬件引擎执行。</li>
+<li>流量锐减： 数据在交换机树形网络的每一级就开始聚合，网络中传输的数据量逐级减少，极大降低了最终的网络流量（可降低高达50%以上）。</li>
+<li>解放GPU： GPU无需处理聚合计算，可以更专注于张量核心的计算。</li>
+<li>降低延迟： 在网络中就近计算，减少了端到端的通信延迟。</li>
+</ul>
+<ol start="3">
+<li>核心价值： 将网络从一个被动的“数据搬运工”，转变为一个主动的“计算参与者”，从而打破集合通信的瓶颈。</li>
+</ol>
+<h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><p><img src="/images/2026/04/009.png" alt></p>
+<p>以最常见的“求和”AllReduce为例，剖析SHARP工作原理：</p>
+<ol>
+<li>初始化与配置： 集群管理软件（如NCCL）识别到支持SHARP的交换机拓扑，并为本次AllReduce操作在交换机上配置一个“聚合树”。</li>
+<li>Leaf叶子节点发送： 每个GPU（主机）将其需要聚合的数据块发送到它所连接的第一级（Leaf叶子）交换机。</li>
+<li>第一级聚合： Leaf叶子交换机的SHARP引擎接收来自其下所有GPU的数据，在交换机内部硬件中直接进行求和计算，生成一个部分聚合的结果。</li>
+<li>向上传播： Leaf叶子交换机将部分聚合的结果（数据量已小于原始多份数据的总和）发送到上一级（Spine主干）交换机。</li>
+<li>递归聚合： Spine主干交换机的SHARP引擎再次接收来自多个下级交换机的部分聚合结果，并进行第二次聚合。此过程在交换机的层次结构中持续向上，直到到达聚合树的根交换机。</li>
+<li>生成全局结果： 根交换机生成最终的全局聚合结果（所有GPU数据的总和）。</li>
+<li>结果广播： 根交换机再将这个最终结果沿聚合树向下广播到所有参与计算的GPU。</li>
+</ol>
+<p>关键点： 数据在向上传输的过程中不断被“压缩”（聚合），因此从根节点向下广播的数据量是最小的（一份完整结果）。这相比于传统的环状或树状AllReduce算法，显著减少了网络的总数据吞吐量。</p>
+<h2 id="SHARP-vs-GPUDirect-RDMA"><a href="#SHARP-vs-GPUDirect-RDMA" class="headerlink" title="SHARP vs. GPUDirect RDMA"></a>SHARP vs. GPUDirect RDMA</h2><ol>
+<li>GPUDirect RDMA： 解决的是“路径”问题，允许第三方设备（如网卡）直接访问GPU显存，绕过CPU和系统内存拷贝，降低延迟。它优化的是点对点通信。</li>
+<li>SHARP： 解决的是“流量和计算”问题，在网络内对多个数据流进行聚合计算，优化的是集体通信。</li>
+<li>关系： 它们是互补的，可以同时启用。GPUDirect RDMA确保数据从GPU到网络的路径最优，而SHARP确保数据在网络中的聚合效率最高。现代AI集群通常同时启用这两项技术。</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>SHARP是构建大规模、高效率GPU计算集群的一项革命性网络技术。它通过“网络内计算”的理念，直接攻克了分布式AI训练中最耗时的集合通信瓶颈，是当今万卡级GPU集群不可或缺的关键技术之一。</p>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://zhuanlan.zhihu.com/p/27394787474" target="_blank" rel="noopener">【论文阅读】Scalable Hierarchical Aggregation Protocol (SHArP)</a></li>
+<li><a href="https://conferences.sigcomm.org/events/apnet2019/slides/Industrial_1_3.pdf" target="_blank" rel="noopener">Pushing the Limits of AI with In-Network Computing</a></li>
+<li><a href="https://mp.weixin.qq.com/s/GkctRBBjRyhraIfBdTKX4Q" target="_blank" rel="noopener">GPU集群性能提升技术——IB交换机中的SHARP详解</a></li>
+<li><a href="https://mp.weixin.qq.com/s/YhD_e6kH9lhA360t5yC2iQ" target="_blank" rel="noopener">SHARP与在网计算</a></li>
+<li><a href="https://mp.weixin.qq.com/s/K5o57R5bdW6DjUkme0Gf8g" target="_blank" rel="noopener">NCCL 原理详解：让多GPU通信更高效</a></li>
+</ol>
+
+      
+    </div>
+
+    
+      
+      
+
+
+
+      
+      
+    
+
+    
+      <footer class="post-footer">
+        
+          <div class="post-tags">
+            
+              <a href="/tags/AI-Infra/">AI Infra</a>
+            
+              <a href="/tags/RDMA/">RDMA</a>
+            
+          </div>
+        
+        
+        
+  <nav class="post-nav">
+    
+    
+      <a class="next" href="/2026/04/18/每周分享第37期/">
+        <span class="next-text nav-default">每周分享第37期</span>
+        <span class="prev-text nav-mobile">下一篇</span>
+        <i class="iconfont icon-right"></i>
+      </a>
+    
+  </nav>
+
+
+      </footer>
+    
+
+  </article>
+
+
+          </div>
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+      </main>
+
+      <footer id="footer" class="footer">
+
+  <div class="social-links">
+    
+      
+        
+          <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+
+    
+      <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+    
+  </div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+
+  <span class="copyright-year">
+    
+    &copy; 
+     
+      2016 - 
+    
+    2026
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">liujunming</span>
+  </span>
+</div>
+
+      </footer>
+
+      <div class="back-to-top" id="back-to-top">
+        <i class="iconfont icon-up"></i>
+      </div>
+    </div>
+
+    
+  
+  <script type="text/javascript">
+    var disqus_config = function () {
+        this.page.url = 'http://liujunming.github.io/2026/04/18/Notes-about-IB交换机中的SHARP技术/';
+        this.page.identifier = '2026/04/18/Notes-about-IB交换机中的SHARP技术/';
+        this.page.title = 'Notes about IB交换机中的SHARP技术';
+    };
+    (function() {
+    var d = document, s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();  
+  </script>
+
+  
+
+  
+
+
+
+    
+  
+
+
+
+  
+  
+
+
+
+
+
+  
+    <script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/pjax/jquery.pjax.min.js"></script>
+  
+
+  
+    <script type="text/javascript" src="/lib/nprogress/nprogress.min.js"></script>
+  
+
+
+    <script type="text/javascript" src="/js/src/even.js?v=2.10.1"></script>
+
+  </body>
+</html>

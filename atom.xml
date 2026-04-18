@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-04-18T07:36:13.972Z</updated>
+  <updated>2026-04-18T14:49:16.749Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about IB交换机中的SHARP技术</title>
+    <link href="http://liujunming.github.io/2026/04/18/Notes-about-IB%E4%BA%A4%E6%8D%A2%E6%9C%BA%E4%B8%AD%E7%9A%84SHARP%E6%8A%80%E6%9C%AF/"/>
+    <id>http://liujunming.github.io/2026/04/18/Notes-about-IB交换机中的SHARP技术/</id>
+    <published>2026-04-18T07:48:27.000Z</published>
+    <updated>2026-04-18T14:49:16.749Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下IB交换机中SHARP(Scalable Hierarchical Aggregation and Reduction Protocol)技术的相关notes。<a id="more"></a></p><h2 id="In-Network-Computing"><a href="#In-Network-Computing" class="headerlink" title="In-Network Computing"></a>In-Network Computing</h2><p>在网计算(In-Network Computing)，可以简单理解为：让网络在传输数据的过程中，顺便完成一部分原本属于主机的计算任务。这里的“计算”通常不是通用计算，而是聚合、归约、统计、筛选，以及某些固定模式的算术或逻辑操作。</p><p><img src="/images/2026/04/008.png" alt></p><p>在 AI 和 HPC 场景中，最有价值的一类在网计算，就是对集合通信中的归约操作进行卸载。因为归约是最常见、最频繁、也最容易在规模扩展后成为瓶颈的环节；如果交换机能够在数据流经时，先把多个节点发来的数据做一轮聚合，那么继续向上传输的数据量就会变少，最终回到端点的也不再是大量原始中间值，而是更接近结果的数据。</p><p>这会同时带来几个好处：</p><ol><li>降低端点参与归约的负担</li><li>减少网络中传输的中间数据</li><li>缩短集合通信完成时间</li><li>提高系统扩展效率</li></ol><p>而 SHARP，就是这种思想在高性能网络中的代表性实现。</p><h2 id="SHARP的介绍"><a href="#SHARP的介绍" class="headerlink" title="SHARP的介绍"></a>SHARP的介绍</h2><p>传统模式下，交换机只负责收包、转发、出包；即使是 AllReduce 这类高度结构化的操作，交换机本身也并不真正“理解”归约，因此大量中间数据仍需要在端点之间来回流动，归约主要还是由主机侧完成。</p><p>SHARP(Scalable Hierarchical Aggregation and Reduction Protocol)是 NVIDIA 的一种<strong>in-network computing</strong>技术，<u>用来把 AllReduce、Reduce、Broadcast 等集合通信操作从 CPU/GPU 卸载到 InfiniBand 交换网络中执行</u>。</p><h2 id="AllReduce"><a href="#AllReduce" class="headerlink" title="AllReduce"></a>AllReduce</h2><p>现代AI训练（如大语言模型）和科学计算严重依赖于<strong>集合通信</strong>，尤其是 <strong>AllReduce</strong> 操作（用于同步梯度、参数等）。AllReduce的通信开销常常成为训练瓶颈。</p><ol><li>传统AllReduce（无SHARP）</li></ol><ul><li>数据在GPU间多次传输。</li><li>最终聚合计算由某个GPU的CUDA核心完成。</li><li>占用宝贵的GPU计算资源（尽管是轻量计算）。</li><li>产生大量网络流量，消耗带宽，增加延迟。</li></ul><ol start="2"><li>使用SHARP的AllReduce</li></ol><ul><li>计算卸载： 聚合计算（如求和）由交换机内部的专用硬件引擎执行。</li><li>流量锐减： 数据在交换机树形网络的每一级就开始聚合，网络中传输的数据量逐级减少，极大降低了最终的网络流量（可降低高达50%以上）。</li><li>解放GPU： GPU无需处理聚合计算，可以更专注于张量核心的计算。</li><li>降低延迟： 在网络中就近计算，减少了端到端的通信延迟。</li></ul><ol start="3"><li>核心价值： 将网络从一个被动的“数据搬运工”，转变为一个主动的“计算参与者”，从而打破集合通信的瓶颈。</li></ol><h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><p><img src="/images/2026/04/009.png" alt></p><p>以最常见的“求和”AllReduce为例，剖析SHARP工作原理：</p><ol><li>初始化与配置： 集群管理软件（如NCCL）识别到支持SHARP的交换机拓扑，并为本次AllReduce操作在交换机上配置一个“聚合树”。</li><li>Leaf叶子节点发送： 每个GPU（主机）将其需要聚合的数据块发送到它所连接的第一级（Leaf叶子）交换机。</li><li>第一级聚合： Leaf叶子交换机的SHARP引擎接收来自其下所有GPU的数据，在交换机内部硬件中直接进行求和计算，生成一个部分聚合的结果。</li><li>向上传播： Leaf叶子交换机将部分聚合的结果（数据量已小于原始多份数据的总和）发送到上一级（Spine主干）交换机。</li><li>递归聚合： Spine主干交换机的SHARP引擎再次接收来自多个下级交换机的部分聚合结果，并进行第二次聚合。此过程在交换机的层次结构中持续向上，直到到达聚合树的根交换机。</li><li>生成全局结果： 根交换机生成最终的全局聚合结果（所有GPU数据的总和）。</li><li>结果广播： 根交换机再将这个最终结果沿聚合树向下广播到所有参与计算的GPU。</li></ol><p>关键点： 数据在向上传输的过程中不断被“压缩”（聚合），因此从根节点向下广播的数据量是最小的（一份完整结果）。这相比于传统的环状或树状AllReduce算法，显著减少了网络的总数据吞吐量。</p><h2 id="SHARP-vs-GPUDirect-RDMA"><a href="#SHARP-vs-GPUDirect-RDMA" class="headerlink" title="SHARP vs. GPUDirect RDMA"></a>SHARP vs. GPUDirect RDMA</h2><ol><li>GPUDirect RDMA： 解决的是“路径”问题，允许第三方设备（如网卡）直接访问GPU显存，绕过CPU和系统内存拷贝，降低延迟。它优化的是点对点通信。</li><li>SHARP： 解决的是“流量和计算”问题，在网络内对多个数据流进行聚合计算，优化的是集体通信。</li><li>关系： 它们是互补的，可以同时启用。GPUDirect RDMA确保数据从GPU到网络的路径最优，而SHARP确保数据在网络中的聚合效率最高。现代AI集群通常同时启用这两项技术。</li></ol><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>SHARP是构建大规模、高效率GPU计算集群的一项革命性网络技术。它通过“网络内计算”的理念，直接攻克了分布式AI训练中最耗时的集合通信瓶颈，是当今万卡级GPU集群不可或缺的关键技术之一。</p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/27394787474" target="_blank" rel="noopener">【论文阅读】Scalable Hierarchical Aggregation Protocol (SHArP)</a></li><li><a href="https://conferences.sigcomm.org/events/apnet2019/slides/Industrial_1_3.pdf" target="_blank" rel="noopener">Pushing the Limits of AI with In-Network Computing</a></li><li><a href="https://mp.weixin.qq.com/s/GkctRBBjRyhraIfBdTKX4Q" target="_blank" rel="noopener">GPU集群性能提升技术——IB交换机中的SHARP详解</a></li><li><a href="https://mp.weixin.qq.com/s/YhD_e6kH9lhA360t5yC2iQ" target="_blank" rel="noopener">SHARP与在网计算</a></li><li><a href="https://mp.weixin.qq.com/s/K5o57R5bdW6DjUkme0Gf8g" target="_blank" rel="noopener">NCCL 原理详解：让多GPU通信更高效</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下IB交换机中SHARP(Scalable Hierarchical Aggregation and Reduction Protocol)技术的相关notes。
+    
+    </summary>
+    
+      <category term="AI Infra" scheme="http://liujunming.github.io/categories/AI-Infra/"/>
+    
+    
+      <category term="AI Infra" scheme="http://liujunming.github.io/tags/AI-Infra/"/>
+    
+      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
+    
+  </entry>
   
   <entry>
     <title>每周分享第37期</title>
@@ -454,30 +478,6 @@
     
     
       <category term="内存管理" scheme="http://liujunming.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NVMe 原子写功能</title>
-    <link href="http://liujunming.github.io/2026/01/11/Notes-about-NVMe-%E5%8E%9F%E5%AD%90%E5%86%99%E5%8A%9F%E8%83%BD/"/>
-    <id>http://liujunming.github.io/2026/01/11/Notes-about-NVMe-原子写功能/</id>
-    <published>2026-01-11T13:51:20.000Z</published>
-    <updated>2026-01-11T14:00:37.997Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下NVMe 原子写的相关notes。<a id="more"></a></p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>NVMe原子写是NVMe协议中的一项重要特性，旨在保证数据写入的一致性和完整性。其核心特点是：<strong>一个IO操作要么完整地写入，要么整个写入失败，不会出现部分写入、部分未写入的情况</strong>。</p><h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>在传统数据库操作中（如MySQL InnoDB），为保证数据一致性，通常采用Double Write机制（先写一份到共享表空间，再写入数据文件），这会导致额外的IO写入操作。NVMe原子写特性通过硬件支持，让数据库可以不使用Double Write机制，直接保证大块数据（如16KB）的原子写入。</p><h2 id="关键参数"><a href="#关键参数" class="headerlink" title="关键参数"></a>关键参数</h2><p><img src="/images/2026/01/010.png" alt></p><p>NVMe协议中定义了多个与原子写相关的参数：</p><ul><li>AWUN（Atomic Write Unit Normal）：控制器级别的原子写命令大小</li><li>AWUPF（Atomic Write Unit Power Fail）：供电异常情况下的原子写命令大小</li><li>NAWUN/NAWUPF：命名空间级别的原子写命令大小</li><li>NABSN/NABO：命名空间原子写边界大小和偏移</li></ul><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/0AzRz9j7FJd--oeu4tmjFA" target="_blank" rel="noopener">浅析nvme原子写的应用场景</a></li><li><a href="https://www.qianwen.com/share/chat/c1e86cd704f94e4889789d10d9474d5b" target="_blank" rel="noopener">千问对话</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下NVMe 原子写的相关notes。
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
     
   </entry>
   
