@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-04-11T08:46:45.880Z</updated>
+  <updated>2026-04-18T07:36:13.972Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>每周分享第37期</title>
+    <link href="http://liujunming.github.io/2026/04/18/%E6%AF%8F%E5%91%A8%E5%88%86%E4%BA%AB%E7%AC%AC37%E6%9C%9F/"/>
+    <id>http://liujunming.github.io/2026/04/18/每周分享第37期/</id>
+    <published>2026-04-18T06:08:42.000Z</published>
+    <updated>2026-04-18T07:36:13.972Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="CubeSandbox"><a href="#CubeSandbox" class="headerlink" title="CubeSandbox"></a>CubeSandbox</h2><ul><li><a href="https://mp.weixin.qq.com/s/d6toVeZzrUc1C4g1EJRPnQ" target="_blank" rel="noopener">当 Docker 不再安全：腾讯云 CubeSandbox 如何用 Rust+KVM 重塑 AI Agent 沙箱</a></li><li><a href="https://github.com/TencentCloud/CubeSandbox" target="_blank" rel="noopener">TencentCloud/CubeSandbox</a><a id="more"></a></li></ul><p><img src="/images/2026/04/005.png" alt></p><p><strong>核心优势</strong></p><ul><li>极致冷启动： 基于资源池化预置和快照克隆技术，直接跳过耗时初始化流程。整个沙箱服务端到端冷启动一个可服务的沙箱时间平均 &lt; 60ms</li><li>单机千例的高密部署： 基于 CoW 技术实现极致内存复用，用 Rust 重构底层极致裁剪，使得单实例内存开销低至 &lt;5MB，轻松在一台机器上跑起数千个 Agent。</li><li>真正的内核级隔离： 告别不安全的 Docker 共享内核（Namespace）。每个 Agent 拥有独立的 Guest OS 内核，杜绝容器逃逸，放心运行任何大模型生成的未知代码。</li><li>零成本迁移（E2B 完美平替）： 原生兼容 E2B SDK 接口规范。只需替换一个 URL 环境变量，无需业务代码改动就可切换到免费的 Cube Sandbox，并获得更好的性能体验。</li><li>网络安全： 基于 eBPF 的 CubeVS 在内核态实现严格的沙箱间网络隔离，支持细粒度出站流量过滤策略。</li><li>开箱即用： 可一键快速部署，同时支持单机部署和集群部署。</li><li>事件级快照回滚（coming soon）： 百毫秒级的高频快照回滚能力，基于快照快速创建分叉探索环境</li></ul><p>历史文档:</p><ul><li><a href="https://mp.weixin.qq.com/s/r22ECd7t_alO8VfxTWOU_w" target="_blank" rel="noopener">Cube轻量虚拟化如何做到100ms交付一个安全容器</a></li></ul><h2 id="IPADS开源SkVM"><a href="#IPADS开源SkVM" class="headerlink" title="IPADS开源SkVM"></a>IPADS开源SkVM</h2><p><a href="https://mp.weixin.qq.com/s/W9zPy0R8eqIPjh3MzWoAbg" target="_blank" rel="noopener">上海交大IPADS开源SkVM：让Agent Skill”一次编写，处处高效运行”</a></p><p>Agent时代重新思考编译技术：Skill是代码，LLM+Harness是异构处理器，借鉴语言虚拟机（Language VM）的设计理念，首次将传统编译器与运行时思想系统性地引入Agent技能领域，<strong>SkVM让Skill一次编写，到处高效执行</strong>。</p><p>核心理念：把Skill当作程序来编译</p><p><img src="/images/2026/04/006.png" alt></p><h2 id="英伟达-GPU-机密计算"><a href="#英伟达-GPU-机密计算" class="headerlink" title="英伟达 GPU 机密计算"></a>英伟达 GPU 机密计算</h2><p><a href="https://mp.weixin.qq.com/s/Zx2ocq9RTSx3AsNch0AUYg" target="_blank" rel="noopener">英伟达 GPU 机密计算：AI 时代机密计算边界的延伸</a></p><p>传统机密计算主要保护 CPU 执行环境中的数据与代码，其目标是在操作系统、虚拟化层乃至平台管理员不完全可信的前提下，仍然保证工作负载的机密性与完整性。Intel TDX、AMD SEV-SNP 和 Arm CCA 虽然实现路径不同，但本质上都属于 CPU 侧可信执行环境基础设施：通过硬件隔离、内存保护、启动测量和远程证明，为虚拟机或受保护执行域建立一个不依赖宿主软件信任的安全边界。<strong>它们解决的核心问题是，应用在 CPU 和系统内存中运行时，如何不被宿主环境窥探或篡改</strong>。</p><p>但在 AI 基础设施中，仅有 CPU 侧保护并不充分。因为真正承载高价值数据和核心计算的，往往已经不是 CPU，而是 GPU。<strong>模型权重、推理输入、检索增强数据、中间激活值乃至部分业务逻辑，都会进入 GPU 显存并在加速器上执行</strong>。如果机密计算只覆盖 CPU 虚拟机，而无法覆盖 GPU 执行路径，那么对 AI 而言，这种保护就是不完整的。英伟达 GPU 机密计算的意义，正是在于<strong>把机密计算的保护边界从 CPU 扩展到 GPU，使 GPU 成为整个可信执行体系的一部分，保护模型参数、数据和其他重要客户资产</strong>。</p><p><img src="/images/2026/04/007.png" alt></p><h2 id="为什么-AI-时代值得重新讨论-OS：从-Linux-Kernel-到-GPU-执行栈的系统重构"><a href="#为什么-AI-时代值得重新讨论-OS：从-Linux-Kernel-到-GPU-执行栈的系统重构" class="headerlink" title="为什么 AI 时代值得重新讨论 OS：从 Linux Kernel 到 GPU 执行栈的系统重构"></a>为什么 AI 时代值得重新讨论 OS：从 Linux Kernel 到 GPU 执行栈的系统重构</h2><p><a href="https://mp.weixin.qq.com/s/dVpd5_99co4wk0L-tOpiJQ" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/dVpd5_99co4wk0L-tOpiJQ</a></p><p>AI时代的操作系统革新，核心不在于推翻Linux，而在于围绕<code>tensor</code>、<code>graph</code>、<code>kernel</code>、<code>KV cache</code>等新的一等对象，建立一套从驱动、编译器到运行时服务的全新系统抽象，以管理和调度异构计算资源。</p><h2 id="DPU-PCC"><a href="#DPU-PCC" class="headerlink" title="DPU PCC"></a>DPU PCC</h2><p><a href="https://mp.weixin.qq.com/s/Br_DimiEOPkjBYy4Kw_d9A" target="_blank" rel="noopener">DPU PCC：为什么拥塞控制从“固定算法”走向“可编程”</a></p><p>DOCA 官方给出的定义非常直接：<strong>Programmable Congestion Control（PCC）允许用户设计并实现自定义的拥塞控制算法，以更灵活地处理集群中的网络拥塞问题</strong>。<br>PCC 不是一个具体的拥塞控制算法，而是一个<strong>拥塞控制开发框架</strong>。它的目标是提供一套 API 和执行环境，让客户可以自己写算法、加载算法、运行算法，并基于网络反馈动态调整每条流的发送速率。</p><p>DPU PCC 的本质，是把拥塞控制从一个封闭的网卡内置算法，升级成一个运行在 DPU 数据路径加速环境中的可编程控制框架。它让开发者能够围绕真实业务需求，自定义反馈机制、流状态管理和速率调节逻辑，从而在 AI、存储和多租户集群中获得更合适的网络行为。</p><h2 id="Sandlock：最轻量级的-AI-Agent-沙箱"><a href="#Sandlock：最轻量级的-AI-Agent-沙箱" class="headerlink" title="Sandlock：最轻量级的 AI Agent 沙箱"></a>Sandlock：最轻量级的 AI Agent 沙箱</h2><p>The lightest AI sandbox. A process-based sandbox for Linux, no container, no VM, no root.</p><p>应对AI Agent的安全问题，不应盲目堆叠重量级的硬件隔离，而应针对其应用层的行为模式，设计精细、轻量的访问控制策略。Sandlock正是这一理念的实践，它提供了一种更贴合Agent本质的安全方案。</p><ul><li><a href="https://mp.weixin.qq.com/s/ICxIj6ydpftSLwgjA9zZAg" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/ICxIj6ydpftSLwgjA9zZAg</a></li><li><a href="https://github.com/multikernel/sandlock" target="_blank" rel="noopener">https://github.com/multikernel/sandlock</a></li></ul><p>Lightweight process sandbox for Linux. Confines untrusted code using Landlock (filesystem + network + IPC), seccomp-bpf (syscall filtering), and seccomp user notification (resource limits, IP enforcement, /proc virtualization). No root, no cgroups, no containers.<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sandlock run -w /tmp -r /usr -r /lib -m 512M -- python3 untrusted.py</span><br></pre></td></tr></table></figure></p><h2 id="Bubblewrap-vs-Sandlock"><a href="#Bubblewrap-vs-Sandlock" class="headerlink" title="Bubblewrap vs Sandlock"></a>Bubblewrap vs Sandlock</h2><p>Bubblewrap和Sandlock是两种设计理念和实现路径都截然不同的沙箱工具。简单来说，Bubblewrap是一个通用的、轻量级的“容器构建工具箱”，而Sandlock是一个为AI Agent场景专门设计的、高密度的“进程执行沙箱”。</p><h3 id="目标定位不同"><a href="#目标定位不同" class="headerlink" title="目标定位不同"></a>目标定位不同</h3><p><a href="/2026/03/22/Notes-about-Bubblewrap/">Bubblewrap</a>是一个通用的工具，旨在安全地运行一个浏览器或一个游戏等普通应用。而Sandlock则是专为AI Agent量身定做，它思考的问题是：“如何安全、高效地让大模型生成的上万个代码片段并发执行？”。</p><h3 id="安全模型的根本分歧"><a href="#安全模型的根本分歧" class="headerlink" title="安全模型的根本分歧"></a>安全模型的根本分歧</h3><p>这源于它们对“敌人”的不同理解。</p><ul><li>Bubblewrap默认环境中可能<strong>存在主动的攻击者</strong>，因此首要任务是利用Namespace创建一个与外界隔绝的<strong>“硬边界”</strong>。</li><li>Sandlock则认为Agent不是攻击者，真正的风险是提示词注入。它的核心不是建立边界，而是通过Landlock和Seccomp执行一套精细的访问控制<strong>策略（Policy）</strong>，例如这个Agent只能读<code>/data</code>目录，只能写<code>/tmp</code>。</li></ul><h3 id="效率的极致追求"><a href="#效率的极致追求" class="headerlink" title="效率的极致追求"></a>效率的极致追求</h3><p>在AI场景中，常需同时运行成百上千个沙箱实例。Bubblewrap每个实例都需要独立的初始化过程，资源开销会线性增长。而Sandlock通过其写时复制（COW） 技术，可以瞬间从一个“黄金镜像”克隆出上千个实例，共享内存，极大节省了时间和空间。同时，Sandlock的开销极低，启动仅需5毫秒，远快于传统容器或虚拟机。</p><h3 id="如何选择"><a href="#如何选择" class="headerlink" title="如何选择"></a>如何选择</h3><p>选择Bubblewrap，如果你的目标是：</p><ul><li>为普通桌面应用（如一个闭源游戏或聊天软件）提供一个基础的运行沙箱。</li><li>需要一个无需守护进程、轻量级的通用沙箱工具。</li></ul><p>选择Sandlock，如果你的目标是：</p><ul><li>在AI Agent系统中安全地执行由模型生成的不可信代码。</li><li>需要高并发、低延迟地执行大量短暂任务（如批量代码评估）。</li><li>需要精细到每个工具调用的访问控制策略。</li></ul><h2 id="基于GPU加速的内存回收方案"><a href="#基于GPU加速的内存回收方案" class="headerlink" title="基于GPU加速的内存回收方案"></a>基于GPU加速的内存回收方案</h2><p><a href="https://mp.weixin.qq.com/s/cnAB_8DHaTJRYjVKpcoH_A" target="_blank" rel="noopener">vivo的ZRAM异构压缩技术：基于GPU加速的内存回收方案</a></p><p>key idea: 将zram压缩内存数据的操作由CPU offload到GPU以进行加速。</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;CubeSandbox&quot;&gt;&lt;a href=&quot;#CubeSandbox&quot; class=&quot;headerlink&quot; title=&quot;CubeSandbox&quot;&gt;&lt;/a&gt;CubeSandbox&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://mp.weixin.qq.com/s/d6toVeZzrUc1C4g1EJRPnQ&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;当 Docker 不再安全：腾讯云 CubeSandbox 如何用 Rust+KVM 重塑 AI Agent 沙箱&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/TencentCloud/CubeSandbox&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;TencentCloud/CubeSandbox&lt;/a&gt;
+    
+    </summary>
+    
+      <category term="经验" scheme="http://liujunming.github.io/categories/%E7%BB%8F%E9%AA%8C/"/>
+    
+    
+      <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
+    
+  </entry>
   
   <entry>
     <title>LLM KV Cache文章汇总</title>
@@ -449,30 +473,6 @@
     </summary>
     
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about Zoned Namespace SSD</title>
-    <link href="http://liujunming.github.io/2026/01/11/Notes-about-Zoned-Namespace-SSD/"/>
-    <id>http://liujunming.github.io/2026/01/11/Notes-about-Zoned-Namespace-SSD/</id>
-    <published>2026-01-11T07:08:16.000Z</published>
-    <updated>2026-01-11T07:55:21.974Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Zoned Namespace SSD。<a id="more"></a></p><h2 id="Prerequisite"><a href="#Prerequisite" class="headerlink" title="Prerequisite"></a>Prerequisite</h2><ul><li><a href="/2026/01/03/Notes-about-SSD-components/">SSD basic knowledge</a></li><li><a href="/2025/05/18/Notes-about-NVMe-dataset-management/">NVMe dataset management</a></li><li><a href="/2026/01/03/Notes-about-NVMe-FDP-feature/">NVMe FDP feature</a></li></ul><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>Zoned Namespaces是NVMe规范中的一套新命令集（Zoned Namespace Command Set），该命令集暴露了一套接口（zoned block storage interface）给主机，该接口将其容量划分为多个Zone，在每个Zone内允许随机读，但只允许顺序写。这样的设计简化了SSD内部的数据放置策略，能够让写入的数据与物理介质对齐，并能够优化吞吐量、QoS、容量、寿命等。但用好这种读写接口需要用户软件层的额外适配。支持 Zoned Namespaces 命令集的SSD便成为Zone Namespaces SSD（ZNS SSD）。</p><p><img src="/images/2026/01/005.png" alt></p><h2 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h2><ol><li>将LBA分成了很多个独立的zone。</li><li>在每个zone内部只能够顺序写入，可以随机读取，擦除操作只能够以一整个zone为单位reset。</li><li>主机和SSD之间协同进行空间管理，可以保证zone和物理介质的对齐。</li><li>需要主机来主动管理SSD上数据的垃圾回收。</li></ol><p><img src="/images/2026/01/006.png" alt></p><h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p><img src="/images/2026/01/007.png" alt></p><p><img src="/images/2026/01/008.png" alt></p><p><img src="/images/2026/01/009.png" alt></p><p>OP(Over-Provisioning) is the technology that assigns a certain portion of the SSD’s capacity exclusively to the controller to allow the SSD to perform Garbage Collection (GC) more efficiently, helping to maintain steady state performance (sustained performance) and extend the SSD’s endurance and lifetime.</p><h2 id="DSM-vs-FDP-vs-ZNS"><a href="#DSM-vs-FDP-vs-ZNS" class="headerlink" title="DSM vs FDP vs ZNS"></a>DSM vs FDP vs ZNS</h2><p><img src="/images/2026/01/004.png" alt></p><h2 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h2><ul><li>ZNS SSDs enable <strong>higher performance and lower-cost-per-byte flash-based SSDs</strong>.</li><li>By shifting responsibilities for managing data placement within erase blocks from FTLs to host software, ZNS <strong>eliminates the need for fine-grained indirection table, garbage collection, and media over-provisioning</strong>.</li></ul><hr><p>参考资料:</p><ol><li><a href="https://0x10.sh/zone-namespace-ssd" target="_blank" rel="noopener">Zone Namespace SSD</a></li><li><a href="https://www.qianwen.com/share/chat/a4cf18a95c474cc19354d3223c165fdc" target="_blank" rel="noopener">千问对话</a></li><li><a href="https://files.futurememorystorage.com/proceedings/2025/20250807_SSDT-302-1_Yeh.pdf" target="_blank" rel="noopener">Optimizing SSD Performance for Edge AI NVMe Dataset Management Insights</a></li><li><a href="https://www.usenix.org/conference/atc21/presentation/bjorling" target="_blank" rel="noopener">ZNS: Avoiding the Block Interface Tax for Flash-based SSDs</a></li><li><a href="https://www.usenix.org/conference/osdi21/presentation/han" target="_blank" rel="noopener">ZNS+: Advanced Zoned Namespace Interface for Supporting In-Storage Zone Compaction</a></li><li><a href="https://arxiv.org/abs/2206.01547" target="_blank" rel="noopener">Understanding NVMe Zoned Namespace (ZNS) Flash SSD Storage Devices</a></li><li><a href="https://www.usenix.org/conference/osdi23/presentation/min" target="_blank" rel="noopener">eZNS: An Elastic Zoned Namespace for Commodity ZNS SSDs</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Zoned Namespace SSD。
-    
-    </summary>
-    
-      <category term="存储" scheme="http://liujunming.github.io/categories/%E5%AD%98%E5%82%A8/"/>
     
     
       <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
