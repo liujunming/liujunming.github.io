@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-04-18T14:49:16.749Z</updated>
+  <updated>2026-04-19T09:16:26.001Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Intel&#39;s Flat Memory Mode</title>
+    <link href="http://liujunming.github.io/2026/04/19/Notes-about-Intel-s-flat-memory-mode/"/>
+    <id>http://liujunming.github.io/2026/04/19/Notes-about-Intel-s-flat-memory-mode/</id>
+    <published>2026-04-19T02:03:16.000Z</published>
+    <updated>2026-04-19T09:16:26.001Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Intel Flat Memory Mode (FMM) 的相关notes。<a id="more"></a></p><h2 id="Backgrpund"><a href="#Backgrpund" class="headerlink" title="Backgrpund"></a>Backgrpund</h2><p><img src="/images/2026/04/010.png" alt></p><p><img src="/images/2026/04/011.png" alt></p><p><img src="/images/2026/04/012.png" alt></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2026/04/013.png" alt></p><p><img src="/images/2026/04/014.png" alt></p><p><img src="/images/2026/04/015.png" alt></p><p><img src="/images/2026/04/016.png" alt></p><p><img src="/images/2026/04/017.png" alt></p><h2 id="Details"><a href="#Details" class="headerlink" title="Details"></a>Details</h2><p>参考<a href="https://www.usenix.org/system/files/osdi24-zhong-yuhong.pdf" target="_blank" rel="noopener">Managing Memory Tiers with CXL in Virtualized Environments</a>中的3.1 即可。</p><p><img src="/images/2026/04/018.png" alt></p><p><img src="/images/2026/04/019.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://www.intel.com/content/www/us/en/content-details/886601/the-advantages-of-managing-the-cxl-memory-tier-in-hardware.html" target="_blank" rel="noopener">The Advantages of Managing the CXL Memory Tier in Hardware</a></li><li>Managing Memory Tiers with CXL in Virtualized Environments(OSDI’24)</li><li><a href="https://chat.deepseek.com/share/r66602rkw3x1tc5xdl" target="_blank" rel="noopener">deepseek会话</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Intel Flat Memory Mode (FMM) 的相关notes。
+    
+    </summary>
+    
+      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
+    
+    
+      <category term="内存管理" scheme="http://liujunming.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
+    
+      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about IB交换机中的SHARP技术</title>
@@ -456,28 +480,6 @@
       <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
     
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NUMA balance技术</title>
-    <link href="http://liujunming.github.io/2026/01/17/Notes-about-NUMA-balance%E6%8A%80%E6%9C%AF/"/>
-    <id>http://liujunming.github.io/2026/01/17/Notes-about-NUMA-balance技术/</id>
-    <published>2026-01-17T02:53:19.000Z</published>
-    <updated>2026-01-17T14:06:29.078Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下NUMA balance技术的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p><img src="/images/2026/01/011.png" alt></p><h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>任务访问本节点内存。实现上将其拆分成两个小目标：</p><ol><li>如果任务访问的大部分内存不在本节点，那么把任务迁移到该节点的CPU上运行； </li><li>如果任务访问的大部分数据都在本节点，那么将其他节点上的数据迁移到该节点上。</li></ol><h2 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h2><p>numa balance功能的基本实现过程:</p><ol><li>周期性扫描task的地址空间并且修改页表项为PAGE_NONE(没有读/写/执行权限，但是有对应的物理地址),之后访问该数据时会发生page fault</li><li>在page fault中，重新修改页表为正确的权限使得后面能够继续执行</li><li>在page fault中会追踪两个数据: page被哪个节点和任务访问过，任务在各个节点上发生的缺页情况</li><li>根据历史记录，决定是否迁移页和任务迁移</li></ol><p>总体而言需要解决几个问题：</p><ol><li>扫描尽量不要影响系统正常的性能，因为它会强制触发page fault, 所以必须对扫描周期和一次性扫描的页范围进行限制，特别是扫描周期会根据缺页的历史统计进行动态调整</li><li>决定是否迁移页</li><li>决定是否迁移线程到不同的节点上</li></ol><hr><p>参考资料:</p><ol><li><a href="https://blog.csdn.net/faxiang1230/article/details/123709414" target="_blank" rel="noopener">numa balance实现浅析</a></li><li><a href="https://www.youtube.com/watch?v=eTxx68jEDXU" target="_blank" rel="noopener">主題分享: Introduction to NUMA and Hugepage</a></li><li><a href="https://events.static.linuxfound.org/sites/events/files/slides/summit2014_riel_chegu_w_0340_automatic_numa_balancing_0.pdf" target="_blank" rel="noopener">Automatic NUMA Balancing</a></li><li><a href="https://www.qianwen.com/share/chat/3740ace27eda46d39410b6e7b2ebd219" target="_blank" rel="noopener">千问对话</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下NUMA balance技术的相关notes。
-    
-    </summary>
-    
-      <category term="内存管理" scheme="http://liujunming.github.io/categories/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
-    
-    
-      <category term="内存管理" scheme="http://liujunming.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
     
   </entry>
   
