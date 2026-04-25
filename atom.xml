@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-04-25T12:17:06.923Z</updated>
+  <updated>2026-04-25T15:06:44.666Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about PCIe Flit Mode, PAM4, and FEC</title>
+    <link href="http://liujunming.github.io/2026/04/25/Notes-about-PCIe-flit-mode/"/>
+    <id>http://liujunming.github.io/2026/04/25/Notes-about-PCIe-flit-mode/</id>
+    <published>2026-04-25T14:17:26.000Z</published>
+    <updated>2026-04-25T15:06:44.666Z</updated>
+    
+    <content type="html"><![CDATA[<p>简单来说，Flit Mode（Flow Control Unit）将传统模式下的<strong>不定长</strong>数据包，转变为<strong>固定长度（256字节）</strong>的数据包进行传输。<a id="more"></a></p><p>Flit Mode, PAM4(Pulse Amplitude Modulation with 4 levels), and FEC(Forward Error Correction)这三者构成了 PCIe 6.0 能倍增速率的核心“铁三角”。可以这样理解它们的关系：<strong>PAM4 是提速的“发动机”，FEC 是处理高误码的“安全网”，而 Flit Mode 则是为了让 FEC 能顺利工作的“标准化集装箱”</strong>。</p><p>它们是一条环环相扣的因果链：</p><h2 id="起点：PAM4-提速，但引入了严重的误码"><a href="#起点：PAM4-提速，但引入了严重的误码" class="headerlink" title="起点：PAM4 提速，但引入了严重的误码"></a>起点：PAM4 提速，但引入了严重的误码</h2><p>为了将传输速率从前代的 32 GT/s 翻倍至 64 GT/s，PCIe 6.0 将信号调制方式从 NRZ（1比特/时钟周期）换成了 PAM4（2比特/时钟周期）。代价是信号幅度被分成4级，对噪声更敏感，导致<strong>位错误率（BER）急剧上升</strong>。</p><h2 id="对策：必须用-FEC-主动纠错"><a href="#对策：必须用-FEC-主动纠错" class="headerlink" title="对策：必须用 FEC 主动纠错"></a>对策：必须用 FEC 主动纠错</h2><p>在如此高的错误率下，如果仍沿用传统的“错了就整包重传”机制，链路大部分时间都将浪费在无效的重传上，实际有效带宽可能不升反降。</p><p>因此，必须引入FEC。它在发送端加入校验数据，让接收端能<strong>直接在原地纠正大部分错误</strong>，只有遇到无法纠正的少量错误时才请求重传，从而将有效带宽保持在极高水平。</p><h2 id="条件：FEC-需要定长数据块，催生了-Flit"><a href="#条件：FEC-需要定长数据块，催生了-Flit" class="headerlink" title="条件：FEC 需要定长数据块，催生了 Flit"></a>条件：FEC 需要定长数据块，催生了 Flit</h2><p>FEC 算法(如低密度奇偶校验 LDPC)必须工作在<strong>固定长度的数据块</strong>上，通过计算整个数据块的校验位来纠错。而传统 PCIe 的 TLP长度是可变的，短至几个字节，长至几千字节，完全无法匹配 FEC 的要求。</p><p>于是，Flit应运而生。它把所有数据都打包进<strong>固定的 256 字节“集装箱”</strong>里，FEC 就能以此为基本单位进行编解码和纠错。Flit Mode 便是围绕这种固定包结构建立的全新数据交换规则。</p><h2 id="协同工作的简化流程"><a href="#协同工作的简化流程" class="headerlink" title="协同工作的简化流程"></a>协同工作的简化流程</h2><p>一条数据在 PCIe 6.0 链路中的旅程如下：</p><ol><li>打包：各种不定长的 TLP 被按照 256 字节标准封装进 Flit</li><li>编码纠错：每个 Flit 被加上 FEC 校验位，信号以 PAM4 形式高速发出</li><li>接收纠错：接收端对 PAM4 信号采样，并利用 FEC 对每个 Flit 进行纠错<ul><li>多数情况：FEC 成功纠正了 PAM4 传输引入的错误，数据直接通过</li><li>极少数情况：错误超出了 FEC 能力，则触发选择性重传，只重传出问题的那个 Flit</li></ul></li></ol><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul><li>PAM4 是“因”：提速需求催生了 PAM4，也带来了高误码这个必须解决的技术挑战。</li><li>FEC 是“核心手段”：为对抗高误码而引入的根本性纠错方案。</li><li>Flit 是“必须的结构”：为满足 FEC 对定长数据块的要求而设计的新一代数据传输格式。</li></ul><p>三者共同将 PCIe 6.0 打造成了一个速度极快、纠错极强且效率极高的互连通道。</p><hr><p>参考资料:</p><ol><li><a href="https://pcisig.com/blog/pcie%C2%AE-60-specification-webinar-qa-deeper-dive-flit-mode-pam4-and-forward-error-correction-fec" target="_blank" rel="noopener">A Deeper Dive into FLIT Mode, PAM4, and Forward Error Correction (FEC)</a></li><li><a href="https://chat.deepseek.com/share/6gy0mgd8v8obhkp381" target="_blank" rel="noopener">deepseek对话</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;简单来说，Flit Mode（Flow Control Unit）将传统模式下的&lt;strong&gt;不定长&lt;/strong&gt;数据包，转变为&lt;strong&gt;固定长度（256字节）&lt;/strong&gt;的数据包进行传输。
+    
+    </summary>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PCIe domain和segment</title>
@@ -457,28 +479,6 @@
     
     
       <category term="计算机系统" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about APERF and MPERF</title>
-    <link href="http://liujunming.github.io/2026/01/24/Notes-about-aperf-and-mperf/"/>
-    <id>http://liujunming.github.io/2026/01/24/Notes-about-aperf-and-mperf/</id>
-    <published>2026-01-24T02:29:20.000Z</published>
-    <updated>2026-01-24T03:02:29.066Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下Intel APERF(Actual Performance Frequency Clock Count)和MPERF(Maximum Performance Frequency Clock Count)的相关notes。<a id="more"></a></p><h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p><img src="/images/2026/01/025.png" alt></p><p>There are two model-specific registers (MSRs) on modern x86 CPUs called <code>APERF</code> and <code>MPERF</code>. Both can be thought of as a sort of time-stamp counter that increments as the CPU executes. <code>MPERF</code> increments at constant a rate proportional to the maximum frequency of the processor, while <code>APERF</code> increments at a variable rate proportional to the actual operating frequency. If <code>aperf_change</code> is the change in <code>APERF</code> over a given time period, and <code>mperf_change</code> is the change in <code>MPERF</code> over that same period, then the operating frequency can be approximated as:</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">operating_freq = (max_freq * aperf_change) / mperf_change;</span><br></pre></td></tr></table></figure><p><img src="/images/2026/01/026.png" alt></p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>基于APERF和MPERF，可以测量CPU的实际频率。 </p><hr><p>参考资料:</p><ol><li><a href="https://lwn.net/Articles/816388/" target="_blank" rel="noopener">Frequency-invariant utilization tracking for x86</a></li><li>Intel SDM vol4</li><li><a href="https://lore.kernel.org/lkml/52f711be59539723358bea1aa3c368910a68b46d.1459485198.git.len.brown@intel.com/" target="_blank" rel="noopener">x86: Calculate MHz using APERF/MPERF for cpuinfo and scaling_cur_freq</a></li><li><a href="https://stackoverflow.com/questions/65095/assembly-cpu-frequency-measuring-algorithm" target="_blank" rel="noopener">Assembly CPU frequency measuring algorithm</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下Intel APERF(Actual Performance Frequency Clock Count)和MPERF(Maximum Performance Frequency Clock Count)的相关notes。
-    
-    </summary>
-    
-      <category term="Intel" scheme="http://liujunming.github.io/categories/Intel/"/>
-    
-    
-      <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
     
   </entry>
   
