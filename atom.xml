@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-04-19T09:30:25.908Z</updated>
+  <updated>2026-04-25T12:17:06.923Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,51 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about PCIe domain和segment</title>
+    <link href="http://liujunming.github.io/2026/04/25/Notes-about-PCIe-domain%E5%92%8Csegment/"/>
+    <id>http://liujunming.github.io/2026/04/25/Notes-about-PCIe-domain和segment/</id>
+    <published>2026-04-25T12:05:08.000Z</published>
+    <updated>2026-04-25T12:17:06.923Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下PCIe domain和segment的相关notes。<a id="more"></a>内容转载自<a href="https://mp.weixin.qq.com/s/n18cF9zP7WzCKJFLDQypmA" target="_blank" rel="noopener">PCIe domain和segment介绍</a></p><p>PCIe Segment（段）是一个硬件层面的概念，指一组完全独立的PCIe总线域；而PCIe Domain（域）是Linux内核在软件层面为每个Segment分配的编号。</p><ul><li>PCIe Segment：是硬件概念。它代表一个完全独立的<strong>PCIe总线树，由独立的Root Complex（根复合体）管理</strong>。不同Segment之间的地址空间和配置空间是互相隔离的。多Segment常见于大型服务器，用于突破单个总线域只能有256个总线的限制。</li><li>PCIe Domain：是Linux内核中的软件表示。内核使用域号来区分不同的硬件Segment。因此，可以在Linux的lspci -t命令的输出中看到“Domain: Bus: Device. Function”的格式，这个Domain号实际上对应的就是硬件Segment。</li></ul><p><img src="/images/2026/04/022.png" alt></p><p>Segment和Domain的核心区别在于：一个Segment是物理上独立的总线树，而一个Domain则是内核给这个树分配的软件编号。举个例子，如果一台服务器有4个物理的PCIe Segment，在Linux中我们就会看到4个Domain（通常编号为0、1、2、3）。</p><p><strong>一个系统中的每个PCIe 设备使用Domain: Bus: Device. Function来唯一标识</strong>，具体含义与取值范围如下：</p><table><thead><tr><th style="text-align:left">标识符</th><th style="text-align:left">名称</th><th style="text-align:left">含义</th><th style="text-align:left">范围</th></tr></thead><tbody><tr><td style="text-align:left">Domain</td><td style="text-align:left">域号</td><td style="text-align:left">区分不同主机/根复合体（Host Bridge）。</td><td style="text-align:left">0000 - FFFF</td></tr><tr><td style="text-align:left">Bus</td><td style="text-align:left">总线号</td><td style="text-align:left">设备所连接的总线号（总线 0 为起点）。</td><td style="text-align:left">00 - FF</td></tr><tr><td style="text-align:left">Device</td><td style="text-align:left">设备号</td><td style="text-align:left">总线上的设备（槽位 / 逻辑设备），最多 32 个。</td><td style="text-align:left">00 - 1F</td></tr><tr><td style="text-align:left">Function</td><td style="text-align:left">功能号</td><td style="text-align:left">物理设备上的子功能（例如多功能网卡）。</td><td style="text-align:left">0 - 7</td></tr></tbody></table>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下PCIe domain和segment的相关notes。
+    
+    </summary>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>每周分享第38期</title>
+    <link href="http://liujunming.github.io/2026/04/25/%E6%AF%8F%E5%91%A8%E5%88%86%E4%BA%AB%E7%AC%AC38%E6%9C%9F/"/>
+    <id>http://liujunming.github.io/2026/04/25/每周分享第38期/</id>
+    <published>2026-04-25T04:03:01.000Z</published>
+    <updated>2026-04-25T14:14:02.515Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="Prefill-as-a-Service"><a href="#Prefill-as-a-Service" class="headerlink" title="Prefill-as-a-Service"></a>Prefill-as-a-Service</h2><p>核心是将PD分离放在两个或多个Datacenter中的异构GPU集群。</p><p><img src="/images/2026/04/020.png" alt><a id="more"></a></p><ul><li>跨集群边界将Prefill从Decode中分离出来，通过将Prefill迁移到更快的计算硬件，可以降低长上下文请求的成本和延迟</li><li>这个问题的核心障碍在于 KVCache传输量太大。不过最近的混合注意力（Hybrid-attention）架构从根本上改变了这一局面，大幅减少了 KVCache的增长，通常降低了一个数量级</li><li>在真实的场景下由于请求到达的突发性和长短的不均衡，全部通过跨机房的专线传输还是很容易出现拥塞。 系统上我们需要尽可能识别值得传的 KVCache，从而实现跨机房异构 PD 不仅是更便宜，TTFT 还更低这一目标</li><li>最基本的原则就包括短的 incremental prefill 就在本地消化，长的才分到远端 prefill，但实际还需要进一步考虑网络拥塞和不同机房 KVCache 复用命中的情况</li></ul><p><a href="https://mp.weixin.qq.com/s/leWZtUDEh8jteB27F6XkQA" target="_blank" rel="noopener">Prefill-as-a-Service：KVCache的跨数据中心传输</a><br><a href="https://mp.weixin.qq.com/s/9Nm3DammCwa1Tm2pfBvklw" target="_blank" rel="noopener">Prefill-as-a-Service：跨机房异构 PD 分离的最后一块拼图是线性注意力？</a><br><a href="https://mp.weixin.qq.com/s/VvvvYy_c2g4Bnrc2qopiNw" target="_blank" rel="noopener">Kimi新论文：把KVCache玩成新商业模式了</a></p><h2 id="IPADS开源形式化方法智能体FM-Agent"><a href="#IPADS开源形式化方法智能体FM-Agent" class="headerlink" title="IPADS开源形式化方法智能体FM-Agent"></a>IPADS开源形式化方法智能体FM-Agent</h2><p><a href="https://mp.weixin.qq.com/s/AQLsy41Fx9yc5dXlokRI6w" target="_blank" rel="noopener">上海交大IPADS开源形式化方法智能体FM-Agent：让代码不仅可生成，还可推理</a><br><a href="https://mp.weixin.qq.com/s/A_gKk8ls7-w2xYDTLFuyPQ" target="_blank" rel="noopener">编程智能体的隐藏bug，被上交IPADS团队用数学逻辑给揪出来了</a></p><p>如今的Coding Agent生成十万行以上的系统级代码，甚至构建一个完整的编译器，都已不再稀奇。但一个严峻的挑战随之而来：如何保障这些大规模代码的正确性？上海交大IPADS团队推出形式化方法智能体FM-Agent，通过将形式化验证方法与LLM结合，首次实现了面向大规模软件的全自动正确性推理，对27万多行已经过层层测试的系统代码进行“深度体检”，找到522个被遗漏的隐蔽bug。</p><p>霍尔逻辑由图灵奖得主托尼·霍尔于约六十年前提出，但受限于人工成本，形式化方法在大规模软件中的应用始终未能普及。FM-Agent并未追求传统形式化验证所依赖的严格公式证明，而是借助大模型的强大推理能力，首次实现了面向大规模系统软件的全自动正确性推理。这一工作延续了霍尔逻辑的核心思想，站在巨人的肩膀上，同时也为形式化方法的实际落地提供了新的可行路径。</p><h2 id="Harness-Engineering"><a href="#Harness-Engineering" class="headerlink" title="Harness Engineering"></a>Harness Engineering</h2><p><a href="https://mp.weixin.qq.com/s/jlYHOardcQaEx4BdMuNOPA" target="_blank" rel="noopener">别再说”Prompt工程”了！2026全网爆火的Harness Engineering是什么鬼？</a><br><img src="/images/2026/04/021.png" alt></p><h2 id="A-Survey-of-Context-Engineering-for-Large-Language-Models"><a href="#A-Survey-of-Context-Engineering-for-Large-Language-Models" class="headerlink" title="A Survey of Context Engineering for Large Language Models"></a>A Survey of Context Engineering for Large Language Models</h2><p><a href="https://mp.weixin.qq.com/s/deBKVO_TpuoYIfaXb6KlWw" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/deBKVO_TpuoYIfaXb6KlWw</a></p><p><a href="https://mp.weixin.qq.com/s/9KrnTk9LwWGmsiaypu-AVw" target="_blank" rel="noopener">上下文工程（Context Engineering）原理简介</a></p><h2 id="Nsight-Systems"><a href="#Nsight-Systems" class="headerlink" title="Nsight Systems"></a>Nsight Systems</h2><p>NVIDIA Nsys 通常指的是 NVIDIA Nsight Systems（命令行工具<code>nsys</code>），是 NVIDIA 官方的系统级性能分析工具。它主要用于对 CUDA 应用程序进行全系统时间线分析，帮助开发者快速定位 CPU 和 GPU 之间的瓶颈，而不仅仅是 GPU 内核内部的耗时。</p><p><a href="https://chat.deepseek.com/share/kw68e7wlf5s356if9u" target="_blank" rel="noopener">deepseek对话</a></p><h2 id="Nsight-Compute"><a href="#Nsight-Compute" class="headerlink" title="Nsight Compute"></a>Nsight Compute</h2><p>Nsight Compute：专攻 GPU 内核内部的微架构分析（如带宽、占用率、指令吞吐），属于“内核级”分析。</p><p><a href="https://developer.nvidia.com/nsight-compute" target="_blank" rel="noopener">https://developer.nvidia.com/nsight-compute</a></p><h2 id="manim"><a href="#manim" class="headerlink" title="manim"></a>manim</h2><p>可视化数学<br><a href="https://github.com/3b1b/manim" target="_blank" rel="noopener">https://github.com/3b1b/manim</a></p><h2 id="dmidecode"><a href="#dmidecode" class="headerlink" title="dmidecode"></a>dmidecode</h2><p><a href="https://github.com/mirror/dmidecode" target="_blank" rel="noopener">https://github.com/mirror/dmidecode</a></p><p>Dmidecode reports information about your system’s hardware as described in your system BIOS according to the SMBIOS/DMI standard. This information typically includes system manufacturer, model name, serial number, BIOS version, asset tag as well as a lot of other details of varying level of interest and reliability depending on the manufacturer. This will often include usage status for the CPU sockets, expansion slots (e.g. AGP, PCI, ISA) and memory module slots, and the list of I/O ports (e.g. serial, parallel, USB).</p><h2 id="2025阿里云技术年报-基础设施篇"><a href="#2025阿里云技术年报-基础设施篇" class="headerlink" title="2025阿里云技术年报 基础设施篇"></a>2025阿里云技术年报 基础设施篇</h2><p><a href="https://mp.weixin.qq.com/s/ykEFWsM1VrYcDSj9KRdzaQ" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/ykEFWsM1VrYcDSj9KRdzaQ</a></p><h2 id="如何在短时间内提升自己"><a href="#如何在短时间内提升自己" class="headerlink" title="如何在短时间内提升自己"></a>如何在短时间内提升自己</h2><p><a href="https://mp.weixin.qq.com/s/LdeBYWcxb3ZSASf6aGo7aQ" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/LdeBYWcxb3ZSASf6aGo7aQ</a></p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;Prefill-as-a-Service&quot;&gt;&lt;a href=&quot;#Prefill-as-a-Service&quot; class=&quot;headerlink&quot; title=&quot;Prefill-as-a-Service&quot;&gt;&lt;/a&gt;Prefill-as-a-Service&lt;/h2&gt;&lt;p&gt;核心是将PD分离放在两个或多个Datacenter中的异构GPU集群。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/images/2026/04/020.png&quot; alt&gt;
+    
+    </summary>
+    
+      <category term="经验" scheme="http://liujunming.github.io/categories/%E7%BB%8F%E9%AA%8C/"/>
+    
+    
+      <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about Intel&#39;s Flat Memory Mode</title>
@@ -434,52 +479,6 @@
     
     
       <category term="Intel" scheme="http://liujunming.github.io/tags/Intel/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>深入理解NVMe Asynchronous Event Request机制</title>
-    <link href="http://liujunming.github.io/2026/01/18/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3NVMe-Asynchronous-Event-Request%E6%9C%BA%E5%88%B6/"/>
-    <id>http://liujunming.github.io/2026/01/18/深入理解NVMe-Asynchronous-Event-Request机制/</id>
-    <published>2026-01-18T11:02:44.000Z</published>
-    <updated>2026-01-18T12:15:27.916Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将深入理解NVMe Asynchronous Event Request(AER)机制。<a id="more"></a></p><p><img src="/images/2026/01/023.png" alt></p><h2 id="AER机制"><a href="#AER机制" class="headerlink" title="AER机制"></a>AER机制</h2><p><img src="/images/2026/01/019.png" alt></p><p>Asynchronous events are used to notify host software of status, error, and health information as these events occur. To enable asynchronous events to be reported by the controller, host software needs to submit one or more Asynchronous Event Request commands to the controller. The controller specifies an event to the host by completing an Asynchronous Event Request command. Host software should expect that the controller may not execute the command immediately; the command should be completed when there is an event to be reported.</p><p>The Asynchronous Event Request command is submitted by host software to enable the reporting of asynchronous events from the controller. This command has no timeout. The controller posts a completion queue entry for this command when there is an asynchronous event to report to the host.</p><p>Asynchronous events are grouped into event types. The event type is indicated in the Asynchronous Event Type field in Dword 0 of the completion queue entry for the Asynchronous Event Request command. When the controller posts a completion queue entry for an outstanding Asynchronous Event Request command and thus reports an asynchronous event, subsequent events of that event type are automatically masked by the controller until the host clears that event. An event is cleared by reading the log page associated with that event using the Get Log Page command .</p><p>The following event types are defined:</p><ul><li>Error event</li><li>SMART / Health Status event</li><li>Notice event<ul><li>Namespace Attribute Changed</li><li>Firmware Activation Starting</li><li>Telemetry Log Changed</li><li>Asymmetric Namespace Access Change</li><li>Predictable Latency Event Aggregate Log Change</li><li>LBA Status Information Alert</li><li>Endurance Group Event Aggregate Log Page Change</li></ul></li><li>NVM Command Set Specific events<ul><li>Reservation Log Page Available event</li><li>Sanitize Operation Completed event</li><li>Sanitize Operation Completed With Unexpected Deallocation event</li></ul></li><li>Vendor Specific event</li></ul><p><img src="/images/2026/01/021.png" alt><br>Log Page Identifier与Get Log Page command的联系:<br><img src="/images/2026/01/022.png" alt></p><p>Error status、SMART / Health Status、Notice与NVM Command Set Specific Status的详细信息，请参考NVMe spec。</p><h3 id="AER-sqe预埋机制"><a href="#AER-sqe预埋机制" class="headerlink" title="AER sqe预埋机制"></a>AER sqe预埋机制</h3><ol><li>因为driver不知道NVMe controller什么时候会发送AER事件，所以driver会往Admin SQ中预埋一些AER sqe(类似于网卡rx queue的收包机制)；</li><li>当NVMe controller需要往driver发送AER事件时，就会消费一个AER sqe，然后回一个AER cqe给driver。<br><img src="/images/2026/01/020.png" alt></li></ol><h2 id="Case"><a href="#Case" class="headerlink" title="Case"></a>Case</h2><h3 id="NVM-Subsystem-Hardware-Error-Event"><a href="#NVM-Subsystem-Hardware-Error-Event" class="headerlink" title="NVM Subsystem Hardware Error Event"></a>NVM Subsystem Hardware Error Event</h3><p><img src="/images/2026/01/017.png" alt></p><p><img src="/images/2026/01/018.png" alt></p><h3 id="NVMe-resize"><a href="#NVMe-resize" class="headerlink" title="NVMe resize"></a>NVMe resize</h3><p><img src="/images/2026/01/024.png" alt></p><hr><p>参考资料:</p><ol><li>NVMe 1.4 spec</li><li><a href="https://nvmexpress.org/wp-content/uploads/June-2020-NVMe%E2%84%A2-SSD-Management-Error-Reporting-and-Logging-Capabilities.pdf" target="_blank" rel="noopener">NVMe™ SSD Management, Error Reporting and Logging Capabilities</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将深入理解NVMe Asynchronous Event Request(AER)机制。
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about PCIe resize bar</title>
-    <link href="http://liujunming.github.io/2026/01/18/Notes-about-PCIe-resize-bar/"/>
-    <id>http://liujunming.github.io/2026/01/18/Notes-about-PCIe-resize-bar/</id>
-    <published>2026-01-18T07:45:47.000Z</published>
-    <updated>2026-01-18T08:45:32.058Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下PCIe resize bar的相关notes。<a id="more"></a></p><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>Resizable BAR support is a PCIe extension that allows resizing a PCIe device’s mappable memory/register space. An important use case are GPUs. GPUs generally declare only have 256MiB worth of BARs mapping GPU memory to maintain compatibility with 32bit operating systems. However, <strong>for performance (particularly when using PCIe P2P), it is desirable to be able to map the entirety of GPU memory, necessitating resizable BARs</strong>.</p><h2 id="Case-GPU-game"><a href="#Case-GPU-game" class="headerlink" title="Case:GPU game"></a>Case:GPU game</h2><p>When a game is running, the CPU needs access to a graphic card’s memory, and by default it can only access 256MB at a time. However, resizable BAR removes the size limitation so the CPU has access to all of a GPU’s memory, theoretically allowing for improved performance. This adjustment lets the CPU request much larger chunks of data from the GPU, which can improve performance in games that can benefit from this change.</p><p>Resizable BAR lowers the overhead involved in the transfer of game assets between the CPU and GPU, sending <strong>fewer, larger transfers</strong> instead of numerous smaller transfers, and it can also <strong>allow multiple requests to happen at the same time</strong> instead of entering a queue. As an example, if your CPU needs 1GB of data it would have to make four requests using a 256MB limitation, or just one using Resizable BAR .</p><h2 id="PCIe-Spec-details"><a href="#PCIe-Spec-details" class="headerlink" title="PCIe Spec details"></a>PCIe Spec details</h2><p>The Resizable BAR Capability structure defines a PCI Express Extended Capability, which is located in PCI Express Extended Configuration Space, that is, above the first 256 bytes, and is shown below in Figure 7-127. This structure allows devices with this capability to be identified and controlled. A Capability and a Control register is implemented for each BAR that is resizable. Since a maximum of six BARs may be implemented by any Function, the Resizable BAR Capability structure can range from 12 bytes long (for a single BAR) to 52 bytes long (for all six BARs).</p><p><img src="/images/2026/01/012.png" alt></p><h3 id="Resizable-BAR-Extended-Capability-Header"><a href="#Resizable-BAR-Extended-Capability-Header" class="headerlink" title="Resizable BAR Extended Capability Header"></a>Resizable BAR Extended Capability Header</h3><p><img src="/images/2026/01/013.png" alt></p><h3 id="Resizable-BAR-Capability-Register"><a href="#Resizable-BAR-Capability-Register" class="headerlink" title="Resizable BAR Capability Register"></a>Resizable BAR Capability Register</h3><p><img src="/images/2026/01/014.png" alt></p><h3 id="Resizable-BAR-Control-Register"><a href="#Resizable-BAR-Control-Register" class="headerlink" title="Resizable BAR Control Register"></a>Resizable BAR Control Register</h3><p><img src="/images/2026/01/015.png" alt></p><p><img src="/images/2026/01/016.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://zhuanlan.zhihu.com/p/661598227" target="_blank" rel="noopener">[PCIe] resize bar协议与实现</a></li><li><a href="https://www.corsair.com/us/en/explorer/glossary/what-is-resizable-bar/" target="_blank" rel="noopener">What is Resizable BAR?</a></li><li><a href="https://www.gigabyte.com/WebPage/785/NVIDIA_resizable_bar.html" target="_blank" rel="noopener">NVIDIA resizable bar</a></li><li><a href="https://lore.kernel.org/lkml/20211215141626.3090807-1-michal.winiarski@intel.com/T/" target="_blank" rel="noopener">PCI: VF resizable BAR</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下PCIe resize bar的相关notes。
-    
-    </summary>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
-    
-    
-      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
     
   </entry>
   
