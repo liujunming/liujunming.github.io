@@ -284,7 +284,7 @@
   <div class="post-toc" id="post-toc">
     <h2 class="post-toc-title">文章目录</h2>
     <div class="post-toc-content">
-      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#技术定位"><span class="toc-text">技术定位</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#应用场景"><span class="toc-text">应用场景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#创建与使用流程"><span class="toc-text">创建与使用流程</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#技术定位"><span class="toc-text">技术定位</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#应用场景"><span class="toc-text">应用场景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#创建与使用流程"><span class="toc-text">创建与使用流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
     </div>
   </div>
 
@@ -297,9 +297,11 @@
 <p>CUDA 中的 Green Context 是一种轻量级的上下文形式，可作为传统 CUDA 上下文的替代方案，为开发者提供更细粒度的 GPU 空间划分与资源分配能力。</p>
 <p>Green Context 使用户能够定义和管理 GPU 资源的独立分区，主要是Streaming Multiprocessors（SM)。你可以将特定数量的 SM 分配给某个特定的 Green Context ，然后在该 context 所拥有的资源范围内启动 CUDA kernel 并管理只在此 context 内运行的 stream。</p>
 <h2 id="技术定位"><a href="#技术定位" class="headerlink" title="技术定位"></a>技术定位</h2><p>Green Contexts 介于 CUDA Streams（动态无分区）和 MPS（有分区但动态不足）之间，支持<strong>单进程内动态 SM 资源分区</strong>，提供确定性的非对称执行能力。</p>
+<p>Green Context enables lightweight <strong>intra-process</strong> spatial sharing. Briefly, we can create multiple CUDA streams with dedicated SM allocations for concurrent GPU kernels.</p>
 <p><img src="/images/2026/05/009.png" alt></p>
 <p>Green Context解决了GPU资源调度的难问题——把”碰运气式”并行升级为”精准规划”。它通过预分配SM资源池，让关键任务能独占专属算力，既保证低延迟响应，又避免多任务互相干扰。</p>
 <h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><p>一个典型的应用场景是：你的程序中有部分代码对延迟极为敏感，并且需要优先于其他所有 GPU 工作执行。通过为这段代码单独创建一个 Green Context 并分配 SM 资源，而将剩余的 SM 分配给另一个 Green Context 处理其他任务，你就能确保始终有可用的 SM 供高优先级计算使用。</p>
+<p>ASPLOS’26的paper: <a href="https://dl.acm.org/doi/abs/10.1145/3779212.3790236" target="_blank" rel="noopener">Towards High-Goodput LLM Serving with Prefill-decode Multiplexing</a>，就是基于Green Context做的工作，blog可参见<a href="https://www.lmsys.org/blog/2025-09-28-pdmux/" target="_blank" rel="noopener">PD-Multiplexing: Unlocking High-Goodput LLM Serving with GreenContext</a>。</p>
 <h2 id="创建与使用流程"><a href="#创建与使用流程" class="headerlink" title="创建与使用流程"></a>创建与使用流程</h2><p><img src="/images/2026/05/010.png" alt></p>
 <ol>
 <li>查询 GPU 的 SM 数量（Blackwell 为 160）</li>
@@ -309,6 +311,8 @@
 <li>从 Context 创建 CUDA Stream</li>
 <li>正常向 Stream 提交核函数</li>
 </ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Green Context 的核心价值，不是简单地“限制 kernel 能用多少个 SM”，而是<u>给 CUDA 提供了一种更可控的资源管理方式</u>。它把原本机会式的并行，进一步变成了可规划的并行。通过把 SM资源按 context 进行划分，应用可以在<strong>低时延、吞吐和隔离性</strong>之间做更灵活的权衡。</p>
+<p>对需要保障关键任务响应时间、减少多 stream 相互干扰、或验证不同资源配比效果的场景来说，Green Context 提供了一种几乎不需要修改 kernel、只需少量 host 侧改造就能落地的新手段。</p>
 <hr>
 <p>参考资料:</p>
 <ol>
