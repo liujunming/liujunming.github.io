@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-05-01T10:54:14.455Z</updated>
+  <updated>2026-05-05T12:36:19.720Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about CUDA Green Context</title>
+    <link href="http://liujunming.github.io/2026/05/05/Notes-about-CUDA-Green-Context/"/>
+    <id>http://liujunming.github.io/2026/05/05/Notes-about-CUDA-Green-Context/</id>
+    <published>2026-05-05T10:59:21.000Z</published>
+    <updated>2026-05-05T12:36:19.720Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下CUDA Green Context的相关notes。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>Green contexts are a lightweight alternative to traditional contexts, that can be used to select a subset of device resources. This allows the developer to, for example, select <a href="/2025/11/30/Notes-of-Basic-Concepts-in-GPU-Computing/#Hardware’s-View">SMs</a> from distinct spatial partitions of the GPU and target them via CUDA stream operations, kernel launches, etc.</p><p>CUDA 中的 Green Context 是一种轻量级的上下文形式，可作为传统 CUDA 上下文的替代方案，为开发者提供更细粒度的 GPU 空间划分与资源分配能力。</p><p>Green Context 使用户能够定义和管理 GPU 资源的独立分区，主要是Streaming Multiprocessors（SM)。你可以将特定数量的 SM 分配给某个特定的 Green Context ，然后在该 context 所拥有的资源范围内启动 CUDA kernel 并管理只在此 context 内运行的 stream。</p><h2 id="技术定位"><a href="#技术定位" class="headerlink" title="技术定位"></a>技术定位</h2><p>Green Contexts 介于 CUDA Streams（动态无分区）和 MPS（有分区但动态不足）之间，支持<strong>单进程内动态 SM 资源分区</strong>，提供确定性的非对称执行能力。</p><p><img src="/images/2026/05/009.png" alt></p><p>Green Context解决了GPU资源调度的难问题——把”碰运气式”并行升级为”精准规划”。它通过预分配SM资源池，让关键任务能独占专属算力，既保证低延迟响应，又避免多任务互相干扰。</p><h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><p>一个典型的应用场景是：你的程序中有部分代码对延迟极为敏感，并且需要优先于其他所有 GPU 工作执行。通过为这段代码单独创建一个 Green Context 并分配 SM 资源，而将剩余的 SM 分配给另一个 Green Context 处理其他任务，你就能确保始终有可用的 SM 供高优先级计算使用。</p><h2 id="创建与使用流程"><a href="#创建与使用流程" class="headerlink" title="创建与使用流程"></a>创建与使用流程</h2><p><img src="/images/2026/05/010.png" alt></p><ol><li>查询 GPU 的 SM 数量（Blackwell 为 160）</li><li>制定资源分区策略</li><li>创建分区描述符</li><li>生成 Green Context 沙箱</li><li>从 Context 创建 CUDA Stream</li><li>正常向 Stream 提交核函数</li></ol><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/lDlVLpFHWwd-HE3Muaa-kQ" target="_blank" rel="noopener">刚刚，英伟达CUDA迎来史上最大更新！</a></li><li><a href="https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GREEN__CONTEXTS.html#group__CUDA__GREEN__CONTEXTS" target="_blank" rel="noopener">Green Contexts</a></li><li><a href="https://zhuanlan.zhihu.com/p/1928880421606753954" target="_blank" rel="noopener">简单了解下CUDA Green Context</a></li><li><a href="https://cloud.tencent.com/developer/article/2653795" target="_blank" rel="noopener">一次看懂：CUDA 最新技术与未来 3 年路线图</a></li><li><a href="https://mp.weixin.qq.com/s/daNWAWVamLa7GCI9ug28Tw" target="_blank" rel="noopener">cuda13新特性green context</a></li><li><a href="https://mp.weixin.qq.com/s/IPk6P-DzTr2c6KDJVOFdWg" target="_blank" rel="noopener">PD 多路复用：SGLang 借助 NVIDIA GreenContext 释放高有效吞吐量的大语言模型服务能力</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下CUDA Green Context的相关notes。
+    
+    </summary>
+    
+      <category term="GPU" scheme="http://liujunming.github.io/categories/GPU/"/>
+    
+    
+      <category term="GPU" scheme="http://liujunming.github.io/tags/GPU/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about AI分布式训练通信原语</title>
@@ -422,9 +444,9 @@
       <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
     
     
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
       <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
       <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
     
@@ -457,28 +479,6 @@
       <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
     
       <category term="DPU" scheme="http://liujunming.github.io/tags/DPU/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about jumbo frames and Path MTU Discovery</title>
-    <link href="http://liujunming.github.io/2026/02/07/Notes-about-jumbo-frames-and-Path-MTU-Discovery/"/>
-    <id>http://liujunming.github.io/2026/02/07/Notes-about-jumbo-frames-and-Path-MTU-Discovery/</id>
-    <published>2026-02-07T08:20:40.000Z</published>
-    <updated>2026-02-07T10:36:42.446Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下jumbo frames和Path MTU Discovery(PMTUD)的相关notes。<a id="more"></a></p><h2 id="jumbo-frames"><a href="#jumbo-frames" class="headerlink" title="jumbo frames"></a>jumbo frames</h2><p>巨型帧（Jumbo Frames）是指有效负载超过IEEE 802.3标准所限制的1500字节的以太网帧。目前阿里云支持8500字节的巨型帧，即允许您发送8500字节载荷的以太网帧。</p><p><img src="/images/2026/02/004.png" alt></p><p>Supporting jumbo frames is crucial for <strong>enhancing bandwidth</strong> and <strong>transmission efficiency</strong>. It increases the effective payload per packet, reducing performance pressure on forwarding components.</p><p>巨型帧通过增加帧的大小，每个数据包可以携带更多数据，从而减少了所需传输的数据包数量，降低了处理器的负担并提高了整体数据传输速度。在需要高吞吐量和大带宽的网络环境中，特别是在数据中心、服务器场和高速网络互联等传输大量数据的场景中，使用巨型帧有助于减少网络传输耗时和提升网络效率，充分发挥网络性能。</p><h2 id="PMTUD"><a href="#PMTUD" class="headerlink" title="PMTUD"></a>PMTUD</h2><h3 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h3><p><a href="/2024/08/11/Network-Segmentation-vs-Fragmentation/">TCP分段</a>了，IP层就一定不会分片了吗?</p><p>在发送端，TCP分段后，IP层就不会再分片了。但是整个传输链路中，可能还会有其他网络层设备，而这些设备的MTU可能小于发送端的MTU。此时虽然数据包在发送端已经<strong>分段</strong>过了，但是在IP层就还会再分片一次。如果链路上还有设备有<strong>更小的MTU</strong>，那么还会再分片，最后所有的分片都会在<strong>接收端</strong>处进行组装。</p><p><img src="/images/2026/02/005.gif" alt></p><p>因此，就算TCP分段过后，在链路上的其他节点的IP层也是有可能再分片的，而且哪怕数据被第一次IP分片过了，也是有可能被其他机器的IP层进行二次、三次、四次….分片的。</p><h3 id="IP层怎么做到不分片"><a href="#IP层怎么做到不分片" class="headerlink" title="IP层怎么做到不分片"></a>IP层怎么做到不分片</h3><p>IP层在传输过程中因为<strong>各个节点间MTU</strong>可能不同，导致数据是可能被多次分片的。而且每次分片都要加上各种信息便于在接收端进行分片重组。那么IP层是否可以做到不分片？如果有办法知道整个链路上，最小的MTU是多少，并且以最小MTU长度发送数据，那么不管数据传到哪个节点，都不会发生分片。整个链路上，<strong>最小的MTU，就叫PMTU</strong>（path MTU）。有一个<strong>获得这个PMTU的方法，叫 Path MTU Discovery</strong>。</p><h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><p>原理比较简单，首先我们先看下IP的数据报头。</p><p><img src="/images/2026/02/006.png" alt></p><p>这里有个标红的标志位<code>DF</code>（Don’t Fragment），当它置为1，意味着这个IP报文不分片。</p><p>当链路上某个路由器，收到了这个报文，当IP报文长度大于路由器的MTU时，路由器会看下这个IP报文的<code>DF</code>:</p><ul><li>如果为0（允许分片），就会分片并把分片后的数据传到下一个路由器</li><li>如果为1，就会把数据丢弃，同时返回一个ICMP包给发送端，并告诉它数据不可达，需要分片，同时带上当前机器的MTU</li></ul><p>理解了上面的原理后，我们再看下PMTU发现是怎么实现的:</p><ul><li>应用通过TCP正常发送消息，传输层TCP分段后，到网络层加上IP头，DF置为1，消息再到更底层执行发送</li><li>此时链路上有台路由器由于各种原因MTU变小了</li><li>IP消息到这台路由器了，路由器发现消息长度大于自己的MTU，且消息自带DF不让分片。就把消息丢弃。同时返回一个ICMP错误给发送端，同时带上自己的MTU</li></ul><p><img src="/images/2026/02/007.gif" alt></p><ul><li>发送端收到这个ICMP消息，会更新自己的MTU，同时记录到一个PMTU表中。</li><li>因为TCP的可靠性，会尝试重传这个消息，同时以这个新MTU值计算出MSS进行分段，此时新的IP包就可以顺利被刚才的路由器转发。</li><li>如果路径上还有更小的MTU的路由器，那上面发生的事情还会再发生一次。</li></ul><p><img src="/images/2026/02/008.gif" alt></p><h2 id="Apsara-vSwitch-AVS-Jumbo-frames-support"><a href="#Apsara-vSwitch-AVS-Jumbo-frames-support" class="headerlink" title="Apsara vSwitch(AVS) Jumbo frames support"></a>Apsara vSwitch(AVS) Jumbo frames support</h2><p>详情参考SIGCOMM’24 paper: Triton: A Flexible Hardware Offloading Architecture for Accelerating Apsara vSwitch in Alibaba Cloud</p><p><img src="/images/2026/02/009.png" alt></p><p>However, supporting jumbo frames in cloud-scale data centers presents more compatibility challenges than supporting it within only a specific cluster. <u>There are a number of stock VMs and out-of-date hardware devices that do not support such a big MTU, but have the demand to communicate with VMs that use 8500 MTU</u>. To make things worse, <strong>most hardware switches do not support fragment and Path MTU Discovery(PMTUD) mechanisms</strong>. That requires AVS to negotiate MTU and ensure network connectivity for VMs.</p><p>To tackle this, we introduces path MTU and new actions to AVS for ensuring network connectivity in multi-MTU scenarios. The controller attaches the path MTU when issuing routing entries to AVS, allowing awareness of the maximum acceptable MTU to the destination. Then AVS employs three new actions as RFC standards, for handling oversized packets. For a packet that is smaller than the path MTU, the AVS will forward the packet as usual. But when the packet is bigger than the path MTU, there will be two different treatments according to the standards. If the Don’t Fragment (DF) field in IP header is set to 1, the packet should be dropped and an ICMP message containing path MTU will be sent to the source VM to reduce packet length. This kind of action is complex and costs too much to generatea new packet in hardware, so we implement it in software AVS. But if the DF field is 0, the packet should be fragmented and sent out. The action is fixed and I/O related, thus is more suitable to be implemented in hardware for efficiency.</p><hr><p>参考资料:</p><ol><li><a href="https://help.aliyun.com/zh/ecs/user-guide/jumbo-frame/" target="_blank" rel="noopener">巨型帧（Jumbo Frames）</a></li><li><a href="https://www.youtube.com/watch?v=B6uEtlZJqso" target="_blank" rel="noopener">Jumbo Frames and MTU</a></li><li>Triton: A Flexible Hardware Offloading Architecture forAccelerating Apsara vSwitch in Alibaba Cloud(SIGCOMM’24)</li><li><a href="https://archive.nanog.org/sites/default/files/wednesday_general_steenbergen_antijumbo.pdf" target="_blank" rel="noopener">The Case Against Jumbo Frames</a></li><li><a href="https://cloud.tencent.com/developer/article/1828823" target="_blank" rel="noopener">动图图解！既然IP层会分片，为什么TCP层也还要分段？</a></li><li><a href="https://help.aliyun.com/zh/ecs/user-guide/pmtu-discovery" target="_blank" rel="noopener">路径MTU发现机制（PMTUD）</a></li><li><a href="https://www.youtube.com/watch?v=7Op5o9_eQjo" target="_blank" rel="noopener">Path MTU Discovery PMTUD</a></li><li><a href="https://cloud.tencent.com/developer/article/1173790" target="_blank" rel="noopener">TCP分段与IP分片的区别与联系</a></li><li><a href="https://datatracker.ietf.org/doc/html/rfc1191" target="_blank" rel="noopener">rfc1191</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下jumbo frames和Path MTU Discovery(PMTUD)的相关notes。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
   </entry>
   
