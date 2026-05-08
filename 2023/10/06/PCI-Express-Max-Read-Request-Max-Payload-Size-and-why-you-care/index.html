@@ -281,12 +281,19 @@
 
     
     
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Introduction"><span class="toc-text">Introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+
 
 
     <div class="post-content">
       
         <p>本文转载自:<a href="https://codywu2010.wordpress.com/2015/11/26/pci-express-max-read-request-max-payload-size-and-why-you-care/" target="_blank" rel="noopener">PCI Express Max Read Request, Max Payload Size and why you care</a><a id="more"></a></p>
-<p>Modern high performance server is nearly all based on PCIE architecture and technologies derived from it such as Direct Media Interface (DMI) or Quick Path Interconnect (QPI).</p>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>Modern high performance server is nearly all based on PCIE architecture and technologies derived from it such as Direct Media Interface (DMI) or Quick Path Interconnect (QPI).</p>
 <p>For example below is a sample block diagram for a dual processor system:</p>
 <p><img src="/images/2023/10/020.png" alt></p>
 <p>A PCI Express system consists of many components, most important of which to us are:</p>
@@ -346,6 +353,19 @@
 <p>It’s hard to tell though you can easily find on the internet discussions talking about it.</p>
 <p>Here is a good one <a href="http://www.xilinx.com/support/documentation/white_papers/wp350.pdf" target="_blank" rel="noopener">Understanding Performance of PCI Express Systems</a>.</p>
 <p>And here is another good one <a href="https://billauer.co.il/blog/2011/05/pcie-pci-express-linux-max-payload-size-configuration-capabilities-tlp-lspci/" target="_blank" rel="noopener">PCI Express Max Payload size and its impact on Bandwidth</a>.</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><a href="https://chat.deepseek.com/share/9lzmwe8t1g52ozsm2u" target="_blank" rel="noopener">deepseek对话</a></p>
+<ul>
+<li>MPS(Max Payload Size)</li>
+<li>MRRS(Max Read Request Size)</li>
+</ul>
+<p>MRRS限制每个读请求包的最大数据量，从而间接提供<strong>QoS（服务质量）保障</strong>。其作用机制如下：</p>
+<ol>
+<li>减少单次请求的“颗粒度”：若一个设备需要读取大量数据（如1MB），MRRS强制将其分解为多个小请求（如MRRS=512B → 约2000个请求），而不是一个巨型请求。</li>
+<li>降低对端（Completer）的持续占用：对端处理每个小请求后可以释放内部资源（如读缓冲区、仲裁器），允许其他设备或事务穿插执行，避免某个大请求长期霸占链路。</li>
+<li>提升公平性与低延迟响应：在混合流量场景（如同时有NVMe读、GPU通信、网卡中断）中，小请求使链路仲裁器能在更细粒度上切换事务，减少高优先级小包的等待时间。</li>
+<li>防止请求端缓冲区溢出：如果请求端一次性请求太多数据，其内部接收缓冲区可能被突发的完成包填满。MRRS配合MPS，让完成包均匀到达，降低丢包或流控暂停的风险。</li>
+</ol>
+<p>简单类比：没有MRRS就像一次点一整桌菜（厨房得慢慢端出每道菜，但其他顾客只能干等）；有MRRS就是每次只点几道菜，厨房上菜快，其他顾客也能频繁得到服务，整体用餐体验更平稳。</p>
 
       
     </div>
