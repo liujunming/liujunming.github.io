@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-05-05T12:53:23.622Z</updated>
+  <updated>2026-05-10T03:45:02.871Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,50 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about INT(In-band Network Telemetry)</title>
+    <link href="http://liujunming.github.io/2026/05/10/Notes-about-INT-In-band-Network-Telemetry/"/>
+    <id>http://liujunming.github.io/2026/05/10/Notes-about-INT-In-band-Network-Telemetry/</id>
+    <published>2026-05-10T02:48:54.000Z</published>
+    <updated>2026-05-10T03:45:02.871Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下INT(In-band Network Telemetry)的相关notes。<a id="more"></a></p><p><strong>telemetry</strong>: the science or process of collecting information about objects that are far away and sending the information somewhere electronically.</p><p>In-band Network Telemetry中文翻译:带内网络遥测</p><h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><p>In-band Network Telemetry (INT) is a network monitoring framework for collecting and reporting network status, which <strong>collected by a data forwarding plane without the intervention of control plane</strong>. In an INT-defined framework, the messages can carry INT instructions which can be interpreted by the intermediate forwarding device and filled in with the expected data, and then continue to be forwarded until the destination. INT could be able to observe flow pattern changes caused by microbursts, packet transmission delays, delays per node, and new ports in the flow path.</p><p><img src="/images/2026/05/013.png" alt></p><h2 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h2><p>Challenges encountered in traditional network</p><p><img src="/images/2026/05/017.png" alt></p><h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>通常，一个 INT 域包含三类核心功能节点：INT 源节点（INT Source）、INT 宿节点（INT Sink）、INT 中转节点（INT Transit Hop）。</p><p><img src="/images/2026/05/015.png" alt></p><p>对于遥测运维人员，需要被遥测的流量会在源节点添加 INT 头部，头部中包含指示采集信息的指令集（INT Instruction），从而成为 INT 报文。当报文经过 INT 中转节点时，设备会按照指令集将采集到的信息（INT 元数据）插入 INT 报文，最终在 INT 宿节点弹出所有 INT 信息，并上报至监控设备。</p><p>对用户而言，流量的 INT 处理全程透明，用户无需感知该过程。</p><p>详细流程如下：<br><img src="/images/2026/05/016.png" alt></p><ul><li>Host H1 sends a data packet to H2</li><li>SW1 inserts the INT header into the packet, the header source is SW1 and the sink is SW3</li><li>SW1’s instruction is to collect SW ID and forwarding delay</li><li>SW1 inserts its own ID and forwarding delay from ingress to exgress</li><li>the middle switch SW2, SW3 repeat this process</li><li>SW3 is the INT sink, which is responsible for summarizing the INT collection information and sending it to the report server.</li></ul><h2 id="HPCC"><a href="#HPCC" class="headerlink" title="HPCC"></a>HPCC</h2><p><a href="https://liyuliang001.github.io/publications/hpcc.pdf" target="_blank" rel="noopener">SIGCOMM’19</a></p><p>传统的拥塞控制，如果交换机上遇到了拥塞，就等到拥塞信号发到对端去，然后再返回回来，然后这个时候再去降速。但是这带来一个问题，就是降速可能并不是特别准确。所以HPCC里面的HP就是high precision，高精确度，也就是说交换机上面它能够有一个很高的精确度，然后去判断到底它拥塞的程度是什么样子，那就是用的可编程交换机的INT（In-band Network Telemetry）的能力，然后它把拥塞程度反馈的更准确，这样它调整带宽的时候就调的更准确。</p><p><img src="/images/2026/05/014.png" alt></p><p>HPCC is a sender-driven CC framework. As shown in Figure 4, each packet a sender sends will be acknowledged by the receiver. During the propagation of the packet from the sender to the receiver, each switch along the path leverages the INT feature of its switching ASIC to insert some meta-data that reports the current load of the packet’s egress port, including timestamp (ts), queue length (qLen), transmitted bytes (txBytes), and the link bandwidth capacity (B).</p><p>When the receiver gets the packet, it copies all the meta-data recorded by the switches to the ACK message it sends back to the sender. The sender decides how to adjust its flow rate each time it receives an ACK with network load information.</p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/iwJ3aNApMk83sBDappX51Q" target="_blank" rel="noopener">带内网络遥测 INT</a></li><li><a href="https://01.me/2023/09/network-intelligence/" target="_blank" rel="noopener">网络的智能应该放在哪里：网卡、交换机还是 xPU</a></li><li><a href="https://cloudswit.ch/blogs/what-is-int%EF%BC%88in-band-network-telemetry%EF%BC%89/" target="_blank" rel="noopener">What is INT (In-band Network Telemetry)</a></li><li><a href="https://nkatta.github.io/papers/int-hula.pdf" target="_blank" rel="noopener">In-band Network Telemetry(INT)</a></li><li><a href="https://www.opencompute.org/files/INT-In-Band-Network-Telemetry-A-Powerful-Analytics-Framework-for-your-Data-Center-OCP-Final3.pdf" target="_blank" rel="noopener">In-Band Network Telemetry - A Powerful Analytics Framework for your Data Center</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下INT(In-band Network Telemetry)的相关notes。
+    
+    </summary>
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>每周分享第39期</title>
+    <link href="http://liujunming.github.io/2026/05/10/%E6%AF%8F%E5%91%A8%E5%88%86%E4%BA%AB%E7%AC%AC39%E6%9C%9F/"/>
+    <id>http://liujunming.github.io/2026/05/10/每周分享第39期/</id>
+    <published>2026-05-10T02:22:33.000Z</published>
+    <updated>2026-05-10T12:58:54.833Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="DPU-Socket-Direct和Multi-host技术"><a href="#DPU-Socket-Direct和Multi-host技术" class="headerlink" title="DPU Socket-Direct和Multi-host技术"></a>DPU Socket-Direct和Multi-host技术</h2><a id="more"></a><p><a href="https://mp.weixin.qq.com/s/BE51x2wBc9tBZyaRjRqG0w" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/BE51x2wBc9tBZyaRjRqG0w</a></p><h3 id="Socket-Direct技术"><a href="#Socket-Direct技术" class="headerlink" title="Socket Direct技术"></a>Socket Direct技术</h3><p><img src="/images/2026/05/011.png" alt><br>其实就是DPU模式下的<a href="/2024/11/17/转载-Linux-NUMA-Optimization-1/#3-2-Device-NUMA-Affinity">Device NUMA Affinity</a></p><h3 id="Multi-host技术"><a href="#Multi-host技术" class="headerlink" title="Multi-host技术"></a>Multi-host技术</h3><p><img src="/images/2026/05/012.png" alt></p><p>多个host直接连接到一个集中式的DPU上，无需每台host单独配备DPU和交换机端口，实现“多机共用一卡”的高效架构。</p><h2 id="计算机科学专业第三次大衰退？原因：AI"><a href="#计算机科学专业第三次大衰退？原因：AI" class="headerlink" title="计算机科学专业第三次大衰退？原因：AI"></a>计算机科学专业第三次大衰退？原因：AI</h2><p><a href="https://mp.weixin.qq.com/s/i5ODa4S3FHj2GeIQlGLgBA" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/i5ODa4S3FHj2GeIQlGLgBA</a></p><h2 id="EROFS：为沙箱而生的高性能只读文件系统"><a href="#EROFS：为沙箱而生的高性能只读文件系统" class="headerlink" title="EROFS：为沙箱而生的高性能只读文件系统"></a>EROFS：为沙箱而生的高性能只读文件系统</h2><p>一个诞生于华为实验室、被Linux内核接纳、被 gVisor/Kata/containerd/Nydus全面采用的现代文件系统——EROFS，正在悄悄改变容器与沙箱的启动速度。</p><p><a href="https://mp.weixin.qq.com/s/GLXS2ATuUTWZdQ0o2jVmzQ" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/GLXS2ATuUTWZdQ0o2jVmzQ</a></p><p>EROFS不是一个小众的”压缩文件系统”，它是 Linux内核中专为只读、高性能、安全隔离场景设计的现代文件系统。</p><p>从Android固件到Kubernetes容器，从gVisor安全沙箱到Kata微型虚拟机，EROFS已经成为云原生基础设施中最重要的隐形加速器之一。</p><h2 id="Manus交易失败了，但创始人依然在谈成功学"><a href="#Manus交易失败了，但创始人依然在谈成功学" class="headerlink" title="Manus交易失败了，但创始人依然在谈成功学"></a>Manus交易失败了，但创始人依然在谈成功学</h2><p><a href="https://mp.weixin.qq.com/s/32EK7T42kEjKefg9VV4Z3g" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/32EK7T42kEjKefg9VV4Z3g</a></p><h2 id="把-eBPF-带进-GPU-Kernel-内部"><a href="#把-eBPF-带进-GPU-Kernel-内部" class="headerlink" title="把 eBPF 带进 GPU Kernel 内部"></a>把 eBPF 带进 GPU Kernel 内部</h2><p><a href="https://mp.weixin.qq.com/s/Pm58fWQDwpqj1x3Df0XMmQ" target="_blank" rel="noopener">把 eBPF 带进 GPU Kernel 内部：bpftime for GPU 的一次关键突破</a></p><p>bpftime for GPU 所代表的，并不只是一个新工具。<br>它更像是在提出一种新的可能性：</p><blockquote><p>如果 eBPF 可以深入 CPU 内核与用户态程序，那么它为什么不能继续进入 GPU kernel？</p></blockquote><p>通过 PTX 级插桩、per-thread 粒度观测、零拷贝数据回传以及标准 eBPF 工具链兼容，bpftime for GPU 正在把这个问题变成现实答案。</p><p>这意味着，我们第一次开始具备这样的能力：</p><ul><li>在 GPU kernel 内部布置可编程探针</li><li>以线程级精度观察执行行为</li><li>用 eBPF 的方式描述 GPU 可观测性</li><li>在不侵入业务代码的前提下，为 AI 与高性能计算场景提供更强的调试与分析能力</li></ul><p>随着 AI 时代 GPU 负载持续增长，这类能力的价值只会越来越大。</p><h2 id="Geoffrey-Hinton成为第二位引用量破百万的科学家"><a href="#Geoffrey-Hinton成为第二位引用量破百万的科学家" class="headerlink" title="Geoffrey Hinton成为第二位引用量破百万的科学家"></a>Geoffrey Hinton成为第二位引用量破百万的科学家</h2><p><a href="https://mp.weixin.qq.com/s/ib9TcSS9XvCoq9mC-XCSSg" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/ib9TcSS9XvCoq9mC-XCSSg</a></p><h2 id="天才少年姚顺雨入职腾讯后首发声：人与人差距在-AI-工具"><a href="#天才少年姚顺雨入职腾讯后首发声：人与人差距在-AI-工具" class="headerlink" title="天才少年姚顺雨入职腾讯后首发声：人与人差距在 AI 工具"></a>天才少年姚顺雨入职腾讯后首发声：人与人差距在 AI 工具</h2><p><a href="https://mp.weixin.qq.com/s/r_MLUX9pDggXz97oQOofDw" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/r_MLUX9pDggXz97oQOofDw</a></p><h2 id="英伟达CUDA迎来史上最大更新"><a href="#英伟达CUDA迎来史上最大更新" class="headerlink" title="英伟达CUDA迎来史上最大更新"></a>英伟达CUDA迎来史上最大更新</h2><p><a href="https://mp.weixin.qq.com/s/lDlVLpFHWwd-HE3Muaa-kQ" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/lDlVLpFHWwd-HE3Muaa-kQ</a></p><h2 id="高考最看重的能力，成了AI时代最不重要的能力"><a href="#高考最看重的能力，成了AI时代最不重要的能力" class="headerlink" title="高考最看重的能力，成了AI时代最不重要的能力"></a>高考最看重的能力，成了AI时代最不重要的能力</h2><p><a href="https://mp.weixin.qq.com/s/gLc3uK9ihcz8qK0OmerOhw" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/gLc3uK9ihcz8qK0OmerOhw</a></p><h2 id="斯坦福CS336：大模型从0到1"><a href="#斯坦福CS336：大模型从0到1" class="headerlink" title="斯坦福CS336：大模型从0到1"></a>斯坦福CS336：大模型从0到1</h2><p><a href="https://www.bilibili.com/video/BV13SV9zdEhX" target="_blank" rel="noopener">https://www.bilibili.com/video/BV13SV9zdEhX</a></p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;DPU-Socket-Direct和Multi-host技术&quot;&gt;&lt;a href=&quot;#DPU-Socket-Direct和Multi-host技术&quot; class=&quot;headerlink&quot; title=&quot;DPU Socket-Direct和Multi-host技术&quot;&gt;&lt;/a&gt;DPU Socket-Direct和Multi-host技术&lt;/h2&gt;
+    
+    </summary>
+    
+      <category term="经验" scheme="http://liujunming.github.io/categories/%E7%BB%8F%E9%AA%8C/"/>
+    
+    
+      <category term="经验" scheme="http://liujunming.github.io/tags/%E7%BB%8F%E9%AA%8C/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about CUDA Green Context</title>
@@ -422,63 +466,6 @@
       <category term="虚拟化" scheme="http://liujunming.github.io/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NVMe over Fabrics P2P</title>
-    <link href="http://liujunming.github.io/2026/02/08/Notes-about-NVMe-oF-Offload/"/>
-    <id>http://liujunming.github.io/2026/02/08/Notes-about-NVMe-oF-Offload/</id>
-    <published>2026-02-08T11:56:35.000Z</published>
-    <updated>2026-02-11T14:18:47.517Z</updated>
-    
-    <content type="html"><![CDATA[<p>NVMe over Fabrics P2P ,如下图所示，黄色虚线是非P2P数据通信路径，绿色虚线是P2P的通信路径。</p><p><img src="/images/2026/02/010.jpg" alt><a id="more"></a></p><p>黄色路径非P2P路径，RDMA CX5网卡接后收到数据后，先写到主存DRAM中， NVME 设备驱动从主存读取数据再写入NVME SSD硬盘中。</p><p>绿色P2P路径， RDMA NIC网卡获取数据后直接写入NVME SSD硬盘。</p><p>P2P通信带来的收益:</p><ol><li>减少了主存DRAM的使用</li><li>缩短了通信路径，提升了数据传输的效率</li></ol><p><a href="/2024/06/30/深入理解NVMe-CMB机制/#5-p2p操作序列">p2p操作序列</a></p><p><img src="/images/2026/02/011.jpg" alt></p><p><img src="/images/2026/02/012.jpg" alt></p><p><img src="/images/2026/02/013.jpg" alt></p><p><img src="/images/2026/02/014.jpg" alt></p><hr><p>参考资料:</p><ol><li><a href="https://files.futurememorystorage.com/proceedings/2018/20180808_SOFT-201-1_Bates.pdf" target="_blank" rel="noopener">Important new NVMe features for optimizing the data pipeline </a></li><li><a href="https://zhuanlan.zhihu.com/p/386153789" target="_blank" rel="noopener">PCIe P2P</a></li><li><a href="https://www.youtube.com/watch?v=d31foQpoaDg" target="_blank" rel="noopener">NVMe Over Fabrics Offload video</a></li><li><a href="https://www.openfabrics.org/wp-content/uploads/204_TOved.pdf" target="_blank" rel="noopener">NVMe Over Fabrics Offload slides</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;NVMe over Fabrics P2P ,如下图所示，黄色虚线是非P2P数据通信路径，绿色虚线是P2P的通信路径。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/images/2026/02/010.jpg&quot; alt&gt;
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
-    
-      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
-    
-      <category term="RDMA" scheme="http://liujunming.github.io/tags/RDMA/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>DPU offload File Client论文整理</title>
-    <link href="http://liujunming.github.io/2026/02/07/file-client-offload-to-DPU%E8%AE%BA%E6%96%87%E6%95%B4%E7%90%86/"/>
-    <id>http://liujunming.github.io/2026/02/07/file-client-offload-to-DPU论文整理/</id>
-    <published>2026-02-07T14:30:51.000Z</published>
-    <updated>2026-02-23T07:51:31.790Z</updated>
-    
-    <content type="html"><![CDATA[<ol><li><a href="https://app.yinxiang.com/fx/205cbf92-a508-4a55-bb53-bcf1bfc91205" target="_blank" rel="noopener">(FAST’23)Fisc: A Large-scale Cloud-native-oriented File System</a></li><li><a href="https://app.yinxiang.com/fx/b2e60428-c9d0-4bc2-a462-c0a54daff3f3" target="_blank" rel="noopener">(ICPP’24)DPC:DPU-accelerated High-Performance File System Client</a></li><li><a href="https://app.yinxiang.com/fx/1eefa177-f1bd-4639-adb6-77eb83a62f98" target="_blank" rel="noopener">(SYSTOR’23)DPFS: DPU-Powered File System Virtualization</a></li><li><a href="https://app.yinxiang.com/fx/922ea368-4f00-4e04-996b-b0d51124274a" target="_blank" rel="noopener">(ASPLOS’25)OS2G: A High-Performance DPU Offloading Architecture for GPU-based Deep Learning with Object Storage</a></li></ol>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;ol&gt;
-&lt;li&gt;&lt;a href=&quot;https://app.yinxiang.com/fx/205cbf92-a508-4a55-bb53-bcf1bfc91205&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;(FAST’23)Fisc: A Large-sc
-      
-    
-    </summary>
-    
-      <category term="文件系统" scheme="http://liujunming.github.io/categories/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-      <category term="存储" scheme="http://liujunming.github.io/tags/%E5%AD%98%E5%82%A8/"/>
-    
-      <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
-    
-      <category term="DPU" scheme="http://liujunming.github.io/tags/DPU/"/>
     
   </entry>
   
