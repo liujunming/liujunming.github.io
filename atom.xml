@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-05-30T08:20:16.929Z</updated>
+  <updated>2026-05-31T08:38:22.618Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about PCIe Error Message机制</title>
+    <link href="http://liujunming.github.io/2026/05/31/Notes-about-PCIe-Error-Message%E6%9C%BA%E5%88%B6/"/>
+    <id>http://liujunming.github.io/2026/05/31/Notes-about-PCIe-Error-Message机制/</id>
+    <published>2026-05-30T22:56:26.000Z</published>
+    <updated>2026-05-31T08:38:22.618Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下PCIe Error Message机制的相关notes，内容主要转载自<a href="https://mp.weixin.qq.com/s/NZT6CtKFyCRkTZ36r51fvA" target="_blank" rel="noopener">Error message控制</a>。<a id="more"></a></p><h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>error signaling: One agent notifying another agent of an error either by (1) sending an error Message, (2) sending a Completion with UR/CA Status, or (3) poisoning a TLP.</p><p>PCIe Error Signaling Messages是一种带内(In-band)错误上报机制，通过专用的Message TLP(TLP Type is Msg)将错误信息从检测点传递给Root Complex，进而通知系统软件。</p><p>Error Signaling Messages are used to signal errors that occur on specific transactions and errors that are not necessarily associated with a particular transaction. These Messages are initiated by the agent that detected the error.</p><p>Message类型的TLP，使用隐式路由(Routed to Root Complex)，即无论从拓扑中哪个设备发出，都会沿上行方向逐跳传递，最终到达Root Complex。</p><h2 id="分类"><a href="#分类" class="headerlink" title="分类"></a>分类</h2><p><img src="/images/2026/05/029.png" alt></p><h2 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h2><p>The initiator of the Message is identified with the Requester ID of the Message header. The Root Complex translates these error Messages into platform level events.</p><p><img src="/images/2026/05/030.png" alt></p><p>如果Root Port支持AER(Advanced Error Report)，RC从message中提取Requester ID字段，并记录的Root port的Error Source Identification寄存器中，这个BDF号就是出错的设备。不过很多时候这个BDF是捕获不到的，或者出现多个错误，RC只能提取第一个错误的Requester ID。因此，需要driver遍历Root Port下的所有设备，检查哪些设备出现了错误。</p><p><img src="/images/2026/05/031.png" alt></p><p>如果Root Port支持AER，则收到error message(根据error code可以分为ERR_COR/ERR_NONFATAL/ERR_FATAL)或者Root port自己检查到对应错误时，会记录到Root Port的Root Error Status寄存器。</p><p><img src="/images/2026/05/032.png" alt></p><p>Error message从PCIe设备产生到路由到对应Root Por涉及一系列的控制寄存器和状态寄存器。</p><p><img src="/images/2026/05/033.png" alt></p><h2 id="PCIe-Error-Message产生MSI中断"><a href="#PCIe-Error-Message产生MSI中断" class="headerlink" title="PCIe Error Message产生MSI中断"></a>PCIe Error Message产生MSI中断</h2><p>Root Port下面的设备或Root Port本身发生PCIe错误想产生MSI中断话，需要关注哪些寄存器呢？</p><h3 id="整条链路上所有bridge的Bridge-ctrl-reg的SERR-bit"><a href="#整条链路上所有bridge的Bridge-ctrl-reg的SERR-bit" class="headerlink" title="整条链路上所有bridge的Bridge ctrl reg的SERR# bit"></a>整条链路上所有bridge的Bridge ctrl reg的SERR# bit</h3><p>如果该bit没有使能，则bridge不会往上游转发下游的设备上报的error message。如果是Root port本身产生的错误的则不需要关注该bit。</p><p><img src="/images/2026/05/034.png" alt></p><h3 id="整条链路上支持DPC的设备（DP和RP）是否使能了DPC"><a href="#整条链路上支持DPC的设备（DP和RP）是否使能了DPC" class="headerlink" title="整条链路上支持DPC的设备（DP和RP）是否使能了DPC"></a>整条链路上支持DPC的设备（DP和RP）是否使能了DPC</h3><p>如果使能了DPC trigger enable，下游设备发送的ERR_FATAL或ERR_NONFATAL的error message会被DPC拦截。</p><p><img src="/images/2026/05/035.png" alt></p><h3 id="整条链路上的所有PCIe设备的Device-ctrl-reg的对应bit是否使能"><a href="#整条链路上的所有PCIe设备的Device-ctrl-reg的对应bit是否使能" class="headerlink" title="整条链路上的所有PCIe设备的Device ctrl reg的对应bit是否使能"></a>整条链路上的所有PCIe设备的Device ctrl reg的对应bit是否使能</h3><p>Device ctrl reg的低4bit是一个比较大的控制开关，分布控制ERR_COR message、ERR_NONFATAL message、ERR_FATAL message和Unsupported Request的发送。</p><p><img src="/images/2026/05/036.png" alt></p><h3 id="Root-port的Root-error-command-reg对应bit是否为1"><a href="#Root-port的Root-error-command-reg对应bit是否为1" class="headerlink" title="Root port的Root error command reg对应bit是否为1"></a>Root port的Root error command reg对应bit是否为1</h3><p>如果Root error command reg对应bit为1，则Root port本身或者Root port收到下游设备上报错误时才会产生中断。</p><p><img src="/images/2026/05/037.png" alt></p><h3 id="Root-Port的Root-ctrl-reg对应bit是否清零"><a href="#Root-Port的Root-ctrl-reg对应bit是否清零" class="headerlink" title="Root Port的Root ctrl reg对应bit是否清零"></a>Root Port的Root ctrl reg对应bit是否清零</h3><p>如果Root ctrl reg对应bit没有清零，则会走左边的分支产生system error，对X86而言这是一条带外的pin。</p><p><img src="/images/2026/05/038.png" alt></p><h3 id="整个链路上的PCIe设备error-mask-reg是否置1"><a href="#整个链路上的PCIe设备error-mask-reg是否置1" class="headerlink" title="整个链路上的PCIe设备error mask reg是否置1"></a>整个链路上的PCIe设备error mask reg是否置1</h3><p>如果error mask reg为1，则产生对应错误时，只会更新PCIe CAP的error status寄存器，不会产生error message。</p><p><img src="/images/2026/05/039.png" alt></p><p><img src="/images/2026/05/040.png" alt></p><h3 id="Command寄存器的memory-space-enable-bit和bus-master-enable-bit是否为1，interrupt-disable是否为1"><a href="#Command寄存器的memory-space-enable-bit和bus-master-enable-bit是否为1，interrupt-disable是否为1" class="headerlink" title="Command寄存器的memory space enable bit和bus master enable bit是否为1，interrupt disable是否为1"></a>Command寄存器的memory space enable bit和bus master enable bit是否为1，interrupt disable是否为1</h3><p>MSI中断本质上是一个memory write请求，Command寄存器的memory space enable bit和bus master enable bit负责MSI中断的产生和转发。</p><p>Interrupt disable是禁止INTx中断。由于，INTx优先级比MSI中断要高，该bit需要禁止。</p><p><img src="/images/2026/05/041.png" alt></p><h3 id="Root-Port的MSI-enable是否为1"><a href="#Root-Port的MSI-enable是否为1" class="headerlink" title="Root Port的MSI enable是否为1"></a>Root Port的MSI enable是否为1</h3><p>Error message会路由到Root Port，如果想产生MSI中断，root port的MSI enable bit需要为1。</p><p><img src="/images/2026/05/042.png" alt></p><hr><p>参考资料:</p><ol><li><a href="https://mp.weixin.qq.com/s/NZT6CtKFyCRkTZ36r51fvA" target="_blank" rel="noopener">Error message控制</a></li><li>PCI Express® Base Specification Revision 5.0 Version 1.0</li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下PCIe Error Message机制的相关notes，内容主要转载自&lt;a href=&quot;https://mp.weixin.qq.com/s/NZT6CtKFyCRkTZ36r51fvA&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Error message控制&lt;/a&gt;。
+    
+    </summary>
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/categories/PCI-PCIe/"/>
+    
+    
+      <category term="PCI&amp;PCIe" scheme="http://liujunming.github.io/tags/PCI-PCIe/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PCIe upstream port and downstream port</title>
@@ -442,28 +464,6 @@
       <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
       <category term="Load Balance" scheme="http://liujunming.github.io/tags/Load-Balance/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about NVMe HMB(Host Memory Buffer)</title>
-    <link href="http://liujunming.github.io/2026/03/07/Notes-about-NVMe-HMB-Host-Memory-Buffer/"/>
-    <id>http://liujunming.github.io/2026/03/07/Notes-about-NVMe-HMB-Host-Memory-Buffer/</id>
-    <published>2026-03-07T11:39:19.000Z</published>
-    <updated>2026-03-07T23:47:18.678Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下NVMe HMB(Host Memory Buffer)的相关notes。<a id="more"></a></p><h2 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h2><p>现代固态硬盘(SSD)内部通常配备了一定容量的DRAM作为缓存，它的主要作用是存放FTL(Flash Translation Layer)映射表和其他临时数据，以加速SSD的数据处理效率。</p><p><img src="/images/2026/03/002.png" alt></p><p>FTL映射表记录了逻辑地址到物理地址之间的转换关系，因为NAND闪存的特性决定了其不能像传统硬盘那样进行直接的线性读写，必须通过FTL层来管理块擦除、页编程等操作。由于NAND闪存的每个块或页都有一个唯一的物理地址，当操作系统请求对某个逻辑地址进行读写时，SSD需要查询FTL表以找到对应的物理位置。如果FTL表能存储在快速访问的DRAM中，那么SSD就可以更快地完成地址转换，从而提高整体I/O性能。</p><p>在传统的SSD中，DRAM起着至关重要的作用，包括存储元数据、缓冲写入数据、合并短写入为长写入以及在SSD内部为了垃圾回收而移动数据等。由于NAND闪存与传统硬盘的工作机制有显著差异，DRAM有助于弥补两者间的交互问题，并优化整体性能。</p><p>DRAM-less SSD是一种不内置独立DRAM芯片的固态硬盘，它依赖于主机服务器的部分DRAM内存来执行原本由SSD内部DRAM承担的任务。这种设计的主要优点在于降低成本和降低功耗，尤其是在大规模数据中心用户中受到欢迎。</p><h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p><img src="/images/2026/03/001.png" alt></p><p>DRAM-less SSD通过利用主机内存中的Host Memory Buffer (HMB)替代内部DRAM，这使得主机能够更紧密地控制SSD的操作时机和行为。</p><p><img src="/images/2026/03/004.jpg" alt></p><p><img src="/images/2026/03/003.png" alt></p><h2 id="Spec"><a href="#Spec" class="headerlink" title="Spec"></a>Spec</h2><p>NVME协议中对HMB有2个关键参数：</p><p><img src="/images/2026/03/005.png" alt></p><ul><li>HMB建议值（HMPRE）：设定实际分配给HMB使用的主机内存容量，为设备提供最优性能的内存分配量</li><li>HMB最小值（HMMIN）：确保设备正常工作的HMB的最低内存分配量，低于这个值可能影响性能</li></ul><hr><p>参考资料 ：</p><ol><li><a href="https://mp.weixin.qq.com/s/Uvheog_Ih6hm-nxFg1VAxg" target="_blank" rel="noopener">探究NVMe SSD HMB应用场景与影响</a></li><li><a href="https://www.youtube.com/watch?v=X826mrcfzrk" target="_blank" rel="noopener">Exploring Performance Paradigm of HMB NVMe SSD’s</a></li><li>NVMe spec</li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下NVMe HMB(Host Memory Buffer)的相关notes。
-    
-    </summary>
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/categories/NVMe/"/>
-    
-    
-      <category term="NVMe" scheme="http://liujunming.github.io/tags/NVMe/"/>
     
   </entry>
   
