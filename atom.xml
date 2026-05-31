@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://liujunming.github.io/"/>
-  <updated>2026-05-31T08:38:22.618Z</updated>
+  <updated>2026-05-31T14:21:58.386Z</updated>
   <id>http://liujunming.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Notes about Fuse over io-uring</title>
+    <link href="http://liujunming.github.io/2026/05/31/Notes-about-Fuse-over-io-uring/"/>
+    <id>http://liujunming.github.io/2026/05/31/Notes-about-Fuse-over-io-uring/</id>
+    <published>2026-05-31T09:06:09.000Z</published>
+    <updated>2026-05-31T14:21:58.386Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文将mark下Fuse over io-uring的相关notes。<a id="more"></a></p><h2 id="Prerequisite"><a href="#Prerequisite" class="headerlink" title="Prerequisite"></a>Prerequisite</h2><ul><li><a href="/2022/11/12/Notes-about-io-uring/">io-uring</a></li><li><a href="/2024/12/21/Notes-about-FUSE-filesystem/">fuse</a></li></ul><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>fast’24 paper:<a href="https://app.yinxiang.com/fx/40d78b24-4552-4582-b2c8-9a1354af89c8" target="_blank" rel="noopener">RFUSE: Modernizing Userspace Filesystem Framework through Scalable Kernel-Userspace Communication</a></p><p>FUSE性能瓶颈：</p><ul><li>FUSE在内核和用户空间以及内存复制开销之间进行了多次上下文切换</li><li>FUSE驱动程序在向用户空间FUSE守护进程调度文件系统请求时，使用单个队列阻碍了FUSE实现可伸缩性能</li></ul><p><img src="/images/2026/05/043.png" alt></p><h2 id="Motivation"><a href="#Motivation" class="headerlink" title="Motivation"></a>Motivation</h2><p><a href="https://lwn.net/Articles/976031/" target="_blank" rel="noopener">fuse: fuse-over-io-uring</a>:</p><blockquote><p>Motivation for these patches is all to increase fuse performance. In fuse-over-io-uring requests avoid core switching (application on core X, processing of fuse server on random core Y) and use shared memory between kernel and userspace to transfer data.</p></blockquote><h2 id="Fuse-over-io-uring-vs-RFUSE"><a href="#Fuse-over-io-uring-vs-RFUSE" class="headerlink" title="Fuse over io-uring vs RFUSE"></a>Fuse over io-uring vs RFUSE</h2><p>Fuse over io-uring与论文RFUSE的<strong>大方向高度一致，但实现路线不同、细节有差异</strong>；可以把 FUSE-over-io_uring 看作 RFUSE 思想在 Linux 内核里的<strong>工程化落地（io_uring 版）</strong>。</p><h3 id="核心思想：高度一致"><a href="#核心思想：高度一致" class="headerlink" title="核心思想：高度一致"></a>核心思想：高度一致</h3><p>两者都针对传统 FUSE 的同一痛点：</p><ol><li><strong>单队列 + 锁竞争</strong>，多核下扩展性差</li><li><strong>频繁上下文切换 + 内存拷贝</strong>，延迟高、CPU 开销大</li></ol><p>共同核心思路：</p><ol><li>per-core 独立队列：每个核一个通道，无锁、并行处理</li><li>共享内存 / 环形缓冲区：内核↔用户态通过 ring 传递请求 / 响应，减少系统调用与拷贝</li><li>兼容现有 FUSE：用户态文件系统不用改代码即可提速</li></ol><h3 id="关键差异：实现方案不同"><a href="#关键差异：实现方案不同" class="headerlink" title="关键差异：实现方案不同"></a>关键差异：实现方案不同</h3><ol><li>RFUSE（FAST’24 论文）</li></ol><ul><li>自研 类 io_uring 的 ring，不依赖内核 io_uring 子系统</li><li>hybrid polling：短时间忙轮询 + 休眠，平衡延迟与 CPU</li><li>原型，未并入主线内核</li></ul><ol start="2"><li>FUSE-over-io_uring（Linux 6.14 主线）</li></ol><ul><li>直接复用内核 io_uring 子系统，通过 IORING_OP_URING_CMD 扩展 FUSE</li><li>per-core io_uring 队列，亲和性调度，减少核间迁移</li><li>用 io_uring 原生机制处理提交 / 完成 / 内存管理，不做自研 ring</li><li>已合入主线，生产可用</li></ul><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>思想同源、实现分叉：</p><ul><li>RFUSE：学术验证，提出 “per-core ring + 共享内存 + 兼容 FUSE” 的高性能通信范式</li><li>FUSE-over-io_uring：工程实现，用标准io_uring把同一范式落地到 Linux 内核</li></ul><h2 id="Fuse-over-io-uring-per-core-io-uring"><a href="#Fuse-over-io-uring-per-core-io-uring" class="headerlink" title="Fuse over io-uring per-core io_uring"></a>Fuse over io-uring per-core io_uring</h2><p>内核文档:<br>在<a href="https://docs.kernel.org/next/filesystems/fuse-io-uring.html" target="_blank" rel="noopener">FUSE-over-io-uring design documentation</a>可以看到:</p><blockquote><p>Note, every CPU core has its own fuse-io-uring queue.</p></blockquote><p><img src="/images/2026/05/044.png" alt></p><p>内核代码:<br><a href="https://elixir.bootlin.com/linux/v6.14/source/fs/fuse/dev_uring.c#L182-L194" target="_blank" rel="noopener">https://elixir.bootlin.com/linux/v6.14/source/fs/fuse/dev_uring.c#L182-L194</a></p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> struct fuse_ring *<span class="title">fuse_uring_create</span><span class="params">(struct fuse_conn *fc)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fuse_ring</span> *<span class="title">ring</span>;</span></span><br><span class="line"><span class="keyword">size_t</span> nr_queues = num_possible_cpus();</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fuse_ring</span> *<span class="title">res</span> = <span class="title">NULL</span>;</span></span><br><span class="line"><span class="keyword">size_t</span> max_payload_size;</span><br><span class="line"></span><br><span class="line">ring = kzalloc(<span class="keyword">sizeof</span>(*fc-&gt;ring), GFP_KERNEL_ACCOUNT);</span><br><span class="line"><span class="keyword">if</span> (!ring)</span><br><span class="line"><span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">ring-&gt;queues = kcalloc(nr_queues, <span class="keyword">sizeof</span>(struct fuse_ring_queue *),</span><br><span class="line">       GFP_KERNEL_ACCOUNT);</span><br></pre></td></tr></table></figure><p>每个CPU对应一个独立的 <code>struct fuse_ring_queue</code>。</p><p>请求分发:<br><a href="https://lwn.net/Articles/976031/" target="_blank" rel="noopener">fuse: fuse-over-io-uring</a></p><blockquote><p>With fuse-over-io-uring requests are handled on the same core (sync requests)</p></blockquote><p>同步请求始终在发起的同一个 CPU 上处理，cache 友好：数据留在本地 core，减少 bouncing。</p><hr><p>参考资料:</p><ol><li><a href="https://docs.kernel.org/next/filesystems/fuse-io-uring.html" target="_blank" rel="noopener">FUSE-over-io-uring design documentation</a></li><li><a href="https://lwn.net/Articles/976031/" target="_blank" rel="noopener">fuse: fuse-over-io-uring</a></li><li><a href="https://www.phoronix.com/news/Linux-6.14-FUSE" target="_blank" rel="noopener">FUSE Hooks Up With IO_uring For Greater Performance Potential In Linux 6.14</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;本文将mark下Fuse over io-uring的相关notes。
+    
+    </summary>
+    
+      <category term="文件系统" scheme="http://liujunming.github.io/categories/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+      <category term="文件系统" scheme="http://liujunming.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
+    
+  </entry>
   
   <entry>
     <title>Notes about PCIe Error Message机制</title>
@@ -440,30 +462,6 @@
     
     
       <category term="sandbox" scheme="http://liujunming.github.io/tags/sandbox/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Notes about ECMP and packet spraying</title>
-    <link href="http://liujunming.github.io/2026/03/08/Notes-about-ECMP-Equal-Cost-Multi-Path-Routing/"/>
-    <id>http://liujunming.github.io/2026/03/08/Notes-about-ECMP-Equal-Cost-Multi-Path-Routing/</id>
-    <published>2026-03-08T06:38:28.000Z</published>
-    <updated>2026-03-08T09:32:48.139Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文将mark下计算机网络中ECMP(Equal-Cost Multi-Path)和packet spraying的相关notes。<a id="more"></a></p><h2 id="ECMP"><a href="#ECMP" class="headerlink" title="ECMP"></a>ECMP</h2><p>在路由协议中，如果下一跳有多个路径可以选择，并且多个路径的 cost metric 相等，那么路由器就会根据包的 header，计算一个 hash 值，然后根据这个 hash 值对这个 flow 选择一条固定的路径，作为下一跳。</p><p><img src="/images/2026/03/006.png" alt></p><p><img src="/images/2026/03/007.png" alt></p><p>ECMP是一个基于流的负载均衡策略，当路由器发现同一目的地址出现多个最优路径时，会更新路由表，为此目的地址添加多条规则，对应于多个下一跳。可同时利用这些路径转发数据，增加带宽。ECMP算法被多种路由协议支持，例如： OSPF、ISIS、EIGRP、BGP等。</p><p>对于未开启ECMP的网络来说，无法充分利用路径资源。例如下图所示：</p><p><img src="/images/2026/03/008.png" alt></p><p>假设从<code>S0</code>到Server的路径为S0-S1-S2-S4（即图中橘色路径），那么即便存在另一条等价路径（即图中蓝色路径），路由器仍然会每次选择第一条橘色路径转发数据。除非此条路径发生拥塞，才会重新选择路径。</p><p>当开启ECMP功能时，便可同时利用两条路径，进行基于流的负载均衡。例如<code>主机A</code>到Server的数据流选择橘色路径，<code>主机B</code>到Server的数据流选择蓝色路径。</p><p>ECMP的路径选择策略有多种方法：</p><ul><li>哈希： 例如根据源IP地址的哈希为流选择路径</li><li>轮询： 各个流在多条路径之间轮询传输</li><li>基于路径权重： 根据路径的权重分配流，权重大的路径分配的流数量更多</li></ul><h2 id="ECMP’s-Dilemma-in-AI-Workloads"><a href="#ECMP’s-Dilemma-in-AI-Workloads" class="headerlink" title="ECMP’s Dilemma in AI Workloads"></a>ECMP’s Dilemma in AI Workloads</h2><p>Datacenters often utilize Clos networks as their underlying fabric, which provides multiple equal-cost paths between any source and destination. To distribute traffic across these paths,ECMP is the most widely used load balancing(LB) mechanism, which determines the path of a flow by hashing the 5-tuple in the packet header. ECMP works well for traditional workloads, where there are millions of flows that ensure a relatively even distribution of traffic. However, unlike traditional datacenter workloads, AI training workloads exhibit traffic patterns that are fundamentally mismatched with ECMP’s design:</p><ol><li>Small number of flows: In AI training job, each node establishes very few connections, as communication is only required with a limited set of peers.</li><li>Large flow sizes: The flow sizes typically range from several MBs to hundreds of MBs.</li><li>Bursty traffic: AI training is an inherently synchronized process, where most nodes enter the communication phase almost simultaneously. This synchronization results in a bursty traffic pattern, with large volumes of data being exchanged in a short period of time.</li></ol><p>These flow characteristics (i.e., few in number, large in size) result in a high ECMP collision rate, as the small number of flows can’t be evenly distributed across available paths, leading to severe performance degradation in AI training workloads.</p><h2 id="packet-spraying"><a href="#packet-spraying" class="headerlink" title="packet spraying"></a>packet spraying</h2><p>Packet spraying is a high-performance network load-balancing technique that distributes individual packets of a data flow across multiple available network paths rather than relying on a single path. By utilizing all paths, it achieves high link utilization and reduces tail latency, particularly beneficial for data center AI/ML workloads and bursty traffic.</p><p>Key details about packet spraying:</p><ul><li>Benefits: It provides high throughput, mitigates congestion, and is effective for short-lived, latency-sensitive traffic.</li><li>Techniques:<ul><li>Random Packet Spraying (RPS): Randomly assigns packets to paths to balance load.</li><li>Deterministic Packet Spraying: Uses a counter to distribute packets to ensure even path distribution.</li><li>Adaptive Packet Spraying (APS): Dynamically steers packets away from congested paths based on real-time feedback.</li></ul></li><li>Challenges: The main drawback is potential out-of-order packet delivery, which can trigger unnecessary retransmissions.</li></ul><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><img src="/images/2026/03/009.png" alt></p><ul><li>ECMP是flow粒度的Load Balance技术</li><li>packet spraying是packet粒度的Load Balance技术，粒度更细，但是会引入out-of-order packet delivery问题</li></ul><hr><p>参考资料:</p><ol><li>Unlocking ECMP Programmability for Precise Traffic Control(NSDI’25)</li><li><a href="https://www.kawabangga.com/posts/6732" target="_blank" rel="noopener">数据中心网络高可用技术：ECMP</a></li><li><a href="https://ivanzz1001.github.io/records/post/network/2018/08/01/network-ecmp" target="_blank" rel="noopener">ECMP网络的介绍(转)</a></li><li><a href="https://www.youtube.com/watch?v=KICp-9yXOT0" target="_blank" rel="noopener">Equal-Cost Multi-Path Routing (ECMP)</a></li><li>Enabling Packet Spraying over Commodity RNICs with In-Network Support(APNET’25)</li><li>On the Impact of Packet Spraying in Data Center Networks(Infocom’13)</li></ol>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文将mark下计算机网络中ECMP(Equal-Cost Multi-Path)和packet spraying的相关notes。
-    
-    </summary>
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    
-      <category term="计算机网络" scheme="http://liujunming.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-      <category term="Load Balance" scheme="http://liujunming.github.io/tags/Load-Balance/"/>
     
   </entry>
   
