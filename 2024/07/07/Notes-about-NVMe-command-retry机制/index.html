@@ -244,10 +244,18 @@
   </header>
 
   
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#DNR"><span class="toc-number">1.</span> <span class="toc-text">DNR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CRD%E5%92%8CCRDT"><span class="toc-number">2.</span> <span class="toc-text">CRD和CRDT</span></a></li></ol>
+    </div>
+  </div>
+  
 
   <div class="post-content">
     
-    <p>本文将mark下NVMe协议中的command retry机制。<span id="more"></span><br><img src="/images/2024/07/007.jpg"></p>
+    <p>本文将mark下NVMe协议中的command retry机制。<span id="more"></span></p>
+<h2 id="DNR"><a href="#DNR" class="headerlink" title="DNR"></a>DNR</h2><p><img src="/images/2024/07/007.jpg"></p>
 <p><img src="/images/2024/07/008.jpg"></p>
 <p><img src="/images/2024/07/009.jpg"></p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NVME_SC_DNR         = <span class="number">0x4000</span>,</span><br></pre></td></tr></table></figure>
@@ -258,6 +266,29 @@
 
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> u8 nvme_max_retries = <span class="number">5</span>;</span><br><span class="line">module_param_named(max_retries, nvme_max_retries, byte, <span class="number">0644</span>);</span><br><span class="line">MODULE_PARM_DESC(max_retries, <span class="string">&quot;max number of retries a command may have&quot;</span>);</span><br></pre></td></tr></table></figure>
 <p>默认情况下，每个command最多retry5次。</p>
+<h2 id="CRD和CRDT"><a href="#CRD和CRDT" class="headerlink" title="CRD和CRDT"></a>CRD和CRDT</h2><p><img src="/images/2026/07/001.png"></p>
+<p>CRD(Command Retry Delay)和 CRDT(Command Retry Delay Time)是 NVMe 协议提供的一套<strong>控制器建议的重试等待时间</strong>机制。</p>
+<p><strong>CRD&#x2F;CRDT 的设计目的并不是决定“是否重试”，而是指导 Host“什么时候重试最合适”，避免 Host 无意义地快速重试，减轻控制器压力，提高恢复成功率。</strong></p>
+<p>含义如下：</p>
+<ul>
+<li>CRD：位于 CQE Status Field 中，由本次 CQE 返回</li>
+<li>CRDT1&#x2F;2&#x2F;3：位于 Identify Controller 数据结构中，由控制器预先公布三个可选的延迟值（单位通常为 100ms）</li>
+</ul>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">CQE:</span><br><span class="line">    DNR = 0</span><br><span class="line">    CRD = 2</span><br><span class="line"></span><br><span class="line">Identify Controller:</span><br><span class="line">    CRDT1 = 5</span><br><span class="line">    CRDT2 = 20</span><br><span class="line">    CRDT3 = 100</span><br></pre></td></tr></table></figure>
+<p>那么表示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">本次失败可以重试，</span><br><span class="line">但建议等待 CRDT2 = 20 × 100ms = 2s 后再重试</span><br></pre></td></tr></table></figure>
+
+<p>因此</p>
+<blockquote>
+<p>如果 CQE 设置了 CRD，重试会按控制器的 CRDT 延迟</p>
+</blockquote>
+<p>意思就是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">收到错误 CQE</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">DNR = 0 ?</span><br><span class="line">        │</span><br><span class="line">      Yes</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">CQE 中是否携带 CRD？</span><br><span class="line">        │</span><br><span class="line">      Yes</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">查 Identify Controller 中对应的</span><br><span class="line">CRDT1 / CRDT2 / CRDT3</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">等待对应时间</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">重新提交 I/O</span><br></pre></td></tr></table></figure>
+
+
+
+
 <hr>
 <p>参考资料:</p>
 <ol>
