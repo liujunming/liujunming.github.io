@@ -244,12 +244,20 @@
   </header>
 
   
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Basic"><span class="toc-number">1.</span> <span class="toc-text">Basic</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DQ-pin"><span class="toc-number">2.</span> <span class="toc-text">DQ pin</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#x4-x8-x16-device-width"><span class="toc-number">3.</span> <span class="toc-text">x4&#x2F;x8&#x2F;x16 device width</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E4%B8%AA-Rank-%E4%B8%BA%E4%BB%80%E4%B9%88%E6%9C%89%E5%BE%88%E5%A4%9A-DRAM-%E8%8A%AF%E7%89%87%EF%BC%9F"><span class="toc-number">3.1.</span> <span class="toc-text">一个 Rank 为什么有很多 DRAM 芯片？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DQ-lane"><span class="toc-number">4.</span> <span class="toc-text">DQ lane</span></a></li></ol>
+    </div>
+  </div>
+  
 
   <div class="post-content">
     
-    <p>本文将mark下DRAM components相关notes。<br><img src="/images/2025/01/018.png"></p>
+    <p>本文将mark下DRAM components相关notes。</p>
+<h2 id="Basic"><a href="#Basic" class="headerlink" title="Basic"></a>Basic</h2><p><img src="/images/2025/01/018.png"></p>
 <span id="more"></span>
-<p>In modern cloud servers, a CPU(socket) has several memory controllers. Each controller communicates with DIMMs through high-speed memory channels. Usually, a memory channel is shared by several DIMM slots. A DIMM has several ranks, and each is composed of sevaral DRAM chips. For typical DDR4 DIMMs, a rank is composed of 16 chips for data bits and 2 additional chips for ECC bits. <strong>A chip consists of multiple banks, which enables the access parallesim</strong>. A DRAM bank is structured as a two-dimensional cell array indexed by rows and columns. At the micro-level, a cell can store multiple bits of data, and the number of data bits stored in a cell is called the data width of a chip, which is usually denoted as x4, x8 or x16,etc.</p>
+<p>In modern cloud servers, a CPU(socket) has several memory controllers. Each controller communicates with DIMMs through high-speed memory channels. Usually, a memory channel is shared by several DIMM slots. A DIMM has several ranks, and each is composed of sevaral DRAM chips. For typical DDR4 DIMMs, a rank is composed of 16 chips for data bits and 2 additional chips for ECC bits. <strong>A chip consists of multiple banks, which enables the access parallesim</strong>. A DRAM bank is structured as a two-dimensional cell array indexed by rows and columns.</p>
 <ul>
 <li>socket</li>
 <li>memory controller</li>
@@ -260,6 +268,45 @@
 <li>bank</li>
 <li>cell (row, column)</li>
 </ul>
+<h2 id="DQ-pin"><a href="#DQ-pin" class="headerlink" title="DQ pin"></a>DQ pin</h2><p>DQ pin 是 DRAM 芯片和内存控制器之间传输数据的“数据引脚”（Data pin）。</p>
+<p>可以把它理解成<strong>内存芯片对外的数据线接口</strong>。</p>
+<p>CPU 不直接连接 DRAM cell，路径大概是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">CPU / Memory Controller</span><br><span class="line">          |</span><br><span class="line">          |</span><br><span class="line">       DQ wires</span><br><span class="line">          |</span><br><span class="line">          |</span><br><span class="line">     DRAM Chip</span><br><span class="line">          |</span><br><span class="line">          |</span><br><span class="line">     DRAM Cell Array</span><br></pre></td></tr></table></figure>
+
+<p>CPU 想读数据：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">DRAM内部cell</span><br><span class="line">      ↓</span><br><span class="line">Sense Amplifier</span><br><span class="line">      ↓</span><br><span class="line">内部数据通路</span><br><span class="line">      ↓</span><br><span class="line">DQ pin</span><br><span class="line">      ↓</span><br><span class="line">Memory Controller</span><br></pre></td></tr></table></figure>
+<p>写数据则相反：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Memory Controller</span><br><span class="line">      ↓</span><br><span class="line">DQ pin</span><br><span class="line">      ↓</span><br><span class="line">DRAM内部阵列</span><br></pre></td></tr></table></figure>
+
+<h2 id="x4-x8-x16-device-width"><a href="#x4-x8-x16-device-width" class="headerlink" title="x4&#x2F;x8&#x2F;x16 device width"></a>x4&#x2F;x8&#x2F;x16 device width</h2><p>简单理解：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">x4 DRAM chip</span><br><span class="line"></span><br><span class="line">内部 DRAM array</span><br><span class="line">       |</span><br><span class="line">       |</span><br><span class="line">       ↓</span><br><span class="line">一次读写输出 4 bit</span><br><span class="line"></span><br><span class="line">DQ0 DQ1 DQ2 DQ3</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">x8 DRAM chip</span><br><span class="line"></span><br><span class="line">内部 DRAM array</span><br><span class="line">       |</span><br><span class="line">       |</span><br><span class="line">       ↓</span><br><span class="line">一次读写输出 8 bit</span><br><span class="line"></span><br><span class="line">DQ0~DQ7</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">x16 DRAM chip</span><br><span class="line"></span><br><span class="line">内部 DRAM array</span><br><span class="line">       |</span><br><span class="line">       |</span><br><span class="line">       ↓</span><br><span class="line">一次读写输出 16 bit</span><br><span class="line"></span><br><span class="line">DQ0~DQ15</span><br></pre></td></tr></table></figure>
+
+<h3 id="一个-Rank-为什么有很多-DRAM-芯片？"><a href="#一个-Rank-为什么有很多-DRAM-芯片？" class="headerlink" title="一个 Rank 为什么有很多 DRAM 芯片？"></a>一个 Rank 为什么有很多 DRAM 芯片？</h3><p>因为一个 DRAM 芯片的数据宽度太小。</p>
+<p>例如 DDR4 RDIMM的配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">一个 Rank:</span><br><span class="line"></span><br><span class="line">18颗 x4 DRAM</span><br><span class="line"></span><br><span class="line">其中：</span><br><span class="line"></span><br><span class="line">16颗:</span><br><span class="line">    数据</span><br><span class="line"></span><br><span class="line">2颗:</span><br><span class="line">    ECC</span><br></pre></td></tr></table></figure>
+<p>画一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">             一个 Rank</span><br><span class="line"></span><br><span class="line">Chip0  x4  ---- DQ0~DQ3</span><br><span class="line">Chip1  x4  ---- DQ4~DQ7</span><br><span class="line">Chip2  x4  ---- DQ8~DQ11</span><br><span class="line">...</span><br><span class="line">Chip15 x4  ---- 数据</span><br><span class="line"></span><br><span class="line">Chip16 x4  ---- ECC</span><br><span class="line">Chip17 x4  ---- ECC</span><br></pre></td></tr></table></figure>
+<p>总数据宽度：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">18 × 4 bit</span><br><span class="line"></span><br><span class="line">=72 bit</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">64 bit 数据</span><br><span class="line">+</span><br><span class="line">8 bit ECC</span><br></pre></td></tr></table></figure>
+
+<p>所以服务器内存常见：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">64-bit data + ECC</span><br></pre></td></tr></table></figure>
+<p>就是这样来的。</p>
+<h2 id="DQ-lane"><a href="#DQ-lane" class="headerlink" title="DQ lane"></a>DQ lane</h2><p>简单理解：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">一个 x4 DRAM:</span><br><span class="line"></span><br><span class="line">DQ0</span><br><span class="line">DQ1</span><br><span class="line">DQ2</span><br><span class="line">DQ3</span><br><span class="line"></span><br><span class="line">+</span><br><span class="line">DQS (数据同步时钟)</span><br><span class="line"></span><br><span class="line">组成：</span><br><span class="line"></span><br><span class="line">一个 lane</span><br></pre></td></tr></table></figure>
+
+<p>所以：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">DQ pin:</span><br><span class="line"></span><br><span class="line">一根数据线</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">DQ lane:</span><br><span class="line"></span><br><span class="line">一组数据线 + 时钟</span><br></pre></td></tr></table></figure>
+<p>关系：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">        Lane</span><br><span class="line"></span><br><span class="line"> +----------------+</span><br><span class="line"> |                |</span><br><span class="line">DQ0              |</span><br><span class="line">DQ1              |</span><br><span class="line">DQ2              |</span><br><span class="line">DQ3              |</span><br><span class="line">DQS              |</span><br><span class="line"> |                |</span><br><span class="line"> +----------------+</span><br></pre></td></tr></table></figure>
+
 <hr>
 <p>参考资料:</p>
 <ol>
