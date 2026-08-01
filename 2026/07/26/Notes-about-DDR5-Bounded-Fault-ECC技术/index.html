@@ -359,6 +359,15 @@
 <p>两者关系：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">On-Die ECC</span><br><span class="line">    ↓</span><br><span class="line">过滤小错误</span><br><span class="line"></span><br><span class="line">Bounded Fault ECC</span><br><span class="line">    ↓</span><br><span class="line">降低外部ECC保护范围</span><br></pre></td></tr></table></figure>
 
+<hr>
+<p>DDR5 的 On-Die ECC 通常能够纠正单比特错误。但当一个故障产生多个错误比特时，它超出单错纠正能力，可能发生 <strong>miscorrection，误纠正</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">原本错误只在边界 A</span><br><span class="line">        ↓</span><br><span class="line">On-Die ECC 判断错了错误位置</span><br><span class="line">        ↓</span><br><span class="line">又翻转了边界 B 中的正常比特</span><br><span class="line">        ↓</span><br><span class="line">错误从一个边界扩散成两个边界</span><br></pre></td></tr></table></figure>
+<p>这样会破坏 Bounded Fault 的保证：系统级 ECC 原本能纠正一个边界，但现在看到两个边界都错了，可能变成不可纠正错误。</p>
+<p>所以要求 On-Die ECC 也必须“遵守边界”：</p>
+<ul>
+<li>可以在原故障边界内误纠正</li>
+<li><strong>不能把错误扩散到另一个数据边界</strong></li>
+</ul>
 <h2 id="BF-ECC-的代价"><a href="#BF-ECC-的代价" class="headerlink" title="BF ECC 的代价"></a>BF ECC 的代价</h2><p><strong>可靠性下降</strong></p>
 <p>如果 fault 超过 bounded 范围:例如设计认为最多影响 DQ0,DQ1，但是实际：DQ0,DQ1,DQ2,DQ3都坏，那么BF ECC无法保证恢复。</p>
 <p>这就是unbounded fault，A Systematic Study of DDR4 DRAM Faults in the Field通过 DDR4 field data 建模发现，一些 fault,例如：</p>
@@ -369,6 +378,8 @@
 <p>可能属于 unbounded fault。</p>
 <p>因此BF ECC 相比 Chipkill 会增加 UE（不可纠正错误）。</p>
 <h2 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">           DRAM内部故障</span><br><span class="line"></span><br><span class="line">                 |</span><br><span class="line">                 |</span><br><span class="line">       +----------------+</span><br><span class="line">       |                |</span><br><span class="line">       v                v</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">普通 DRAM               DDR5 BF设计</span><br><span class="line"></span><br><span class="line">不知道影响范围           限制fault传播范围</span><br><span class="line"></span><br><span class="line">       |                         |</span><br><span class="line">       |                         |</span><br><span class="line">       v                         v</span><br><span class="line"></span><br><span class="line">按最坏情况保护          按bounded范围保护</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">       |                         |</span><br><span class="line">       |                         |</span><br><span class="line"></span><br><span class="line">    Chipkill              Bounded Fault ECC</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">       |                         |</span><br><span class="line"></span><br><span class="line">ECC开销大                ECC开销小</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">DRAM 内部组件发生故障</span><br><span class="line">          ↓</span><br><span class="line">物理布局和数据映射限制影响范围</span><br><span class="line">          ↓</span><br><span class="line">错误只落在一个规定的 DQ 边界</span><br><span class="line">          ↓</span><br><span class="line">On-Die ECC 尝试纠正</span><br><span class="line">          ↓</span><br><span class="line">即使误纠正，也不能跨出该边界</span><br><span class="line">          ↓</span><br><span class="line">Rank-Level ECC 根据边界保证恢复数据</span><br></pre></td></tr></table></figure>
 
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><table>
 <thead>
@@ -419,6 +430,11 @@
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Chipkill:</span><br><span class="line">不知道坏多大 → 准备救整颗芯片</span><br><span class="line"></span><br><span class="line">Bounded Fault ECC:</span><br><span class="line">提前限制坏多大 → 只准备救这个范围</span><br></pre></td></tr></table></figure>
 
 <p>这也是为什么它叫 <strong>Bounded Fault（有边界的故障）</strong>。</p>
+<ol>
+<li>Fault Bounding 不是消除故障，而是缩小故障对 Cache Line 的影响范围</li>
+<li>On-Die ECC 的失败行为也必须受约束，不能把局部错误扩散到其他边界</li>
+<li>它是一套 DRAM 结构、数据映射和系统 ECC 之间的跨层契约，而不是一种独立的新 ECC</li>
+</ol>
 <hr>
 <p>参考资料:</p>
 <ol>
@@ -447,6 +463,12 @@
     
       
   <nav class="post-nav">  
+      
+      <a class="prev" href="/2026/08/01/Notes-about-Error-Check-Scrub-ECS/">  
+        <i class="iconfont icon-left"></i>  
+        <span class="prev-text nav-default">Notes about Error Check Scrub (ECS)</span>  
+        <span class="prev-text nav-mobile">上一篇</span>  
+      </a>  
       
       
       <a class="next" href="/2026/07/25/Notes-about-DRAM-Chipkill%E6%8A%80%E6%9C%AF/">  
