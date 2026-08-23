@@ -255,6 +255,7 @@
   <div class="post-content">
     
     <p>本文将基于第一性原理，浅谈x86的TSO memory ordering机制。<span id="more"></span></p>
+<p>本文只讨论 x86-64 上自然对齐的普通 load&#x2F;store，对普通 WB（Write-Back）cacheable memory 的访问。暂不讨论编译器重排、non-temporal store、string operation、WC&#x2F;UC memory、MMIO、DMA、CLFLUSH、locked instruction 和 serializing instruction。</p>
 <h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>先把最容易混淆的一点说清楚：<br><strong>Memory ordering 讨论的不是“CPU 是否按顺序执行指令”，而是多个 CPU 访问多个共享地址时，一个 CPU 的内存操作，可能以什么顺序被其他 CPU 观察到</strong>。</p>
 <h2 id="四种“顺序”"><a href="#四种“顺序”" class="headerlink" title="四种“顺序”"></a>四种“顺序”</h2><p>假设程序写的是：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">A</span><br><span class="line">B</span><br><span class="line">C</span><br></pre></td></tr></table></figure>
@@ -289,6 +290,9 @@
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">对 y 的 store</span><br><span class="line">似乎先于</span><br><span class="line">对 x 的 store</span><br></pre></td></tr></table></figure>
 
 <p>即使 CPU 0 的程序顺序正好相反。</p>
+<blockquote>
+<p>注意：这里描述的是一般弱内存模型中可能出现的可见顺序，不是 x86 TSO 下普通 WB load&#x2F;store 的合法结果。对于 x86，Store→Store 和 Load→Load 均保持顺序，因此 y&#x3D;&#x3D;1 &amp;&amp; x&#x3D;&#x3D;0 被禁止。</p>
+</blockquote>
 <h3 id="同一地址的-coherence-order"><a href="#同一地址的-coherence-order" class="headerlink" title="同一地址的 coherence order"></a>同一地址的 coherence order</h3><p>假设多个 CPU 依次向同一个地址写：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">x = 1</span><br><span class="line">x = 2</span><br><span class="line">x = 3</span><br></pre></td></tr></table></figure>
 
@@ -405,7 +409,7 @@
 <p>因此 CPU 通常先把 store 放进一个本地 store buffer：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CPU pipeline</span><br><span class="line">     │</span><br><span class="line">     ▼</span><br><span class="line">Store Buffer：x = 1</span><br><span class="line">     │</span><br><span class="line">     ▼</span><br><span class="line">L1 cache / coherence network</span><br></pre></td></tr></table></figure>
 
-<p>CPU 可以认为这条 store 已经完成，然后继续执行后续指令。</p>
+<p>Store 可以先被本核接受并进入私有 Store Buffer，CPU 随后继续执行后续指令；但此时该 Store 可能还没有排出 Store Buffer，因此尚未对其他处理器全局可见。</p>
 <h2 id="x86-TSO"><a href="#x86-TSO" class="headerlink" title="x86 TSO"></a>x86 TSO</h2><p>x86-64 普通 WB 内存的模型通常称为：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">TSO：Total Store Order</span><br></pre></td></tr></table></figure>
 
@@ -510,7 +514,9 @@
 <hr>
 <p>参考资料:</p>
 <ol>
-<li>chatgpt</li>
+<li>Intel 64 and IA-32 Architectures Software Developer’s Manual</li>
+<li>Intel Optimization Reference Manual</li>
+<li><a href="https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf">x86-TSO: A Rigorous and Usable Programmer’s Model for x86 Multiprocessors</a></li>
 <li><a href="https://zhuanlan.zhihu.com/p/141655129">内存一致性模型-TSO</a></li>
 <li><a href="https://developer.arm.com/community/arm-community-blogs/b/tools-software-ides-blog/posts/armv8-sequential-consistency">Sequential Consistency in Armv8</a></li>
 <li><a href="https://docs.kernel.org/dev-tools/lkmm/docs/explanation.html">Explanation of the Linux-Kernel Memory Consistency Model</a></li>
