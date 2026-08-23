@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <!-- Website mata -->
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+<!-- Disable transformation -->
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+<!-- Website description -->
+
+<meta name="description" content="浅谈x86的TSO memory ordering" />
+
+
+<!-- Website keywords -->
+
+<meta name="keywords" content="体系结构, Memory Ordering, L" />
+
+
+
+
+<!-- Website rss -->
+
+<link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+
+
+<!-- Website favicon -->
+
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3.0.0" />
+
+
+<!-- Canonical, good for google search engine -->
+<link rel="canonical" href="http://liujunming.github.io/2026/08/22/浅谈x86的TSO-memory-ordering/" />
+
+<!-- Fancybox styling -->
+
+<link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+<!-- MathJax (LaTeX) support -->
+
+
+<!-- Theme styling -->
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=3.0.0" />
+
+<!-- Analytics and push -->
+
+
+
+  
+
+
+
+<!-- LeanCloud Counter -->
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null,"server_url":null,"cdn":null},"toc":true,"fancybox":true,"pjax":true,"latex":false};
+</script>
+  
+  <title>浅谈x86的TSO memory ordering - L</title>
+
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+<body>
+  <div class="scrollPercentage"></div>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+    <a href="/">
+      <li class="mobile-menu-item">
+        
+        
+        首页              </li>
+    </a>
+    
+    <a href="/archives/">
+      <li class="mobile-menu-item">
+        
+        
+        归档              </li>
+    </a>
+    
+    <a href="/categories">
+      <li class="mobile-menu-item">
+        
+        
+        分类              </li>
+    </a>
+    
+    <a href="/tags">
+      <li class="mobile-menu-item">
+        
+        
+        标签              </li>
+    </a>
+    
+    <a href="/links">
+      <li class="mobile-menu-item">
+        
+        
+        Links              </li>
+    </a>
+    
+    <a href="/books">
+      <li class="mobile-menu-item">
+        
+        
+        Books              </li>
+    </a>
+    
+    <a href="/course">
+      <li class="mobile-menu-item">
+        
+        
+        Course              </li>
+    </a>
+    
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+      <div class="logo-wrapper">  
+  <a href="/." class="logo">L</a>  
+</div>  
+  
+<nav class="site-navbar">  
+    
+    <ul id="menu" class="menu">  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/">  
+              
+              
+              首页  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/archives/">  
+              
+              
+              归档  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/categories">  
+              
+              
+              分类  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/tags">  
+              
+              
+              标签  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/links">  
+              
+              
+              Links  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/books">  
+              
+              
+              Books  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/course">  
+              
+              
+              Course  
+              
+          </a>  
+        </li>  
+        
+    </ul>  
+    
+</nav>  
+
+    </header>
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+  <header class="post-header">
+    <h1 class="post-title">
+      
+      浅谈x86的TSO memory ordering
+      
+    </h1>
+
+    <div class="post-meta">
+      <span class="post-time">
+        2026-08-22
+      </span>
+      
+      
+      <span class="post-category">
+        
+        <a href="/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/">体系结构</a>
+        
+      </span>
+      
+      
+    </div>
+  </header>
+
+  
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#What"><span class="toc-number">1.</span> <span class="toc-text">What</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E7%A7%8D%E2%80%9C%E9%A1%BA%E5%BA%8F%E2%80%9D"><span class="toc-number">2.</span> <span class="toc-text">四种“顺序”</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A8%8B%E5%BA%8F%E9%A1%BA%E5%BA%8F-Program-Order"><span class="toc-number">2.1.</span> <span class="toc-text">程序顺序 Program Order</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CPU-%E5%86%85%E9%83%A8%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F"><span class="toc-number">2.2.</span> <span class="toc-text">CPU 内部执行顺序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E5%AD%98%E6%93%8D%E4%BD%9C%E7%9A%84%E5%8F%AF%E8%A7%81%E9%A1%BA%E5%BA%8F"><span class="toc-number">2.3.</span> <span class="toc-text">内存操作的可见顺序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%8C%E4%B8%80%E5%9C%B0%E5%9D%80%E7%9A%84-coherence-order"><span class="toc-number">2.4.</span> <span class="toc-text">同一地址的 coherence order</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80Example"><span class="toc-number">3.</span> <span class="toc-text">基础Example</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Sequential-Consistency"><span class="toc-number">4.</span> <span class="toc-text">Sequential Consistency</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Example%E7%9A%84%E7%BB%93%E6%9E%9C"><span class="toc-number">4.1.</span> <span class="toc-text">Example的结果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#store-buffer"><span class="toc-number">5.</span> <span class="toc-text">store buffer</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#x86-TSO"><span class="toc-number">6.</span> <span class="toc-text">x86 TSO</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Example%E7%9A%84%E7%BB%93%E6%9E%9C-1"><span class="toc-number">6.1.</span> <span class="toc-text">Example的结果</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#store-forwarding"><span class="toc-number">6.2.</span> <span class="toc-text">store forwarding</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%B0%E5%BF%86%E5%9B%BE"><span class="toc-number">7.</span> <span class="toc-text">记忆图</span></a></li></ol>
+    </div>
+  </div>
+  
+
+  <div class="post-content">
+    
+    <p>本文将基于第一性原理，浅谈x86的TSO memory ordering机制。<span id="more"></span></p>
+<h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>先把最容易混淆的一点说清楚：<br><strong>Memory ordering 讨论的不是“CPU 是否按顺序执行指令”，而是多个 CPU 访问多个共享地址时，一个 CPU 的内存操作，可能以什么顺序被其他 CPU 观察到</strong>。</p>
+<h2 id="四种“顺序”"><a href="#四种“顺序”" class="headerlink" title="四种“顺序”"></a>四种“顺序”</h2><p>假设程序写的是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">A</span><br><span class="line">B</span><br><span class="line">C</span><br></pre></td></tr></table></figure>
+
+<p>这里实际上可能存在四种不同的顺序。</p>
+<h3 id="程序顺序-Program-Order"><a href="#程序顺序-Program-Order" class="headerlink" title="程序顺序 Program Order"></a>程序顺序 Program Order</h3><p>源代码或机器指令中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">A 在 B 前面</span><br><span class="line">B 在 C 前面</span><br></pre></td></tr></table></figure>
+
+<p>通常写成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A →po B →po C</span><br></pre></td></tr></table></figure>
+
+<p>这只是”指令流中的顺序”。</p>
+<h3 id="CPU-内部执行顺序"><a href="#CPU-内部执行顺序" class="headerlink" title="CPU 内部执行顺序"></a>CPU 内部执行顺序</h3><p>现代 CPU 可能：</p>
+<ul>
+<li>提前发射 load</li>
+<li>推迟 store</li>
+<li>猜测执行</li>
+<li>并行执行无依赖指令</li>
+<li>将 store 暂存在 store buffer</li>
+<li>从 store buffer 向本核 load 转发数据</li>
+</ul>
+<p>所以 CPU 内部实际开始或完成某条指令的时间，不一定等于程序顺序。</p>
+<p>不过，单线程通常看不出区别，因为 CPU 必须维持单线程的架构语义。</p>
+<h3 id="内存操作的可见顺序"><a href="#内存操作的可见顺序" class="headerlink" title="内存操作的可见顺序"></a>内存操作的可见顺序</h3><p>这是 memory ordering 真正关注的内容。</p>
+<p>例如 CPU 0 执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">x = 1;</span><br><span class="line">y = 1;</span><br></pre></td></tr></table></figure>
+
+<p>CPU 1 可能看到：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">y == 1</span><br><span class="line">x == 0</span><br></pre></td></tr></table></figure>
+
+<p>这意味着，对 CPU 1 而言：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">对 y 的 store</span><br><span class="line">似乎先于</span><br><span class="line">对 x 的 store</span><br></pre></td></tr></table></figure>
+
+<p>即使 CPU 0 的程序顺序正好相反。</p>
+<h3 id="同一地址的-coherence-order"><a href="#同一地址的-coherence-order" class="headerlink" title="同一地址的 coherence order"></a>同一地址的 coherence order</h3><p>假设多个 CPU 依次向同一个地址写：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">x = 1</span><br><span class="line">x = 2</span><br><span class="line">x = 3</span><br></pre></td></tr></table></figure>
+
+<p>缓存一致性协议通常要求：</p>
+<blockquote>
+<p>对同一个地址，所有 coherent observer 对这些 store 的先后顺序必须达成一致。</p>
+</blockquote>
+<p>但这只解决了<strong>单个地址</strong>的问题，并不自动解决不同地址之间的顺序：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">x = 1</span><br><span class="line">y = 1</span><br></pre></td></tr></table></figure>
+
+<p>因此必须牢记：</p>
+<blockquote>
+<p><strong>Cache coherence 解决”同一个地址的写顺序”；memory ordering 解决”不同地址之间的访问顺序”。</strong></p>
+</blockquote>
+<p>Armv8 同样要求对同一位置的写进行序列化，但它并不为不同位置的普通访问提供类似 x86 TSO 的强顺序。</p>
+<h2 id="基础Example"><a href="#基础Example" class="headerlink" title="基础Example"></a>基础Example</h2><p>初始状态：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">x = 0</span><br><span class="line">y = 0</span><br></pre></td></tr></table></figure>
+
+<p>程序：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">CPU 0                       CPU 1</span><br><span class="line"></span><br><span class="line">A: W(x)=1                   C: W(y)=1</span><br><span class="line">B: R(y)→r0                  D: R(x)→r1</span><br></pre></td></tr></table></figure>
+
+<p>每个 CPU 的程序顺序是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CPU 0：A → B</span><br><span class="line">CPU 1：C → D</span><br></pre></td></tr></table></figure>
+
+<p>寄存器总共有四种组合：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">r0=0, r1=0</span><br><span class="line">r0=0, r1=1</span><br><span class="line">r0=1, r1=0</span><br><span class="line">r0=1, r1=1</span><br></pre></td></tr></table></figure>
+
+<h2 id="Sequential-Consistency"><a href="#Sequential-Consistency" class="headerlink" title="Sequential Consistency"></a>Sequential Consistency</h2><p>先构造一个最符合人直觉的模型。</p>
+<p>Sequential Consistency，简称 SC，可以理解为：</p>
+<blockquote>
+<p>系统仿佛有一个全局开关，每次只允许一个 CPU 完成一个内存操作；所有 CPU 的操作被混合进一个全局总序，同时每个 CPU 自己的程序顺序不能被打乱。</p>
+</blockquote>
+<p>以基础Example为例，不能出现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">B A C D</span><br></pre></td></tr></table></figure>
+<p>因为它违反了 CPU 0 的程序顺序。</p>
+<h3 id="Example的结果"><a href="#Example的结果" class="headerlink" title="Example的结果"></a>Example的结果</h3><p>两个线程各有两个操作，保持：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">A 在 B 前</span><br><span class="line">C 在 D 前</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>全局顺序</th>
+<th>执行过程</th>
+<th align="right"><code>(r0,r1)</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>A B C D</code></td>
+<td>CPU 0 先写 x，再读到旧 y；随后 CPU 1 写 y、读到新 x</td>
+<td align="right"><code>(0,1)</code></td>
+</tr>
+<tr>
+<td><code>A C B D</code></td>
+<td>两个写先发生，两个读都看到 1</td>
+<td align="right"><code>(1,1)</code></td>
+</tr>
+<tr>
+<td><code>A C D B</code></td>
+<td>两个写先发生，两个读都看到 1</td>
+<td align="right"><code>(1,1)</code></td>
+</tr>
+<tr>
+<td><code>C A B D</code></td>
+<td>两个写先发生，两个读都看到 1</td>
+<td align="right"><code>(1,1)</code></td>
+</tr>
+<tr>
+<td><code>C A D B</code></td>
+<td>两个写先发生，两个读都看到 1</td>
+<td align="right"><code>(1,1)</code></td>
+</tr>
+<tr>
+<td><code>C D A B</code></td>
+<td>CPU 1 先写 y，再读到旧 x；随后 CPU 0 写 x、读到新 y</td>
+<td align="right"><code>(1,0)</code></td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>结果</th>
+<th align="right">SC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>(0,0)</code></td>
+<td align="right"><strong>禁止</strong></td>
+</tr>
+<tr>
+<td><code>(0,1)</code></td>
+<td align="right">允许</td>
+</tr>
+<tr>
+<td><code>(1,0)</code></td>
+<td align="right">允许</td>
+</tr>
+<tr>
+<td><code>(1,1)</code></td>
+<td align="right">允许</td>
+</tr>
+</tbody></table>
+<h2 id="store-buffer"><a href="#store-buffer" class="headerlink" title="store buffer"></a>store buffer</h2><p>CPU 0 想执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 1</span><br></pre></td></tr></table></figure>
+
+<p>如果 <code>x</code> 对应的 cache line 当前被其他 CPU 共享，CPU 0 可能需要：</p>
+<ol>
+<li>发出 Read For Ownership；</li>
+<li>通知其他 CPU invalidate 该 cache line；</li>
+<li>等待一致性协议响应；</li>
+<li>获得写权限；</li>
+<li>才能更新 cache line。</li>
+</ol>
+<p>如果 CPU 每次 store 都等完整个过程，流水线会频繁停顿。</p>
+<p>因此 CPU 通常先把 store 放进一个本地 store buffer：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CPU pipeline</span><br><span class="line">     │</span><br><span class="line">     ▼</span><br><span class="line">Store Buffer：x = 1</span><br><span class="line">     │</span><br><span class="line">     ▼</span><br><span class="line">L1 cache / coherence network</span><br></pre></td></tr></table></figure>
+
+<p>CPU 可以认为这条 store 已经完成，然后继续执行后续指令。</p>
+<h2 id="x86-TSO"><a href="#x86-TSO" class="headerlink" title="x86 TSO"></a>x86 TSO</h2><p>x86-64 普通 WB 内存的模型通常称为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">TSO：Total Store Order</span><br></pre></td></tr></table></figure>
+
+<p>可以用下面这个简化模型理解：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">每个 CPU：</span><br><span class="line"></span><br><span class="line">程序</span><br><span class="line">  │</span><br><span class="line">  ├── Load ───────────────&gt; cache/coherence</span><br><span class="line">  │</span><br><span class="line">  └── Store ──&gt; FIFO Store Buffer ──&gt; cache/coherence</span><br><span class="line">                         ▲</span><br><span class="line">                         │</span><br><span class="line">             本核 load 可以做 store forwarding</span><br></pre></td></tr></table></figure>
+
+<p>一个 store 可以先进入本核 store buffer，而暂时不对其他核可见。后面的 load 如果访问不同地址，可以绕过这个尚未排空的 store。</p>
+<p>因此，简化地说，x86 保持：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Load  → Load</span><br><span class="line">Load  → Store</span><br><span class="line">Store → Store</span><br></pre></td></tr></table></figure>
+
+<p>但放松：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Store → Load       不同地址时</span><br></pre></td></tr></table></figure>
+
+<p>Intel 手册明确规定：普通读之间不重排，写不能越过更早的读，普通写之间不重排；但读可以越过更早的、访问不同地址的写。</p>
+<p>关键性质是：</p>
+<ol>
+<li>本 CPU 的 store 按程序顺序从 store buffer 对外传播；</li>
+<li>load 通常按程序顺序被观察；</li>
+<li>但 load 可以绕过更早的、访问不同地址的 buffered store；</li>
+<li>对同一地址，CPU 必须处理 store forwarding 和顺序一致性。</li>
+</ol>
+<p>Intel 给出的普通 load&#x2F;store 顺序规则可以总结为：</p>
+<table>
+<thead>
+<tr>
+<th>较老操作 → 较新操作</th>
+<th align="right">x86 普通 WB 内存能否表现为重排</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Load → Load</td>
+<td align="right">否</td>
+</tr>
+<tr>
+<td>Load → Store</td>
+<td align="right">否</td>
+</tr>
+<tr>
+<td>Store → Store</td>
+<td align="right">否</td>
+</tr>
+<tr>
+<td>Store → Load，不同地址</td>
+<td align="right"><strong>可以</strong></td>
+</tr>
+</tbody></table>
+<p>这里的“否”表示架构不允许其他处理器观察到相反顺序。</p>
+<h3 id="Example的结果-1"><a href="#Example的结果-1" class="headerlink" title="Example的结果"></a>Example的结果</h3><p>可以出现如下执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">时间</span><br><span class="line"> │</span><br><span class="line"> ▼</span><br><span class="line"></span><br><span class="line">CPU 0                              CPU 1</span><br><span class="line"></span><br><span class="line">W(x)=1 进入 Store Buffer           W(y)=1 进入 Store Buffer</span><br><span class="line">    │                                  │</span><br><span class="line">    │ x 尚未对 CPU 1 可见              │ y 尚未对 CPU 0 可见</span><br><span class="line">    │                                  │</span><br><span class="line">R(y) 从 cache/memory 读到 0         R(x) 从 cache/memory 读到 0</span><br><span class="line">    │                                  │</span><br><span class="line">Store Buffer 最后排出 x=1           Store Buffer 最后排出 y=1</span><br></pre></td></tr></table></figure>
+
+<p>注意：</p>
+<ul>
+<li>CPU 0 自己知道它写了 <code>x=1</code>；</li>
+<li>但 CPU 1 暂时还看不到；</li>
+<li>CPU 0 后面的 load 访问的是另一个地址 <code>y</code>，可以不等 <code>x=1</code> 排出；</li>
+<li>CPU 1 同理。</li>
+</ul>
+<p>所以：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">r0=0</span><br><span class="line">r1=0</span><br></pre></td></tr></table></figure>
+
+<p>在 x86 上是允许的。</p>
+<h3 id="store-forwarding"><a href="#store-forwarding" class="headerlink" title="store forwarding"></a>store forwarding</h3><p>初始：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 0</span><br></pre></td></tr></table></figure>
+
+<p>CPU 0 执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">x = 1;</span><br><span class="line">r0 = x;</span><br></pre></td></tr></table></figure>
+
+<p>从程序语义来看，结果必须是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">r0 = 1</span><br></pre></td></tr></table></figure>
+
+<p>但是，前面说过，<code>x = 1</code> 可能先进入 Store Buffer：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">CPU 0</span><br><span class="line"></span><br><span class="line">执行 x = 1</span><br><span class="line">     │</span><br><span class="line">     ▼</span><br><span class="line">Store Buffer：</span><br><span class="line">    x = 1</span><br><span class="line"></span><br><span class="line">Cache / 内存：</span><br><span class="line">    x = 0</span><br></pre></td></tr></table></figure>
+
+<p>这时，如果后面的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">r0 = x;</span><br></pre></td></tr></table></figure>
+
+<p>直接去 Cache 中读取，就会读到：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">r0 = 0</span><br></pre></td></tr></table></figure>
+
+<p>这显然违反单线程程序语义：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">x = 1;</span><br><span class="line">r0 = x;</span><br><span class="line"></span><br><span class="line">assert(r0 == 1);</span><br></pre></td></tr></table></figure>
+
+<p>因此，CPU 执行 load 时不能只看 Cache，还需要检查：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Store Buffer 中有没有更早的、写同一地址的 store？</span><br></pre></td></tr></table></figure>
+
+<p>如果有，就直接使用 Store Buffer 中的新值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">                   ┌─────────────────────┐</span><br><span class="line">x = 1 ───────────&gt; │ Store Buffer: x = 1 │</span><br><span class="line">                   └──────────┬──────────┘</span><br><span class="line">                              │</span><br><span class="line">                              │ Store Forwarding</span><br><span class="line">                              ▼</span><br><span class="line">r0 = x  &lt;──────────────────── 1</span><br></pre></td></tr></table></figure>
+
+<p>所以最终：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">r0 = 1</span><br></pre></td></tr></table></figure>
+
+<p>这个机制就叫：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Store-to-Load Forwarding</span><br></pre></td></tr></table></figure>
+
+<p>或者简称：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Store Forwarding</span><br></pre></td></tr></table></figure>
+
+<p>Intel 的优化手册将其描述为：当较早的 store 和较新的 load 满足地址、大小等条件时，load 可以直接从 store buffer 获得数据，而不需要等待 store 写入缓存。</p>
+<h2 id="记忆图"><a href="#记忆图" class="headerlink" title="记忆图"></a>记忆图</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">SC</span><br><span class="line">│</span><br><span class="line">│ 所有 program-order 边都保留</span><br><span class="line">│</span><br><span class="line">├── Load  → Load</span><br><span class="line">├── Load  → Store</span><br><span class="line">├── Store → Store</span><br><span class="line">└── Store → Load</span><br><span class="line">        都保留</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">x86 TSO</span><br><span class="line">│</span><br><span class="line">├── Load  → Load       保留</span><br><span class="line">├── Load  → Store      保留</span><br><span class="line">├── Store → Store      保留</span><br><span class="line">└── Store → Load       不同地址时可能放松</span><br></pre></td></tr></table></figure>
+
+
+<hr>
+<p>参考资料:</p>
+<ol>
+<li>chatgpt</li>
+<li><a href="https://zhuanlan.zhihu.com/p/141655129">内存一致性模型-TSO</a></li>
+<li><a href="https://developer.arm.com/community/arm-community-blogs/b/tools-software-ides-blog/posts/armv8-sequential-consistency">Sequential Consistency in Armv8</a></li>
+<li><a href="https://docs.kernel.org/dev-tools/lkmm/docs/explanation.html">Explanation of the Linux-Kernel Memory Consistency Model</a></li>
+</ol>
+
+    
+  </div>
+
+  
+  <!-- Post Copyright -->
+
+    
+
+  
+
+  
+  <footer class="post-footer">
+    
+    <div class="post-tags">
+      
+      <a href="/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/">体系结构</a>
+      
+      <a href="/tags/Memory-Ordering/">Memory Ordering</a>
+      
+    </div>
+    
+      
+  <nav class="post-nav">  
+      
+      <a class="prev" href="/2026/08/23/x86%E5%92%8CARM%E7%9A%84memory-ordering%E6%AF%94%E8%BE%83/">  
+        <i class="iconfont icon-left"></i>  
+        <span class="prev-text nav-default">x86和ARM的memory ordering比较</span>  
+        <span class="prev-text nav-mobile">上一篇</span>  
+      </a>  
+      
+      
+      <a class="next" href="/2026/08/16/Notes-about-FUSE-Passthrough/">  
+        <span class="next-text nav-default">Notes about FUSE Passthrough</span>  
+        <span class="prev-text nav-mobile">下一篇</span>  
+        <i class="iconfont icon-right"></i>  
+      </a>  
+      
+  </nav>  
+  
+
+  </footer>
+  
+
+</article>
+        </div>
+          
+  <div class="comments" id="comments">  
+      
+      <div id="disqus_thread">  
+        <noscript>  
+          Please enable JavaScript to view the  
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>  
+        </noscript>  
+      </div>  
+      
+  </div>  
+  
+
+      </div>
+    </main>
+    <footer id="footer" class="footer">
+      <!-- Social Links -->
+
+<div class="social-links">
+  
+  
+  
+  
+  <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+  
+</div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 -
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+  <span class="division">|</span>
+  <span class="hosting-info">
+    footer.hosting
+  </span>
+
+  <span class="copyright-year">
+    <span>
+      
+      &copy;
+      
+      2016 - 2026      
+    </span>
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+
+    <span class="author">liujunming</span>
+  </span>
+
+</div>
+    </footer>
+    <div class="back-to-top" id="back-to-top"> <i class="iconfont icon-up"></i> </div>
+  </div>
+    
+  
+<script type="text/javascript">
+  var disqus_config = function() {
+    this.page.url = 'http://liujunming.github.io/2026/08/22/%E6%B5%85%E8%B0%88x86%E7%9A%84TSO-memory-ordering/';
+    this.page.identifier = '2026/08/22/浅谈x86的TSO-memory-ordering/';
+    this.page.title = '浅谈x86的TSO memory ordering';
+  };
+  (function() {
+    var d = document,
+      s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+  
+    
+    
+    
+    
+    
+  
+
+  
+
+
+
+
+
+
+
+<script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+
+
+
+<script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+
+
+
+<script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+  <script type="text/javascript" src="/js/src/even.js?v=3.0.0"></script>
+</body>
+
+</html>
