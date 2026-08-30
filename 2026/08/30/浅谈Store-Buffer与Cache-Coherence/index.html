@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <!-- Website mata -->
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+<!-- Disable transformation -->
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+<!-- Website description -->
+
+<meta name="description" content="浅谈Store Buffer与Cache Coherence" />
+
+
+<!-- Website keywords -->
+
+<meta name="keywords" content="体系结构, L" />
+
+
+
+
+<!-- Website rss -->
+
+<link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+
+
+<!-- Website favicon -->
+
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3.0.0" />
+
+
+<!-- Canonical, good for google search engine -->
+<link rel="canonical" href="http://liujunming.github.io/2026/08/30/浅谈Store-Buffer与Cache-Coherence/" />
+
+<!-- Fancybox styling -->
+
+<link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+<!-- MathJax (LaTeX) support -->
+
+
+<!-- Theme styling -->
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=3.0.0" />
+
+<!-- Analytics and push -->
+
+
+
+  
+
+
+
+<!-- LeanCloud Counter -->
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null,"server_url":null,"cdn":null},"toc":true,"fancybox":true,"pjax":true,"latex":false};
+</script>
+  
+  <title>浅谈Store Buffer与Cache Coherence - L</title>
+
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+<body>
+  <div class="scrollPercentage"></div>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+    <a href="/">
+      <li class="mobile-menu-item">
+        
+        
+        首页              </li>
+    </a>
+    
+    <a href="/archives/">
+      <li class="mobile-menu-item">
+        
+        
+        归档              </li>
+    </a>
+    
+    <a href="/categories">
+      <li class="mobile-menu-item">
+        
+        
+        分类              </li>
+    </a>
+    
+    <a href="/tags">
+      <li class="mobile-menu-item">
+        
+        
+        标签              </li>
+    </a>
+    
+    <a href="/links">
+      <li class="mobile-menu-item">
+        
+        
+        Links              </li>
+    </a>
+    
+    <a href="/books">
+      <li class="mobile-menu-item">
+        
+        
+        Books              </li>
+    </a>
+    
+    <a href="/course">
+      <li class="mobile-menu-item">
+        
+        
+        Course              </li>
+    </a>
+    
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+      <div class="logo-wrapper">  
+  <a href="/." class="logo">L</a>  
+</div>  
+  
+<nav class="site-navbar">  
+    
+    <ul id="menu" class="menu">  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/">  
+              
+              
+              首页  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/archives/">  
+              
+              
+              归档  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/categories">  
+              
+              
+              分类  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/tags">  
+              
+              
+              标签  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/links">  
+              
+              
+              Links  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/books">  
+              
+              
+              Books  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/course">  
+              
+              
+              Course  
+              
+          </a>  
+        </li>  
+        
+    </ul>  
+    
+</nav>  
+
+    </header>
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+  <header class="post-header">
+    <h1 class="post-title">
+      
+      浅谈Store Buffer与Cache Coherence
+      
+    </h1>
+
+    <div class="post-meta">
+      <span class="post-time">
+        2026-08-30
+      </span>
+      
+      
+      <span class="post-category">
+        
+        <a href="/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/">体系结构</a>
+        
+      </span>
+      
+      
+    </div>
+  </header>
+
+  
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Prerequisite"><span class="toc-number">1.</span> <span class="toc-text">Prerequisite</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#What"><span class="toc-number">2.</span> <span class="toc-text">What</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E4%BC%9A%E5%86%B2%E7%AA%81%EF%BC%9F"><span class="toc-number">3.</span> <span class="toc-text">为什么不会冲突？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80-Example"><span class="toc-number">4.</span> <span class="toc-text">基础 Example</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%83%85%E5%86%B5%E4%B8%80%EF%BC%9ACPU-0-%E5%85%88%E6%8E%92%E5%87%BA"><span class="toc-number">4.1.</span> <span class="toc-text">情况一：CPU 0 先排出</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%83%85%E5%86%B5%E4%BA%8C%EF%BC%9ACPU-1-%E5%85%88%E6%8E%92%E5%87%BA"><span class="toc-number">4.2.</span> <span class="toc-text">情况二：CPU 1 先排出</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E2%80%9C%E4%B8%B2%E8%A1%8C%E5%8C%96%E2%80%9D%E7%9A%84%E5%90%AB%E4%B9%89"><span class="toc-number">5.</span> <span class="toc-text">“串行化”的含义</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8E%92%E5%87%BA-Store-Buffer-%E4%B8%8D%E7%AD%89%E4%BA%8E%E5%86%99%E5%85%A5-DRAM"><span class="toc-number">6.</span> <span class="toc-text">排出 Store Buffer 不等于写入 DRAM</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%B0%E5%BF%86%E5%9B%BE"><span class="toc-number">7.</span> <span class="toc-text">记忆图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">8.</span> <span class="toc-text">总结</span></a></li></ol>
+    </div>
+  </div>
+  
+
+  <div class="post-content">
+    
+    <p>本文只讨论一个问题：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CPU 0 Store Buffer：x = 1</span><br><span class="line">CPU 1 Store Buffer：x = 2</span><br></pre></td></tr></table></figure>
+
+<p>这两个 Store 能否同时存在？</p>
+<span id="more"></span>
+
+<p>答案是：</p>
+<blockquote>
+<p>可以同时存在于两个 CPU 各自的 Store Buffer 中；但当它们真正排出并进入共享的 coherent memory system 时，必须由 Cache Coherence 决定先后顺序。</p>
+</blockquote>
+<p>本文只讨论 x86-64 上自然对齐的普通 Store，以及普通 WB（Write-Back）cacheable memory。</p>
+<p>本文示例是硬件模型，不表示普通非原子 C&#x2F;C++ 程序可以直接这样访问共享变量。</p>
+<h2 id="Prerequisite"><a href="#Prerequisite" class="headerlink" title="Prerequisite"></a>Prerequisite</h2><p><a href="/2026/08/22/%E6%B5%85%E8%B0%88x86%E7%9A%84TSO-memory-ordering/">浅谈 x86 的 TSO memory ordering</a></p>
+<h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>假设初始状态是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 0</span><br></pre></td></tr></table></figure>
+
+<p>两个 CPU 同时执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CPU 0                       CPU 1</span><br><span class="line"></span><br><span class="line">x = 1                       x = 2</span><br></pre></td></tr></table></figure>
+
+<p>每个 CPU 都有自己的私有 Store Buffer。Store 可以先进入本地 Store Buffer，而不需要立即对其他 CPU 可见。</p>
+<p>因此，某个时刻完全可能出现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">CPU 0                                      CPU 1</span><br><span class="line">┌───────────────────┐                      ┌───────────────────┐</span><br><span class="line">│ Store Buffer      │                      │ Store Buffer      │</span><br><span class="line">│                   │                      │                   │</span><br><span class="line">│ x = 1             │                      │ x = 2             │</span><br><span class="line">└───────────────────┘                      └───────────────────┘</span><br><span class="line"></span><br><span class="line">                    Shared coherent state</span><br><span class="line">                            x = 0</span><br></pre></td></tr></table></figure>
+
+<p>也就是说：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CPU 0 SB：x = 1</span><br><span class="line">CPU 1 SB：x = 2</span><br></pre></td></tr></table></figure>
+
+<p>可以同时存在。</p>
+<p>x86-TSO 可以抽象成每个硬件线程拥有一个私有 FIFO Store Buffer，Store 随后再从各自的 Buffer 传播到共享内存。</p>
+<h2 id="为什么不会冲突？"><a href="#为什么不会冲突？" class="headerlink" title="为什么不会冲突？"></a>为什么不会冲突？</h2><p>容易产生的误解是：</p>
+<blockquote>
+<p>Cache Coherence 只允许一个 CPU 修改某条 Cache Line，因此两个 CPU 不可能同时保存对 <code>x</code> 的 Store。</p>
+</blockquote>
+<p>这里混淆了两件事：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Store 位于本核 Store Buffer 中</span><br><span class="line"></span><br><span class="line">和</span><br><span class="line"></span><br><span class="line">Store 已经获得 Cache Line 的写权限，并对外可见</span><br></pre></td></tr></table></figure>
+
+<p>它们不是一回事。</p>
+<p>Store Buffer 是 CPU 的私有结构：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Store 进入 Store Buffer</span><br><span class="line">        ≠</span><br><span class="line">CPU 已经获得 Cache Line 的写权限</span><br><span class="line">        ≠</span><br><span class="line">Store 已经对其他 CPU 可见</span><br></pre></td></tr></table></figure>
+
+<p>因此，两个 CPU 可以分别暂存：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CPU 0：我准备写 x = 1</span><br><span class="line"></span><br><span class="line">CPU 1：我准备写 x = 2</span><br></pre></td></tr></table></figure>
+
+<p>但是，它们不能无序地同时更新共享的 coherent Cache Line。</p>
+<p>真正排出 Store Buffer 时，Cache Coherence 会对包含 <code>x</code> 的 Cache Line 进行所有权仲裁。</p>
+<h2 id="基础-Example"><a href="#基础-Example" class="headerlink" title="基础 Example"></a>基础 Example</h2><p>初始状态：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 0</span><br></pre></td></tr></table></figure>
+
+<p>两个 CPU 分别执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CPU 0                       CPU 1</span><br><span class="line"></span><br><span class="line">W(x) = 1                    W(x) = 2</span><br></pre></td></tr></table></figure>
+
+<p>首先，两个 Store 都进入各自的 Store Buffer：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">时间</span><br><span class="line"> │</span><br><span class="line"> ▼</span><br><span class="line"></span><br><span class="line">CPU 0                                      CPU 1</span><br><span class="line"></span><br><span class="line">Store Buffer：x = 1                        Store Buffer：x = 2</span><br><span class="line">        │                                          │</span><br><span class="line">        │ 尚未全局可见                             │ 尚未全局可见</span><br><span class="line">        │                                          │</span><br><span class="line">        └───────────────┬──────────────────────────┘</span><br><span class="line">                        │</span><br><span class="line">                        ▼</span><br><span class="line">                Cache Coherence 仲裁</span><br></pre></td></tr></table></figure>
+
+<p>此时两个 Store 可以同时处于 pending 状态。</p>
+<p>接下来，Cache Coherence 必须决定谁先获得包含 <code>x</code> 的 Cache Line 的写权限。</p>
+<p>最终只有两种顺序。</p>
+<h3 id="情况一：CPU-0-先排出"><a href="#情况一：CPU-0-先排出" class="headerlink" title="情况一：CPU 0 先排出"></a>情况一：CPU 0 先排出</h3><p>假设 CPU 0 先获得写权限：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CPU 0 的 x = 1</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">先排出 Store Buffer</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">x = 1 对外可见</span><br></pre></td></tr></table></figure>
+
+<p>随后 CPU 1 获得写权限：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CPU 1 的 x = 2</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">后排出 Store Buffer</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">x = 2 对外可见</span><br></pre></td></tr></table></figure>
+
+<p>同一地址上的 coherence order 是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CPU 0：W(x) = 1</span><br><span class="line">        │</span><br><span class="line">        │ coherence order</span><br><span class="line">        ▼</span><br><span class="line">CPU 1：W(x) = 2</span><br></pre></td></tr></table></figure>
+
+<p>可以表示为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">W0(x = 1) →co W1(x = 2)</span><br></pre></td></tr></table></figure>
+
+<p>最终：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 2</span><br></pre></td></tr></table></figure>
+
+<h3 id="情况二：CPU-1-先排出"><a href="#情况二：CPU-1-先排出" class="headerlink" title="情况二：CPU 1 先排出"></a>情况二：CPU 1 先排出</h3><p>也可能是 CPU 1 先获得写权限：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CPU 1：W(x) = 2</span><br><span class="line">        │</span><br><span class="line">        │ coherence order</span><br><span class="line">        ▼</span><br><span class="line">CPU 0：W(x) = 1</span><br></pre></td></tr></table></figure>
+
+<p>可以表示为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">W1(x = 2) →co W0(x = 1)</span><br></pre></td></tr></table></figure>
+
+<p>最终：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 1</span><br></pre></td></tr></table></figure>
+
+<p>因此，两个 Store 可以同时位于各自的 Store Buffer 中，但一旦传播到共享 coherent state，同一地址上的 Store 必须形成一个确定的顺序。x86-TSO 相关模型和一致性约束都禁止同一地址上的 Store 处于相互矛盾的全局顺序中。</p>
+<h2 id="“串行化”的含义"><a href="#“串行化”的含义" class="headerlink" title="“串行化”的含义"></a>“串行化”的含义</h2><p>这里的串行化不是说：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CPU 0 必须执行完全部指令</span><br><span class="line">然后 CPU 1 才能开始执行</span><br></pre></td></tr></table></figure>
+
+<p>它只表示：</p>
+<blockquote>
+<p>对同一个地址 <code>x</code> 的两个 Store，在 coherent memory system 中必须存在明确的先后顺序。</p>
+</blockquote>
+<p>合法情况是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">x = 1</span><br><span class="line">然后</span><br><span class="line">x = 2</span><br></pre></td></tr></table></figure>
+
+<p>或者：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">x = 2</span><br><span class="line">然后</span><br><span class="line">x = 1</span><br></pre></td></tr></table></figure>
+
+<p>不允许存在：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CPU 2 认为：x = 1 在 x = 2 前面</span><br><span class="line"></span><br><span class="line">CPU 3 认为：x = 2 在 x = 1 前面</span><br></pre></td></tr></table></figure>
+
+<p>对于同一个内存位置，Cache Coherence 要求相关 Store 被序列化到一致的 coherence order 中。</p>
+<p>需要注意：</p>
+<blockquote>
+<p>其他 CPU 不一定真的读取到中间值。</p>
+</blockquote>
+<p>例如实际顺序是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 0 -&gt; x = 1 -&gt; x = 2</span><br></pre></td></tr></table></figure>
+
+<p>某个 CPU 可能一直没有读取 <code>x</code>，等它真正读取时只看到：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 2</span><br></pre></td></tr></table></figure>
+
+<p>但在 coherence order 中，<code>x = 1</code> 仍然排在 <code>x = 2</code> 前面。</p>
+<h2 id="排出-Store-Buffer-不等于写入-DRAM"><a href="#排出-Store-Buffer-不等于写入-DRAM" class="headerlink" title="排出 Store Buffer 不等于写入 DRAM"></a>排出 Store Buffer 不等于写入 DRAM</h2><p>这里所说的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Store 排出 Store Buffer</span><br></pre></td></tr></table></figure>
+
+<p>不要简单理解成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">数据立即写入 DRAM</span><br></pre></td></tr></table></figure>
+
+<p>对于普通 Write-Back Cache，Store 排出通常意味着：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">获得包含 x 的 Cache Line 的写权限</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">将 Store 合并到本核的 Cache Line</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">Store 按照 Cache Coherence 规则对外可见</span><br></pre></td></tr></table></figure>
+
+<p>此时最新数据可能仍然位于某个 CPU 的 Cache 中，并没有立即写回 DRAM。</p>
+<p>所以，更准确的理解是：</p>
+<blockquote>
+<p>Store 从 CPU 的私有 pending 状态，进入了由 Cache Coherence 管理的共享可见状态。</p>
+</blockquote>
+<h2 id="记忆图"><a href="#记忆图" class="headerlink" title="记忆图"></a>记忆图</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">CPU 0                                      CPU 1</span><br><span class="line"></span><br><span class="line">┌──────────────────┐                       ┌──────────────────┐</span><br><span class="line">│ Store Buffer     │                       │ Store Buffer     │</span><br><span class="line">│                  │                       │                  │</span><br><span class="line">│ x = 1            │                       │ x = 2            │</span><br><span class="line">└────────┬─────────┘                       └────────┬─────────┘</span><br><span class="line">         │                                          │</span><br><span class="line">         │       两个 pending Store 可以共存        │</span><br><span class="line">         │                                          │</span><br><span class="line">         └──────────────────┬───────────────────────┘</span><br><span class="line">                            │</span><br><span class="line">                            ▼</span><br><span class="line">                  Cache Coherence 仲裁</span><br><span class="line">                            │</span><br><span class="line">                 ┌──────────┴──────────┐</span><br><span class="line">                 │                     │</span><br><span class="line">                 ▼                     ▼</span><br><span class="line"></span><br><span class="line">          x = 1 →co x = 2       x = 2 →co x = 1</span><br><span class="line"></span><br><span class="line">              最终 x = 2            最终 x = 1</span><br></pre></td></tr></table></figure>
+
+<p>可以简单记成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">私有 Store Buffer 中：</span><br><span class="line"></span><br><span class="line">CPU 0：x = 1</span><br><span class="line">CPU 1：x = 2</span><br><span class="line"></span><br><span class="line">可以同时存在。</span><br><span class="line"></span><br><span class="line">进入共享 coherent state 时：</span><br><span class="line"></span><br><span class="line">x = 1 → x = 2</span><br><span class="line"></span><br><span class="line">或者：</span><br><span class="line"></span><br><span class="line">x = 2 → x = 1</span><br><span class="line"></span><br><span class="line">必须二选一。</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>双 Store Buffer 场景的核心是：</p>
+<blockquote>
+<p>“同时存在”描述的是两个 CPU 的私有 pending 状态；”串行化”描述的是这些 Store 对共享 coherent state 生效时的全局顺序。</p>
+</blockquote>
+<p>因此：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CPU 0 SB：x = 1</span><br><span class="line">CPU 1 SB：x = 2</span><br></pre></td></tr></table></figure>
+
+<p>可以同时存在。</p>
+<p>但真正排出时，同一地址上的 Store 必须由 Cache Coherence 排成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 1 →co x = 2</span><br></pre></td></tr></table></figure>
+
+<p>或者：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x = 2 →co x = 1</span><br></pre></td></tr></table></figure>
+
+<p>不会存在两个互相矛盾的全局顺序。</p>
+<p>一句话概括：</p>
+<blockquote>
+<p>两个 CPU 可以同时”准备写”同一个地址，但不能无序地同时”完成对外可见的写”；最终由 Cache Coherence 串行化。</p>
+</blockquote>
+<hr>
+<p>参考资料:</p>
+<ol>
+<li><a href="https://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf">x86-TSO: A Rigorous and Usable Programmer’s Model for x86 Multiprocessors</a></li>
+<li><a href="https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-745.pdf">A Better x86 Memory Model: x86-TSO</a></li>
+<li>Intel SDM</li>
+<li><a href="https://library.oapen.org/handle/20.500.12657/61248">A Primer on Memory Consistency and Cache Coherence, Second Edition</a></li>
+</ol>
+
+    
+  </div>
+
+  
+  <!-- Post Copyright -->
+
+    
+
+  
+
+  
+  <footer class="post-footer">
+    
+    <div class="post-tags">
+      
+      <a href="/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/">体系结构</a>
+      
+    </div>
+    
+      
+  <nav class="post-nav">  
+      
+      
+      <a class="next" href="/2026/08/30/%E6%B5%85%E8%B0%88-Linux-%E7%9A%84-conntrack-%E6%B5%81/">  
+        <span class="next-text nav-default">浅谈 Linux 的 conntrack 流</span>  
+        <span class="prev-text nav-mobile">下一篇</span>  
+        <i class="iconfont icon-right"></i>  
+      </a>  
+      
+  </nav>  
+  
+
+  </footer>
+  
+
+</article>
+        </div>
+          
+  <div class="comments" id="comments">  
+      
+      <div id="disqus_thread">  
+        <noscript>  
+          Please enable JavaScript to view the  
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>  
+        </noscript>  
+      </div>  
+      
+  </div>  
+  
+
+      </div>
+    </main>
+    <footer id="footer" class="footer">
+      <!-- Social Links -->
+
+<div class="social-links">
+  
+  
+  
+  
+  <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+  
+</div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 -
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+  <span class="division">|</span>
+  <span class="hosting-info">
+    footer.hosting
+  </span>
+
+  <span class="copyright-year">
+    <span>
+      
+      &copy;
+      
+      2016 - 2026      
+    </span>
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+
+    <span class="author">liujunming</span>
+  </span>
+
+</div>
+    </footer>
+    <div class="back-to-top" id="back-to-top"> <i class="iconfont icon-up"></i> </div>
+  </div>
+    
+  
+<script type="text/javascript">
+  var disqus_config = function() {
+    this.page.url = 'http://liujunming.github.io/2026/08/30/%E6%B5%85%E8%B0%88Store-Buffer%E4%B8%8ECache-Coherence/';
+    this.page.identifier = '2026/08/30/浅谈Store-Buffer与Cache-Coherence/';
+    this.page.title = '浅谈Store Buffer与Cache Coherence';
+  };
+  (function() {
+    var d = document,
+      s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+  
+    
+    
+    
+    
+    
+  
+
+  
+
+
+
+
+
+
+
+<script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+
+
+
+<script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+
+
+
+<script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+  <script type="text/javascript" src="/js/src/even.js?v=3.0.0"></script>
+</body>
+
+</html>
