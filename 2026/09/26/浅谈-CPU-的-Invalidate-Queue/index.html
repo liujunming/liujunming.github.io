@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <!-- Website mata -->
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+<!-- Disable transformation -->
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+<!-- Website description -->
+
+<meta name="description" content="浅谈 CPU 的 Invalidate Queue" />
+
+
+<!-- Website keywords -->
+
+<meta name="keywords" content="体系结构, L" />
+
+
+
+
+<!-- Website rss -->
+
+<link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+
+
+<!-- Website favicon -->
+
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3.0.0" />
+
+
+<!-- Canonical, good for google search engine -->
+<link rel="canonical" href="http://liujunming.github.io/2026/09/26/浅谈-CPU-的-Invalidate-Queue/" />
+
+<!-- Fancybox styling -->
+
+<link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+<!-- MathJax (LaTeX) support -->
+
+
+<!-- Theme styling -->
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=3.0.0" />
+
+<!-- Analytics and push -->
+
+
+
+  
+
+
+
+<!-- LeanCloud Counter -->
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null,"server_url":null,"cdn":null},"toc":true,"fancybox":true,"pjax":true,"latex":false};
+</script>
+  
+  <title>浅谈 CPU 的 Invalidate Queue - L</title>
+
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+<body>
+  <div class="scrollPercentage"></div>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+    <a href="/">
+      <li class="mobile-menu-item">
+        
+        
+        首页              </li>
+    </a>
+    
+    <a href="/archives/">
+      <li class="mobile-menu-item">
+        
+        
+        归档              </li>
+    </a>
+    
+    <a href="/categories">
+      <li class="mobile-menu-item">
+        
+        
+        分类              </li>
+    </a>
+    
+    <a href="/tags">
+      <li class="mobile-menu-item">
+        
+        
+        标签              </li>
+    </a>
+    
+    <a href="/links">
+      <li class="mobile-menu-item">
+        
+        
+        Links              </li>
+    </a>
+    
+    <a href="/books">
+      <li class="mobile-menu-item">
+        
+        
+        Books              </li>
+    </a>
+    
+    <a href="/course">
+      <li class="mobile-menu-item">
+        
+        
+        Course              </li>
+    </a>
+    
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+      <div class="logo-wrapper">  
+  <a href="/." class="logo">L</a>  
+</div>  
+  
+<nav class="site-navbar">  
+    
+    <ul id="menu" class="menu">  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/">  
+              
+              
+              首页  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/archives/">  
+              
+              
+              归档  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/categories">  
+              
+              
+              分类  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/tags">  
+              
+              
+              标签  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/links">  
+              
+              
+              Links  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/books">  
+              
+              
+              Books  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/course">  
+              
+              
+              Course  
+              
+          </a>  
+        </li>  
+        
+    </ul>  
+    
+</nav>  
+
+    </header>
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+  <header class="post-header">
+    <h1 class="post-title">
+      
+      浅谈 CPU 的 Invalidate Queue
+      
+    </h1>
+
+    <div class="post-meta">
+      <span class="post-time">
+        2026-09-26
+      </span>
+      
+      
+      <span class="post-category">
+        
+        <a href="/categories/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/">体系结构</a>
+        
+      </span>
+      
+      
+    </div>
+  </header>
+
+  
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#What"><span class="toc-number">1.</span> <span class="toc-text">What</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Why"><span class="toc-number">2.</span> <span class="toc-text">Why</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80-Example"><span class="toc-number">3.</span> <span class="toc-text">基础 Example</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%88%E5%A4%B1%E6%95%88%EF%BC%8C%E5%86%8D%E5%BA%94%E7%AD%94"><span class="toc-number">3.1.</span> <span class="toc-text">先失效，再应答</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%88%E5%BA%94%E7%AD%94%EF%BC%8C%E5%86%8D%E5%A4%B1%E6%95%88"><span class="toc-number">3.2.</span> <span class="toc-text">先应答，再失效</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#How"><span class="toc-number">4.</span> <span class="toc-text">How</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%B0%E5%BF%86%E5%9B%BE"><span class="toc-number">5.</span> <span class="toc-text">记忆图</span></a></li></ol>
+    </div>
+  </div>
+  
+
+  <div class="post-content">
+    
+    <p>在<a href="/2026/08/22/%E6%B5%85%E8%B0%88x86%E7%9A%84TSO-memory-ordering/#store-buffer">浅谈x86的TSO memory ordering</a>中，介绍了Store Buffer：CPU 可以先把写操作暂存起来，而不是一直等待写入完成。</p>
+<p>本文换到接收请求的一侧，浅谈 <strong>Invalidate Queue（失效队列）</strong>。<span id="more"></span></p>
+<p>为便于理解，下面采用 Paul E. McKenney 书中的简化模型：<strong>失效请求可以先入队并应答，随后再处理。</strong> 这不是所有 CPU 的统一实现；本文也不把这一模型直接套用到 x86。示例是硬件层伪代码，不是可以直接照写的普通 C&#x2F;C++ 并发代码。</p>
+<h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p><img src="/images/2026/09/001.png"></p>
+<p>先把最容易混淆的一点说清楚：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CPU 已经应答了缓存失效请求</span><br><span class="line">        ≠</span><br><span class="line">对应的 Cache Line 已经完成失效</span><br></pre></td></tr></table></figure>
+
+<p><strong>Invalidate Queue 是用于暂存缓存失效请求的队列。</strong></p>
+<p>当其他 CPU 要修改某条被共享的 Cache Line 时，本 CPU 可能收到一个请求，要求将自己的缓存副本置为无效。</p>
+<p>队列中记录的是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">“让包含 x 的 Cache Line 失效”</span><br></pre></td></tr></table></figure>
+
+<p>而不是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">“把 x 更新为 1”</span><br></pre></td></tr></table></figure>
+
+<p>所以：</p>
+<blockquote>
+<p>Invalidate Queue 暂存的是“让旧副本失效的请求”，不是其他 CPU 写入的新数据。</p>
+</blockquote>
+<h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>处理缓存失效请求，也需要时间。</p>
+<p>例如，本地 Cache 正忙于处理 Load&#x2F;Store，或者短时间内收到大量失效请求，都可能导致失效处理不能立即完成。</p>
+<p>如果必须等到缓存行真正失效后才能返回应答，那么发起写入的 CPU 就需要等待更久。</p>
+<p>Store Buffer 可以让 CPU 暂时继续执行，但缓冲区写满后，CPU 仍需要停下来等待。</p>
+<p>因此，可以把两个动作分开：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">先接收请求并返回应答</span><br><span class="line">        ↓</span><br><span class="line">随后完成缓存失效</span><br></pre></td></tr></table></figure>
+
+<p>Invalidate Queue 的目的可以概括为：</p>
+<blockquote>
+<p>减少写入方等待失效应答的时间，而不是省略缓存失效本身。</p>
+</blockquote>
+<h2 id="基础-Example"><a href="#基础-Example" class="headerlink" title="基础 Example"></a>基础 Example</h2><p>假设初始状态为：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CPU 0 的 Cache：x = 0，共享状态</span><br><span class="line">CPU 1 的 Cache：x = 0，共享状态</span><br></pre></td></tr></table></figure>
+
+<p>现在 CPU 0 要执行：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Store x = 1</span><br></pre></td></tr></table></figure>
+
+<p>为获得写权限，CPU 0 需要让 CPU 1 的对应缓存副本失效。</p>
+<h3 id="先失效，再应答"><a href="#先失效，再应答" class="headerlink" title="先失效，再应答"></a>先失效，再应答</h3><p>先看一个不提前应答的处理过程：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">CPU 0                              CPU 1</span><br><span class="line"></span><br><span class="line">发送失效请求 ---------------------&gt; 收到请求</span><br><span class="line">等待                                Cache 正忙，暂时无法处理</span><br><span class="line">等待                                将 x 所在缓存行置为无效</span><br><span class="line">收到 ACK &lt;------------------------- 返回应答</span><br><span class="line"></span><br><span class="line">获得写权限，更新 x = 1</span><br></pre></td></tr></table></figure>
+
+<p>这里，CPU 0 等待的时间包含了 CPU 1 实际处理缓存失效的时间。</p>
+<h3 id="先应答，再失效"><a href="#先应答，再失效" class="headerlink" title="先应答，再失效"></a>先应答，再失效</h3><p>使用 Invalidate Queue 后，在队列能够接收请求且满足协议条件时，可以变成：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">CPU 0                              CPU 1</span><br><span class="line"></span><br><span class="line">发送失效请求 ---------------------&gt; 请求进入 Invalidate Queue</span><br><span class="line">收到 ACK &lt;------------------------- 先返回应答</span><br><span class="line"></span><br><span class="line">获得写权限，更新 x = 1               ……</span><br><span class="line">                                    随后处理队列中的请求</span><br><span class="line">                                    将 x 所在缓存行置为无效</span><br></pre></td></tr></table></figure>
+
+<p>两种方式都需要完成缓存失效。</p>
+<p>区别在于：</p>
+<blockquote>
+<p>第二种方式不再要求“缓存失效处理完成”，才能向写入方返回应答。</p>
+</blockquote>
+<h2 id="How"><a href="#How" class="headerlink" title="How"></a>How</h2><p>关键是把“接收请求”和“处理请求”解耦，但提前应答并不是随意答应。</p>
+<p>在本文采用的模型中，请求进入队列，相当于 CPU 作出一个承诺：</p>
+<blockquote>
+<p>在针对同一条 Cache Line 发出后续一致性协议消息之前，先处理已经排队的失效请求。</p>
+</blockquote>
+<p>这样，失效工作可以延后，但不能绕过相关协议约束。</p>
+<p>因此，Invalidate Queue 不是“缓存一致性可以不管了”，而是“在遵守协议的前提下，把一部分工作延后处理”。</p>
+<h2 id="记忆图"><a href="#记忆图" class="headerlink" title="记忆图"></a>记忆图</h2><p>把它与 Store Buffer 放在一起，可以这样记：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">本 CPU 发起的写入：</span><br><span class="line"></span><br><span class="line">    Store → Store Buffer → 满足条件后更新缓存</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">其他 CPU 引起的失效请求：</span><br><span class="line"></span><br><span class="line">    失效请求 → Invalidate Queue → 稍后使本地旧副本失效</span><br><span class="line">                     │</span><br><span class="line">                     └── 可以先返回 ACK</span><br></pre></td></tr></table></figure>
+
+<p>两者暂存的东西不同：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Store Buffer：</span><br><span class="line">    暂存“我准备写入的内容”</span><br><span class="line"></span><br><span class="line">Invalidate Queue：</span><br><span class="line">    暂存“别人要求我作废哪些缓存副本”</span><br></pre></td></tr></table></figure>
+
+<p>一句话概括：</p>
+<blockquote>
+<p>先把失效请求记下来并应答，让写入方少等一会儿；真正的失效操作，随后按协议完成。</p>
+</blockquote>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://kernel.org/pub/linux/kernel/people/paulmck/perfbook/perfbook.2026.06.21a.pdf#page=488">Is Parallel Programming Hard, And, If So, What Can You Do About It? — Appendix C: Why Memory Barriers?</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/memory-barriers.txt">Linux Kernel Memory Barriers</a></li>
+<li><a href="https://www.cs.cmu.edu/~410-f10/doc/Intel_Reordering_318147.pdf">Intel 64 Architecture Memory Ordering White Paper</a></li>
+</ol>
+
+    
+  </div>
+
+  
+  <!-- Post Copyright -->
+
+    
+
+  
+
+  
+  <footer class="post-footer">
+    
+    <div class="post-tags">
+      
+      <a href="/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/">体系结构</a>
+      
+    </div>
+    
+      
+  <nav class="post-nav">  
+      
+      
+      <a class="next" href="/2026/09/26/%E6%B5%85%E8%B0%88RDMA-selective-signaling%E6%8A%80%E6%9C%AF/">  
+        <span class="next-text nav-default">浅谈 RDMA 的 Selective Signaling</span>  
+        <span class="prev-text nav-mobile">下一篇</span>  
+        <i class="iconfont icon-right"></i>  
+      </a>  
+      
+  </nav>  
+  
+
+  </footer>
+  
+
+</article>
+        </div>
+          
+  <div class="comments" id="comments">  
+      
+      <div id="disqus_thread">  
+        <noscript>  
+          Please enable JavaScript to view the  
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>  
+        </noscript>  
+      </div>  
+      
+  </div>  
+  
+
+      </div>
+    </main>
+    <footer id="footer" class="footer">
+      <!-- Social Links -->
+
+<div class="social-links">
+  
+  
+  
+  
+  <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+  
+</div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 -
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+  <span class="division">|</span>
+  <span class="hosting-info">
+    footer.hosting
+  </span>
+
+  <span class="copyright-year">
+    <span>
+      
+      &copy;
+      
+      2016 - 2026      
+    </span>
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+
+    <span class="author">liujunming</span>
+  </span>
+
+</div>
+    </footer>
+    <div class="back-to-top" id="back-to-top"> <i class="iconfont icon-up"></i> </div>
+  </div>
+    
+  
+<script type="text/javascript">
+  var disqus_config = function() {
+    this.page.url = 'http://liujunming.github.io/2026/09/26/%E6%B5%85%E8%B0%88-CPU-%E7%9A%84-Invalidate-Queue/';
+    this.page.identifier = '2026/09/26/浅谈-CPU-的-Invalidate-Queue/';
+    this.page.title = '浅谈 CPU 的 Invalidate Queue';
+  };
+  (function() {
+    var d = document,
+      s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+  
+    
+    
+    
+    
+    
+  
+
+  
+
+
+
+
+
+
+
+<script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+
+
+
+<script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+
+
+
+<script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+  <script type="text/javascript" src="/js/src/even.js?v=3.0.0"></script>
+</body>
+
+</html>
