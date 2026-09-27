@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <!-- Website mata -->
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+<!-- Disable transformation -->
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+<!-- Website description -->
+
+<meta name="description" content="浅谈DAMON与virtio-balloon" />
+
+
+<!-- Website keywords -->
+
+<meta name="keywords" content="虚拟化, 内存管理, virtio, L" />
+
+
+
+
+<!-- Website rss -->
+
+<link rel="alternate" href="/atom.xml" title="L" type="application/atom+xml">
+
+
+<!-- Website favicon -->
+
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3.0.0" />
+
+
+<!-- Canonical, good for google search engine -->
+<link rel="canonical" href="http://liujunming.github.io/2026/09/27/浅谈DAMON与virtio-balloon/" />
+
+<!-- Fancybox styling -->
+
+<link rel="stylesheet" type="text/css" href="/lib/fancybox/jquery.fancybox.css" />
+
+
+<!-- MathJax (LaTeX) support -->
+
+
+<!-- Theme styling -->
+<link rel="stylesheet" type="text/css" href="/css/style.css?v=3.0.0" />
+
+<!-- Analytics and push -->
+
+
+
+  
+
+
+
+<!-- LeanCloud Counter -->
+
+
+<script>
+  window.config = {"leancloud":{"app_id":null,"app_key":null,"server_url":null,"cdn":null},"toc":true,"fancybox":true,"pjax":true,"latex":false};
+</script>
+  
+  <title>浅谈DAMON与virtio-balloon - L</title>
+
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+<body>
+  <div class="scrollPercentage"></div>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/." class="logo">L</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    
+    <a href="/">
+      <li class="mobile-menu-item">
+        
+        
+        首页              </li>
+    </a>
+    
+    <a href="/archives/">
+      <li class="mobile-menu-item">
+        
+        
+        归档              </li>
+    </a>
+    
+    <a href="/categories">
+      <li class="mobile-menu-item">
+        
+        
+        分类              </li>
+    </a>
+    
+    <a href="/tags">
+      <li class="mobile-menu-item">
+        
+        
+        标签              </li>
+    </a>
+    
+    <a href="/links">
+      <li class="mobile-menu-item">
+        
+        
+        Links              </li>
+    </a>
+    
+    <a href="/books">
+      <li class="mobile-menu-item">
+        
+        
+        Books              </li>
+    </a>
+    
+    <a href="/course">
+      <li class="mobile-menu-item">
+        
+        
+        Course              </li>
+    </a>
+    
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+      <div class="logo-wrapper">  
+  <a href="/." class="logo">L</a>  
+</div>  
+  
+<nav class="site-navbar">  
+    
+    <ul id="menu" class="menu">  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/">  
+              
+              
+              首页  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/archives/">  
+              
+              
+              归档  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/categories">  
+              
+              
+              分类  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/tags">  
+              
+              
+              标签  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/links">  
+              
+              
+              Links  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/books">  
+              
+              
+              Books  
+              
+          </a>  
+        </li>  
+        
+        <li class="menu-item">  
+          <a class="menu-item-link" href="/course">  
+              
+              
+              Course  
+              
+          </a>  
+        </li>  
+        
+    </ul>  
+    
+</nav>  
+
+    </header>
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+  <header class="post-header">
+    <h1 class="post-title">
+      
+      浅谈DAMON与virtio-balloon
+      
+    </h1>
+
+    <div class="post-meta">
+      <span class="post-time">
+        2026-09-27
+      </span>
+      
+      
+      <span class="post-category">
+        
+        <a href="/categories/%E8%99%9A%E6%8B%9F%E5%8C%96/">虚拟化</a>
+        
+      </span>
+      
+      
+    </div>
+  </header>
+
+  
+  <div class="post-toc" id="post-toc">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#What"><span class="toc-number">1.</span> <span class="toc-text">What</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DAMON%EF%BC%9A%E6%89%BE%E5%87%BA%E5%93%AA%E4%BA%9B%E7%BC%93%E5%AD%98%E5%BE%88%E4%B9%85%E6%B2%A1%E7%94%A8%E4%BA%86"><span class="toc-number">1.1.</span> <span class="toc-text">DAMON：找出哪些缓存很久没用了</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#virtio-balloon%EF%BC%9A%E5%91%8A%E8%AF%89-Host-%E5%93%AA%E4%BA%9B%E9%A1%B5%E9%9D%A2%E5%B7%B2%E7%BB%8F%E7%A9%BA%E9%97%B2"><span class="toc-number">1.2.</span> <span class="toc-text">virtio-balloon：告诉 Host 哪些页面已经空闲</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Why"><span class="toc-number">2.</span> <span class="toc-text">Why</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80-Example"><span class="toc-number">3.</span> <span class="toc-text">基础 Example</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%AA%E4%BD%BF%E7%94%A8%E7%A9%BA%E9%97%B2%E9%A1%B5%E4%B8%8A%E6%8A%A5"><span class="toc-number">3.1.</span> <span class="toc-text">只使用空闲页上报</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E5%90%88-DAMON-%E4%B8%BB%E5%8A%A8%E5%9B%9E%E6%94%B6"><span class="toc-number">3.2.</span> <span class="toc-text">配合 DAMON 主动回收</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#How"><span class="toc-number">4.</span> <span class="toc-text">How</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%9C%A8-Guest-%E4%B8%AD%E8%AF%86%E5%88%AB%E5%B9%B6%E5%9B%9E%E6%94%B6%E5%86%B7%E7%BC%93%E5%AD%98"><span class="toc-number">4.1.</span> <span class="toc-text">1. 在 Guest 中识别并回收冷缓存</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%B0%86%E7%A9%BA%E9%97%B2%E9%A1%B5%E4%B8%8A%E6%8A%A5%E7%BB%99-Host"><span class="toc-number">4.2.</span> <span class="toc-text">2. 将空闲页上报给 Host</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%9C%A8-Host-%E4%B8%AD%E9%87%8A%E6%94%BE%E5%AF%B9%E5%BA%94%E7%9A%84%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98"><span class="toc-number">4.3.</span> <span class="toc-text">3. 在 Host 中释放对应的物理内存</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%B0%E5%BF%86%E5%9B%BE"><span class="toc-number">5.</span> <span class="toc-text">记忆图</span></a></li></ol>
+    </div>
+  </div>
+  
+
+  <div class="post-content">
+    
+    <p>本文结合 DeepSeek DSec 论文中的内存回收方案，浅谈 DAMON 与 virtio-balloon 如何配合，让虚拟机里长期不用的文件缓存，不再一直占着宿主机的内存。<span id="more"></span></p>
+<p>为便于理解，下面只讨论 Linux 虚拟机中的文件缓存回收。</p>
+<p><img src="/images/2026/09/002.png"></p>
+<h2 id="What"><a href="#What" class="headerlink" title="What"></a>What</h2><p>先把最容易混淆的一点说清楚：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">虚拟机里的文件缓存很久没有被使用</span><br><span class="line">        ≠</span><br><span class="line">这些内存已经还给了宿主机</span><br></pre></td></tr></table></figure>
+
+<p>要把这件事做好，需要两个环节：<strong>先在 Guest 中释放缓存，再通知 Host 回收对应的内存。</strong></p>
+<h3 id="DAMON：找出哪些缓存很久没用了"><a href="#DAMON：找出哪些缓存很久没用了" class="headerlink" title="DAMON：找出哪些缓存很久没用了"></a>DAMON：找出哪些缓存很久没用了</h3><p><strong>DAMON(Data Access MONitoring)</strong> 是 Linux 内核的数据访问监测机制，可以通过采样，了解哪些内存经常被访问、哪些内存一段时间没有被访问。</p>
+<p>可以简单理解为：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">经常被访问的内存 → 热内存</span><br><span class="line"></span><br><span class="line">一段时间没有被访问的内存 → 冷内存</span><br></pre></td></tr></table></figure>
+
+<p>在本文方案中，利用 DAMON 找出冷的文件缓存，再通过内核的回收机制，释放其中符合条件的缓存页。</p>
+<p>注意，<strong>不是监测到“冷”，页面就自动变成了空闲；还需要执行回收。</strong></p>
+<h3 id="virtio-balloon：告诉-Host-哪些页面已经空闲"><a href="#virtio-balloon：告诉-Host-哪些页面已经空闲" class="headerlink" title="virtio-balloon：告诉 Host 哪些页面已经空闲"></a>virtio-balloon：告诉 Host 哪些页面已经空闲</h3><p>这里使用的是virtio-balloon的 <strong>Free Page Reporting(空闲页上报)</strong> 功能，而不是传统的气球膨胀、收缩操作。</p>
+<p>它让 Guest 可以告诉 Host：</p>
+<blockquote>
+<p>这批页面我现在没有使用，你可以回收它们背后占用的宿主机内存。</p>
+</blockquote>
+<p>因此，两者的分工可以概括为：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">DAMON配合内核回收：</span><br><span class="line">    把符合条件的冷缓存释放成 Guest 空闲页</span><br><span class="line"></span><br><span class="line">virtio-balloon空闲页上报：</span><br><span class="line">    把这些空闲页报告给 Host，由 Host 回收对应的内存</span><br></pre></td></tr></table></figure>
+
+<h2 id="Why"><a href="#Why" class="headerlink" title="Why"></a>Why</h2><p>在 DSec 所讨论的 Agent 工作负载中，文件可能只被读取一次，之后就不再访问，但内容仍然留在Guest的Page Cache中。</p>
+<p>如果 Guest 自己没有明显的内存压力，这些缓存可能继续保留。</p>
+<p>对单个 Guest 来说，保留缓存并不奇怪；但当一台 Host 上运行许多虚拟机时，每个Guest都留着一些长期不用的缓存，就可能占用大量宿主机内存。</p>
+<p><strong>Guest 觉得自己的内存还够用，不代表 Host 的内存也很宽裕。</strong></p>
+<p>仅有空闲页上报还不够：这些冷缓存仍然占着 Guest 的页面，尚未成为可以上报的空闲页。</p>
+<p>因此，需要把两个动作接起来：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">主动回收长期不用的文件缓存</span><br><span class="line">        ↓</span><br><span class="line">形成 Guest 空闲页</span><br><span class="line">        ↓</span><br><span class="line">上报给 Host，释放对应的宿主机内存</span><br></pre></td></tr></table></figure>
+
+<p>这套方案的目的可以概括为：</p>
+<blockquote>
+<p>不让长期不用的缓存，一直占着本来可以交给其他工作负载使用的内存。</p>
+</blockquote>
+<h2 id="基础-Example"><a href="#基础-Example" class="headerlink" title="基础 Example"></a>基础 Example</h2><p>假设一个 Agent 在虚拟机里读取了一批源码文件，完成分析后，不再访问这些文件，但虚拟机仍然继续运行。</p>
+<p>为简化示例，假设文件内容已经保存在磁盘上，下面只讨论可以回收的内存缓存副本。</p>
+<h3 id="只使用空闲页上报"><a href="#只使用空闲页上报" class="headerlink" title="只使用空闲页上报"></a>只使用空闲页上报</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">读取源码文件</span><br><span class="line">    ↓</span><br><span class="line">文件内容进入 Guest 的 Page Cache</span><br><span class="line">    ↓</span><br><span class="line">后续不再访问，但缓存仍然保留</span><br><span class="line">    ↓</span><br><span class="line">这些页面还不是空闲页，不能直接作为空闲页上报</span><br></pre></td></tr></table></figure>
+
+<p>virtio-balloon 的空闲页上报并不会因为某个缓存“很久没用”，就直接把它当作空闲内存。</p>
+<h3 id="配合-DAMON-主动回收"><a href="#配合-DAMON-主动回收" class="headerlink" title="配合 DAMON 主动回收"></a>配合 DAMON 主动回收</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">DAMON 发现这些文件缓存一段时间没有被访问</span><br><span class="line">    ↓</span><br><span class="line">Guest 内核回收符合条件的缓存页</span><br><span class="line">    ↓</span><br><span class="line">页面进入 Guest 的空闲内存池</span><br><span class="line">    ↓</span><br><span class="line">virtio-balloon 上报满足条件的空闲页</span><br><span class="line">    ↓</span><br><span class="line">Host 释放对应的物理内存</span><br></pre></td></tr></table></figure>
+
+<p>区别就在于：</p>
+<blockquote>
+<p>DAMON 配合回收机制，先把“还占着页面的冷缓存”，变成“可以上报的空闲页”。</p>
+</blockquote>
+<p>本例中，被清理的是<strong>内存里的缓存副本，不是磁盘上的文件</strong>。以后再次读取这些文件时，可以重新读入数据。</p>
+<h2 id="How"><a href="#How" class="headerlink" title="How"></a>How</h2><p>只看三个动作。</p>
+<h3 id="1-在-Guest-中识别并回收冷缓存"><a href="#1-在-Guest-中识别并回收冷缓存" class="headerlink" title="1. 在 Guest 中识别并回收冷缓存"></a>1. 在 Guest 中识别并回收冷缓存</h3><p>DAMON 通过按区域采样来观察内存访问情况，不需要逐次记录每一次访问。</p>
+<p>在本文方案中，一段时间没有被访问的文件页会成为回收候选，再通过 Guest 内核的正常回收路径，释放符合条件的页面。</p>
+<p>可以把它理解为：</p>
+<blockquote>
+<p>先观察哪些缓存长期没用，再尝试把它们腾出来。</p>
+</blockquote>
+<h3 id="2-将空闲页上报给-Host"><a href="#2-将空闲页上报给-Host" class="headerlink" title="2. 将空闲页上报给 Host"></a>2. 将空闲页上报给 Host</h3><p>释放出的页面会交回 Guest 的内存管理器。</p>
+<p>内核的 <strong>buddy allocator（伙伴分配器）</strong> 可以按规则合并相邻的空闲内存块，让更多空闲内存满足上报条件。随后，virtio-balloon 将这些空闲页报告给 Host。</p>
+<p>这里上报的是<strong>哪些页面已经空闲</strong>，不是把文件内容搬到 Host。</p>
+<h3 id="3-在-Host-中释放对应的物理内存"><a href="#3-在-Host-中释放对应的物理内存" class="headerlink" title="3. 在 Host 中释放对应的物理内存"></a>3. 在 Host 中释放对应的物理内存</h3><p>在 DSec 的方案中，Host 上的虚拟机监控器 <strong>Firecracker</strong> 接收这些报告，并通过：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">madvise(..., MADV_DONTNEED)</span><br></pre></td></tr></table></figure>
+
+<p>释放相应的宿主机内存。</p>
+<p>到这一步，才完成了从“Guest 不再使用”，到“Host 可以重新利用这部分内存”的衔接。</p>
+<p>空闲页上报完成后，这些页面仍会回到 Guest 的空闲内存池，后续可以再次分配使用，并不是永久拿走了这部分 Guest 内存。</p>
+<h2 id="记忆图"><a href="#记忆图" class="headerlink" title="记忆图"></a>记忆图</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">Guest：虚拟机内部</span><br><span class="line"></span><br><span class="line">    长期不用的文件缓存</span><br><span class="line">              │</span><br><span class="line">              │ DAMON 识别 + 内核回收</span><br><span class="line">              ▼</span><br><span class="line">         Guest 空闲页</span><br><span class="line">              │</span><br><span class="line">              │ virtio-balloon 空闲页上报</span><br><span class="line">              ▼</span><br><span class="line">──────────────────────────────────────</span><br><span class="line">Host：宿主机</span><br><span class="line"></span><br><span class="line">    Firecracker 收到空闲页报告</span><br><span class="line">              │</span><br><span class="line">              │ MADV_DONTNEED</span><br><span class="line">              ▼</span><br><span class="line">    释放对应的 Host 物理内存</span><br></pre></td></tr></table></figure>
+
+<p>可以简单记成：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">DAMON + 内核回收：先腾出页面</span><br><span class="line"></span><br><span class="line">virtio-balloon：再报告空闲</span><br><span class="line"></span><br><span class="line">Host：最后回收内存</span><br></pre></td></tr></table></figure>
+
+<p>一句话概括：</p>
+<blockquote>
+<p>先让虚拟机腾出长期不用的缓存，再让宿主机把对应的内存利用起来。</p>
+</blockquote>
+<hr>
+<p>参考资料：</p>
+<ol>
+<li><a href="https://arxiv.org/abs/2609.22978">DeepSeek Elastic Compute (DSec): A Sandbox Infrastructure for Effective Agentic Training at Scale</a></li>
+<li><a href="https://lore.kernel.org/linux-mm/20260925054408.10431-1-lance.yang@linux.dev/">[FYI] DAMON and virtio-balloon in DeepSeek’s DSec paper</a></li>
+<li><a href="https://mp.weixin.qq.com/s/ulYhZjII7e4tz2B-2afiww">DAMON和virtio-balloon对deepseek DSec的基石支撑</a></li>
+<li><a href="https://docs.kernel.org/mm/damon/index.html">Linux Kernel Documentation: DAMON</a></li>
+<li><a href="https://docs.kernel.org/mm/damon/design.html">Linux Kernel Documentation: DAMON Design</a></li>
+<li><a href="https://docs.kernel.org/admin-guide/mm/damon/reclaim.html">Linux Kernel Documentation: DAMON-based Reclamation</a></li>
+<li><a href="https://docs.kernel.org/mm/free_page_reporting.html">Linux Kernel Documentation: Free Page Reporting</a></li>
+</ol>
+
+    
+  </div>
+
+  
+  <!-- Post Copyright -->
+
+    
+
+  
+
+  
+  <footer class="post-footer">
+    
+    <div class="post-tags">
+      
+      <a href="/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/">虚拟化</a>
+      
+      <a href="/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">内存管理</a>
+      
+      <a href="/tags/virtio/">virtio</a>
+      
+    </div>
+    
+      
+  <nav class="post-nav">  
+      
+      
+      <a class="next" href="/2026/09/26/%E6%B5%85%E8%B0%88-CPU-%E7%9A%84-Invalidate-Queue/">  
+        <span class="next-text nav-default">浅谈 CPU 的 Invalidate Queue</span>  
+        <span class="prev-text nav-mobile">下一篇</span>  
+        <i class="iconfont icon-right"></i>  
+      </a>  
+      
+  </nav>  
+  
+
+  </footer>
+  
+
+</article>
+        </div>
+          
+  <div class="comments" id="comments">  
+      
+      <div id="disqus_thread">  
+        <noscript>  
+          Please enable JavaScript to view the  
+          <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a>  
+        </noscript>  
+      </div>  
+      
+  </div>  
+  
+
+      </div>
+    </main>
+    <footer id="footer" class="footer">
+      <!-- Social Links -->
+
+<div class="social-links">
+  
+  
+  
+  
+  <a href="mailto:liujunming1163@gmail.com" class="iconfont icon-email" title="email"></a>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <a href="https://github.com/liujunming" class="iconfont icon-github" title="github"></a>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  <a href="/atom.xml" class="iconfont icon-rss" title="rss"></a>
+  
+</div>
+
+
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://hexo.io/">Hexo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 -
+    <a class="theme-link" href="https://github.com/ahonn/hexo-theme-even">Even</a>
+  </span>
+  <span class="division">|</span>
+  <span class="hosting-info">
+    footer.hosting
+  </span>
+
+  <span class="copyright-year">
+    <span>
+      
+      &copy;
+      
+      2016 - 2026      
+    </span>
+
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+
+    <span class="author">liujunming</span>
+  </span>
+
+</div>
+    </footer>
+    <div class="back-to-top" id="back-to-top"> <i class="iconfont icon-up"></i> </div>
+  </div>
+    
+  
+<script type="text/javascript">
+  var disqus_config = function() {
+    this.page.url = 'http://liujunming.github.io/2026/09/27/%E6%B5%85%E8%B0%88DAMON%E4%B8%8Evirtio-balloon/';
+    this.page.identifier = '2026/09/27/浅谈DAMON与virtio-balloon/';
+    this.page.title = '浅谈DAMON与virtio-balloon';
+  };
+  (function() {
+    var d = document,
+      s = d.createElement('script');
+
+    s.src = '//http-liujunming-top-2.disqus.com/embed.js';
+
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+  
+    
+    
+    
+    
+    
+  
+
+  
+
+
+
+
+
+
+
+<script type="text/javascript" src="/lib/jquery/jquery.min.js"></script>
+
+
+
+<script type="text/javascript" src="/lib/slideout/slideout.js"></script>
+
+
+
+<script type="text/javascript" src="/lib/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+  <script type="text/javascript" src="/js/src/even.js?v=3.0.0"></script>
+</body>
+
+</html>
